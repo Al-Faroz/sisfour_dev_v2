@@ -1,0 +1,17 @@
+/vendor/
+/writable/logs/*
+/writable/session/*
+/writable/cache/*
+/writable/backups/*
+!/writable/logs/index.html
+!/writable/session/index.html
+!/writable/cache/index.html
+!/writable/backups/index.html
+/uploads/foto_siswa/*
+/uploads/foto_guru/*
+/uploads/branding/*
+/uploads/kartu_pelajar/**/*
+!/uploads/**/.htaccess
+.env
+.DS_Store
+Thumbs.db

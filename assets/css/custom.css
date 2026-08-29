@@ -1,0 +1,112 @@
+/* ============================================================
+   SisisFour - Custom CSS
+   Tambahan styling di luar tema Sneat
+   ============================================================ */
+
+/* ----- STATUS BADGE PRESENSI ----- */
+.status-hadir {
+    background: #28a745;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-sakit {
+    background: #fd7e14;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-izin {
+    background: #ffc107;
+    color: #000;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-alpha {
+    background: #dc3545;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ----- KARTU PELAJAR (Dompdf) ----- */
+.kartu-pelajar {
+    width: 1011px;
+    height: 638px;
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+}
+
+.kartu-pelajar .photo-area {
+    width: 210px;
+    height: 280px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #e9ecef;
+}
+
+.kartu-pelajar .qr-area {
+    width: 120px;
+    height: 120px;
+}
+
+/* ----- SELECT2 OVERRIDE (Bootstrap 5) ----- */
+.select2-container--bootstrap-5 .select2-selection {
+    border-color: #d0d9e6;
+    border-radius: 0.375rem;
+    min-height: 38px;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    line-height: 38px;
+    padding-left: 12px;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+    border-color: #d0d9e6;
+    border-radius: 0.375rem;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--selected {
+    background-color: #e9ecef;
+    color: #1e2a3a;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: #2a7de1;
+    color: #fff;
+}
+
+/* ----- DATA TABLES RESPONSIVE ----- */
+table.dataTable.dtr-inline.collapsed>tbody>tr>td.dtr-control:before,
+table.dataTable.dtr-inline.collapsed>tbody>tr>th.dtr-control:before {
+    border-left-color: #2a7de1 !important;
+}
+
+table.dataTable>tbody>tr.child ul.dtr-details>li span.dtr-title {
+    min-width: 120px;
+    font-weight: 600;
+}
+
+/* ----- UTILITY ----- */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.text-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

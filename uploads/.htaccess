@@ -1,0 +1,12 @@
+﻿# Blokir eksekusi script apapun di folder uploads/
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|pl|py|cgi|asp|aspx|sh|exe)$">
+    Require all denied
+</FilesMatch>
+
+# Cegah directory listing
+Options -Indexes
+
+# Nonaktifkan eksekusi PHP handler (untuk kompatibilitas Apache lama)
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
