@@ -1,17 +1,40 @@
+# ================================================================
+# SisisFour - .gitignore
+# MTsN 4 Jombang
+# ================================================================
+
+# --- Environment & Config ---
+.env
+
+# --- Dependencies (composer install ulang dari composer.json) ---
 /vendor/
+
+# --- Writable (CodeIgniter 4) ---
 /writable/logs/*
-/writable/session/*
-/writable/cache/*
-/writable/backups/*
 !/writable/logs/index.html
+
+/writable/session/*
 !/writable/session/index.html
+
+/writable/cache/*
 !/writable/cache/index.html
+
+/writable/backups/*
 !/writable/backups/index.html
+
+# --- Uploads Dinamis (data siswa/guru, tidak ikut Git) ---
 /uploads/foto_siswa/*
 /uploads/foto_guru/*
 /uploads/branding/*
 /uploads/kartu_pelajar/**/*
 !/uploads/**/.htaccess
-.env
+!/uploads/**/index.html
+
+# --- IDE / OS ---
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+
+# --- Testing (tidak diupload ke produksi, tapi tetap boleh di-commit selama dev) ---
+# tests/  <- uncomment jika ingin exclude folder test dari repo

@@ -1,69 +1,119 @@
-# CodeIgniter 4 Application Starter
+# SisisFour
 
-## What is CodeIgniter?
+Aplikasi manajemen madrasah terpadu untuk **MTsN 4 Jombang** — mencakup presensi siswa & guru, jurnal mengajar, bimbingan konseling (BK), pencatatan prestasi, dan kartu pelajar digital dengan verifikasi QR.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+Dibangun dengan **CodeIgniter 4** (PHP 8.2), mendukung dual-output (Web + JSON API untuk mobile Cordova).
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+* * *
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Stack Teknis
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+| Komponen | Teknologi |
+| --- | --- |
+| Framework | CodeIgniter 4 |
+| PHP | 8.2.12 |
+| Database | MySQL / MariaDB |
+| UI | Sneat Free (Bootstrap 5) + jQuery |
+| Library | PhpSpreadsheet (Excel), Dompdf (PDF), endroid/qr-code |
+| Auth Mobile | JWT (Access Token 1 jam + Refresh Token 30 hari) |
 
-## Installation & updates
+* * *
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+## Instalasi di Lokal
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+1. **Clone repository**
 
-## Setup
+   ```bash
+   git clone https://github.com/Al-Faroz/sisfour_dev_v2.git
+   cd sisfour_dev_v2
+   ```
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+2. **Install dependency**
 
-## Important Change with index.php
+   ```bash
+   composer install
+   ```
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+3. **Setup environment**
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+   Copy `env` menjadi `.env`, lalu sesuaikan:
 
-**Please** read the user guide for a better explanation of how CI4 works!
+   ```
+   CI_ENVIRONMENT = development
+   app.baseURL = 'http://localhost/sisfour_dev_v2'
 
-## Repository Management
+   database.default.hostname = localhost
+   database.default.database = sisfour_dev_v2
+   database.default.username = root
+   database.default.password =
+   ```
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+4. **Import database**
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+   Import file SQL (lihat `docs/02_DATABASE.md` atau file dump `.sql` di root) ke MySQL/MariaDB via phpMyAdmin atau command line. Pastikan seluruh tabel, foreign key, dan seeder awal (`permissions`, `role_permissions`, `role_menus`, `mata_pelajaran`) terisi dengan benar.
 
-## Server Requirements
+5. **Jalankan server**
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+   ```bash
+   php spark serve
+   ```
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+6. **Akses aplikasi**
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+   `http://localhost:8080`
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+7. **Login default**
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+   ```
+   Username: admin
+   Password: admin
+   ```
+
+   *(Wajib diubah setelah login pertama.)*
+
+* * *
+
+## Deploy ke Hosting Produksi
+
+1. Upload seluruh file ke hosting (root domain / `public_html`).
+2. Sesuaikan `.env` untuk production:
+
+   ```
+   CI_ENVIRONMENT = production
+   app.baseURL = 'https://domain-produksi.com'
+   database.default.hostname = [host]
+   database.default.database = [db]
+   database.default.username = [user]
+   database.default.password = [pass]
+   ```
+
+3. Import schema database (sama seperti langkah lokal).
+4. Set permission folder writable:
+
+   ```bash
+   chmod 755 writable/
+   ```
+
+5. Pastikan `.htaccess` proteksi folder sensitif (`app/`, `writable/`, `vendor/`, `.env`) ikut ter-upload dan aktif.
+6. Pastikan ekstensi PHP aktif: `intl`, `mbstring`, `zip`, `gd`, `fileinfo`, `mysqlnd`.
+
+* * *
+
+## Catatan Penting
+
+- **Struktur folder:** `public/` sudah dipindahkan ke root — `index.php` dan `.htaccess` ada langsung di root project.
+- **HTTPS/SSL wajib** di produksi — dibutuhkan untuk Geolocation API (geofencing) dan aplikasi mobile.
+- **NIK:** 16 digit, divalidasi di form dan saat import Excel.
+- **Backup database:** menggunakan SQL dump murni PHP (tanpa `exec()`/`shell_exec()`), karena hosting mematikan fungsi tersebut.
+- **Testing:** `tests/` (PHPUnit, area kritis: validasi jadwal, geofencing, resolusi scope RBAC) hanya dijalankan di lokal via `php spark test`. Folder ini tidak diupload ke hosting produksi.
+- **Timezone:** `Asia/Jakarta`, wajib diset di `app/Config/App.php`.
+
+* * *
+
+## Dokumentasi Acuan
+
+Seluruh dokumen spesifikasi teknis (masterplan, skema database, RBAC, tiap modul, routes, dsb.) tersedia di folder `docs/`.
+
+* * *
+
+© 2026 SisisFour · MTsN 4 Jombang
