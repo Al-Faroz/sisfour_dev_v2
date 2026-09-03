@@ -2,233 +2,220 @@
 
 namespace App\Services;
 
-use App\Models\ApiTokensModel;
-use App\Models\LoginAttemptsModel;
-use App\Models\UserModel;
-use App\Models\UserRolesModel;
-use CodeIgniter\Database\ConnectionInterface;
+use CodeIgniter\Database\BaseConnection;
 use Config\Database;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 
 /**
  * AuthService
  *
- * Menangani seluruh logika autentikasi & RBAC inti:
- * - Login/logout web (session, ci_sessions)
- * - Login/refresh/logout mobile (JWT access + refresh token)
- * - Rate limiting (5x gagal -> lock 5 menit, berbasis username)
- * - Single Active Session (auth_version)
- * - resolveScope() untuk PermissionFilter
- * - Status Wali Kelas (dinamis, TIDAK PERNAH disimpan di session)
+ * Menangani autentikasi (web session & JWT), resolusi scope RBAC,
+ * dan pengecekan status Wali Kelas (dinamis, TIDAK disimpan di session).
  *
- * Acuan: 01_MASTERPLAN §9, 03_AUTH_RBAC_MENU §1-3, 16_MOBILE_CORDOVA §4
+ * Acuan: 03_AUTH_RBAC_MENU §1, §2.2, §3
  */
 class AuthService
 {
-    protected UserModel $userModel;
-    protected UserRolesModel $userRolesModel;
-    protected LoginAttemptsModel $loginAttemptsModel;
-    protected ApiTokensModel $apiTokensModel;
-    protected ConnectionInterface $db;
-
-    protected int $maxAttempts      = 5;      // 03_AUTH_RBAC_MENU §1.4
-    protected int $lockMinutes      = 5;
-    protected int $accessTokenTtl   = 3600;      // 1 jam
-    protected int $refreshTokenTtl  = 2592000;   // 30 hari
-    protected string $jwtSecret;
+    protected BaseConnection $db;
 
     public function __construct()
     {
-        $this->userModel          = new UserModel();
-        $this->userRolesModel     = new UserRolesModel();
-        $this->loginAttemptsModel = new LoginAttemptsModel();
-        $this->apiTokensModel     = new ApiTokensModel();
-        $this->db                 = Database::connect();
-
-        // WAJIB diisi di .env: JWT_SECRET=<random string panjang>
-        $this->jwtSecret = (string) env('JWT_SECRET', '');
+        $this->db = Database::connect();
     }
-
-    // ================================================================
-    // RATE LIMITING — §1.4
-    // ================================================================
-
-    public function isLocked(string $username): bool
-    {
-        return $this->loginAttemptsModel->countRecentFailedAttempts($username, $this->lockMinutes) >= $this->maxAttempts;
-    }
-
-    // ================================================================
-    // WEB LOGIN — Session (ci_sessions) — §1.1, §1.3
-    // ================================================================
 
     /**
-     * @return array{success: bool, message: string, user?: array}
+     * Proses login web (session-based).
+     *
+     * @return array{success:bool, message:string, user?:array}
      */
-    public function attemptLogin(string $username, string $password, string $ipAddress): array
+    public function attemptLogin(string $username, string $password): array
     {
+        // 1. Rate limiting: 5x gagal berturut-turut (berbasis username) -> lock 5 menit
         if ($this->isLocked($username)) {
-            return ['success' => false, 'message' => 'Akun terkunci sementara karena terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit.'];
+            return ['success' => false, 'message' => 'Akun terkunci sementara. Coba lagi dalam beberapa menit.'];
         }
 
-        $user = $this->userModel->findByUsername($username);
+        $user = $this->db->table('users')
+            ->where('username', $username)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
 
         if (!$user || !password_verify($password, $user['password'])) {
-            $this->loginAttemptsModel->catat($username, $ipAddress, false);
-
+            $this->recordAttempt($username, false);
             return ['success' => false, 'message' => 'Username atau password salah.'];
         }
 
-        if ((int) $user['status_aktif'] !== 1) {
-            $this->loginAttemptsModel->catat($username, $ipAddress, false);
+        // Login sukses -> reset attempts, increment auth_version (single active session)
+        $this->recordAttempt($username, true);
 
-            return ['success' => false, 'message' => 'Akun tidak aktif. Hubungi Admin.'];
-        }
-
-        // Single Active Session: increment auth_version -> sesi/token lama otomatis invalid
-        $newVersion = (int) $user['auth_version'] + 1;
-        $this->userModel->update($user['id'], ['auth_version' => $newVersion]);
-        $user['auth_version'] = $newVersion;
-
-        $this->loginAttemptsModel->catat($username, $ipAddress, true);
-
-        // Struktur session WAJIB — 03_AUTH_RBAC_MENU §1.3
-        session()->regenerate(true);
-        session()->set([
-            'user_id'      => $user['id'],
-            'role'         => $user['role'],
-            'all_roles'    => $this->getUserRoles((int) $user['id']),
-            'username'     => $user['username'],
-            'id_guru'      => $user['id_guru'],
-            'id_siswa'     => $user['id_siswa'],
-            'id_pegawai'   => $user['id_pegawai'],
-            'auth_version' => $user['auth_version'],
-            'logged_in'    => true,
+        $newAuthVersion = (int) $user['auth_version'] + 1;
+        $this->db->table('users')->where('id', $user['id'])->update([
+            'auth_version' => $newAuthVersion,
+            'updated_at'   => date('Y-m-d H:i:s'),
         ]);
+        $user['auth_version'] = $newAuthVersion;
 
         return ['success' => true, 'message' => 'Login berhasil.', 'user' => $user];
     }
 
-    public function logout(): void
-    {
-        session()->destroy();
-    }
-
     /**
-     * Cek validitas session (dipanggil AuthFilter di setiap request web).
-     * Membandingkan auth_version di session vs database (Single Active Session).
+     * Simpan struktur session baku setelah login berhasil (WAJIB — 03_AUTH_RBAC_MENU §1.3).
      */
-    public function isWebSessionValid(): bool
+    public function setUserSession(array $user): void
     {
-        if (!session()->get('logged_in')) {
-            return false;
-        }
-
-        $user = $this->userModel->find(session()->get('user_id'));
-
-        if (!$user || (int) $user['status_aktif'] !== 1) {
-            return false;
-        }
-
-        return (int) $user['auth_version'] === (int) session()->get('auth_version');
+        session()->set([
+            'user_id'      => $user['id'],
+            'role'         => $user['role'],
+            'username'     => $user['username'],
+            'id_guru'      => $user['id_guru'] ?? null,
+            'id_siswa'     => $user['id_siswa'] ?? null,
+            'id_pegawai'   => $user['id_pegawai'] ?? null,
+            'auth_version' => $user['auth_version'],
+            'logged_in'    => true,
+        ]);
     }
 
-    // ================================================================
-    // MULTI-ROLE — §2.1
-    // ================================================================
+    protected function isLocked(string $username): bool
+    {
+        $fiveMinutesAgo = date('Y-m-d H:i:s', strtotime('-5 minutes'));
+
+        $failedCount = $this->db->table('login_attempts')
+            ->where('username', $username)
+            ->where('berhasil', 0)
+            ->where('waktu >=', $fiveMinutesAgo)
+            ->countAllResults();
+
+        return $failedCount >= 5;
+    }
+
+    protected function recordAttempt(string $username, bool $berhasil): void
+    {
+        $this->db->table('login_attempts')->insert([
+            'username'   => $username,
+            'ip_address' => service('request')->getIPAddress(),
+            'waktu'      => date('Y-m-d H:i:s'),
+            'berhasil'   => $berhasil ? 1 : 0,
+        ]);
+
+        // Kalau berhasil, tidak perlu hapus histori gagal — retensi tabel biarkan tumbuh,
+        // penghitungan lock selalu berbasis window 5 menit terakhir (lihat isLocked()).
+    }
 
     /**
-     * Gabungan users.role (role utama) + seluruh baris di user_roles.
+     * Ambil semua role milik user (role utama + user_roles / multi-role).
      *
-     * @return list<string>
+     * @return string[]
      */
     public function getUserRoles(int $userId): array
     {
-        $user = $this->userModel->find($userId);
-        if (!$user) {
-            return [];
+        $roles = [];
+
+        $primary = $this->db->table('users')->select('role')->where('id', $userId)->get()->getRowArray();
+        if ($primary) {
+            $roles[] = $primary['role'];
         }
 
-        $roles   = $this->userRolesModel->getRolesByUser($userId);
-        $roles[] = $user['role'];
+        $extra = $this->db->table('user_roles')->select('role')->where('id_user', $userId)->get()->getResultArray();
+        foreach ($extra as $row) {
+            $roles[] = $row['role'];
+        }
 
         return array_values(array_unique($roles));
     }
 
-    // ================================================================
-    // RESOLVE SCOPE (RBAC) — §3.2, dipanggil oleh PermissionFilter
-    // ================================================================
-
+    /**
+     * Resolusi scope untuk sebuah permission_key berdasarkan seluruh role user.
+     *
+     * Jika user memiliki permission ini di lebih dari satu role dengan scope berbeda,
+     * ambil scope "terluas": SEMUA > KELAS_DIAMPU/KELAS_TERJADWAL > DIRI_SENDIRI.
+     *
+     * Acuan: 03_AUTH_RBAC_MENU §3.2
+     */
     public function resolveScope(string $permissionKey, int $userId): string
     {
         $roles = $this->getUserRoles($userId);
-
         if (empty($roles)) {
             return 'TIDAK_ADA';
         }
 
-        $result = $this->db->table('role_permissions')
-            ->select('role_permissions.scope')
-            ->join('permissions', 'permissions.id = role_permissions.id_permission')
-            ->whereIn('role_permissions.role', $roles)
-            ->where('permissions.permission_key', $permissionKey)
+        $rows = $this->db->table('role_permissions rp')
+            ->select('rp.scope')
+            ->join('permissions p', 'p.id = rp.id_permission')
+            ->whereIn('rp.role', $roles)
+            ->where('p.permission_key', $permissionKey)
             ->get()
-            ->getRow();
+            ->getResultArray();
 
-        return $result->scope ?? 'TIDAK_ADA';
-    }
+        if (empty($rows)) {
+            return 'TIDAK_ADA';
+        }
 
-    /**
-     * Cek beberapa permission_key sekaligus (OR — dipakai untuk route seperti
-     * 'permission:master_guru.manage,master_guru.view'). Mengembalikan scope
-     * dari permission PERTAMA yang cocok, prioritas sesuai urutan array.
-     */
-    public function resolveScopeAny(array $permissionKeys, int $userId): array
-    {
-        foreach ($permissionKeys as $key) {
-            $scope = $this->resolveScope($key, $userId);
-            if ($scope !== 'TIDAK_ADA') {
-                return ['permission' => $key, 'scope' => $scope];
+        $priority = ['SEMUA' => 4, 'KELAS_DIAMPU' => 3, 'KELAS_TERJADWAL' => 3, 'DIRI_SENDIRI' => 2, 'TIDAK_ADA' => 0];
+
+        $best = 'TIDAK_ADA';
+        $bestScore = -1;
+        foreach ($rows as $row) {
+            $scope = $row['scope'];
+            $score = $priority[$scope] ?? 1;
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $scope;
             }
         }
 
-        return ['permission' => $permissionKeys[0] ?? null, 'scope' => 'TIDAK_ADA'];
-    }
-
-    // ================================================================
-    // STATUS WALI KELAS — DINAMIS, JANGAN DISIMPAN DI SESSION — §3.4
-    // ================================================================
-
-    public function isWaliKelas(?int $idGuru, ?int $idTahun = null): bool
-    {
-        return $this->getKelasDiampu($idGuru, $idTahun) !== null;
+        return $best;
     }
 
     /**
-     * Ambil id_kelas yang diampu guru (jika sedang menjadi wali aktif).
-     * Return null jika bukan wali kelas.
+     * Cek status Wali Kelas secara dinamis (JANGAN pernah simpan di session).
+     * Acuan: 03_AUTH_RBAC_MENU §3.4
      */
-    public function getKelasDiampu(?int $idGuru, ?int $idTahun = null): ?int
+    public function isWaliKelas(?int $idGuru, ?int $idTahun = null): bool
     {
         if (!$idGuru) {
-            return null;
+            return false;
         }
 
-        $idTahun ??= $this->getActiveTahunAjaranId();
+        if ($idTahun === null) {
+            $tahun = $this->db->table('tahun_ajaran')->where('status_aktif', 1)->get()->getRowArray();
+            $idTahun = $tahun['id'] ?? null;
+        }
+
         if (!$idTahun) {
-            return null;
+            return false;
         }
 
-        $row = $this->db->table('mapping_wali_kelas')
+        return (bool) $this->db->table('mapping_wali_kelas')
+            ->where('id_guru', $idGuru)
+            ->where('id_tahun', $idTahun)
+            ->where('deleted_at', null)
+            ->countAllResults();
+    }
+
+    /**
+     * Ambil daftar id_kelas yang diampu oleh guru (untuk scope KELAS_DIAMPU).
+     *
+     * @return int[]
+     */
+    public function getKelasDiampu(int $idGuru, ?int $idTahun = null): array
+    {
+        if ($idTahun === null) {
+            $tahun = $this->db->table('tahun_ajaran')->where('status_aktif', 1)->get()->getRowArray();
+            $idTahun = $tahun['id'] ?? null;
+        }
+        if (!$idTahun) {
+            return [];
+        }
+
+        $rows = $this->db->table('mapping_wali_kelas')
             ->select('id_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
             ->get()
-            ->getRow();
+            ->getResultArray();
 
-        return $row->id_kelas ?? null;
+        return array_column($rows, 'id_kelas');
     }
 
     /**
@@ -236,21 +223,20 @@ class AuthService
      *
      * @return int[]
      */
-    public function getKelasTerjadwalHariIni(?int $idGuru, ?int $idTahun = null): array
+    public function getKelasTerjadwalHariIni(int $idGuru, ?int $idTahun = null): array
     {
-        if (!$idGuru) {
-            return [];
+        if ($idTahun === null) {
+            $tahun = $this->db->table('tahun_ajaran')->where('status_aktif', 1)->get()->getRowArray();
+            $idTahun = $tahun['id'] ?? null;
         }
-
-        $idTahun ??= $this->getActiveTahunAjaranId();
         if (!$idTahun) {
             return [];
         }
 
-        $hariIni = $this->namaHariIndonesia();
+        $hariIni = $this->hariIndonesia();
 
         $rows = $this->db->table('jadwal_guru')
-            ->select('DISTINCT id_kelas', false)
+            ->select('id_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
             ->where('hari', $hariIni)
@@ -258,186 +244,15 @@ class AuthService
             ->get()
             ->getResultArray();
 
-        return array_map('intval', array_column($rows, 'id_kelas'));
+        return array_values(array_unique(array_column($rows, 'id_kelas')));
     }
 
-    public function getActiveTahunAjaranId(): ?int
-    {
-        $row = $this->db->table('tahun_ajaran')
-            ->select('id')
-            ->where('status_aktif', 1)
-            ->where('deleted_at', null)
-            ->get()
-            ->getRow();
-
-        return $row->id ?? null;
-    }
-
-    protected function namaHariIndonesia(): string
+    protected function hariIndonesia(): string
     {
         $map = [
-            'Sunday'    => 'Minggu',
-            'Monday'    => 'Senin',
-            'Tuesday'   => 'Selasa',
-            'Wednesday' => 'Rabu',
-            'Thursday'  => 'Kamis',
-            'Friday'    => 'Jumat',
-            'Saturday'  => 'Sabtu',
+            'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu',
         ];
-
         return $map[date('l')] ?? 'Senin';
-    }
-
-    // ================================================================
-    // MOBILE — JWT (Access 1 jam / Refresh 30 hari) — 16_MOBILE_CORDOVA §4
-    // ================================================================
-
-    /**
-     * @return array{success: bool, message: string, data?: array}
-     */
-    public function apiLogin(string $username, string $password, string $ipAddress, ?string $deviceName = null): array
-    {
-        if ($this->isLocked($username)) {
-            return ['success' => false, 'message' => 'Akun terkunci sementara. Coba lagi dalam beberapa menit.'];
-        }
-
-        $user = $this->userModel->findByUsername($username);
-
-        if (!$user || !password_verify($password, $user['password'])) {
-            $this->loginAttemptsModel->catat($username, $ipAddress, false);
-
-            return ['success' => false, 'message' => 'Username atau password salah.'];
-        }
-
-        if ((int) $user['status_aktif'] !== 1) {
-            $this->loginAttemptsModel->catat($username, $ipAddress, false);
-
-            return ['success' => false, 'message' => 'Akun tidak aktif. Hubungi Admin.'];
-        }
-
-        // Single Active Session: increment auth_version + revoke semua token lama
-        $newVersion = (int) $user['auth_version'] + 1;
-        $this->userModel->update($user['id'], ['auth_version' => $newVersion]);
-        $this->apiTokensModel->revokeAllByUser((int) $user['id']);
-
-        $this->loginAttemptsModel->catat($username, $ipAddress, true);
-
-        $tokens = $this->issueTokenPair((int) $user['id'], $newVersion, $deviceName);
-
-        return [
-            'success' => true,
-            'message' => 'Login berhasil.',
-            'data'    => [
-                'access_token'  => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token_plain'],
-                'token_type'    => 'Bearer',
-                'expires_in'    => $this->accessTokenTtl,
-                'user'          => [
-                    'id'       => $user['id'],
-                    'username' => $user['username'],
-                    'role'     => $user['role'],
-                    'id_guru'  => $user['id_guru'],
-                    'id_siswa' => $user['id_siswa'],
-                ],
-            ],
-        ];
-    }
-
-    protected function issueTokenPair(int $userId, int $authVersion, ?string $deviceName = null): array
-    {
-        $now = time();
-
-        $accessPayload = [
-            'sub'          => $userId,
-            'auth_version' => $authVersion,
-            'iat'          => $now,
-            'exp'          => $now + $this->accessTokenTtl,
-        ];
-        $accessToken = JWT::encode($accessPayload, $this->jwtSecret, 'HS256');
-
-        // Refresh token: random string, disimpan sebagai HASH (SHA-256) — 16_MOBILE_CORDOVA §10
-        $refreshPlain = bin2hex(random_bytes(32));
-        $refreshHash  = hash('sha256', $refreshPlain);
-
-        $this->apiTokensModel->insert([
-            'id_user'            => $userId,
-            'token'              => hash('sha256', $accessToken),
-            'refresh_token'      => $refreshHash,
-            'device_name'        => $deviceName,
-            'expires_at'         => date('Y-m-d H:i:s', $now + $this->accessTokenTtl),
-            'refresh_expires_at' => date('Y-m-d H:i:s', $now + $this->refreshTokenTtl),
-        ]);
-
-        return ['access_token' => $accessToken, 'refresh_token_plain' => $refreshPlain];
-    }
-
-    /**
-     * Decode & validasi access token JWT. Return data user jika valid.
-     * Mengecek auth_version di token vs database (§B5 — Single Active Session).
-     */
-    public function verifyAccessToken(string $token): ?array
-    {
-        try {
-            $decoded = (array) JWT::decode($token, new Key($this->jwtSecret, 'HS256'));
-        } catch (\Throwable $e) {
-            return null;
-        }
-
-        $user = $this->userModel->find((int) ($decoded['sub'] ?? 0));
-        if (!$user || (int) $user['status_aktif'] !== 1) {
-            return null;
-        }
-
-        if ((int) $user['auth_version'] !== (int) ($decoded['auth_version'] ?? -1)) {
-            // Sesi lama — sudah login ulang di device lain
-            return null;
-        }
-
-        $user['all_roles'] = $this->getUserRoles((int) $user['id']);
-
-        return $user;
-    }
-
-    /**
-     * @return array{success: bool, message: string, data?: array}
-     */
-    public function apiRefresh(string $refreshTokenPlain): array
-    {
-        $hash = hash('sha256', $refreshTokenPlain);
-        $row  = $this->apiTokensModel->findActiveByRefreshToken($hash);
-
-        if (!$row) {
-            return ['success' => false, 'message' => 'Refresh token tidak valid atau sudah kedaluwarsa.'];
-        }
-
-        $user = $this->userModel->find($row['id_user']);
-        if (!$user || (int) $user['status_aktif'] !== 1) {
-            return ['success' => false, 'message' => 'User tidak aktif.'];
-        }
-
-        // Rotasi: revoke token lama, terbitkan pasangan baru
-        $this->apiTokensModel->revoke($row['id']);
-        $tokens = $this->issueTokenPair((int) $user['id'], (int) $user['auth_version'], $row['device_name']);
-
-        return [
-            'success' => true,
-            'message' => 'Token berhasil diperbarui.',
-            'data'    => [
-                'access_token'  => $tokens['access_token'],
-                'refresh_token' => $tokens['refresh_token_plain'],
-                'token_type'    => 'Bearer',
-                'expires_in'    => $this->accessTokenTtl,
-            ],
-        ];
-    }
-
-    public function apiLogout(string $accessToken): void
-    {
-        $hash = hash('sha256', $accessToken);
-        $row  = $this->apiTokensModel->where('token', $hash)->first();
-
-        if ($row) {
-            $this->apiTokensModel->revoke($row['id']);
-        }
     }
 }

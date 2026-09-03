@@ -8,64 +8,47 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Config\Database;
 
 /**
- * MaintenanceFilter
- *
- * Global filter (before, semua route) — mengecek setting_sistem.maintenance_mode.
- * Semua role KECUALI Admin diarahkan ke halaman maintenance.
- *
- * Acuan: 08_DASHBOARD_SETTINGS_BACKUP §2.5
+ * MaintenanceFilter — Acuan: 08_DASHBOARD_SETTINGS_BACKUP §2.5
+ * Semua role KECUALI Admin diarahkan ke halaman maintenance saat mode aktif.
  */
 class MaintenanceFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        // Jangan blokir route publik penting (login, api auth, verifikasi QR)
-        $whitelist = ['auth/login', 'auth/logout', 'api/auth/login', 'api/auth/refresh', 'api/version'];
-        $path      = ltrim($request->getPath(), '/');
+        $db = Database::connect();
 
-        foreach ($whitelist as $allowed) {
-            if (str_starts_with($path, $allowed)) {
-                return null;
-            }
-        }
+        $setting = $db->table('setting_sistem')
+            ->select('setting_value')
+            ->where('setting_key', 'maintenance_mode')
+            ->get()
+            ->getRowArray();
 
-        $db  = Database::connect();
-        $row = $db->table('setting_sistem')->where('setting_key', 'maintenance_mode')->get()->getRow();
+        $isMaintenance = $setting && (int) $setting['setting_value'] === 1;
 
-        $maintenanceOn = $row && (string) $row->setting_value === '1';
-
-        if (!$maintenanceOn) {
+        if (!$isMaintenance) {
             return null;
         }
 
-        // Admin tetap bisa login & bekerja meski maintenance ON
+        // Admin tetap boleh mengakses aplikasi untuk mematikan mode maintenance.
         if (session()->get('role') === 'admin') {
             return null;
         }
 
-        // Cek juga untuk request API dengan role admin (JWT) — cek via authUser bila sudah lolos AuthFilter
-        if (isset($request->authUser) && ($request->authUser['role'] ?? null) === 'admin') {
-            return null;
-        }
+        $message = $db->table('setting_sistem')
+            ->select('setting_value')
+            ->where('setting_key', 'maintenance_message')
+            ->get()
+            ->getRowArray();
 
-        $messageRow = $db->table('setting_sistem')->where('setting_key', 'maintenance_message')->get()->getRow();
-        $message    = $messageRow->setting_value ?? 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.';
-
-        $isApi = str_starts_with($path, 'api/');
-
-        if ($isApi || str_contains($path, '/json') || $request->getGet('format') === 'json') {
-            return service('response')
-                ->setStatusCode(503)
-                ->setJSON(['status' => 'error', 'message' => $message]);
-        }
-
-        return service('response')
-            ->setStatusCode(503)
-            ->setBody(view('errors/html/error_maintenance', ['message' => $message]));
+        return service('response')->setStatusCode(503)->setBody(
+            view('errors/html/maintenance', [
+                'message' => $message['setting_value'] ?? 'Sistem sedang dalam pemeliharaan.',
+            ])
+        );
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
-        // no-op
+        // Tidak ada aksi setelah response.
     }
 }
