@@ -15,6 +15,12 @@ class AuthFilter implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         if (!session()->get('logged_in')) {
+            // DEBUG SEMENTARA — hapus setelah bug login selesai
+            log_message('debug', 'AuthFilter: session logged_in kosong. session_id={sid}, cookie_ci_session={cookie}', [
+                'sid' => session_id(),
+                'cookie' => $_COOKIE['ci_session'] ?? '(tidak ada cookie ci_session terkirim)',
+            ]);
+
             session()->setFlashdata('error', 'Silakan login terlebih dahulu.');
             return redirect()->to('/auth/login');
         }
@@ -28,6 +34,15 @@ class AuthFilter implements FilterInterface
             ->getRowArray();
 
         if (!$user || (int) $user['status_aktif'] !== 1 || (int) $user['auth_version'] !== (int) session()->get('auth_version')) {
+            // DEBUG SEMENTARA — hapus setelah bug login selesai
+            log_message('debug', 'AuthFilter: auth_version/status mismatch. user_id={uid}, db_auth_version={dbv}, session_auth_version={sv}, db_status_aktif={st}, user_row_ditemukan={found}', [
+                'uid' => session()->get('user_id'),
+                'dbv' => $user['auth_version'] ?? '(user tidak ditemukan)',
+                'sv' => session()->get('auth_version'),
+                'st' => $user['status_aktif'] ?? '-',
+                'found' => $user ? 'ya' : 'tidak',
+            ]);
+
             session()->destroy();
             session()->setFlashdata('error', 'Sesi Anda telah berakhir (login di perangkat lain atau akun dinonaktifkan). Silakan login ulang.');
             return redirect()->to('/auth/login');

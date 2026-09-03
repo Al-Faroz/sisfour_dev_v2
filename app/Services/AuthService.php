@@ -31,6 +31,8 @@ class AuthService
     {
         // 1. Rate limiting: 5x gagal berturut-turut (berbasis username) -> lock 5 menit
         if ($this->isLocked($username)) {
+            // DEBUG SEMENTARA — hapus setelah bug login selesai
+            log_message('debug', 'attemptLogin: DITOLAK karena LOCKED (>=5 gagal dalam 5 menit terakhir) untuk username={u}', ['u' => $username]);
             return ['success' => false, 'message' => 'Akun terkunci sementara. Coba lagi dalam beberapa menit.'];
         }
 
@@ -40,7 +42,23 @@ class AuthService
             ->get()
             ->getRowArray();
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        if (!$user) {
+            // DEBUG SEMENTARA — hapus setelah bug login selesai
+            log_message('debug', 'attemptLogin: USER TIDAK DITEMUKAN (atau status_aktif != 1) untuk username={u}', ['u' => $username]);
+            $this->recordAttempt($username, false);
+            return ['success' => false, 'message' => 'Username atau password salah.'];
+        }
+
+        $passOk = password_verify($password, $user['password']);
+        // DEBUG SEMENTARA — hapus setelah bug login selesai
+        log_message('debug', 'attemptLogin: user ditemukan (id={id}, role={role}). password_verify={ok}. hash_prefix={hp}', [
+            'id' => $user['id'],
+            'role' => $user['role'],
+            'ok' => $passOk ? 'BENAR' : 'SALAH',
+            'hp' => substr($user['password'], 0, 10),
+        ]);
+
+        if (!$passOk) {
             $this->recordAttempt($username, false);
             return ['success' => false, 'message' => 'Username atau password salah.'];
         }
@@ -51,7 +69,7 @@ class AuthService
         $newAuthVersion = (int) $user['auth_version'] + 1;
         $this->db->table('users')->where('id', $user['id'])->update([
             'auth_version' => $newAuthVersion,
-            'updated_at'   => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
         $user['auth_version'] = $newAuthVersion;
 
@@ -64,14 +82,14 @@ class AuthService
     public function setUserSession(array $user): void
     {
         session()->set([
-            'user_id'      => $user['id'],
-            'role'         => $user['role'],
-            'username'     => $user['username'],
-            'id_guru'      => $user['id_guru'] ?? null,
-            'id_siswa'     => $user['id_siswa'] ?? null,
-            'id_pegawai'   => $user['id_pegawai'] ?? null,
+            'user_id' => $user['id'],
+            'role' => $user['role'],
+            'username' => $user['username'],
+            'id_guru' => $user['id_guru'] ?? null,
+            'id_siswa' => $user['id_siswa'] ?? null,
+            'id_pegawai' => $user['id_pegawai'] ?? null,
             'auth_version' => $user['auth_version'],
-            'logged_in'    => true,
+            'logged_in' => true,
         ]);
     }
 
@@ -91,10 +109,10 @@ class AuthService
     protected function recordAttempt(string $username, bool $berhasil): void
     {
         $this->db->table('login_attempts')->insert([
-            'username'   => $username,
+            'username' => $username,
             'ip_address' => service('request')->getIPAddress(),
-            'waktu'      => date('Y-m-d H:i:s'),
-            'berhasil'   => $berhasil ? 1 : 0,
+            'waktu' => date('Y-m-d H:i:s'),
+            'berhasil' => $berhasil ? 1 : 0,
         ]);
 
         // Kalau berhasil, tidak perlu hapus histori gagal — retensi tabel biarkan tumbuh,

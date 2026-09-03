@@ -29,7 +29,7 @@ class Auth extends Controller
             return redirect()->to('/dashboard');
         }
 
-        if ($this->request->getMethod() === 'post') {
+        if (strtoupper($this->request->getMethod()) === 'POST') {
             $username = trim((string) $this->request->getPost('username'));
             $password = (string) $this->request->getPost('password');
 
