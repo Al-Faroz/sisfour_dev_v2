@@ -1,6 +1,6 @@
 # 🔐 Auth, RBAC &amp; Menu — SisisFour
 
-**Versi:** 3.1 Final · **Tanggal:** 28 Agustus 2026
+**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
 
 Dokumen ini mengatur seluruh mekanisme **Autentikasi**, **Otorisasi (RBAC)**, dan **Navigasi Menu** untuk seluruh pengguna SisisFour. Fondasi keamanan ini menjadi filter utama sebelum pengguna mengakses fitur apa pun.
 
@@ -60,29 +60,33 @@ session()->set([
 
 ## 2. RBAC — Role, Scope &amp; Permission
 
-### 2.1 Role (7)
+### 2.1 Role (6) + Status Wali Kelas Dinamis
 
 | Role           | Basis Identitas             | Catatan                                                                             |
 |----------------|-----------------------------|-------------------------------------------------------------------------------------|
 | **Admin**      | Berdiri sendiri             | Tidak memiliki data guru/pegawai/siswa terhubung.                                   |
-| **Operator**   | `id_guru` atau `id_pegawai` | Pilihan sumber identitas saat pembuatan akun oleh Admin.                            |
+| **Operator**   | `id_guru` atau `id_pegawai` | Wajib terkait data pegawai/guru; kewenangan administratif penuh. Admin awal adalah pengecualian. |
 | **Pimpinan**   | `id_guru` atau `id_pegawai` | Akses read-only untuk supervisi — **tidak** memiliki permission \`.manage\` apapun. |
 | **BK**         | Selalu `id_guru`            | Tidak memiliki jadwal mengajar (tidak ada kewajiban presensi mengajar).             |
 | **Guru**       | `id_guru`                   | Dapat berstatus sebagai Wali Kelas (dinamis).                                       |
 | **Wali Kelas** | `id_guru`                   | BUKAN role terpisah. Status dicek dari `mapping_wali_kelas`.                        |
 | **Siswa**      | `id_siswa`                  | Akses terbatas pada data diri sendiri dan kartu pelajar.                            |
 
-**Multi-Role:** Seorang user dapat memiliki lebih dari satu role melalui tabel `user_roles` (contoh: Guru merangkap Operator). Role utama di `users.role` digunakan sebagai default, tetapi sistem wajib mengecek `user_roles` saat resolusi permission.
+**Multi-Role:** Permission user adalah **union** dari `users.role` dan seluruh `user_roles.role`. Tidak ada hardcoded bypass Admin di aplikasi; Admin memperoleh akses melalui mapping permission `SEMUA`.
+
+**Status Wali Kelas:** `Wali Kelas` tidak boleh menjadi nilai `users.role` maupun `user_roles.role`. Status ditentukan dinamis dari `mapping_wali_kelas` untuk tahun ajaran aktif. Seorang Guru yang menjadi Wali memperoleh **tambahan permission kontekstual Wali** hanya untuk kelas walinya. Jika mengajar kelas lain, ia kembali diperlakukan sebagai Guru Biasa.
 
 ### 2.2 Scope (5)
 
-| Scope             | Deskripsi                                                         | Contoh Penggunaan                                        |
-|-------------------|-------------------------------------------------------------------|----------------------------------------------------------|
-| `SEMUA`           | Akses ke seluruh data tanpa batasan.                              | Admin mengelola semua guru.                              |
-| `KELAS_DIAMPU`    | Akses ke data kelas yang diampu (sebagai Wali Kelas).             | Wali Kelas melihat siswanya.                             |
-| `KELAS_TERJADWAL` | Akses ke data kelas yang terjadwal (berdasarkan jadwal mengajar). | Guru mapel input presensi di kelas yang diajar hari itu. |
-| `DIRI_SENDIRI`    | Akses ke data diri sendiri.                                       | Guru melihat jurnalnya sendiri.                          |
-| `TIDAK_ADA`       | Tidak ada akses.                                                  | Guru tidak boleh merevisi presensi (kecuali Wali).       |
+| Scope | Deskripsi |
+| --- | --- |
+| `SEMUA` | Seluruh data tanpa pembatasan kelas. |
+| `KELAS_DIAMPU` | Hanya kelas yang **sedang menjadi kelas wali** user pada tahun ajaran aktif. Untuk modul tertentu, ini adalah scope khusus Wali Kelas. |
+| `KELAS_TERJADWAL` | Hanya kelas yang aktif dijadwalkan kepada Guru pada hari berjalan. Dipakai untuk input Presensi Siswa Guru Biasa. |
+| `DIRI_SENDIRI` | Hanya record yang secara langsung terkait user. |
+| `TIDAK_ADA` | Tidak memiliki akses. |
+
+**Penting:** `KELAS_DIAMPU` tidak berarti semua kelas yang pernah/sempat diajar. Untuk aturan Wali Kelas, daftar kelas berasal dari mapping wali aktif. Untuk Guru Biasa, akses input presensi memakai `KELAS_TERJADWAL`.
 
 ### 2.3 Daftar Permission (43)
 
@@ -93,7 +97,7 @@ Setiap permission memiliki `permission_key`, modul, dan daftar scope yang diduku
 | 1  | `dashboard.view`               | Dashboard         | Otomatis                                              |
 | 2  | `presensi_siswa.input`         | Presensi Siswa    | SEMUA, KELAS\_DIAMPU, KELAS\_TERJADWAL                |
 | 3  | `presensi_siswa.revisi`        | Presensi Siswa    | SEMUA, KELAS\_DIAMPU                                  |
-| 4  | `presensi_siswa.view`          | Presensi Siswa    | SEMUA, KELAS\_DIAMPU, KELAS\_TERJADWAL, DIRI\_SENDIRI |
+| 4  | `presensi_siswa.view`          | Presensi Siswa    | SEMUA, KELAS\_DIAMPU, DIRI\_SENDIRI |
 | 5  | `presensi_mengajar.input`      | Presensi Mengajar | SEMUA, KELAS\_TERJADWAL, DIRI\_SENDIRI                |
 | 6  | `presensi_mengajar.view`       | Presensi Mengajar | SEMUA, DIRI\_SENDIRI                                  |
 | 7  | `master_guru.manage`           | Master Data       | SEMUA                                                 |
@@ -113,7 +117,7 @@ Setiap permission memiliki `permission_key`, modul, dan daftar scope yang diduku
 | 21 | `jadwal_guru.manage`           | Master Data       | SEMUA                                                 |
 | 22 | `jadwal_guru.view`             | Master Data       | DIRI\_SENDIRI                                         |
 | 23 | `jadwal_guru.view_all`         | Master Data       | SEMUA                                                 |
-| 24 | `laporan_matrix.view`          | Laporan           | SEMUA, KELAS\_DIAMPU, KELAS\_TERJADWAL                |
+| 24 | `laporan_matrix.view`          | Laporan           | SEMUA, KELAS\_DIAMPU                                  |
 | 25 | `laporan_export.generate`      | Laporan           | SEMUA, KELAS\_DIAMPU                                  |
 | 26 | `laporan_jurnal.view`          | Laporan           | SEMUA, DIRI\_SENDIRI                                  |
 | 27 | `laporan_jurnal.export`        | Laporan           | SEMUA, DIRI\_SENDIRI                                  |
@@ -134,15 +138,40 @@ Setiap permission memiliki `permission_key`, modul, dan daftar scope yang diduku
 | 42 | `profile_guru.edit`            | Profile           | DIRI\_SENDIRI                                         |
 | 43 | `profile_siswa.view`           | Profile           | DIRI\_SENDIRI                                         |
 
-**Keterangan Tambahan:**
+**Keterangan Tambahan (Final):**
 
-- `master_guru.view` dan `master_pegawai.view` khusus untuk Pimpinan (readonly).
-- `jadwal_guru.view_all` khusus untuk Pimpinan melihat semua jadwal (readonly).
-- `mapping_wali.view_all` khusus untuk Pimpinan melihat semua mapping wali kelas (readonly).
-- `master_siswa.view`, `master_siswa.edit_biodata`, dan `kartu_pelajar.manage` (cetak massal) mendapat scope `KELAS_DIAMPU` untuk Wali Kelas.
-- Pimpinan hanya memiliki permission \`.view\` dan \`.view\_all\` — tidak ada permission \`.manage\` apapun.
+- `master_siswa.view` dan `master_siswa.edit_biodata` dengan scope `KELAS_DIAMPU` adalah **khusus konteks Wali Kelas**. Guru Biasa tidak memperoleh akses tersebut.
+- `presensi_siswa.view`, `presensi_siswa.revisi`, Matrix, Export, EWS, BK detail, Prestasi view, dan Kartu view dengan scope `KELAS_DIAMPU` tidak boleh diperlakukan sebagai akses umum seluruh Guru; semuanya harus divalidasi bahwa user memang Wali aktif.
+- `laporan_export.generate` wajib didahului akses `laporan_export`/view yang sesuai; **export tanpa view dilarang**.
+- Guru Biasa tidak mempunyai fitur Matrix/Export/Laporan Presensi.
+- Pimpinan tidak mempunyai permission `.manage` operasional, **kecuali `kartu_pelajar.manage` yang secara eksplisit merupakan kewenangan final Pimpinan**.
+- Log Activity hanya untuk Admin dan Operator.
+- Siswa hanya melihat rincian presensi dirinya pada status **Sakit/Izin/Alpha**; status Hadir tidak perlu ditampilkan pada rincian dashboard siswa.
 
 * * *
+
+## 2.4 Matriks Hak Akses Bisnis Final
+
+| Fitur | Admin | Operator | Pimpinan | BK | Guru Biasa | Wali Kelas | Siswa |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Dashboard | Semua | Semua | Semua | Semua | Diri | Diri | Diri |
+| Presensi Siswa — input | Semua | Semua | — | — | Kelas Terjadwal | Kelas Wali + dapat kapan saja | — |
+| Presensi Siswa — lihat hasil tersimpan | Semua | Semua | Semua readonly | — | — | Kelas Wali | Diri: hanya S/I/A |
+| Presensi Siswa — revisi | Semua | Semua | — | — | — | Kelas Wali | — |
+| Presensi Mengajar/Jurnal | Semua | Semua | Diri | — | Diri | Diri | — |
+| Master Siswa | Full | Full | Semua readonly | — | — | Kelas Wali | Diri readonly |
+| Edit biodata siswa | Full | Full | — | — | — | Kelas Wali, **NISN immutable** | — |
+| Matrix Presensi | Full | Full | Semua readonly | — | — | Kelas Wali | — |
+| Export Presensi | Full | Full | Semua readonly | — | — | Kelas Wali | — |
+| Laporan Jurnal | Full | Full | Semua readonly | — | — | Diri sendiri | — |
+| BK Kasus | Full | Full | Semua readonly | Full | — | Detail kelas wali readonly | — |
+| Prestasi — manage | Full | Full | — | Full | — | — | — |
+| Prestasi — view | Full | Full | Semua | Full | — | Kelas Wali | Diri sendiri |
+| Kartu — view/cetak | Full | Full | Full | — | — | Kelas Wali, individual & massal | Diri sendiri |
+| Kartu — manage/terbitkan | Full | Full | Full | — | — | — | — |
+| Log Activity | Full | Full | — | — | — | — | — |
+
+**Aturan menu:** menu Wali Kelas bersifat **contextual**. Karena Wali bukan role, `MenuService` wajib menggabungkan role menu dengan hasil `AuthService::isWaliKelas()` dan permission kontekstual. Guru Biasa tidak boleh melihat menu Wali-only.
 
 ## 3. Authorization — PermissionFilter &amp; Scope Resolver
 

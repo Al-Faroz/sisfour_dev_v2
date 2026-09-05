@@ -1,6 +1,6 @@
 # Masterplan SisisFour — MTsN 4 Jombang
 
-**Versi:** 3.0 Final · **Tanggal:** 27 Agustus 2026
+**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
 
 * * *
 
@@ -135,13 +135,13 @@ sisfour_dev/                          (root project)
 
 | Role       | Basis Identitas             | Catatan                                             |
 |------------|-----------------------------|-----------------------------------------------------|
-| Admin      | Berdiri sendiri             | Tidak ada bio terhubung                             |
-| Operator   | `id_guru` atau `id_pegawai` | Pilihan identitas di form user                      |
-| Pimpinan   | `id_guru` atau `id_pegawai` | Pilihan identitas di form user                      |
-| BK         | Selalu `id_guru`            | Tidak pernah punya jadwal\_guru                     |
-| Guru       | `id_guru`                   | Bisa menjadi Wali Kelas (status dinamis)            |
-| Wali Kelas | `id_guru`                   | Status dicek dari `mapping_wali_kelas` (bukan role) |
-| Siswa      | `id_siswa`                  |                                                     |
+| Admin      | Berdiri sendiri             | Full access seluruh sistem.                         |
+| Operator   | `id_pegawai`/`id_guru`     | Wajib terhubung ke `data_pegawai`/`pegawai`, kecuali admin awal. Memiliki kewenangan administratif penuh. |
+| Pimpinan   | `id_pegawai`/`id_guru`     | Read-only untuk data operasional; boleh manage Kartu Pelajar sesuai kewenangan yang ditetapkan. |
+| BK         | `id_guru`                   | Mengelola BK & Prestasi; tidak memiliki kewajiban Presensi Mengajar. |
+| Guru       | `id_guru`                   | Guru Biasa hanya input presensi sesuai jadwal dan jurnal diri sendiri. |
+| Wali Kelas | `id_guru`                   | **BUKAN role.** Status dinamis dari `mapping_wali_kelas`; mendapat tambahan akses khusus hanya untuk kelas walinya. |
+| Siswa      | `id_siswa`                  | Akses data diri, prestasi diri, kartu, dan rincian presensi S/I/A diri sendiri. |
 
 **Multi-Role:** Satu user dapat memiliki beberapa role melalui tabel `user_roles` (misal Guru merangkap Operator).
 

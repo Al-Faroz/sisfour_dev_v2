@@ -1,6 +1,6 @@
 # 📋 Master Data — SisisFour
 
-**Versi:** 3.0 Final · **Tanggal:** 27 Agustus 2026
+**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
 
 Dokumen ini mengatur seluruh data master madrasah: **Guru, Pegawai, Siswa, Kelas, Tahun Ajaran, Mata Pelajaran, Wali Kelas, dan Jadwal Guru**. Setiap modul memiliki aturan bisnis, hak akses, dan mekanisme operasional yang spesifik.
 
@@ -8,31 +8,26 @@ Dokumen ini mengatur seluruh data master madrasah: **Guru, Pegawai, Siswa, Kelas
 
 ## 1. Hak Akses Master Data
 
-| Fitur                                         | Admin | Operator | Pimpinan | BK | Guru (non-wali) | Wali Kelas        | Siswa                   |
-|-----------------------------------------------|-------|----------|----------|----|-----------------|-------------------|-------------------------|
-| **CRUD Guru**                                 | ✅     | ✅        | Readonly | ❌  | ❌               | ❌                 | ❌                       |
-| **CRUD Pegawai**                              | ✅     | ✅        | Readonly | ❌  | ❌               | ❌                 | ❌                       |
-| **Lihat Data Siswa**                          | ✅     | ✅        | Readonly | ❌  | ❌               | KELAS\_DIAMPU     | Readonly (diri sendiri) |
-| **Edit Biodata &amp; Foto Siswa**             | ✅     | ✅        | ❌        | ❌  | ❌               | ✅ (KELAS\_DIAMPU) | ❌                       |
-| **Mutasi / Kenaikan Kelas / Kelulusan Siswa** | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **Import/Export Data Siswa**                  | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **CRUD Kelas**                                | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **CRUD Tahun Ajaran**                         | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **CRUD Mata Pelajaran**                       | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **Import/Export Excel (Guru/Pegawai/Jadwal)** | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **Mapping Wali Kelas (Assign)**               | ✅     | ✅        | ❌        | ❌  | ❌               | ❌                 | ❌                       |
-| **Lihat Jadwal Guru (Semua)**                 | ✅     | ✅        | ✅        | ❌  | ❌               | ❌                 | ❌                       |
-| **Lihat Jadwal Guru (Diri Sendiri)**          | ✅     | ✅        | ✅        | ❌  | ✅               | ✅                 | ❌                       |
-| **Edit Data Diri (Guru) — Profile**           | ✅     | ✅        | ✅        | ✅  | ✅               | ✅                 | ❌                       |
+| Fitur | Admin | Operator | Pimpinan | BK | Guru Biasa | Wali Kelas | Siswa |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **CRUD Guru** | Full | Full | Readonly | — | — | — | — |
+| **CRUD Pegawai** | Full | Full | Readonly | — | — | — | — |
+| **Lihat Data Siswa** | Full | Full | Semua readonly | — | — | Kelas Wali | Diri sendiri readonly |
+| **Edit Biodata & Foto Siswa** | Full | Full | — | — | — | Kelas Wali | — |
+| **NISN** | Edit sesuai kewenangan | Edit sesuai kewenangan | Lihat | — | — | **Lihat, tidak boleh edit** | Lihat diri |
+| **Mutasi / Kenaikan / Kelulusan** | Full | Full | — | — | — | — | — |
+| **Import/Export Data Siswa** | Full | Full | — | — | — | — | — |
+| **CRUD Kelas** | Full | Full | — | — | — | — | — |
+| **CRUD Tahun Ajaran** | Full | Full | — | — | — | — | — |
+| **CRUD Mata Pelajaran** | Full | Full | — | — | — | — | — |
+| **Import/Export Guru/Pegawai/Jadwal** | Full | Full | — | — | — | — | — |
+| **Mapping Wali Kelas** | Full | Full | View all | — | View diri | — | — |
+| **Jadwal Guru Semua** | Full | Full | Readonly | — | — | — | — |
+| **Jadwal Guru Diri Sendiri** | Full | Full | Diri | — | Diri | Diri | — |
 
-**Keterangan Simbol:**
+**Catatan Wali Kelas:** Wali dapat mengedit biodata/foto siswa di kelas walinya, tetapi **NISN selalu immutable**. Wali tidak dapat mutasi, kenaikan kelas, kelulusan, import, atau export master siswa.
 
-- ✅ = Memiliki akses penuh (CRUD / edit).
-- Readonly = Hanya dapat melihat data, tidak dapat mengubah.
-- KELAS\_DIAMPU = Akses terbatas pada data kelas yang diampu (Wali Kelas).
-- ❌ = Tidak memiliki akses sama sekali.
-
-* * *
+**Catatan Guru Biasa:** Guru Biasa tidak mempunyai akses menu Master Siswa. Nama siswa hanya boleh ditampilkan dalam konteks halaman input presensi yang memang diizinkan oleh jadwal.
 
 ## 2. Soft Delete &amp; Recycle Bin
 
@@ -223,7 +218,9 @@ NIP_GURU            | NAMA_KELAS | KODE_MAPEL | HARI   | JAM_MULAI | JAM_SELESAI
 - **Kenaikan Kelas (A6):** Gunakan checklist dengan default semua terpilih, bukan hardcode "semua siswa".
 - **Histori Siswa (A4):** Setiap perubahan status/kelas siswa wajib tercatat di `riwayat_siswa`.
 - **Upload Foto (B7):** Wajib re-encode file PNG untuk menghilangkan metadata berbahaya.
-- **Akses Wali Kelas:** Hanya biodata dan foto yang dapat diedit. Mutasi, kenaikan kelas, dan import/export tetap eksklusif Admin/Operator.
+- **Akses Wali Kelas:** Hanya biodata dan foto yang dapat diedit pada siswa di kelas walinya. **NISN tidak boleh diubah**. Mutasi, kenaikan kelas, kelulusan, import/export tetap eksklusif Admin/Operator.
+- **Akses Guru Biasa:** Tidak boleh melihat Master Siswa. Data nama siswa hanya muncul di workflow input Presensi Siswa yang sah.
+- **Akun Admin/Operator:** Wajib memiliki relasi pegawai/guru; pengecualian hanya Admin awal yang dibuat sebelum relasi pegawai tersedia.
 
 * * *
 

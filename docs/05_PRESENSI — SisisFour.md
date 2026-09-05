@@ -1,6 +1,6 @@
 # ✅ Presensi Siswa &amp; Presensi Mengajar (Jurnal) — SisisFour
 
-**Versi:** 3.0 Final · **Tanggal:** 27 Agustus 2026
+**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
 
 Dokumen ini mengatur dua jenis presensi: **Presensi Siswa** (kehadiran siswa di kelas) dan **Presensi Mengajar** (jurnal mengajar guru). Keduanya memiliki aturan, hak akses, dan mekanisme geofencing yang berbeda. Seluruh modul presensi sudah terintegrasi dengan RBAC dan aturan time-window yang granular.
 
@@ -21,17 +21,29 @@ Dokumen ini mengatur dua jenis presensi: **Presensi Siswa** (kehadiran siswa di 
 
 ### 1.3 Hak Akses Presensi Siswa
 
-| Role                | Lihat Daftar Kelas         | Input Sesi Awal/Akhir   | Revisi         | EWS Radar | Rekap (Diri Sendiri) | Geofencing &amp; Time-Window |
-|---------------------|----------------------------|-------------------------|----------------|-----------|----------------------|------------------------------|
-| **Admin**           | ✅ Semua                    | ✅ Semua                 | ✅ Semua        | ✅         | ✅                    | ❌ Bebas                      |
-| **Operator**        | ✅ Semua                    | ✅ Semua                 | ✅ Semua        | ✅         | ✅                    | ❌ Bebas                      |
-| **Pimpinan**        | ✅ Semua (readonly)         | ❌ Tidak                 | ❌ Tidak        | ✅         | ✅                    | ❌                            |
-| **BK**              | ❌ Tidak                    | ❌ Tidak                 | ❌ Tidak        | ✅         | ❌                    | ❌                            |
-| **Guru (non-wali)** | ✅ Kelas terjadwal hari ini | ✅ Sesuai jadwal (AW/AK) | ❌ Tidak        | ❌         | ❌                    | ✅ Terikat GPS + Time-Window  |
-| **Wali Kelas**      | ✅ Kelas diampu             | ✅ Kelas diampu          | ✅ Kelas diampu | ✅         | ✅                    | ❌ Bebas (Input &amp; Revisi) |
-| **Siswa**           | ❌                          | ❌                       | ❌              | ❌         | ✅                    | ❌                            |
+| Role | Input | Lihat hasil tersimpan | Revisi | Scope | Catatan |
+| --- | --- | --- | --- | --- | --- |
+| **Admin** | ✅ | ✅ | ✅ | SEMUA | Full |
+| **Operator** | ✅ | ✅ | ✅ | SEMUA | Full |
+| **Pimpinan** | ❌ | ✅ | ❌ | SEMUA | Read-only |
+| **BK** | ❌ | ❌ | ❌ | — | Tidak mengelola presensi siswa |
+| **Guru Biasa** | ✅ | ❌ | ❌ | KELAS_TERJADWAL | Hanya input sesuai jadwal aktif; setelah simpan tidak dapat membuka hasil tersimpan |
+| **Wali Kelas** | ✅ | ✅ | ✅ | KELAS_DIAMPU | Kelas wali saja; input dan revisi boleh kapan saja; AW dan AK |
+| **Siswa** | ❌ | Diri sendiri | ❌ | DIRI_SENDIRI | Dashboard/rincian hanya menampilkan Sakit, Izin, Alpha |
 
-**Catatan (D4):** Wali Kelas, Admin, dan Operator **tidak terikat** time-window untuk melakukan **revisi**. Guru mapel terikat time-window untuk input.
+**Aturan final Guru Biasa:**
+
+1. Guru Biasa dapat membuka workflow input hanya untuk kelas yang benar-benar terjadwal pada hari tersebut.
+2. Guru hanya memasukkan status siswa; hasil yang sudah tersimpan **tidak dapat dilihat kembali oleh Guru Biasa**.
+3. Guru Biasa tidak dapat membuka mode revisi dan tidak dapat mengubah presensi yang sudah tersimpan.
+4. Jika terjadi kesalahan, revisi hanya dapat dilakukan oleh **Wali Kelas, Operator, atau Admin**.
+
+**Aturan final Wali Kelas:**
+
+1. Wali dapat input Presensi Siswa untuk kelas walinya **kapan saja**, tidak bergantung time-window.
+2. Wali dapat input Sesi Awal dan Sesi Akhir.
+3. Wali dapat merevisi presensi yang sudah tersimpan untuk kelas walinya.
+4. Saat Wali mengajar kelas lain yang bukan kelas walinya, ia bertindak sebagai **Guru Biasa** dan tunduk pada aturan jadwal Guru Biasa.
 
 ### 1.4 Tampilan Input — Tombol Status Solid (Default Hadir)
 
@@ -70,16 +82,17 @@ Dokumen ini mengatur dua jenis presensi: **Presensi Siswa** (kehadiran siswa di 
 
 ### 2.2 Hak Akses Presensi Mengajar
 
-| Role                      | Lihat Jadwal                   | Input Jurnal                             | Revisi | Laporan              | Geofencing                  |
-|---------------------------|--------------------------------|------------------------------------------|--------|----------------------|-----------------------------|
-| **Admin**                 | ✅ Semua                        | ✅ Semua (atas nama)                      | ✅      | ✅                    | ❌ Bebas                     |
-| **Operator**              | ✅ Semua                        | ✅ Semua (atas nama)                      | ✅      | ✅                    | ❌ Bebas                     |
-| **Pimpinan**              | ✅ Semua                        | ✅ Hanya diri sendiri (jika punya jadwal) | ❌      | ✅                    | ❌ Bebas                     |
-| **BK**                    | ❌                              | ❌                                        | ❌      | ❌                    | ❌                           |
-| **Guru &amp; Wali Kelas** | ✅ Jadwal hari ini (semua sesi) | ✅ Hanya diri sendiri                     | ❌      | ✅ Hanya diri sendiri | ✅ HANYA jika status = Hadir |
-| **Siswa**                 | ❌                              | ❌                                        | ❌      | ❌                    | ❌                           |
+| Role | Lihat Jadwal | Input Jurnal | Revisi | Laporan Jurnal | Scope |
+| --- | --- | --- | --- | --- | --- |
+| **Admin** | Semua | Semua/atas nama | ✅ | Semua | SEMUA |
+| **Operator** | Semua | Semua/atas nama | ✅ | Semua | SEMUA |
+| **Pimpinan** | Semua | Diri sendiri bila memiliki jadwal | ❌ | Semua readonly | SEMUA untuk laporan |
+| **BK** | ❌ | ❌ | ❌ | ❌ | — |
+| **Guru Biasa** | Jadwal hari ini | Diri sendiri | ❌ | Diri sendiri | DIRI_SENDIRI |
+| **Wali Kelas** | Jadwal hari ini | Diri sendiri | ❌ | Diri sendiri | DIRI_SENDIRI |
+| **Siswa** | ❌ | ❌ | ❌ | ❌ | — |
 
-**Catatan (C3):** Jurnal **tidak dapat direvisi** oleh Guru/Wali sendiri. Hanya Admin dan Operator yang dapat merevisi, dan revisi akan tercatat di `updated_at` dan `updated_by`.
+**Catatan:** Status Wali Kelas tidak menambah hak revisi Jurnal. Revisi Presensi Mengajar tetap hanya Admin/Operator.
 
 ### 2.3 Alur Input
 
@@ -130,13 +143,24 @@ Memastikan bahwa guru mapel (bukan Wali/Admin/Operator) benar-benar berada di li
 
 ## Bagian 4: Time-Window Presensi
 
-- **Aturan Dasar:** Presensi hanya dapat diinput dalam rentang `jam_mulai` sampai `jam_selesai + 15 menit` (toleransi).
+- **Aturan Dasar Guru Biasa:** Presensi Siswa dan Jurnal hanya dapat diinput dalam rentang `jam_mulai` sampai `jam_selesai + 15 menit` (toleransi).
+- **Wali Kelas:** Untuk Presensi Siswa pada kelas walinya, input dan revisi **bebas waktu/time-window**.
+- **Admin/Operator:** Untuk Presensi Siswa, input dan revisi tidak dibatasi time-window.
+- **Catatan:** Jika Wali mengajar kelas yang bukan kelas walinya, aturan Guru Biasa tetap berlaku.
 - **Pengecualian (D4):**
   
-  - **Guru Mapel:** Terikat time-window untuk **input** Presensi Siswa dan Jurnal.
-  - **Wali Kelas, Admin, Operator:** **Bebas** time-window untuk melakukan **revisi** Presensi Siswa.
+  - **Guru Biasa:** Terikat time-window untuk **input** Presensi Siswa dan Jurnal.
+  - **Wali Kelas:** Bebas time-window untuk **input dan revisi Presensi Siswa pada kelas walinya**.
+  - **Admin/Operator:** Bebas time-window untuk input/revisi administratif Presensi Siswa.
 
 * * *
+
+### 4.1 Rincian Presensi pada Dashboard Siswa
+
+- Dashboard Siswa menampilkan total presensi dirinya.
+- Saat kartu total presensi diklik, sistem membuka rincian presensi diri sendiri.
+- Untuk menyederhanakan tampilan, rincian hanya menampilkan **Sakit, Izin, dan Alpha**. Status Hadir tidak perlu ditampilkan.
+- Data tetap dibatasi `id_siswa = session('id_siswa')`.
 
 ## Bagian 5: Aturan Bisnis &amp; Catatan Developer
 
@@ -144,6 +168,7 @@ Memastikan bahwa guru mapel (bukan Wali/Admin/Operator) benar-benar berada di li
 - **Presensi Siswa Resmi:** Hanya Sesi Awal yang dihitung di laporan, matrix, dan EWS.
 - **Presensi Mengajar (Jurnal):** Wajib untuk **semua** baris jadwal, termasuk yang bertanda "Non Sesi".
 - **Non Sesi:** Tidak punya kewajiban Presensi Siswa, tetapi **tetap** wajib Jurnal.
+- **Guru Biasa tidak boleh membaca hasil tersimpan:** endpoint/view untuk hasil presensi yang sudah tersimpan harus menolak Guru Biasa; jangan mengandalkan hanya penyembunyian tombol UI.
 - **Validasi `id_guru` (Keamanan):**
   
   - Di method `PresensiMengajar::save()`, sistem **WAJIB** memvalidasi bahwa `id_guru` yang dikirim dalam request **sama dengan** `session('id_guru')` untuk role Guru/Wali/Pimpinan. Ini mencegah guru lain mencatatkan jurnal atas nama orang lain.
