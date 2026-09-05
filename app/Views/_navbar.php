@@ -26,59 +26,93 @@ $roleLabel = [
           </div>
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li>
-            <form
-    method="post"
-    action="<?= base_url('auth/logout') ?>"
-    class="m-0"
->
-    <?= csrf_field() ?>
 
-    <button
-        type="submit"
-        class="dropdown-item"
-    >
-        <i class="bx bx-log-out me-2"></i>
-        <span>Logout</span>
-    </button>
-</form>
-              <div class="d-flex">
-                <div class="flex-shrink-0 me-3">
-                  <div class="avatar avatar-online">
+    <li>
+        <div class="d-flex">
+
+            <div class="flex-shrink-0 me-3">
+
+                <div class="avatar avatar-online">
+
                     <span class="avatar-initial rounded-circle bg-label-primary">
-                      <?= strtoupper(substr($authUser['username'] ?? '?', 0, 1)) ?>
+                        <?= strtoupper(substr($authUser['username'] ?? '?', 0, 1)) ?>
                     </span>
-                  </div>
+
                 </div>
-                <div class="flex-grow-1">
-                  <span class="fw-semibold d-block"><?= esc($authUser['username'] ?? '') ?></span>
-                  <small class="text-muted"><?= esc($roleLabel) ?></small>
-                </div>
-              </div>
+
+            </div>
+
+            <div class="flex-grow-1">
+
+                <span class="fw-semibold d-block">
+                    <?= esc($authUser['username'] ?? '') ?>
+                </span>
+
+                <small class="text-muted">
+                    <?= esc($roleLabel) ?>
+                </small>
+
+            </div>
+
+        </div>
+    </li>
+
+    <li>
+        <div class="dropdown-divider"></div>
+    </li>
+
+    <?php if (in_array($authUser['role'] ?? '', ['guru', 'bk', 'pimpinan'], true)): ?>
+
+        <li>
+            <a
+                class="dropdown-item"
+                href="<?= base_url('profile/guru') ?>"
+            >
+                <i class="icon-base bx bx-user me-2 icon-md"></i>
+                <span>Profile Saya</span>
             </a>
-          </li>
-          <li><div class="dropdown-divider"></div></li>
-          <?php if (in_array($authUser['role'] ?? '', ['guru', 'bk', 'pimpinan'], true)): ?>
-          <li>
-            <a class="dropdown-item" href="<?= base_url('profile/guru') ?>">
-              <i class="icon-base bx bx-user me-2 icon-md"></i><span>Profile Saya</span>
+        </li>
+
+    <?php elseif (($authUser['role'] ?? '') === 'siswa'): ?>
+
+        <li>
+            <a
+                class="dropdown-item"
+                href="<?= base_url('profile/siswa') ?>"
+            >
+                <i class="icon-base bx bx-user me-2 icon-md"></i>
+                <span>Profile Saya</span>
             </a>
-          </li>
-          <?php elseif (($authUser['role'] ?? '') === 'siswa'): ?>
-          <li>
-            <a class="dropdown-item" href="<?= base_url('profile/siswa') ?>">
-              <i class="icon-base bx bx-user me-2 icon-md"></i><span>Profile Saya</span>
-            </a>
-          </li>
-          <?php endif; ?>
-          <li><div class="dropdown-divider"></div></li>
-          <li>
-            <a class="dropdown-item" href="<?= base_url('auth/logout') ?>">
-              <i class="icon-base bx bx-power-off me-2 icon-md"></i><span>Log Out</span>
-            </a>
-          </li>
-        </ul>
-      </li>
-    </ul>
+        </li>
+
+    <?php endif; ?>
+
+    <li>
+        <div class="dropdown-divider"></div>
+    </li>
+
+    <li>
+
+        <form
+            method="post"
+            action="<?= base_url('auth/logout') ?>"
+            class="m-0"
+        >
+
+            <?= csrf_field() ?>
+
+            <button
+                type="submit"
+                class="dropdown-item border-0 bg-transparent w-100 text-start"
+            >
+                <i class="bx bx-power-off me-2 icon-md"></i>
+                <span>Log Out</span>
+            </button>
+
+        </form>
+
+    </li>
+
+</ul>
   </div>
 </nav>
