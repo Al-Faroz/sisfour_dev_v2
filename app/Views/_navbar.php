@@ -27,7 +27,21 @@ $roleLabel = [
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
           <li>
-            <a class="dropdown-item" href="javascript:void(0);">
+            <form
+    method="post"
+    action="<?= base_url('auth/logout') ?>"
+    class="m-0"
+>
+    <?= csrf_field() ?>
+
+    <button
+        type="submit"
+        class="dropdown-item"
+    >
+        <i class="bx bx-log-out me-2"></i>
+        <span>Logout</span>
+    </button>
+</form>
               <div class="d-flex">
                 <div class="flex-shrink-0 me-3">
                   <div class="avatar avatar-online">

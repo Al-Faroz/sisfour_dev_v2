@@ -7,52 +7,77 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Database;
 
-/**
- * AuthFilter — Session-based (web). Acuan: 03_AUTH_RBAC_MENU §1.1, §1.2
- */
 class AuthFilter implements FilterInterface
 {
-    public function before(RequestInterface $request, $arguments = null)
-    {
-        if (!session()->get('logged_in')) {
-            // DEBUG SEMENTARA — hapus setelah bug login selesai
-            log_message('debug', 'AuthFilter: session logged_in kosong. session_id={sid}, cookie_ci_session={cookie}', [
-                'sid' => session_id(),
-                'cookie' => $_COOKIE['ci_session'] ?? '(tidak ada cookie ci_session terkirim)',
-            ]);
+    /**
+     * Filter autentikasi session web.
+     */
+    public function before(
+        RequestInterface $request,
+        $arguments = null
+    ) {
+        /*
+         * 1. Pastikan session login tersedia.
+         */
+        if (session()->get('logged_in') !== true) {
+            session()->setFlashdata(
+                'error',
+                'Silakan login terlebih dahulu.'
+            );
 
-            session()->setFlashdata('error', 'Silakan login terlebih dahulu.');
             return redirect()->to('/auth/login');
         }
 
-        // Single Active Session: cek auth_version session vs database
+        /*
+         * 2. Pastikan user_id valid.
+         */
+        $userId = (int) session()->get('user_id');
+
+        if ($userId <= 0) {
+            session()->destroy();
+
+            return redirect()->to('/auth/login');
+        }
+
+        /*
+         * 3. Ambil status user dan auth_version terbaru.
+         */
         $db = Database::connect();
-        $user = $db->table('users')
+
+        $user = $db
+            ->table('users')
             ->select('auth_version, status_aktif')
-            ->where('id', session()->get('user_id'))
+            ->where('id', $userId)
             ->get()
             ->getRowArray();
 
-        if (!$user || (int) $user['status_aktif'] !== 1 || (int) $user['auth_version'] !== (int) session()->get('auth_version')) {
-            // DEBUG SEMENTARA — hapus setelah bug login selesai
-            log_message('debug', 'AuthFilter: auth_version/status mismatch. user_id={uid}, db_auth_version={dbv}, session_auth_version={sv}, db_status_aktif={st}, user_row_ditemukan={found}', [
-                'uid' => session()->get('user_id'),
-                'dbv' => $user['auth_version'] ?? '(user tidak ditemukan)',
-                'sv' => session()->get('auth_version'),
-                'st' => $user['status_aktif'] ?? '-',
-                'found' => $user ? 'ya' : 'tidak',
-            ]);
-
+        /*
+         * 4. User tidak ada / nonaktif / auth_version berubah.
+         */
+        if (
+            !$user
+            || (int) $user['status_aktif'] !== 1
+            || (int) $user['auth_version']
+                !== (int) session()->get('auth_version')
+        ) {
             session()->destroy();
-            session()->setFlashdata('error', 'Sesi Anda telah berakhir (login di perangkat lain atau akun dinonaktifkan). Silakan login ulang.');
-            return redirect()->to('/auth/login');
+
+            return redirect()
+                ->to('/auth/login')
+                ->with(
+                    'error',
+                    'Sesi Anda telah berakhir. Silakan login kembali.'
+                );
         }
 
         return null;
     }
 
-    public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
-    {
-        // Tidak ada aksi setelah response untuk filter ini.
+    public function after(
+        RequestInterface $request,
+        ResponseInterface $response,
+        $arguments = null
+    ) {
+        // Tidak ada aksi setelah response.
     }
 }
