@@ -11,6 +11,11 @@ class AuthFilter implements FilterInterface
 {
     /**
      * Filter autentikasi session web.
+     *
+     * Memastikan:
+     * - session login valid
+     * - user masih aktif
+     * - auth_version session masih sama dengan database
      */
     public function before(
         RequestInterface $request,
@@ -40,7 +45,25 @@ class AuthFilter implements FilterInterface
         }
 
         /*
-         * 3. Ambil status user dan auth_version terbaru.
+         * 3. auth_version wajib tersedia di session.
+         *
+         * Tanpa auth_version, session tidak boleh dianggap valid.
+         */
+        $sessionAuthVersion = session()->get('auth_version');
+
+        if ($sessionAuthVersion === null) {
+            session()->destroy();
+
+            return redirect()
+                ->to('/auth/login')
+                ->with(
+                    'error',
+                    'Sesi Anda tidak valid. Silakan login kembali.'
+                );
+        }
+
+        /*
+         * 4. Ambil status user dan auth_version terbaru.
          */
         $db = Database::connect();
 
@@ -52,13 +75,15 @@ class AuthFilter implements FilterInterface
             ->getRowArray();
 
         /*
-         * 4. User tidak ada / nonaktif / auth_version berubah.
+         * 5. User tidak ada / nonaktif / auth_version berubah.
+         *
+         * auth_version memastikan hanya satu sesi/token aktif
+         * yang dapat digunakan setelah login berikutnya.
          */
         if (
             !$user
             || (int) $user['status_aktif'] !== 1
-            || (int) $user['auth_version']
-                !== (int) session()->get('auth_version')
+            || (int) $user['auth_version'] !== (int) $sessionAuthVersion
         ) {
             session()->destroy();
 

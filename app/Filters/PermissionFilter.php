@@ -13,11 +13,9 @@ use CodeIgniter\HTTP\ResponseInterface;
  * Mengecek permission_key pada route.
  *
  * Contoh:
- *
  * permission:master_guru.manage
  *
  * atau:
- *
  * permission:master_guru.manage,master_guru.view
  *
  * Beberapa permission berarti OR.
@@ -32,7 +30,7 @@ class PermissionFilter implements FilterInterface
          * AuthFilter seharusnya sudah dijalankan oleh
          * parent route group.
          *
-         * Tetap cek session di sini sebagai defensive check.
+         * Tetap cek session sebagai defensive check.
          */
         if (session()->get('logged_in') !== true) {
             return redirect()->to('/auth/login');
@@ -49,6 +47,9 @@ class PermissionFilter implements FilterInterface
                 );
         }
 
+        /*
+         * Pastikan user_id valid.
+         */
         $userId = (int) session()->get('user_id');
 
         if ($userId <= 0) {
@@ -69,7 +70,10 @@ class PermissionFilter implements FilterInterface
          *
          * permission:a,b,c
          *
-         * user cukup memiliki salah satunya.
+         * User cukup memiliki salah satunya.
+         *
+         * resolveScope() juga bertanggung jawab terhadap
+         * validasi contextual scope seperti KELAS_DIAMPU.
          */
         foreach ($arguments as $permissionKey) {
             $permissionKey = trim((string) $permissionKey);
@@ -83,11 +87,14 @@ class PermissionFilter implements FilterInterface
                 $userId
             );
 
-            if ($scope !== 'TIDAK_ADA') {
-                $matchedPermission = $permissionKey;
-                $resolvedScope = $scope;
-                break;
+            if ($scope === 'TIDAK_ADA') {
+                continue;
             }
+
+            $matchedPermission = $permissionKey;
+            $resolvedScope = $scope;
+
+            break;
         }
 
         /*
@@ -111,11 +118,14 @@ class PermissionFilter implements FilterInterface
         }
 
         /*
-         * Simpan hasil resolusi permission.
+         * Simpan hasil resolusi permission ke request.
          *
-         * Controller/Service nantinya dapat membaca:
+         * Controller/Service dapat membaca:
          *
          * $request->permission
+         *
+         * Scope tetap harus diterapkan oleh Model/Service
+         * sesuai aturan masing-masing modul.
          */
         $request->permission = [
             'key' => $matchedPermission,
