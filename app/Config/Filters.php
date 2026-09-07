@@ -22,6 +22,7 @@ class Filters extends BaseFilters
      * Filter aliases.
      */
     public array $aliases = [
+        // Built-in CodeIgniter filters.
         'csrf' => CSRF::class,
         'toolbar' => DebugToolbar::class,
         'honeypot' => Honeypot::class,
@@ -33,7 +34,12 @@ class Filters extends BaseFilters
         'performance' => PerformanceMetrics::class,
 
         // Custom SisisFour filters.
+        //
+        // auth:api pada Routes.php berarti:
+        // alias = auth
+        // argument = api
         'auth' => AuthFilter::class,
+
         'permission' => PermissionFilter::class,
         'maintenance' => MaintenanceFilter::class,
     ];
@@ -45,6 +51,7 @@ class Filters extends BaseFilters
         'before' => [
             'forcehttps',
         ],
+
         'after' => [
             'forcehttps',
         ],
@@ -53,12 +60,11 @@ class Filters extends BaseFilters
     /**
      * Global filters.
      *
-     * CSRF:
-     * - aktif untuk Web
-     * - dikecualikan untuk API
+     * Maintenance berlaku secara global.
      *
-     * API nanti menggunakan mekanisme autentikasi JWT
-     * dan bukan CSRF session-based.
+     * CSRF:
+     * - Aktif untuk Web.
+     * - Dikecualikan untuk seluruh endpoint API.
      */
     public array $globals = [
         'before' => [
