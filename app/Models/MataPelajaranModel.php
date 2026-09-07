@@ -7,9 +7,15 @@ use CodeIgniter\Model;
 /**
  * MataPelajaranModel
  *
- * Hard delete (tanpa deleted_at) — 04_MASTER_DATA §3.4.
- * FK dari jadwal_guru bersifat RESTRICT, jadi hapus akan gagal jika mapel
- * masih dipakai; tangkap DatabaseException di Controller/Service.
+ * Master Mata Pelajaran.
+ *
+ * Acuan:
+ * - docs/02_DATABASE
+ * - docs/04_MASTER_DATA §3.4
+ *
+ * Tabel mata_pelajaran menggunakan hard delete.
+ * Penghapusan akan ditolak oleh FK RESTRICT/NO ACTION bila mapel sudah
+ * digunakan pada jadwal_guru.
  */
 class MataPelajaranModel extends Model
 {
@@ -17,11 +23,14 @@ class MataPelajaranModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
 
-    protected $allowedFields = ['nama_mapel', 'kode_mapel'];
+    protected $useSoftDeletes = false;
+    protected $useTimestamps  = false;
 
-    protected $useTimestamps = false;
+    protected $allowedFields = [
+        'nama_mapel',
+        'kode_mapel',
+    ];
 
     protected $validationRules = [
         'nama_mapel' => 'required|max_length[100]',
@@ -29,8 +38,35 @@ class MataPelajaranModel extends Model
     ];
 
     protected $validationMessages = [
-        'kode_mapel' => ['is_unique' => 'Kode mapel sudah dipakai.'],
+        'nama_mapel' => [
+            'required' => 'Nama mata pelajaran wajib diisi.',
+        ],
+        'kode_mapel' => [
+            'required'  => 'Kode mata pelajaran wajib diisi.',
+            'is_unique' => 'Kode mata pelajaran sudah digunakan.',
+        ],
     ];
 
     protected $skipValidation = false;
+    protected $cleanValidationRules = true;
+
+    /**
+     * Cari mapel berdasarkan kode.
+     */
+    public function findByKode(string $kodeMapel): ?array
+    {
+        return $this
+            ->where('kode_mapel', trim($kodeMapel))
+            ->first();
+    }
+
+    /**
+     * Daftar mapel terurut untuk dropdown/list.
+     */
+    public function getTerurut(): array
+    {
+        return $this
+            ->orderBy('nama_mapel', 'ASC')
+            ->findAll();
+    }
 }

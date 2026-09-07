@@ -7,9 +7,14 @@ use CodeIgniter\Model;
 /**
  * AnggotaKelasModel
  *
- * Relasi siswa <-> kelas per tahun ajaran. UNIQUE (id_siswa, id_tahun) —
- * satu siswa hanya boleh ada di satu kelas per tahun ajaran.
- * Referensi: 02_DATABASE §1.7
+ * Relasi siswa <-> kelas per tahun ajaran.
+ *
+ * Acuan:
+ * - docs/02_DATABASE
+ * - docs/04_MASTER_DATA §3.3
+ *
+ * Database menegakkan UNIQUE (id_siswa, id_tahun), sehingga satu siswa
+ * hanya dapat menjadi anggota satu kelas dalam satu tahun ajaran.
  */
 class AnggotaKelasModel extends Model
 {
@@ -17,10 +22,15 @@ class AnggotaKelasModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
-    protected $useTimestamps    = false;
 
-    protected $allowedFields = ['id_siswa', 'id_kelas', 'id_tahun'];
+    protected $useSoftDeletes = false;
+    protected $useTimestamps  = false;
+
+    protected $allowedFields = [
+        'id_siswa',
+        'id_kelas',
+        'id_tahun',
+    ];
 
     protected $validationRules = [
         'id_siswa' => 'required|integer',
@@ -28,27 +38,70 @@ class AnggotaKelasModel extends Model
         'id_tahun' => 'required|integer',
     ];
 
-    protected $skipValidation = false;
+    protected $validationMessages = [
+        'id_siswa' => [
+            'required' => 'Siswa wajib dipilih.',
+        ],
+        'id_kelas' => [
+            'required' => 'Kelas wajib dipilih.',
+        ],
+        'id_tahun' => [
+            'required' => 'Tahun ajaran wajib dipilih.',
+        ],
+    ];
 
+    protected $skipValidation = false;
+    protected $cleanValidationRules = true;
+
+    /**
+     * Ambil keanggotaan kelas seorang siswa pada tahun tertentu.
+     */
     public function getKelasSiswa(int $idSiswa, int $idTahun): ?array
     {
-        return $this->where('id_siswa', $idSiswa)->where('id_tahun', $idTahun)->first();
+        return $this
+            ->where('id_siswa', $idSiswa)
+            ->where('id_tahun', $idTahun)
+            ->first();
     }
 
     /**
-     * Pindahkan siswa ke kelas/tahun baru (dipakai KelasService::naikKelas).
-     * Karena UNIQUE(id_siswa, id_tahun), gunakan upsert: hapus baris lama di
-     * tahun sama (jika ada) lalu insert baris baru.
+     * Ambil semua anggota satu kelas/tahun.
      */
-    public function pindahkan(int $idSiswa, int $idKelasBaru, int $idTahunBaru): void
+    public function getByKelasTahun(int $idKelas, int $idTahun): array
     {
-        $existing = $this->getKelasSiswa($idSiswa, $idTahunBaru);
-        if ($existing) {
-            $this->update($existing['id'], ['id_kelas' => $idKelasBaru]);
+        return $this
+            ->select('anggota_kelas.*, siswa.nama, siswa.nik, siswa.nisn, siswa.status_aktif')
+            ->join('siswa', 'siswa.id = anggota_kelas.id_siswa')
+            ->where('anggota_kelas.id_kelas', $idKelas)
+            ->where('anggota_kelas.id_tahun', $idTahun)
+            ->where('siswa.deleted_at', null)
+            ->orderBy('siswa.nama', 'ASC')
+            ->findAll();
+    }
 
-            return;
+    /**
+     * Tempatkan/pindahkan siswa pada kelas di tahun tujuan.
+     *
+     * Jika siswa sudah mempunyai row pada tahun yang sama, row tersebut
+     * diperbarui agar tidak melanggar UNIQUE (id_siswa, id_tahun).
+     */
+    public function pindahkan(
+        int $idSiswa,
+        int $idKelasBaru,
+        int $idTahunBaru
+    ): bool {
+        $existing = $this->getKelasSiswa($idSiswa, $idTahunBaru);
+
+        if ($existing !== null) {
+            return $this->update($existing['id'], [
+                'id_kelas' => $idKelasBaru,
+            ]);
         }
 
-        $this->insert(['id_siswa' => $idSiswa, 'id_kelas' => $idKelasBaru, 'id_tahun' => $idTahunBaru]);
+        return $this->insert([
+            'id_siswa' => $idSiswa,
+            'id_kelas' => $idKelasBaru,
+            'id_tahun' => $idTahunBaru,
+        ]) !== false;
     }
 }

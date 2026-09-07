@@ -7,8 +7,14 @@ use CodeIgniter\Model;
 /**
  * KelasModel
  *
- * nama_kelas di-generate dari tingkat + rombel (contoh: "7-A") — lihat
- * KelasService::generateNamaKelas(). Referensi: 02_DATABASE §1.4, 04_MASTER_DATA §3.3
+ * Master data kelas.
+ *
+ * Acuan:
+ * - docs/02_DATABASE
+ * - docs/04_MASTER_DATA §3.3
+ *
+ * nama_kelas dihasilkan dari tingkat + rombel oleh Service
+ * (contoh: 7 + A menjadi "7-A").
  */
 class KelasModel extends Model
 {
@@ -16,29 +22,96 @@ class KelasModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $useSoftDeletes   = true;
-    protected $deletedField     = 'deleted_at';
 
-    protected $allowedFields = ['tingkat', 'rombel', 'nama_kelas', 'id_tahun'];
+    protected $useSoftDeletes = true;
+    protected $deletedField   = 'deleted_at';
 
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
+    protected $allowedFields = [
+        'tingkat',
+        'rombel',
+        'nama_kelas',
+        'id_tahun',
+    ];
+
     protected $validationRules = [
-        'tingkat'  => 'required|in_list[7,8,9]',
-        'rombel'   => 'required|max_length[10]',
-        'id_tahun' => 'required|integer',
+        'tingkat'    => 'required|in_list[7,8,9]',
+        'rombel'     => 'required|max_length[10]',
+        'nama_kelas' => 'required|max_length[20]',
+        'id_tahun'   => 'required|integer',
+    ];
+
+    protected $validationMessages = [
+        'tingkat' => [
+            'required' => 'Tingkat wajib diisi.',
+            'in_list'  => 'Tingkat hanya boleh 7, 8, atau 9.',
+        ],
+        'rombel' => [
+            'required' => 'Rombel wajib diisi.',
+        ],
+        'nama_kelas' => [
+            'required' => 'Nama kelas wajib diisi.',
+        ],
+        'id_tahun' => [
+            'required' => 'Tahun ajaran wajib dipilih.',
+        ],
     ];
 
     protected $skipValidation = false;
+    protected $cleanValidationRules = true;
 
+    /**
+     * Ambil kelas aktif pada satu tahun ajaran.
+     */
     public function getByTahun(int $idTahun): array
     {
-        return $this->where('id_tahun', $idTahun)
+        return $this
+            ->where('id_tahun', $idTahun)
             ->orderBy('tingkat', 'ASC')
             ->orderBy('rombel', 'ASC')
             ->findAll();
+    }
+
+    /**
+     * Cari kelas berdasarkan nama kelas dan tahun.
+     */
+    public function findByNamaTahun(
+        string $namaKelas,
+        int $idTahun,
+        bool $withDeleted = false
+    ): ?array {
+        $model = $withDeleted ? $this->withDeleted() : $this;
+
+        return $model
+            ->where('nama_kelas', trim($namaKelas))
+            ->where('id_tahun', $idTahun)
+            ->first();
+    }
+
+    /**
+     * Cek composite unique nama_kelas + id_tahun.
+     *
+     * Data recycle-bin ikut dihitung karena database menggunakan unique key
+     * fisik pada (id_tahun, nama_kelas).
+     */
+    public function namaKelasDipakai(
+        string $namaKelas,
+        int $idTahun,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->db
+            ->table('kelas')
+            ->where('nama_kelas', trim($namaKelas))
+            ->where('id_tahun', $idTahun);
+
+        if ($exceptId !== null) {
+            $builder->where('id !=', $exceptId);
+        }
+
+        return $builder->countAllResults() > 0;
     }
 }

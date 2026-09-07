@@ -7,15 +7,8 @@ use App\Models\KelasModel;
 use App\Models\RiwayatSiswaModel;
 use App\Models\SiswaModel;
 use Config\Database;
+use Throwable;
 
-/**
- * KelasService
- *
- * Business logic: kenaikan kelas (checklist), kelulusan, mutasi siswa,
- * pencatatan histori (riwayat_siswa — A4).
- *
- * Referensi: 04_MASTER_DATA §3.3, §7.1
- */
 class KelasService
 {
     protected KelasModel $kelasModel;
@@ -26,189 +19,270 @@ class KelasService
 
     public function __construct()
     {
-        $this->kelasModel        = new KelasModel();
-        $this->siswaModel        = new SiswaModel();
+        $this->kelasModel = new KelasModel();
+        $this->siswaModel = new SiswaModel();
         $this->anggotaKelasModel = new AnggotaKelasModel();
         $this->riwayatSiswaModel = new RiwayatSiswaModel();
-        $this->db                = Database::connect();
+        $this->db = Database::connect();
     }
 
-    /**
-     * Generate nama_kelas dari tingkat + rombel (contoh: "7-A").
-     */
     public function generateNamaKelas(string $tingkat, string $rombel): string
     {
-        return $tingkat . '-' . strtoupper($rombel);
+        return $tingkat . '-' . strtoupper(trim($rombel));
     }
 
-    /**
-     * Kenaikan kelas dengan checklist (A6, 04_MASTER_DATA §3.3).
-     *
-     * @param int   $idKelasAsal
-     * @param int   $idKelasTujuan
-     * @param int   $idTahunBaru
-     * @param int[] $daftarSiswaTerpilih  id_siswa yang DICENTANG (default semua tercentang di UI, tapi array ini WAJIB eksplisit, jangan hardcode "semua siswa")
-     *
-     * @return array{success: bool, message: string, jumlah_dipindah?: int}
-     */
-    public function naikKelas(int $idKelasAsal, int $idKelasTujuan, int $idTahunBaru, array $daftarSiswaTerpilih): array
-    {
-        if (empty($daftarSiswaTerpilih)) {
+    public function naikKelas(
+        int $idKelasAsal,
+        int $idKelasTujuan,
+        int $idTahunBaru,
+        array $daftarSiswaTerpilih
+    ): array {
+        if ($daftarSiswaTerpilih === []) {
             return ['success' => false, 'message' => 'Tidak ada siswa yang dipilih untuk dipindahkan.'];
         }
 
+        $kelasAsal = $this->kelasModel->find($idKelasAsal);
         $kelasTujuan = $this->kelasModel->find($idKelasTujuan);
-        if (!$kelasTujuan) {
-            return ['success' => false, 'message' => 'Kelas tujuan tidak ditemukan.'];
+
+        if ($kelasAsal === null || $kelasTujuan === null) {
+            return ['success' => false, 'message' => 'Kelas asal atau kelas tujuan tidak ditemukan.'];
         }
 
-        $this->db->transStart();
-
-        $tanggalHariIni = date('Y-m-d');
-
-        foreach ($daftarSiswaTerpilih as $idSiswa) {
-            $idSiswa = (int) $idSiswa;
-
-            // Tutup riwayat aktif di kelas asal, catat riwayat baru di kelas tujuan (A4)
-            $this->riwayatSiswaModel->insert([
-                'id_siswa'        => $idSiswa,
-                'id_tahun'        => $idTahunBaru,
-                'id_kelas'        => $idKelasTujuan,
-                'status'          => 'Aktif',
-                'tanggal_mulai'   => $tanggalHariIni,
-                'keterangan'      => 'Kenaikan kelas dari kelas asal ID ' . $idKelasAsal,
-            ]);
-
-            // Pindahkan keanggotaan kelas (anggota_kelas) ke tahun ajaran baru
-            $this->anggotaKelasModel->pindahkan($idSiswa, $idKelasTujuan, $idTahunBaru);
-
-            // Catatan: Wali Kelas & Jadwal Guru TIDAK ikut pindah (04_MASTER_DATA §3.3)
+        if ((int) $kelasTujuan['id_tahun'] !== $idTahunBaru) {
+            return ['success' => false, 'message' => 'Kelas tujuan tidak berada pada tahun ajaran tujuan.'];
         }
 
-        $this->db->transComplete();
+        $tanggal = date('Y-m-d');
+        $this->db->transBegin();
 
-        if ($this->db->transStatus() === false) {
-            return ['success' => false, 'message' => 'Proses kenaikan kelas gagal, transaksi dibatalkan.'];
+        try {
+            foreach ($daftarSiswaTerpilih as $idSiswaRaw) {
+                $idSiswa = (int) $idSiswaRaw;
+
+                $anggotaAsal = $this->anggotaKelasModel
+                    ->where('id_siswa', $idSiswa)
+                    ->where('id_kelas', $idKelasAsal)
+                    ->where('id_tahun', (int) $kelasAsal['id_tahun'])
+                    ->first();
+
+                if ($anggotaAsal === null) {
+                    throw new \RuntimeException("Siswa ID {$idSiswa} bukan anggota kelas asal.");
+                }
+
+                $this->riwayatSiswaModel->tutupRiwayatAktif(
+                    $idSiswa,
+                    (int) $kelasAsal['id_tahun'],
+                    $tanggal
+                );
+
+                if ($this->riwayatSiswaModel->insert([
+                    'id_siswa' => $idSiswa,
+                    'id_tahun' => $idTahunBaru,
+                    'id_kelas' => $idKelasTujuan,
+                    'status' => 'Aktif',
+                    'tanggal_mulai' => $tanggal,
+                    'keterangan' => 'Kenaikan kelas dari ' . $kelasAsal['nama_kelas'],
+                ]) === false) {
+                    throw new \RuntimeException('Histori kenaikan kelas gagal dicatat.');
+                }
+
+                if (!$this->anggotaKelasModel->pindahkan(
+                    $idSiswa,
+                    $idKelasTujuan,
+                    $idTahunBaru
+                )) {
+                    throw new \RuntimeException('Keanggotaan kelas gagal diperbarui.');
+                }
+
+                if (!$this->siswaModel->update($idSiswa, [
+                    'status_aktif' => 'Aktif',
+                    'tanggal_mutasi' => null,
+                    'keterangan_mutasi' => null,
+                ])) {
+                    throw new \RuntimeException('Status siswa gagal diperbarui.');
+                }
+            }
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi kenaikan kelas gagal.');
+            }
+
+            $this->db->transCommit();
+
+            return [
+                'success' => true,
+                'message' => 'Kenaikan kelas berhasil.',
+                'jumlah_dipindah' => count($daftarSiswaTerpilih),
+            ];
+        } catch (Throwable $e) {
+            $this->db->transRollback();
+
+            return ['success' => false, 'message' => $e->getMessage()];
         }
-
-        return [
-            'success'         => true,
-            'message'         => 'Kenaikan kelas berhasil.',
-            'jumlah_dipindah' => count($daftarSiswaTerpilih),
-        ];
     }
 
-    /**
-     * Kelulusan siswa kelas 9.
-     *
-     * @param int   $idKelas
-     * @param int[] $daftarSiswaTerpilih
-     */
-    public function luluskan(int $idKelas, array $daftarSiswaTerpilih): array
-    {
-        if (empty($daftarSiswaTerpilih)) {
+    public function luluskan(
+        int $idKelas,
+        array $daftarSiswaTerpilih
+    ): array {
+        if ($daftarSiswaTerpilih === []) {
             return ['success' => false, 'message' => 'Tidak ada siswa yang dipilih untuk diluluskan.'];
         }
 
         $kelas = $this->kelasModel->find($idKelas);
-        if (!$kelas) {
+
+        if ($kelas === null) {
             return ['success' => false, 'message' => 'Kelas tidak ditemukan.'];
         }
 
-        $this->db->transStart();
+        $tanggal = date('Y-m-d');
+        $this->db->transBegin();
 
-        $tanggalHariIni = date('Y-m-d');
+        try {
+            foreach ($daftarSiswaTerpilih as $idSiswaRaw) {
+                $idSiswa = (int) $idSiswaRaw;
 
-        foreach ($daftarSiswaTerpilih as $idSiswa) {
-            $idSiswa = (int) $idSiswa;
+                $this->riwayatSiswaModel->tutupRiwayatAktif(
+                    $idSiswa,
+                    (int) $kelas['id_tahun'],
+                    $tanggal
+                );
 
-            $this->riwayatSiswaModel->tutupRiwayatAktif($idSiswa, $kelas['id_tahun'], $tanggalHariIni);
+                if ($this->riwayatSiswaModel->insert([
+                    'id_siswa' => $idSiswa,
+                    'id_tahun' => (int) $kelas['id_tahun'],
+                    'id_kelas' => $idKelas,
+                    'status' => 'Lulus',
+                    'tanggal_mulai' => $tanggal,
+                    'tanggal_selesai' => $tanggal,
+                    'keterangan' => 'Kelulusan',
+                ]) === false) {
+                    throw new \RuntimeException('Histori kelulusan gagal dicatat.');
+                }
 
-            $this->riwayatSiswaModel->insert([
-                'id_siswa'        => $idSiswa,
-                'id_tahun'        => $kelas['id_tahun'],
-                'id_kelas'        => $idKelas,
-                'status'          => 'Lulus',
-                'tanggal_mulai'   => $tanggalHariIni,
-                'tanggal_selesai' => $tanggalHariIni,
-                'keterangan'      => 'Kelulusan',
-            ]);
+                if (!$this->siswaModel->update($idSiswa, [
+                    'status_aktif' => 'Lulus',
+                    'tanggal_mutasi' => $tanggal,
+                    'keterangan_mutasi' => 'Lulus',
+                ])) {
+                    throw new \RuntimeException('Status kelulusan siswa gagal diperbarui.');
+                }
 
-            $this->siswaModel->update($idSiswa, [
-                'status_aktif'      => 'Lulus',
-                'tanggal_mutasi'    => $tanggalHariIni,
-                'keterangan_mutasi' => 'Lulus',
-            ]);
+                $this->nonaktifkanKartu($idSiswa);
+            }
 
-            // Efek: kartu pelajar otomatis Nonaktif — lihat KartuPelajarService (event listener saat Tahap 10)
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi kelulusan gagal.');
+            }
+
+            $this->db->transCommit();
+
+            return [
+                'success' => true,
+                'message' => 'Kelulusan berhasil diproses.',
+                'jumlah_diluluskan' => count($daftarSiswaTerpilih),
+            ];
+        } catch (Throwable $e) {
+            $this->db->transRollback();
+
+            return ['success' => false, 'message' => $e->getMessage()];
         }
-
-        $this->db->transComplete();
-
-        if ($this->db->transStatus() === false) {
-            return ['success' => false, 'message' => 'Proses kelulusan gagal, transaksi dibatalkan.'];
-        }
-
-        return [
-            'success'          => true,
-            'message'          => 'Kelulusan berhasil diproses.',
-            'jumlah_diluluskan' => count($daftarSiswaTerpilih),
-        ];
     }
 
-    /**
-     * Mutasi siswa (Pindah/Keluar) — 04_MASTER_DATA §3.2.
-     *
-     * @param string $statusBaru  'Pindah' atau 'Keluar'
-     */
-    public function mutasiSiswa(int $idSiswa, string $statusBaru, string $keterangan): array
-    {
+    public function mutasiSiswa(
+        int $idSiswa,
+        string $statusBaru,
+        string $keterangan
+    ): array {
         if (!in_array($statusBaru, ['Pindah', 'Keluar'], true)) {
-            return ['success' => false, 'message' => 'Status mutasi tidak valid.'];
+            return ['success' => false, 'message' => 'Status mutasi hanya boleh Pindah atau Keluar.'];
+        }
+
+        $keterangan = trim($keterangan);
+
+        if ($keterangan === '') {
+            return ['success' => false, 'message' => 'Keterangan mutasi wajib diisi.'];
         }
 
         $siswa = $this->siswaModel->find($idSiswa);
-        if (!$siswa) {
+
+        if ($siswa === null) {
             return ['success' => false, 'message' => 'Siswa tidak ditemukan.'];
         }
 
-        $this->db->transStart();
+        if ($siswa['status_aktif'] !== 'Aktif') {
+            return ['success' => false, 'message' => 'Mutasi hanya dapat diproses untuk siswa berstatus Aktif.'];
+        }
 
-        $tanggalHariIni = date('Y-m-d');
-
-        $anggota = $this->db->table('anggota_kelas')
-            ->select('id_kelas, id_tahun')
-            ->where('id_siswa', $idSiswa)
-            ->orderBy('id_tahun', 'DESC')
+        $anggota = $this->db
+            ->table('anggota_kelas ak')
+            ->select('ak.id_kelas, ak.id_tahun')
+            ->join('tahun_ajaran ta', 'ta.id = ak.id_tahun')
+            ->where('ak.id_siswa', $idSiswa)
+            ->orderBy('ta.status_aktif', 'DESC')
+            ->orderBy('ak.id_tahun', 'DESC')
             ->get()
             ->getRowArray();
 
-        if ($anggota) {
-            $this->riwayatSiswaModel->tutupRiwayatAktif($idSiswa, (int) $anggota['id_tahun'], $tanggalHariIni);
-
-            $this->riwayatSiswaModel->insert([
-                'id_siswa'        => $idSiswa,
-                'id_tahun'        => $anggota['id_tahun'],
-                'id_kelas'        => $anggota['id_kelas'],
-                'status'          => $statusBaru,
-                'tanggal_mulai'   => $tanggalHariIni,
-                'tanggal_selesai' => $tanggalHariIni,
-                'keterangan'      => $keterangan,
-            ]);
+        if ($anggota === null) {
+            return [
+                'success' => false,
+                'message' => 'Mutasi tidak dapat diproses karena siswa belum memiliki riwayat kelas.',
+            ];
         }
 
-        $this->siswaModel->update($idSiswa, [
-            'status_aktif'      => $statusBaru,
-            'tanggal_mutasi'    => $tanggalHariIni,
-            'keterangan_mutasi' => $keterangan,
-        ]);
+        $tanggal = date('Y-m-d');
+        $this->db->transBegin();
 
-        $this->db->transComplete();
+        try {
+            $this->riwayatSiswaModel->tutupRiwayatAktif(
+                $idSiswa,
+                (int) $anggota['id_tahun'],
+                $tanggal
+            );
 
-        if ($this->db->transStatus() === false) {
-            return ['success' => false, 'message' => 'Proses mutasi gagal, transaksi dibatalkan.'];
+            if ($this->riwayatSiswaModel->insert([
+                'id_siswa' => $idSiswa,
+                'id_tahun' => (int) $anggota['id_tahun'],
+                'id_kelas' => (int) $anggota['id_kelas'],
+                'status' => $statusBaru,
+                'tanggal_mulai' => $tanggal,
+                'tanggal_selesai' => $tanggal,
+                'keterangan' => $keterangan,
+            ]) === false) {
+                throw new \RuntimeException('Histori mutasi gagal dicatat.');
+            }
+
+            if (!$this->siswaModel->update($idSiswa, [
+                'status_aktif' => $statusBaru,
+                'tanggal_mutasi' => $tanggal,
+                'keterangan_mutasi' => $keterangan,
+            ])) {
+                throw new \RuntimeException('Status mutasi siswa gagal diperbarui.');
+            }
+
+            $this->nonaktifkanKartu($idSiswa);
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi mutasi gagal.');
+            }
+
+            $this->db->transCommit();
+
+            return ['success' => true, 'message' => 'Mutasi siswa berhasil dicatat.'];
+        } catch (Throwable $e) {
+            $this->db->transRollback();
+
+            return ['success' => false, 'message' => $e->getMessage()];
         }
+    }
 
-        return ['success' => true, 'message' => 'Mutasi siswa berhasil dicatat.'];
+    protected function nonaktifkanKartu(int $idSiswa): void
+    {
+        $this->db
+            ->table('kartu_pelajar')
+            ->where('id_siswa', $idSiswa)
+            ->where('status_aktif', 'Aktif')
+            ->update(['status_aktif' => 'Nonaktif']);
     }
 }
