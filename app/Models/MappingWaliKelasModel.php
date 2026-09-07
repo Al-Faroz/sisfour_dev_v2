@@ -9,10 +9,6 @@ use CodeIgniter\Model;
  *
  * Mapping wali kelas per tahun ajaran.
  *
- * Acuan:
- * - docs/02_DATABASE
- * - docs/04_MASTER_DATA §4 (A2)
- *
  * Aturan:
  * - 1 guru maksimal 1 kelas aktif per tahun.
  * - 1 kelas maksimal 1 wali aktif per tahun.
@@ -64,13 +60,10 @@ class MappingWaliKelasModel extends Model
     protected $skipValidation = false;
     protected $cleanValidationRules = true;
 
-    /**
-     * Cari mapping guru pada tahun tertentu, termasuk histori soft-deleted.
-     *
-     * Digunakan oleh Service untuk menentukan INSERT baru atau RESTORE.
-     */
-    public function findByGuruTahun(int $idGuru, int $idTahun): ?array
-    {
+    public function findByGuruTahun(
+        int $idGuru,
+        int $idTahun
+    ): ?array {
         return $this
             ->withDeleted()
             ->where('id_guru', $idGuru)
@@ -79,42 +72,46 @@ class MappingWaliKelasModel extends Model
             ->first();
     }
 
-    /**
-     * Cari wali aktif pada kelas/tahun tertentu.
-     */
-    public function findAktifByKelasTahun(int $idKelas, int $idTahun): ?array
-    {
+    public function findAktifByGuruTahun(
+        int $idGuru,
+        int $idTahun
+    ): ?array {
+        return $this
+            ->where('id_guru', $idGuru)
+            ->where('id_tahun', $idTahun)
+            ->first();
+    }
+
+    public function findAktifByKelasTahun(
+        int $idKelas,
+        int $idTahun
+    ): ?array {
         return $this
             ->where('id_kelas', $idKelas)
             ->where('id_tahun', $idTahun)
             ->first();
     }
 
-    /**
-     * Apakah guru sedang menjadi wali aktif pada tahun tersebut.
-     */
-    public function isGuruWaliAktif(int $idGuru, int $idTahun): bool
-    {
+    public function isGuruWaliAktif(
+        int $idGuru,
+        int $idTahun
+    ): bool {
         return $this
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
             ->countAllResults() > 0;
     }
 
-    /**
-     * Apakah kelas sudah mempunyai wali aktif pada tahun tersebut.
-     */
-    public function isKelasSudahAdaWali(int $idKelas, int $idTahun): bool
-    {
+    public function isKelasSudahAdaWali(
+        int $idKelas,
+        int $idTahun
+    ): bool {
         return $this
             ->where('id_kelas', $idKelas)
             ->where('id_tahun', $idTahun)
             ->countAllResults() > 0;
     }
 
-    /**
-     * Daftar mapping aktif pada tahun tertentu.
-     */
     public function getAktifByTahun(int $idTahun): array
     {
         return $this
@@ -123,11 +120,10 @@ class MappingWaliKelasModel extends Model
             ->findAll();
     }
 
-    /**
-     * Ambil ID kelas yang sedang diampu seorang wali.
-     */
-    public function getIdKelasDiampu(int $idGuru, int $idTahun): ?int
-    {
+    public function getIdKelasDiampu(
+        int $idGuru,
+        int $idTahun
+    ): ?int {
         $row = $this
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
@@ -139,18 +135,22 @@ class MappingWaliKelasModel extends Model
     }
 
     /**
-     * Restore histori mapping dan pindahkan ke kelas baru.
+     * Restore histori mapping dan arahkan ke kelas yang dipilih.
      *
-     * Caller/Service wajib memastikan kelas baru belum memiliki wali aktif
-     * dan membungkus proses assign/reassign dalam transaction.
+     * Caller wajib memastikan constraint guru/kelas aktif tidak bentrok
+     * dan membungkus operasi dalam transaction.
      */
-    public function restoreMapping(int $id, int $idKelas): bool
-    {
-        return $this
-            ->withDeleted()
-            ->update($id, [
-                'id_kelas'    => $idKelas,
-                'deleted_at'  => null,
+    public function restoreMapping(
+        int $id,
+        int $idKelas
+    ): bool {
+        return (bool) $this->db
+            ->table($this->table)
+            ->where('id', $id)
+            ->update([
+                'id_kelas'   => $idKelas,
+                'deleted_at' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
             ]);
     }
 }

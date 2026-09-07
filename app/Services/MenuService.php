@@ -14,9 +14,8 @@ use Config\Database;
  * - menus
  * - role_menus
  *
- * Menu contextual Wali Kelas ditentukan dari:
- * - AuthService::isWaliKelas()
- * - permission contextual yang dimiliki user
+ * Menu contextual Wali Kelas ditentukan melalui permission scope
+ * yang di-resolve oleh AuthService.
  *
  * Wali Kelas bukan role.
  */
@@ -31,17 +30,6 @@ class MenuService
         $this->authService = new AuthService();
     }
 
-    /**
-     * Bangun tree menu untuk user.
-     *
-     * Role menu merupakan UNION dari seluruh role user.
-     *
-     * Setelah role menu diperoleh, menu yang bersifat
-     * contextual akan divalidasi kembali berdasarkan permission
-     * dan status Wali Kelas aktif.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     public function getMenuTree(int $userId): array
     {
         if ($userId <= 0) {
@@ -54,11 +42,6 @@ class MenuService
             return [];
         }
 
-        /*
-         * Ambil seluruh menu yang tampil untuk salah satu role user.
-         *
-         * Ini UNION, bukan hanya users.role.
-         */
         $menuRows = $this->db
             ->table('role_menus rm')
             ->select('rm.id_menu')
@@ -81,9 +64,6 @@ class MenuService
             return [];
         }
 
-        /*
-         * Ambil data menu.
-         */
         $menus = $this->db
             ->table('menus')
             ->whereIn('id', $idMenus)
@@ -95,10 +75,6 @@ class MenuService
             return [];
         }
 
-        /*
-         * Filter menu yang memang tidak boleh tampil
-         * berdasarkan konteks user.
-         */
         $menus = $this->filterContextualMenus(
             $menus,
             $userId,
@@ -112,16 +88,6 @@ class MenuService
         return $this->buildTree($menus);
     }
 
-    /**
-     * Filter menu berdasarkan konteks authorization.
-     *
-     * Aturan final:
-     *
-     * 1. Data Guru (31) tidak boleh tampil untuk guru/siswa.
-     * 2. Menu Wali-only tidak boleh tampil untuk Guru biasa.
-     * 3. Menu yang memiliki permission contextual hanya tampil
-     *    jika permission tersebut benar-benar resolve untuk user.
-     */
     protected function filterContextualMenus(
         array $menus,
         int $userId,
@@ -130,38 +96,11 @@ class MenuService
         $isGuru = in_array('guru', $roles, true);
         $isSiswa = in_array('siswa', $roles, true);
 
-        /*
-         * Ambil id_guru user.
-         */
-        $user = $this->db
-            ->table('users')
-            ->select('id_guru, id_siswa')
-            ->where('id', $userId)
-            ->get()
-            ->getRowArray();
-
-        $idGuru = isset($user['id_guru'])
-            ? (int) $user['id_guru']
-            : null;
-
-        /*
-         * Status Wali selalu dinamis.
-         */
-        $isWali = $this->authService->isWaliKelas($idGuru);
-
         $filtered = [];
 
         foreach ($menus as $menu) {
             $idMenu = (int) $menu['id'];
 
-            /*
-             * ---------------------------------------------------------
-             * Data Guru (31)
-             * ---------------------------------------------------------
-             *
-             * Dokumentasi secara eksplisit melarang menu ini untuk
-             * guru dan siswa, termasuk Guru yang merupakan Wali.
-             */
             if (
                 $idMenu === 31
                 && ($isGuru || $isSiswa)
@@ -169,21 +108,10 @@ class MenuService
                 continue;
             }
 
-            /*
-             * ---------------------------------------------------------
-             * Menu yang membutuhkan konteks Wali
-             * ---------------------------------------------------------
-             *
-             * Permission yang memiliki KELAS_DIAMPU harus tetap
-             * diselesaikan melalui AuthService.
-             *
-             * Jika permission tersebut hanya tersedia dalam konteks
-             * Wali dan user bukan Wali, menu tidak ditampilkan.
-             */
             $requiredPermissions = $this->menuPermissionMap($idMenu);
 
             if (!empty($requiredPermissions)) {
-                $hasContextualAccess = false;
+                $hasAccess = false;
 
                 foreach ($requiredPermissions as $permissionKey) {
                     $scope = $this->authService->resolveScope(
@@ -192,29 +120,14 @@ class MenuService
                     );
 
                     if ($scope !== 'TIDAK_ADA') {
-                        $hasContextualAccess = true;
+                        $hasAccess = true;
                         break;
                     }
                 }
 
-                if (!$hasContextualAccess) {
+                if (!$hasAccess) {
                     continue;
                 }
-            }
-
-            /*
-             * ---------------------------------------------------------
-             * Menu Wali-only
-             * ---------------------------------------------------------
-             *
-             * Wali Kelas bukan role. Jika menu membutuhkan konteks
-             * Wali, user harus benar-benar Wali aktif.
-             */
-            if (
-                $this->isWaliOnlyMenu($idMenu)
-                && !$isWali
-            ) {
-                continue;
             }
 
             $filtered[] = $menu;
@@ -223,17 +136,6 @@ class MenuService
         return $filtered;
     }
 
-    /**
-     * Mapping menu ke permission utama.
-     *
-     * Hanya menu yang membutuhkan authorization contextual
-     * yang didefinisikan di sini.
-     *
-     * Menu tetap aman karena akses halaman sebenarnya
-     * dijaga PermissionFilter.
-     *
-     * @return string[]
-     */
     protected function menuPermissionMap(int $idMenu): array
     {
         return match ($idMenu) {
@@ -279,29 +181,6 @@ class MenuService
         };
     }
 
-    /**
-     * Menu yang secara bisnis merupakan menu Wali Kelas.
-     *
-     * Wali Kelas memperoleh beberapa menu yang memiliki scope
-     * KELAS_DIAMPU, tetapi tetap bukan role tersendiri.
-     *
-     * @return bool
-     */
-    protected function isWaliOnlyMenu(int $idMenu): bool
-    {
-        return in_array(
-            $idMenu,
-            [
-                33, // Data Siswa
-                42, // Export Presensi
-            ],
-            true
-        );
-    }
-
-    /**
-     * Susun array flat menjadi tree berdasarkan parent_id.
-     */
     protected function buildTree(
         array $menus,
         ?int $parentId = null
@@ -323,18 +202,12 @@ class MenuService
             );
 
             $menu['children'] = $children;
-
             $branch[] = $menu;
         }
 
         return $branch;
     }
 
-    /**
-     * Tandai active/open pada tree berdasarkan URI saat ini.
-     *
-     * Dipanggil dari sidebar/view.
-     */
     public function markActive(
         array $tree,
         string $currentPath

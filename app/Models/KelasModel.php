@@ -13,8 +13,7 @@ use CodeIgniter\Model;
  * - docs/02_DATABASE
  * - docs/04_MASTER_DATA §3.3
  *
- * nama_kelas dihasilkan dari tingkat + rombel oleh Service
- * (contoh: 7 + A menjadi "7-A").
+ * nama_kelas selalu dihasilkan dari tingkat + rombel oleh KelasService.
  */
 class KelasModel extends Model
 {
@@ -64,9 +63,6 @@ class KelasModel extends Model
     protected $skipValidation = false;
     protected $cleanValidationRules = true;
 
-    /**
-     * Ambil kelas aktif pada satu tahun ajaran.
-     */
     public function getByTahun(int $idTahun): array
     {
         return $this
@@ -76,9 +72,6 @@ class KelasModel extends Model
             ->findAll();
     }
 
-    /**
-     * Cari kelas berdasarkan nama kelas dan tahun.
-     */
     public function findByNamaTahun(
         string $namaKelas,
         int $idTahun,
@@ -93,10 +86,8 @@ class KelasModel extends Model
     }
 
     /**
-     * Cek composite unique nama_kelas + id_tahun.
-     *
-     * Data recycle-bin ikut dihitung karena database menggunakan unique key
-     * fisik pada (id_tahun, nama_kelas).
+     * Database memakai UNIQUE fisik (id_tahun, nama_kelas), sehingga
+     * data di recycle-bin juga tetap dihitung.
      */
     public function namaKelasDipakai(
         string $namaKelas,

@@ -14,8 +14,8 @@ use CodeIgniter\Model;
  * - docs/04_MASTER_DATA §3.4
  *
  * Tabel mata_pelajaran menggunakan hard delete.
- * Penghapusan akan ditolak oleh FK RESTRICT/NO ACTION bila mapel sudah
- * digunakan pada jadwal_guru.
+ * Penghapusan akan ditolak oleh FK RESTRICT/NO ACTION
+ * bila mapel sudah digunakan pada jadwal_guru.
  */
 class MataPelajaranModel extends Model
 {
@@ -50,23 +50,32 @@ class MataPelajaranModel extends Model
     protected $skipValidation = false;
     protected $cleanValidationRules = true;
 
-    /**
-     * Cari mapel berdasarkan kode.
-     */
     public function findByKode(string $kodeMapel): ?array
     {
         return $this
-            ->where('kode_mapel', trim($kodeMapel))
+            ->where('kode_mapel', strtoupper(trim($kodeMapel)))
             ->first();
     }
 
-    /**
-     * Daftar mapel terurut untuk dropdown/list.
-     */
     public function getTerurut(): array
     {
         return $this
             ->orderBy('nama_mapel', 'ASC')
             ->findAll();
+    }
+
+    public function kodeDipakai(
+        string $kodeMapel,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->db
+            ->table('mata_pelajaran')
+            ->where('kode_mapel', strtoupper(trim($kodeMapel)));
+
+        if ($exceptId !== null) {
+            $builder->where('id !=', $exceptId);
+        }
+
+        return $builder->countAllResults() > 0;
     }
 }

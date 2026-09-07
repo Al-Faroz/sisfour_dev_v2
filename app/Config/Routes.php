@@ -149,6 +149,7 @@ $routes->group(
                 ['filter' => 'permission:master_guru.manage']
             );
 
+
             $routes->post(
                 'guru/upload-foto/(:segment)',
                 'MasterGuru::uploadFoto/$1',
@@ -231,6 +232,7 @@ $routes->group(
                 ['filter' => 'permission:master_pegawai.manage']
             );
 
+
             $routes->get(
                 'pegawai/recycle',
                 'MasterPegawai::recycle',
@@ -307,6 +309,7 @@ $routes->group(
                 ['filter' => 'permission:master_siswa.manage']
             );
 
+
             $routes->get(
                 'siswa/recycle',
                 'MasterSiswa::recycle',
@@ -378,6 +381,55 @@ $routes->group(
                 ['filter' => 'permission:master_kelas.manage']
             );
 
+
+            $routes->get(
+                'kelas/recycle',
+                'MasterKelas::recycle',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->get(
+                'kelas/recycle/json',
+                'MasterKelas::recycle',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->post(
+                'kelas/restore/(:segment)',
+                'MasterKelas::restore/$1',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->delete(
+                'kelas/force-delete/(:segment)',
+                'MasterKelas::forceDelete/$1',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->get(
+                'kelas/anggota/(:segment)',
+                'MasterKelas::anggota/$1',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->post(
+                'kelas/anggota/add/(:segment)',
+                'MasterKelas::addAnggota/$1',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->delete(
+                'kelas/anggota/remove/(:segment)/(:segment)',
+                'MasterKelas::removeAnggota/$1/$2',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
+            $routes->get(
+                'kelas/process-data/(:segment)',
+                'MasterKelas::processData/$1',
+                ['filter' => 'permission:master_kelas.manage']
+            );
+
             // Proses administratif siswa per kelas.
             $routes->post(
                 'kelas/naik/(:segment)',
@@ -429,6 +481,31 @@ $routes->group(
             $routes->delete(
                 'tahun/delete/(:segment)',
                 'MasterTahunAjaran::delete/$1',
+                ['filter' => 'permission:master_tahun_ajaran.manage']
+            );
+
+
+            $routes->get(
+                'tahun/recycle',
+                'MasterTahunAjaran::recycle',
+                ['filter' => 'permission:master_tahun_ajaran.manage']
+            );
+
+            $routes->get(
+                'tahun/recycle/json',
+                'MasterTahunAjaran::recycle',
+                ['filter' => 'permission:master_tahun_ajaran.manage']
+            );
+
+            $routes->post(
+                'tahun/restore/(:segment)',
+                'MasterTahunAjaran::restore/$1',
+                ['filter' => 'permission:master_tahun_ajaran.manage']
+            );
+
+            $routes->delete(
+                'tahun/force-delete/(:segment)',
+                'MasterTahunAjaran::forceDelete/$1',
                 ['filter' => 'permission:master_tahun_ajaran.manage']
             );
 
@@ -494,6 +571,37 @@ $routes->group(
                 ['filter' => 'permission:mapping_wali.manage']
             );
 
+
+            $routes->get(
+                'wali-kelas/options',
+                'MappingWaliKelas::options',
+                ['filter' => 'permission:mapping_wali.manage']
+            );
+
+            $routes->get(
+                'wali-kelas/recycle',
+                'MappingWaliKelas::recycle',
+                ['filter' => 'permission:mapping_wali.manage']
+            );
+
+            $routes->get(
+                'wali-kelas/recycle/json',
+                'MappingWaliKelas::recycle',
+                ['filter' => 'permission:mapping_wali.manage']
+            );
+
+            $routes->post(
+                'wali-kelas/restore/(:segment)',
+                'MappingWaliKelas::restore/$1',
+                ['filter' => 'permission:mapping_wali.manage']
+            );
+
+            $routes->delete(
+                'wali-kelas/force-delete/(:segment)',
+                'MappingWaliKelas::forceDelete/$1',
+                ['filter' => 'permission:mapping_wali.manage']
+            );
+
             // ----------------------------------------------------------------
             // 4.2.8 JADWAL GURU
             // ----------------------------------------------------------------
@@ -510,6 +618,13 @@ $routes->group(
                 ['filter' => 'permission:jadwal_guru.view,jadwal_guru.view_all,jadwal_guru.manage']
             );
 
+
+            $routes->get(
+                'jadwal/options',
+                'JadwalGuru::options',
+                ['filter' => 'permission:jadwal_guru.view,jadwal_guru.view_all,jadwal_guru.manage']
+            );
+
             $routes->get(
                 'jadwal/template',
                 'JadwalGuru::downloadTemplate',
@@ -519,6 +634,13 @@ $routes->group(
             $routes->post(
                 'jadwal/import',
                 'JadwalGuru::import',
+                ['filter' => 'permission:jadwal_guru.manage']
+            );
+
+
+            $routes->get(
+                'jadwal/export',
+                'JadwalGuru::export',
                 ['filter' => 'permission:jadwal_guru.manage']
             );
 

@@ -2,246 +2,870 @@
 
 namespace App\Services;
 
-use App\Models\GuruModel;
 use App\Models\JadwalGuruModel;
-use App\Models\KelasModel;
-use App\Models\MataPelajaranModel;
+use CodeIgniter\HTTP\Files\UploadedFile;
 use Config\Database;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Throwable;
 
 /**
  * JadwalGuruService
  *
- * Import Excel WAJIB (tidak ada form input manual), validasi bentrok jam
- * (guru & kelas), atomic transaction, Query Builder (dilarang raw SQL
- * concat). Referensi: 04_MASTER_DATA §5.2, §7.2; 15_TESTING_POLISH §3.1.
+ * Business logic Master Jadwal Guru.
  *
- * validateBentrok() ditulis sebagai method murni (menerima array data, tidak
- * menyentuh DB langsung untuk perbandingan overlap) supaya mudah dites via
- * PHPUnit tanpa perlu database (lihat 15_TESTING_POLISH §3.1 Test Case 1-5).
+ * Acuan docs/04_MASTER_DATA:
+ * - input jadwal hanya melalui import Excel;
+ * - template wajib:
+ *   nip_guru, nama_kelas, kode_mapel, hari,
+ *   jam_mulai, jam_selesai, sesi;
+ * - guru tidak boleh overlap pada hari yang sama;
+ * - kelas tidak boleh overlap (tidak ada team teaching);
+ * - import stop-on-error + atomic transaction;
+ * - jadwal lama tidak dihapus, tetapi dibuat Nonaktif;
+ * - jadwal baru menjadi Aktif;
+ * - Admin/Operator dapat import/export;
+ * - Guru hanya melihat jadwal dirinya sesuai scope.
  */
 class JadwalGuruService
 {
-    protected JadwalGuruModel $jadwalGuruModel;
-    protected GuruModel $guruModel;
-    protected KelasModel $kelasModel;
-    protected MataPelajaranModel $mapelModel;
+    protected JadwalGuruModel $jadwalModel;
+    protected AuthService $authService;
     protected $db;
+
+    private const HARI_VALID = [
+        'Senin',
+        'Selasa',
+        'Rabu',
+        'Kamis',
+        'Jumat',
+        'Sabtu',
+        'Minggu',
+    ];
+
+    private const SESI_VALID = [
+        'Sesi Awal',
+        'Sesi Akhir',
+        'Non Sesi',
+    ];
 
     public function __construct()
     {
-        $this->jadwalGuruModel = new JadwalGuruModel();
-        $this->guruModel       = new GuruModel();
-        $this->kelasModel      = new KelasModel();
-        $this->mapelModel      = new MataPelajaranModel();
-        $this->db              = Database::connect();
+        $this->jadwalModel = new JadwalGuruModel();
+        $this->authService = new AuthService();
+        $this->db = Database::connect();
+    }
+
+    public function getList(
+        array $filter,
+        int $userId
+    ): array {
+        $builder = $this->db
+            ->table('jadwal_guru jg')
+            ->select(
+                'jg.id, jg.id_guru, jg.id_kelas, jg.id_mapel, jg.id_tahun, ' .
+                'jg.hari, jg.jam_mulai, jg.jam_selesai, jg.sesi, jg.status_jadwal, ' .
+                'g.nip, g.nama AS nama_guru, ' .
+                'k.nama_kelas, k.tingkat, k.rombel, ' .
+                'mp.nama_mapel, mp.kode_mapel, ' .
+                'ta.nama_tahun, ta.semester, ta.status_aktif AS tahun_aktif'
+            )
+            ->join('guru g', 'g.id = jg.id_guru')
+            ->join('kelas k', 'k.id = jg.id_kelas')
+            ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
+            ->join('tahun_ajaran ta', 'ta.id = jg.id_tahun');
+
+        if (!$this->applyViewScope($builder, $userId)) {
+            return [];
+        }
+
+        $idGuru = (int) ($filter['id_guru'] ?? 0);
+        if ($idGuru > 0) {
+            $builder->where('jg.id_guru', $idGuru);
+        }
+
+        $idKelas = (int) ($filter['id_kelas'] ?? 0);
+        if ($idKelas > 0) {
+            $builder->where('jg.id_kelas', $idKelas);
+        }
+
+        $idTahun = (int) ($filter['id_tahun'] ?? 0);
+        if ($idTahun > 0) {
+            $builder->where('jg.id_tahun', $idTahun);
+        }
+
+        $hari = trim((string) ($filter['hari'] ?? ''));
+        if (in_array($hari, self::HARI_VALID, true)) {
+            $builder->where('jg.hari', $hari);
+        }
+
+        $status = trim((string) ($filter['status_jadwal'] ?? ''));
+        if (in_array($status, ['Aktif', 'Nonaktif'], true)) {
+            $builder->where('jg.status_jadwal', $status);
+        }
+
+        return $builder
+            ->orderBy('ta.nama_tahun', 'DESC')
+            ->orderBy(
+                "FIELD(ta.semester,'Ganjil','Genap')",
+                '',
+                false
+            )
+            ->orderBy(
+                "FIELD(jg.hari,'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')",
+                '',
+                false
+            )
+            ->orderBy('jg.jam_mulai', 'ASC')
+            ->orderBy('k.tingkat', 'ASC')
+            ->orderBy('k.rombel', 'ASC')
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Cek apakah dua rentang jam (HH:MM atau HH:MM:SS) saling overlap.
-     * Overlap jika: mulaiA < selesaiB DAN mulaiB < selesaiA.
+     * Opsi filter. Kelas dapat dipersempit berdasarkan guru terpilih.
      */
-    public function isOverlap(string $mulaiA, string $selesaiA, string $mulaiB, string $selesaiB): bool
+    public function getOptions(
+        int $userId,
+        ?int $filterGuru = null
+    ): array {
+        $scope = $this->resolveViewScope($userId);
+        $idGuruUser = $this->getIdGuruUser($userId);
+
+        $guruBuilder = $this->db
+            ->table('guru g')
+            ->select('g.id, g.nip, g.nama')
+            ->where('g.deleted_at', null);
+
+        if ($scope === 'DIRI_SENDIRI') {
+            if ($idGuruUser <= 0) {
+                $guru = [];
+            } else {
+                $guru = $guruBuilder
+                    ->where('g.id', $idGuruUser)
+                    ->orderBy('g.nama', 'ASC')
+                    ->get()
+                    ->getResultArray();
+            }
+        } else {
+            $guru = $guruBuilder
+                ->orderBy('g.nama', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        $kelasBuilder = $this->db
+            ->table('kelas k')
+            ->distinct()
+            ->select(
+                'k.id, k.nama_kelas, k.tingkat, k.rombel, k.id_tahun, ' .
+                'ta.nama_tahun, ta.semester'
+            )
+            ->join('tahun_ajaran ta', 'ta.id = k.id_tahun')
+            ->where('k.deleted_at', null)
+            ->where('ta.deleted_at', null);
+
+        $idGuruKelas = $filterGuru ?: null;
+
+        if ($scope === 'DIRI_SENDIRI') {
+            $idGuruKelas = $idGuruUser > 0
+                ? $idGuruUser
+                : -1;
+        }
+
+        if ($idGuruKelas !== null) {
+            $kelasBuilder
+                ->join(
+                    'jadwal_guru jg',
+                    'jg.id_kelas = k.id AND jg.id_tahun = k.id_tahun'
+                )
+                ->where('jg.id_guru', $idGuruKelas);
+        }
+
+        $kelas = $kelasBuilder
+            ->orderBy('ta.nama_tahun', 'DESC')
+            ->orderBy('k.tingkat', 'ASC')
+            ->orderBy('k.rombel', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $tahun = $this->db
+            ->table('tahun_ajaran')
+            ->select('id, nama_tahun, semester, status_aktif')
+            ->where('deleted_at', null)
+            ->orderBy('nama_tahun', 'DESC')
+            ->orderBy(
+                "FIELD(semester,'Ganjil','Genap')",
+                '',
+                false
+            )
+            ->get()
+            ->getResultArray();
+
+        return [
+            'success' => true,
+            'message' => 'Opsi jadwal berhasil dimuat.',
+            'guru' => $guru,
+            'kelas' => $kelas,
+            'tahun' => $tahun,
+            'scope' => $scope,
+        ];
+    }
+
+    public function canManage(int $userId): bool
     {
-        return strtotime($mulaiA) < strtotime($selesaiB) && strtotime($mulaiB) < strtotime($selesaiA);
+        return $this->authService->resolveScope(
+            'jadwal_guru.manage',
+            $userId
+        ) === 'SEMUA';
     }
 
     /**
-     * Validasi bentrok untuk SATU set baris jadwal (baru, hasil parsing Excel
-     * atau data manual) terhadap satu sama lain DAN (opsional) terhadap
-     * jadwal existing di database.
-     *
-     * @param array $daftarBaris  list of ['id_guru','id_kelas','hari','jam_mulai','jam_selesai', ...]
-     * @param array $existingRows list jadwal aktif existing di DB (id_tahun sama) untuk dicek silang. Kosongkan jika hanya mengecek antar-baris baru.
-     *
-     * @return array{valid: bool, errors: list<array{index:int,pesan:string}>}
+     * Import Excel dengan replacement semantics:
+     * - hanya tahun ajaran yang sedang aktif boleh diimport;
+     * - seluruh jadwal Aktif lama dinonaktifkan dalam transaksi;
+     * - data import baru menjadi satu-satunya set jadwal Aktif.
      */
-    public function validateBentrok(array $daftarBaris, array $existingRows = []): array
-    {
-        $errors = [];
-
-        // 1) Cek antar baris baru (guru sama & kelas sama, hari sama, overlap jam)
-        foreach ($daftarBaris as $i => $a) {
-            foreach ($daftarBaris as $j => $b) {
-                if ($i >= $j || $a['hari'] !== $b['hari']) {
-                    continue;
-                }
-
-                if (!$this->isOverlap($a['jam_mulai'], $a['jam_selesai'], $b['jam_mulai'], $b['jam_selesai'])) {
-                    continue;
-                }
-
-                if ((int) $a['id_guru'] === (int) $b['id_guru']) {
-                    $errors[] = ['index' => $j, 'pesan' => "Baris {$j}: Guru bentrok jam dengan baris {$i} pada hari {$b['hari']}."];
-                }
-
-                // Tidak ada team teaching (04_MASTER_DATA §5.2)
-                if ((int) $a['id_kelas'] === (int) $b['id_kelas']) {
-                    $errors[] = ['index' => $j, 'pesan' => "Baris {$j}: Kelas bentrok jam dengan baris {$i} pada hari {$b['hari']} (tidak ada team teaching)."];
-                }
-            }
-        }
-
-        // 2) Cek tiap baris baru terhadap jadwal existing di DB
-        foreach ($daftarBaris as $i => $a) {
-            foreach ($existingRows as $e) {
-                if ($a['hari'] !== $e['hari']) {
-                    continue;
-                }
-                if (!$this->isOverlap($a['jam_mulai'], $a['jam_selesai'], $e['jam_mulai'], $e['jam_selesai'])) {
-                    continue;
-                }
-
-                if ((int) $a['id_guru'] === (int) $e['id_guru']) {
-                    $errors[] = ['index' => $i, 'pesan' => "Baris {$i}: Guru bentrok dengan jadwal aktif yang sudah ada (id_jadwal {$e['id']})."];
-                }
-                if ((int) $a['id_kelas'] === (int) $e['id_kelas']) {
-                    $errors[] = ['index' => $i, 'pesan' => "Baris {$i}: Kelas bentrok dengan jadwal aktif yang sudah ada (id_jadwal {$e['id']})."];
-                }
-            }
-        }
-
-        return ['valid' => empty($errors), 'errors' => $errors];
-    }
-
-    /**
-     * Import jadwal dari file Excel. Kolom wajib: nip_guru, nama_kelas,
-     * kode_mapel, hari, jam_mulai, jam_selesai, sesi (04_MASTER_DATA §5.2).
-     *
-     * Semester/Tahun Ajaran baru: jadwal LAMA di-set Nonaktif (tidak dihapus),
-     * jadwal baru masuk berstatus Aktif.
-     *
-     * @return array{success: bool, message: string, errors?: array, jumlah_import?: int}
-     */
-    public function importJadwal(string $filePath, int $idTahun): array
-    {
-        try {
-            $spreadsheet = IOFactory::load($filePath);
-        } catch (\Throwable $e) {
-            return ['success' => false, 'message' => 'File Excel tidak dapat dibaca: ' . $e->getMessage()];
-        }
-
-        $sheet = $spreadsheet->getActiveSheet();
-        $rows  = $sheet->toArray(null, true, true, false);
-        array_shift($rows); // buang header
-
-        $parsed = [];
-        $rowErrors = [];
-
-        foreach ($rows as $i => $row) {
-            [$nipGuru, $namaKelas, $kodeMapel, $hari, $jamMulai, $jamSelesai, $sesi] = array_pad($row, 7, null);
-
-            if ($nipGuru === null || trim((string) $nipGuru) === '') {
-                continue; // baris kosong, lewati
-            }
-
-            $guru = $this->guruModel->where('nip', trim((string) $nipGuru))->first();
-            if (!$guru) {
-                $rowErrors[] = "Baris " . ($i + 2) . ": NIP guru '{$nipGuru}' tidak ditemukan.";
-
-                continue;
-            }
-
-            $kelas = $this->kelasModel->where('nama_kelas', trim((string) $namaKelas))->where('id_tahun', $idTahun)->first();
-            if (!$kelas) {
-                $rowErrors[] = "Baris " . ($i + 2) . ": Kelas '{$namaKelas}' tidak ditemukan di tahun ajaran ini.";
-
-                continue;
-            }
-
-            $mapel = $this->mapelModel->where('kode_mapel', trim((string) $kodeMapel))->first();
-            if (!$mapel) {
-                $rowErrors[] = "Baris " . ($i + 2) . ": Kode mapel '{$kodeMapel}' tidak ditemukan.";
-
-                continue;
-            }
-
-            if (!in_array($sesi, ['Sesi Awal', 'Sesi Akhir', 'Non Sesi'], true)) {
-                $rowErrors[] = "Baris " . ($i + 2) . ": Sesi '{$sesi}' tidak valid (harus Sesi Awal/Sesi Akhir/Non Sesi).";
-
-                continue;
-            }
-
-            $parsed[] = [
-                'id_guru'     => $guru['id'],
-                'id_kelas'    => $kelas['id'],
-                'id_mapel'    => $mapel['id'],
-                'id_tahun'    => $idTahun,
-                'hari'        => trim((string) $hari),
-                'jam_mulai'   => $this->normalizeJam($jamMulai),
-                'jam_selesai' => $this->normalizeJam($jamSelesai),
-                'sesi'        => $sesi,
-                'status_jadwal' => 'Aktif',
-            ];
-        }
-
-        if (!empty($rowErrors)) {
-            return ['success' => false, 'message' => 'Import dibatalkan, ditemukan baris bermasalah.', 'errors' => $rowErrors];
-        }
-
-        if (empty($parsed)) {
-            return ['success' => false, 'message' => 'Tidak ada baris valid untuk diimport.'];
-        }
-
-        // Validasi bentrok antar baris baru DAN terhadap jadwal aktif existing
-        $existing = $this->jadwalGuruModel->where('id_tahun', $idTahun)->where('status_jadwal', 'Aktif')->findAll();
-        $cek      = $this->validateBentrok($parsed, $existing);
-
-        if (!$cek['valid']) {
+    public function importJadwal(
+        UploadedFile $file,
+        int $idTahun
+    ): array {
+        if (!$file->isValid()) {
             return [
                 'success' => false,
-                'message' => 'Import dibatalkan karena ditemukan bentrok jadwal.',
-                'errors'  => array_column($cek['errors'], 'pesan'),
+                'message' => 'File import tidak valid.',
             ];
         }
 
-        // Atomic transaction — jika satu baris gagal, seluruh transaksi rollback
-        $this->db->transStart();
+        $extension = strtolower(
+            (string) $file->getClientExtension()
+        );
 
-        $this->jadwalGuruModel->nonaktifkanByTahun($idTahun);
-
-        foreach ($parsed as $baris) {
-            $this->jadwalGuruModel->insert($baris);
+        if (!in_array($extension, ['xlsx', 'xls'], true)) {
+            return [
+                'success' => false,
+                'message' => 'File import harus berformat XLSX atau XLS.',
+            ];
         }
 
-        $this->db->transComplete();
+        $tahun = $this->db
+            ->table('tahun_ajaran')
+            ->where('id', $idTahun)
+            ->where('deleted_at', null)
+            ->get()
+            ->getRowArray();
 
-        if ($this->db->transStatus() === false) {
-            return ['success' => false, 'message' => 'Import gagal, transaksi dibatalkan (rollback).'];
+        if ($tahun === null) {
+            return [
+                'success' => false,
+                'message' => 'Tahun ajaran tidak ditemukan.',
+            ];
         }
 
-        return ['success' => true, 'message' => 'Import jadwal berhasil.', 'jumlah_import' => count($parsed)];
+        if ((int) $tahun['status_aktif'] !== 1) {
+            return [
+                'success' => false,
+                'message' => 'Import jadwal hanya dapat dilakukan ke tahun ajaran/semester yang sedang Aktif.',
+            ];
+        }
+
+        try {
+            $spreadsheet = IOFactory::load(
+                $file->getTempName()
+            );
+
+            $rows = $spreadsheet
+                ->getActiveSheet()
+                ->toArray(
+                    null,
+                    true,
+                    true,
+                    false
+                );
+        } catch (Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'File Excel tidak dapat dibaca.',
+            ];
+        }
+
+        if (count($rows) < 2) {
+            return [
+                'success' => false,
+                'message' => 'File import tidak memiliki data jadwal.',
+            ];
+        }
+
+        $expected = [
+            'NIP_GURU',
+            'NAMA_KELAS',
+            'KODE_MAPEL',
+            'HARI',
+            'JAM_MULAI',
+            'JAM_SELESAI',
+            'SESI',
+        ];
+
+        $header = array_map(
+            static fn ($value): string =>
+                strtoupper(trim((string) $value)),
+            array_slice($rows[0], 0, 7)
+        );
+
+        if ($header !== $expected) {
+            return [
+                'success' => false,
+                'message' => 'Header template tidak sesuai. Gunakan template resmi Master Jadwal Guru.',
+            ];
+        }
+
+        $prepared = [];
+        $sourceRows = [];
+
+        for (
+            $i = 1,
+            $count = count($rows);
+            $i < $count;
+            $i++
+        ) {
+            $excelRow = $i + 1;
+
+            $nip = trim((string) ($rows[$i][0] ?? ''));
+            $namaKelas = strtoupper(
+                trim((string) ($rows[$i][1] ?? ''))
+            );
+            $kodeMapel = strtoupper(
+                trim((string) ($rows[$i][2] ?? ''))
+            );
+            $hari = $this->normalizeHari(
+                (string) ($rows[$i][3] ?? '')
+            );
+            $jamMulai = $this->normalizeJam(
+                $rows[$i][4] ?? null
+            );
+            $jamSelesai = $this->normalizeJam(
+                $rows[$i][5] ?? null
+            );
+            $sesi = $this->normalizeSesi(
+                (string) ($rows[$i][6] ?? '')
+            );
+
+            if (
+                $nip === ''
+                && $namaKelas === ''
+                && $kodeMapel === ''
+                && trim((string) ($rows[$i][3] ?? '')) === ''
+                && ($rows[$i][4] ?? '') === ''
+                && ($rows[$i][5] ?? '') === ''
+                && trim((string) ($rows[$i][6] ?? '')) === ''
+            ) {
+                continue;
+            }
+
+            if (
+                $nip === ''
+                || $namaKelas === ''
+                || $kodeMapel === ''
+                || $hari === ''
+                || $jamMulai === null
+                || $jamSelesai === null
+                || $sesi === ''
+            ) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: seluruh kolom wajib diisi dengan format valid.",
+                ];
+            }
+
+            if (!in_array($hari, self::HARI_VALID, true)) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: hari '{$hari}' tidak valid.",
+                ];
+            }
+
+            if (!in_array($sesi, self::SESI_VALID, true)) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: sesi tidak valid.",
+                ];
+            }
+
+            if (
+                strtotime($jamMulai)
+                >= strtotime($jamSelesai)
+            ) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: jam mulai harus lebih kecil dari jam selesai.",
+                ];
+            }
+
+            $guru = $this->db
+                ->table('guru')
+                ->select('id, nama')
+                ->where('nip', $nip)
+                ->where('deleted_at', null)
+                ->get()
+                ->getRowArray();
+
+            if ($guru === null) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: NIP Guru {$nip} tidak ditemukan.",
+                ];
+            }
+
+            $kelas = $this->db
+                ->table('kelas')
+                ->select('id, nama_kelas')
+                ->where('nama_kelas', $namaKelas)
+                ->where('id_tahun', $idTahun)
+                ->where('deleted_at', null)
+                ->get()
+                ->getRowArray();
+
+            if ($kelas === null) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: kelas {$namaKelas} tidak ditemukan pada tahun ajaran yang dipilih.",
+                ];
+            }
+
+            $mapel = $this->db
+                ->table('mata_pelajaran')
+                ->select('id, nama_mapel')
+                ->where('kode_mapel', $kodeMapel)
+                ->get()
+                ->getRowArray();
+
+            if ($mapel === null) {
+                return [
+                    'success' => false,
+                    'message' => "Import dihentikan pada baris {$excelRow}: kode mapel {$kodeMapel} tidak ditemukan.",
+                ];
+            }
+
+            $prepared[] = [
+                'id_guru' => (int) $guru['id'],
+                'id_kelas' => (int) $kelas['id'],
+                'id_mapel' => (int) $mapel['id'],
+                'id_tahun' => $idTahun,
+                'hari' => $hari,
+                'jam_mulai' => $jamMulai,
+                'jam_selesai' => $jamSelesai,
+                'sesi' => $sesi,
+                'status_jadwal' => 'Aktif',
+            ];
+
+            $sourceRows[] = [
+                'excel_row' => $excelRow,
+                'nama_guru' => $guru['nama'],
+                'nama_kelas' => $kelas['nama_kelas'],
+                'kode_mapel' => $kodeMapel,
+            ];
+        }
+
+        if ($prepared === []) {
+            return [
+                'success' => false,
+                'message' => 'Tidak ada baris jadwal yang dapat diimport.',
+            ];
+        }
+
+        $bentrok = $this->validateBentrok(
+            $prepared,
+            $sourceRows
+        );
+
+        if (!$bentrok['valid']) {
+            return [
+                'success' => false,
+                'message' => $bentrok['errors'][0]
+                    ?? 'Import dibatalkan karena ditemukan bentrok jadwal.',
+                'errors' => $bentrok['errors'],
+            ];
+        }
+
+        $this->db->transBegin();
+
+        try {
+            /*
+             * Jadwal lama tidak dihapus. Semua jadwal aktif lama
+             * dijadikan Nonaktif, kemudian hasil import menjadi set Aktif.
+             */
+            $this->db
+                ->table('jadwal_guru')
+                ->where('status_jadwal', 'Aktif')
+                ->update([
+                    'status_jadwal' => 'Nonaktif',
+                ]);
+
+            foreach ($prepared as $row) {
+                if ($this->jadwalModel->insert($row) === false) {
+                    throw new \RuntimeException(
+                        implode(
+                            ' ',
+                            $this->jadwalModel->errors()
+                        ) ?: 'Salah satu baris jadwal gagal disimpan.'
+                    );
+                }
+            }
+
+            $this->logActivity(
+                'IMPORT',
+                'Master Jadwal Guru',
+                sprintf(
+                    'Import %d jadwal aktif untuk %s - %s.',
+                    count($prepared),
+                    $tahun['nama_tahun'],
+                    $tahun['semester']
+                )
+            );
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException(
+                    'Transaksi import jadwal gagal.'
+                );
+            }
+
+            $this->db->transCommit();
+
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    '%d jadwal berhasil diimport. Jadwal aktif sebelumnya telah dibuat Nonaktif.',
+                    count($prepared)
+                ),
+                'jumlah_import' => count($prepared),
+            ];
+        } catch (Throwable $e) {
+            $this->db->transRollback();
+
+            return [
+                'success' => false,
+                'message' => 'Import dibatalkan seluruhnya: '
+                    . $e->getMessage(),
+            ];
+        }
     }
 
     /**
-     * Nonaktifkan jadwal lama saat tahun ajaran baru dimulai (dipanggil terpisah
-     * jika diperlukan di luar alur import, misal saat aktivasi tahun ajaran baru).
+     * Pure overlap validation untuk baris hasil import.
+     *
+     * Tidak ada team teaching:
+     * - guru sama + hari sama + overlap => error;
+     * - kelas sama + hari sama + overlap => error.
      */
-    public function setStatusJadwal(int $idTahun): void
-    {
-        $this->jadwalGuruModel->nonaktifkanByTahun($idTahun);
+    public function validateBentrok(
+        array $rows,
+        array $sourceRows = []
+    ): array {
+        $errors = [];
+
+        for ($i = 0, $count = count($rows); $i < $count; $i++) {
+            for ($j = $i + 1; $j < $count; $j++) {
+                $a = $rows[$i];
+                $b = $rows[$j];
+
+                if ($a['hari'] !== $b['hari']) {
+                    continue;
+                }
+
+                if (
+                    !$this->isOverlap(
+                        $a['jam_mulai'],
+                        $a['jam_selesai'],
+                        $b['jam_mulai'],
+                        $b['jam_selesai']
+                    )
+                ) {
+                    continue;
+                }
+
+                $rowA = $sourceRows[$i]['excel_row']
+                    ?? ($i + 2);
+                $rowB = $sourceRows[$j]['excel_row']
+                    ?? ($j + 2);
+
+                if (
+                    (int) $a['id_guru']
+                    === (int) $b['id_guru']
+                ) {
+                    $errors[] = sprintf(
+                        'Bentrok Guru pada baris %d dan %d: hari %s, %s-%s bertabrakan dengan %s-%s.',
+                        $rowA,
+                        $rowB,
+                        $a['hari'],
+                        substr($a['jam_mulai'], 0, 5),
+                        substr($a['jam_selesai'], 0, 5),
+                        substr($b['jam_mulai'], 0, 5),
+                        substr($b['jam_selesai'], 0, 5)
+                    );
+                }
+
+                if (
+                    (int) $a['id_kelas']
+                    === (int) $b['id_kelas']
+                ) {
+                    $errors[] = sprintf(
+                        'Bentrok Kelas pada baris %d dan %d: %s pada hari %s memiliki jadwal overlap (tidak ada team teaching).',
+                        $rowA,
+                        $rowB,
+                        $sourceRows[$i]['nama_kelas']
+                            ?? 'kelas yang sama',
+                        $a['hari']
+                    );
+                }
+            }
+        }
+
+        return [
+            'valid' => $errors === [],
+            'errors' => $errors,
+        ];
     }
 
-    /**
-     * Normalisasi nilai jam dari Excel (bisa berupa string "07:30" atau
-     * pecahan desimal waktu Excel) menjadi format "HH:MM:SS".
-     */
-    protected function normalizeJam($value): string
+    public function isOverlap(
+        string $mulaiA,
+        string $selesaiA,
+        string $mulaiB,
+        string $selesaiB
+    ): bool {
+        return strtotime($mulaiA) < strtotime($selesaiB)
+            && strtotime($mulaiB) < strtotime($selesaiA);
+    }
+
+    public function delete(
+        int $id,
+        int $userId
+    ): array {
+        if (!$this->canManage($userId)) {
+            return [
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak untuk menghapus jadwal.',
+            ];
+        }
+
+        $jadwal = $this->db
+            ->table('jadwal_guru jg')
+            ->select(
+                'jg.*, g.nama AS nama_guru, ' .
+                'k.nama_kelas, mp.nama_mapel'
+            )
+            ->join('guru g', 'g.id = jg.id_guru')
+            ->join('kelas k', 'k.id = jg.id_kelas')
+            ->join(
+                'mata_pelajaran mp',
+                'mp.id = jg.id_mapel'
+            )
+            ->where('jg.id', $id)
+            ->get()
+            ->getRowArray();
+
+        if ($jadwal === null) {
+            return [
+                'success' => false,
+                'message' => 'Jadwal tidak ditemukan.',
+            ];
+        }
+
+        $deleted = $this->db
+            ->table('jadwal_guru')
+            ->where('id', $id)
+            ->delete();
+
+        if (!$deleted) {
+            return [
+                'success' => false,
+                'message' => 'Jadwal gagal dihapus.',
+            ];
+        }
+
+        $this->logActivity(
+            'DELETE',
+            'Master Jadwal Guru',
+            sprintf(
+                'Menghapus jadwal %s - %s - %s.',
+                $jadwal['nama_guru'],
+                $jadwal['nama_kelas'],
+                $jadwal['nama_mapel']
+            )
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Jadwal berhasil dihapus.',
+        ];
+    }
+
+    protected function applyViewScope(
+        $builder,
+        int $userId
+    ): bool {
+        $scope = $this->resolveViewScope($userId);
+
+        if ($scope === 'SEMUA') {
+            return true;
+        }
+
+        if ($scope === 'DIRI_SENDIRI') {
+            $idGuru = $this->getIdGuruUser($userId);
+
+            if ($idGuru <= 0) {
+                return false;
+            }
+
+            $builder->where('jg.id_guru', $idGuru);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    protected function resolveViewScope(int $userId): string
     {
+        if (
+            $this->authService->resolveScope(
+                'jadwal_guru.manage',
+                $userId
+            ) === 'SEMUA'
+        ) {
+            return 'SEMUA';
+        }
+
+        if (
+            $this->authService->resolveScope(
+                'jadwal_guru.view_all',
+                $userId
+            ) === 'SEMUA'
+        ) {
+            return 'SEMUA';
+        }
+
+        return $this->authService->resolveScope(
+            'jadwal_guru.view',
+            $userId
+        );
+    }
+
+    protected function getIdGuruUser(int $userId): int
+    {
+        $row = $this->db
+            ->table('users')
+            ->select('id_guru')
+            ->where('id', $userId)
+            ->get()
+            ->getRowArray();
+
+        return isset($row['id_guru'])
+            ? (int) $row['id_guru']
+            : 0;
+    }
+
+    protected function normalizeHari(
+        string $value
+    ): string {
+        $value = strtolower(trim($value));
+
+        $map = [
+            'senin' => 'Senin',
+            'selasa' => 'Selasa',
+            'rabu' => 'Rabu',
+            'kamis' => 'Kamis',
+            'jumat' => 'Jumat',
+            "jum'at" => 'Jumat',
+            'sabtu' => 'Sabtu',
+            'minggu' => 'Minggu',
+        ];
+
+        return $map[$value] ?? trim($value);
+    }
+
+    protected function normalizeSesi(
+        string $value
+    ): string {
+        $value = strtolower(
+            preg_replace(
+                '/\s+/',
+                ' ',
+                trim($value)
+            )
+        );
+
+        return match ($value) {
+            'sesi awal' => 'Sesi Awal',
+            'sesi akhir' => 'Sesi Akhir',
+            'non sesi' => 'Non Sesi',
+            default => trim($value),
+        };
+    }
+
+    protected function normalizeJam(
+        $value
+    ): ?string {
+        if (
+            $value === null
+            || $value === ''
+        ) {
+            return null;
+        }
+
         if (is_numeric($value)) {
-            // Nilai desimal waktu Excel (fraksi dari 1 hari)
-            $seconds = (int) round(((float) $value) * 86400);
-            $h = intdiv($seconds, 3600);
-            $m = intdiv($seconds % 3600, 60);
-
-            return sprintf('%02d:%02d:00', $h, $m);
+            try {
+                return ExcelDate::excelToDateTimeObject(
+                    (float) $value
+                )->format('H:i:s');
+            } catch (Throwable $e) {
+                return null;
+            }
         }
 
         $value = trim((string) $value);
-        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $value, $m)) {
-            return sprintf('%02d:%02d:%02d', (int) $m[1], (int) $m[2], (int) ($m[3] ?? 0));
+
+        foreach (['H:i:s', 'H:i', 'G:i'] as $format) {
+            $date = \DateTime::createFromFormat(
+                $format,
+                $value
+            );
+
+            if ($date !== false) {
+                $errors = \DateTime::getLastErrors();
+
+                if (
+                    $errors === false
+                    || (
+                        $errors['warning_count'] === 0
+                        && $errors['error_count'] === 0
+                    )
+                ) {
+                    return $date->format('H:i:s');
+                }
+            }
         }
 
-        return $value;
+        return null;
+    }
+
+    protected function logActivity(
+        string $aksi,
+        string $modul,
+        string $keterangan
+    ): void {
+        $idUser = session()->get('user_id');
+
+        $this->db
+            ->table('log_activity')
+            ->insert([
+                'id_user' => $idUser
+                    ? (int) $idUser
+                    : null,
+                'aksi' => $aksi,
+                'modul' => $modul,
+                'keterangan' => $keterangan,
+                'waktu' => date('Y-m-d H:i:s'),
+            ]);
     }
 }
