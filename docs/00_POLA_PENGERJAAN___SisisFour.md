@@ -70,6 +70,70 @@ Business logic tidak boleh dipindahkan ke View atau JavaScript. Controller harus
 - Model fokus pada representasi tabel, allowed fields, validasi dasar, soft delete, dan helper query lokal.
 - Controller fokus pada request/response, delegasi Service, file response, dan rendering View.
 
+
+### 2.1.1 Database-First Processing untuk Dataset Besar
+
+Untuk dataset yang berpotensi besar, terutama `presensi`, `presensi_mengajar`, `log_activity`, laporan, dan histori operasional, SisisFour menggunakan prinsip **database-first processing**.
+
+Operasi berikut wajib dilakukan oleh MariaDB/MySQL melalui SQL atau Query Builder CI4:
+
+```text
+filtering
+searching
+sorting
+JOIN
+GROUP BY
+COUNT
+SUM
+MIN / MAX
+HAVING
+ORDER BY
+LIMIT / OFFSET
+agregasi periode
+rekap status
+```
+
+PHP tidak boleh mengambil dataset besar lalu melakukan filtering, grouping, counting, atau agregasi utama dengan `foreach`.
+
+Pola yang benar:
+
+```text
+Database
+│
+├─ WHERE / JOIN
+├─ GROUP BY / COUNT / SUM
+├─ ORDER BY
+└─ LIMIT
+      ↓
+hasil sudah dipersempit
+      ↓
+Service PHP
+│
+├─ business rule
+├─ pivot ringan
+├─ mapping label
+└─ format response
+      ↓
+View / JSON / XLSX
+```
+
+Pola yang dilarang untuk tabel besar:
+
+```text
+SELECT semua row
+↓
+PHP foreach ratusan ribu row
+↓
+filter / count / group di PHP
+```
+
+`Model::findAll()` tanpa pembatas yang jelas tidak boleh digunakan untuk tabel Presensi atau dataset histori besar.
+
+PHP tetap boleh melakukan transformasi ringan setelah dataset dipersempit database, misalnya membentuk Matrix 1 kelas × 1 bulan dari hasil query periode yang sudah terfilter.
+
+Untuk daftar histori besar, pagination/filter harus dilakukan server-side menggunakan `LIMIT/OFFSET` atau strategi pagination lain yang setara.
+
+
 ### 2.2 Frontend
 
 Business JavaScript menggunakan:

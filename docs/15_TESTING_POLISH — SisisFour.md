@@ -593,7 +593,84 @@ Test unit `JadwalGuruService::validateBentrok()`:
 
 ---
 
-# 21. Security Test
+# 21. Database Query Performance Test
+
+Untuk query Presensi/Laporan/Dashboard besar, lakukan:
+
+```sql
+EXPLAIN SELECT ...
+```
+
+Periksa minimal:
+
+```text
+key
+possible_keys
+type
+rows
+Extra
+```
+
+Target:
+- index relevan dipakai;
+- full table scan yang tidak diperlukan dihindari;
+- jumlah row yang dipindai masuk akal terhadap filter;
+- `Using temporary`/`Using filesort` dievaluasi pada query besar;
+- tidak ada N+1.
+
+`Using temporary` atau `Using filesort` tidak otomatis berarti bug; hasil harus dinilai berdasarkan volume dan waktu nyata.
+
+## 21.1 Larangan `findAll()` Presensi
+
+Review kode harus memastikan tidak ada:
+
+```php
+$presensiModel->findAll();
+```
+
+tanpa boundary untuk kebutuhan Web/Laporan.
+
+## 21.2 Server-Side Pagination
+
+Uji histori besar:
+
+```text
+10
+25
+50
+100 row per page
+```
+
+Pastikan database hanya mengambil page yang diminta.
+
+## 21.3 Database-Side Aggregation
+
+Bandingkan hasil query `COUNT/SUM/GROUP BY` database dengan sample perhitungan manual kecil untuk memastikan hasil benar.
+
+## 21.4 Volume Test
+
+Generate/sample dataset setara:
+
+```text
+1.600 siswa
+200–220 hari
+2 sesi
+≈ 640.000–704.000 row / tahun
+```
+
+Uji minimal:
+- Matrix satu kelas satu bulan;
+- rekap bulanan satu kelas;
+- rekap semester satu kelas;
+- EWS 14 hari;
+- detail satu siswa satu semester;
+- dashboard agregat.
+
+Tidak ada target millisecond absolut v0.5; yang dinilai adalah query bounded, index digunakan, dan response tetap praktis pada hardware target.
+
+---
+
+# 22. Security Test
 
 - SQL injection payload;
 - invalid ID;
@@ -615,7 +692,7 @@ Output HTML harus di-escape.
 
 ---
 
-# 22. Transaction Test
+# 23. Transaction Test
 
 Transaction penting:
 
@@ -634,7 +711,7 @@ Sisipkan satu error di tengah dan pastikan rollback total.
 
 ---
 
-# 23. Performance Test
+# 24. Performance Test
 
 Target:
 - Master Data kecil: client-side DataTables diperbolehkan;
@@ -646,7 +723,7 @@ Target:
 
 ---
 
-# 24. Upload Test
+# 25. Upload Test
 
 Foto:
 - PNG valid;
@@ -660,7 +737,7 @@ Foto:
 
 ---
 
-# 25. Import Test
+# 26. Import Test
 
 Setiap import:
 
@@ -678,7 +755,7 @@ Setiap import:
 
 ---
 
-# 26. Export Test
+# 27. Export Test
 
 Set filter.
 
@@ -694,7 +771,7 @@ Tidak boleh export seluruh database jika layar hanya menampilkan subset.
 
 ---
 
-# 27. Log Test
+# 28. Log Test
 
 Periksa:
 
@@ -712,7 +789,7 @@ Log tidak boleh menyimpan password/token.
 
 ---
 
-# 28. Error Handling
+# 29. Error Handling
 
 Expected:
 
@@ -727,7 +804,7 @@ Production tidak boleh menampilkan stack trace sensitif.
 
 ---
 
-# 29. Deployment Smoke Test
+# 30. Deployment Smoke Test
 
 - HTTPS;
 - `.env production`;
@@ -745,7 +822,7 @@ Production tidak boleh menampilkan stack trace sensitif.
 
 ---
 
-# 30. Browser Console
+# 31. Browser Console
 
 Final release:
 
@@ -759,7 +836,7 @@ Warning vendor yang tidak memengaruhi fungsi tetap harus dievaluasi.
 
 ---
 
-# 31. Server Log
+# 32. Server Log
 
 `writable/logs` tidak boleh berisi fatal error dari alur normal.
 
@@ -767,7 +844,7 @@ Error yang memang diuji harus dapat dibedakan dari error aplikasi tidak terduga.
 
 ---
 
-# 32. README Fresh Install
+# 33. README Fresh Install
 
 README harus menjelaskan:
 
@@ -787,7 +864,7 @@ Fresh install README harus diuji oleh orang yang tidak bergantung pada database 
 
 ---
 
-# 33. Git Hygiene
+# 34. Git Hygiene
 
 Tidak commit:
 
@@ -810,7 +887,7 @@ harus bersih.
 
 ---
 
-# 34. Regression Test Setelah Perubahan Auth
+# 35. Regression Test Setelah Perubahan Auth
 
 Setiap perubahan pada:
 
@@ -835,7 +912,7 @@ Karena perubahan Auth dapat memengaruhi seluruh modul.
 
 ---
 
-# 35. Regression Test Setelah Perubahan Database
+# 36. Regression Test Setelah Perubahan Database
 
 Setiap perubahan schema wajib:
 - fresh install test;
@@ -847,7 +924,7 @@ Setiap perubahan schema wajib:
 
 ---
 
-# 36. Kriteria Tahap Master Data Lulus
+# 37. Kriteria Tahap Master Data Lulus
 
 - Auth/RBAC lulus;
 - seluruh 8 Master Data lulus;
@@ -858,7 +935,7 @@ Setiap perubahan schema wajib:
 
 ---
 
-# 37. Kriteria Tahap Presensi Lulus
+# 38. Kriteria Tahap Presensi Lulus
 
 - Presensi Siswa lulus seluruh role;
 - Jurnal lulus;
@@ -871,7 +948,7 @@ Setiap perubahan schema wajib:
 
 ---
 
-# 38. Kriteria Rilis
+# 39. Kriteria Rilis
 
 Sistem dapat dirilis bila:
 

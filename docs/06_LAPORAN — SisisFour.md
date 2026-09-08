@@ -702,9 +702,64 @@ Tanggung jawab:
 
 ---
 
-# BAGIAN L — PERFORMANCE
+# BAGIAN L — DATABASE-SIDE AGGREGATION
 
-## 31. Query
+## 34. Aturan Wajib
+
+Filtering, searching, grouping, counting, sorting, dan agregasi laporan dilakukan oleh MariaDB/MySQL melalui Query Builder/SQL.
+
+Contoh rekap status:
+
+```sql
+SELECT
+    id_siswa,
+    SUM(status = 'Hadir') AS total_hadir,
+    SUM(status = 'Sakit') AS total_sakit,
+    SUM(status = 'Izin')  AS total_izin,
+    SUM(status = 'Alpha') AS total_alpha
+FROM presensi
+WHERE id_tahun = ?
+  AND id_kelas = ?
+  AND sesi = 'Sesi Awal'
+  AND tanggal BETWEEN ? AND ?
+GROUP BY id_siswa;
+```
+
+PHP tidak mengambil seluruh Presensi sekolah lalu menghitung total per siswa.
+
+## 35. Pivot Matrix
+
+Matrix adalah pengecualian transformasi ringan.
+
+Pola:
+
+```text
+1 query siswa/membership kelas
++
+1 query Presensi kelas untuk 1 bulan
+↓
+PHP membentuk pivot tanggal 01–31
+```
+
+PHP boleh melakukan pivot karena dataset sudah dibatasi satu kelas dan satu bulan.
+
+Dilarang:
+
+```text
+32 siswa × 31 hari = 992 query
+```
+
+## 36. Pagination
+
+Daftar histori Jurnal atau Presensi lintas periode besar menggunakan pagination server-side.
+
+DataTables client-side hanya digunakan bila dataset memang kecil dan bounded.
+
+---
+
+# BAGIAN M — PERFORMANCE
+
+## 34. Query
 
 Gunakan index:
 
@@ -725,9 +780,9 @@ Untuk Matrix, ambil seluruh periode dalam query terkontrol.
 
 ---
 
-# BAGIAN M — ERROR RULE
+# BAGIAN N — ERROR RULE
 
-## 32. Server Harus Menolak
+## 35. Server Harus Menolak
 
 - kelas di luar scope;
 - tahun tidak valid;
@@ -740,9 +795,9 @@ Untuk Matrix, ambil seluruh periode dalam query terkontrol.
 
 ---
 
-# BAGIAN N — CHECKPOINT
+# BAGIAN O — CHECKPOINT
 
-## 33. Matrix
+## 36. Matrix
 
 - hanya Sesi Awal;
 - total benar;
@@ -752,7 +807,7 @@ Untuk Matrix, ambil seluruh periode dalam query terkontrol.
 - Guru biasa tidak akses;
 - tidak ada N+1 berat.
 
-## 34. Export Bulanan
+## 37. Export Bulanan
 
 - AW masuk total;
 - AK hanya informasi;
@@ -761,14 +816,14 @@ Untuk Matrix, ambil seluruh periode dalam query terkontrol.
 - XLSX valid;
 - audit tercatat.
 
-## 35. Export Semester
+## 38. Export Semester
 
 - hanya AW;
 - periode semester benar;
 - siswa historis tetap muncul;
 - total bulanan = total semester.
 
-## 36. Jurnal
+## 39. Jurnal
 
 - histori Jadwal Nonaktif tetap terlihat;
 - Guru hanya diri;
@@ -778,7 +833,7 @@ Untuk Matrix, ambil seluruh periode dalam query terkontrol.
 
 ---
 
-# 37. Kriteria Selesai
+# 40. Kriteria Selesai
 
 Modul Laporan dinyatakan selesai bila:
 

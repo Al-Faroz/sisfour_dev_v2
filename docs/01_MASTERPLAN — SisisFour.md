@@ -199,7 +199,57 @@ sisfour_dev_v2/
 
 ---
 
-# 7. Authentication
+# 7. Arsitektur Pengolahan Data Besar
+
+SisisFour memproyeksikan tabel `presensi` sebagai tabel operasional terbesar.
+
+Dengan sekitar 1.600 siswa dan sekitar 200–220 hari efektif:
+
+```text
+Sesi Awal saja:
+1.600 × 200–220
+≈ 320.000–352.000 row / tahun
+
+Sesi Awal + Sesi Akhir:
+≈ 640.000–704.000 row / tahun
+```
+
+Dalam beberapa tahun, jumlah row dapat mencapai beberapa juta. Skala ini masih sesuai untuk MariaDB/MySQL selama index dan pola query benar.
+
+Prinsip arsitektur:
+
+```text
+MariaDB/MySQL
+    ↓
+filter / search / join
+group / count / sum
+sort / limit
+    ↓
+dataset kecil
+    ↓
+PHP Service
+    ↓
+business rule / pivot ringan / format
+```
+
+Aturan:
+
+1. filtering dataset besar dilakukan database;
+2. searching dilakukan database;
+3. sorting dilakukan database;
+4. grouping/counting/agregasi dilakukan database;
+5. PHP tidak melakukan agregasi utama dari seluruh tabel;
+6. halaman histori memakai server-side pagination;
+7. query laporan dibatasi periode/scope;
+8. query penting harus memiliki index yang sesuai;
+9. performa query besar diverifikasi dengan `EXPLAIN`;
+10. N+1 query pada loop siswa/tanggal dilarang.
+
+Belum diperlukan partitioning atau sharding untuk skala awal. Optimasi dilakukan bertahap berdasarkan hasil pengukuran nyata.
+
+---
+
+# 8. Authentication
 
 ## 7.1 Web
 
@@ -235,7 +285,7 @@ Login baru meningkatkan `auth_version`. Session/token lama dengan versi lebih re
 
 ---
 
-# 8. Role
+# 9. Role
 
 Role resmi:
 
@@ -278,7 +328,7 @@ user_roles.role
 
 ---
 
-# 9. Frontend dan CSRF
+# 10. Frontend dan CSRF
 
 ## 9.1 Prinsip
 
@@ -308,7 +358,7 @@ Route API mobile tidak menggunakan mekanisme session-CSRF Web.
 
 ---
 
-# 10. Master Data
+# 11. Master Data
 
 Master Data terdiri dari:
 
@@ -325,7 +375,7 @@ Business rule detail ada di `04_MASTER_DATA`.
 
 ---
 
-# 11. Data Siswa dan Histori
+# 12. Data Siswa dan Histori
 
 Siswa memiliki:
 - NIK 16 digit;
@@ -340,7 +390,7 @@ Tidak boleh mengandalkan hanya nilai kelas saat ini tanpa histori.
 
 ---
 
-# 12. Tahun Ajaran
+# 13. Tahun Ajaran
 
 Tahun ajaran mencakup:
 - nama tahun, contoh `2026/2027`;
@@ -353,7 +403,7 @@ Semua modul operasional harus mengetahui `id_tahun` secara eksplisit.
 
 ---
 
-# 13. Jadwal
+# 14. Jadwal
 
 Jadwal Guru adalah sumber:
 - kelas terjadwal;
@@ -369,7 +419,7 @@ Input resmi melalui import Excel atomic.
 
 ---
 
-# 14. Presensi
+# 15. Presensi
 
 ## 14.1 Presensi Siswa
 
@@ -409,7 +459,7 @@ Semua sesi Jadwal Guru termasuk `Non Sesi` tetap wajib Jurnal.
 
 ---
 
-# 15. Geofencing
+# 16. Geofencing
 
 Geofencing:
 - dihitung server-side;
@@ -422,7 +472,7 @@ Guru mapel wajib geofencing pada aksi tertentu. Admin/Operator/Wali memiliki pen
 
 ---
 
-# 16. Soft Delete
+# 17. Soft Delete
 
 Soft delete digunakan pada:
 
@@ -455,7 +505,7 @@ Mata Pelajaran menggunakan hard delete.
 
 ---
 
-# 17. Import/Export
+# 18. Import/Export
 
 Import:
 - template resmi;
@@ -472,7 +522,7 @@ Export:
 
 ---
 
-# 18. Upload Image
+# 19. Upload Image
 
 Foto Guru/Siswa:
 - PNG;
@@ -484,7 +534,7 @@ Foto Guru/Siswa:
 
 ---
 
-# 19. Audit
+# 20. Audit
 
 Perubahan penting dicatat ke:
 
@@ -506,7 +556,7 @@ Transaksi yang memiliki audit log harus mempertimbangkan konsistensi transaction
 
 ---
 
-# 20. Route dan Permission
+# 21. Route dan Permission
 
 Semua route privat:
 - melewati AuthFilter;
@@ -516,7 +566,7 @@ Penyembunyian tombol/menu bukan pengganti authorization server-side.
 
 ---
 
-# 21. Output HTML + JSON
+# 22. Output HTML + JSON
 
 Controller modul yang membutuhkan mobile atau AJAX dapat memberikan:
 
@@ -539,7 +589,7 @@ Error menggunakan status HTTP yang relevan.
 
 ---
 
-# 22. Deployment
+# 23. Deployment
 
 Target produksi minimum:
 - PHP 8.2+;
@@ -559,7 +609,7 @@ Direkomendasikan:
 
 ---
 
-# 23. Dokumen Modul
+# 24. Dokumen Modul
 
 | Dokumen | Fokus |
 |---|---|
@@ -577,7 +627,7 @@ Direkomendasikan:
 
 ---
 
-# 24. Kriteria Arsitektur Final
+# 25. Kriteria Arsitektur Final
 
 SisisFour dianggap konsisten bila:
 

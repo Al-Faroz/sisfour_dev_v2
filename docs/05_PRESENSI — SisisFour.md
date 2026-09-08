@@ -747,9 +747,112 @@ EWS tidak perlu menu sidebar; dapat menjadi widget dashboard.
 
 ---
 
-# BAGIAN I — API / JSON
+# BAGIAN I — STRATEGI QUERY DAN SKALA DATA
 
-# 40. Dual Output
+# 40. Database-First Processing
+
+Tabel `presensi` adalah dataset besar.
+
+Seluruh operasi utama berikut harus dilakukan di database melalui Query Builder/SQL:
+
+```text
+WHERE
+JOIN
+BETWEEN
+COUNT
+SUM
+GROUP BY
+HAVING
+ORDER BY
+LIMIT / OFFSET
+```
+
+PHP Service tidak boleh melakukan:
+
+```text
+findAll seluruh Presensi
+↓
+foreach semua row
+↓
+filter / count / group
+```
+
+---
+
+# 41. Query Input Presensi
+
+Untuk form satu kelas:
+
+```text
+1 query membership siswa kelas
++
+query Presensi existing kelas/tanggal/sesi bila diperlukan
+```
+
+Jangan melakukan query Presensi satu per siswa.
+
+---
+
+# 42. Query EWS
+
+Contoh pola:
+
+```sql
+SELECT
+    id_siswa,
+    COUNT(*) AS total_alpha
+FROM presensi
+WHERE id_tahun = ?
+  AND sesi = 'Sesi Awal'
+  AND status = 'Alpha'
+  AND tanggal BETWEEN ? AND ?
+GROUP BY id_siswa
+HAVING COUNT(*) >= 3;
+```
+
+Database menghitung jumlah Alpha.
+
+PHP hanya:
+- memformat hasil;
+- menerapkan scope tambahan bila belum sepenuhnya ada di query;
+- menggabungkan metadata siswa yang diperlukan.
+
+---
+
+# 43. Histori Presensi
+
+Daftar histori besar wajib:
+
+```text
+server-side filter
+server-side sort
+server-side pagination
+```
+
+Dilarang mengirim puluhan/ratusan ribu row ke DataTables client-side.
+
+---
+
+# 44. Query Boundary
+
+Setiap query Presensi harus memiliki minimal salah satu boundary yang relevan:
+
+```text
+id_tahun
+id_kelas
+id_siswa
+tanggal/periode
+sesi
+scope user
+```
+
+Query tanpa boundary terhadap tabel Presensi tidak boleh digunakan pada request Web normal.
+
+---
+
+# BAGIAN J — API / JSON
+
+# 45. Dual Output
 
 Endpoint yang dibutuhkan mobile harus dapat menghasilkan JSON.
 
@@ -767,9 +870,9 @@ Contoh:
 
 ---
 
-# BAGIAN J — LOG & AUDIT
+# BAGIAN K — LOG & AUDIT
 
-# 41. Audit Revisi
+# 46. Audit Revisi
 
 Revisi Presensi:
 
@@ -784,9 +887,9 @@ Original `created_at` tidak boleh ditimpa saat revisi.
 
 ---
 
-# BAGIAN K — ERROR RULE
+# BAGIAN L — ERROR RULE
 
-# 42. Error Penting
+# 47. Error Penting
 
 Server harus menolak dengan jelas bila:
 
@@ -809,9 +912,9 @@ Server harus menolak dengan jelas bila:
 
 ---
 
-# BAGIAN L — ROUTE DAN SERVICE
+# BAGIAN M — ROUTE DAN SERVICE
 
-# 43. Service Presensi Siswa
+# 48. Service Presensi Siswa
 
 `PresensiService` minimal menangani:
 
@@ -829,7 +932,7 @@ Server harus menolak dengan jelas bila:
 
 ---
 
-# 44. GeofencingService
+# 49. GeofencingService
 
 Minimal method:
 
@@ -843,7 +946,7 @@ Tidak menyimpan keputusan hanya di frontend.
 
 ---
 
-# 45. Service Jurnal
+# 50. Service Jurnal
 
 Minimal menangani:
 
@@ -857,9 +960,9 @@ Minimal menangani:
 
 ---
 
-# BAGIAN M — CHECKPOINT
+# BAGIAN N — CHECKPOINT
 
-# 46. Presensi Siswa
+# 51. Presensi Siswa
 
 - input Sesi Awal;
 - input Sesi Akhir;
@@ -877,7 +980,7 @@ Minimal menangani:
 - snapshots;
 - history membership respected.
 
-# 47. Jurnal
+# 52. Jurnal
 
 - semua sesi termasuk Non Sesi;
 - status benar;

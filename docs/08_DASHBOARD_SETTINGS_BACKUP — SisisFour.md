@@ -744,7 +744,38 @@ LogActivityService
 
 # 37. Dashboard
 
+Filtering dan agregasi widget dilakukan di database.
+
+Gunakan:
+
+```text
+COUNT
+SUM
+GROUP BY
+WHERE periode
+ORDER BY
+LIMIT
+```
+
+Contoh Top 20 Alpha/Pelanggaran:
+
+```text
+database menghitung + mengurutkan + LIMIT 20
+PHP menerima maksimal 20 row
+```
+
+Dilarang:
+
+```text
+ambil seluruh Presensi/Kasus
+↓
+foreach PHP
+↓
+sort/count di memory
+```
+
 Widget berat dapat:
+
 - cache pendek;
 - query agregat;
 - batasi Top 20;

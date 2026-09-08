@@ -615,6 +615,20 @@ CREATE TABLE presensi (
     KEY idx_presensi_siswa (
         id_siswa,
         tanggal
+    ),
+
+    KEY idx_presensi_kelas_periode (
+        id_tahun,
+        id_kelas,
+        sesi,
+        tanggal
+    ),
+
+    KEY idx_presensi_siswa_periode (
+        id_siswa,
+        id_tahun,
+        sesi,
+        tanggal
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
@@ -654,7 +668,70 @@ CREATE TABLE presensi_mengajar (
 
 ---
 
-# 7. BK dan Prestasi
+# 7. Strategi Index dan Query Presensi
+
+`presensi` diproyeksikan menjadi tabel terbesar SisisFour.
+
+Index canonical:
+
+```text
+uk_presensi_siswa
+(id_kelas, tanggal, sesi, id_siswa)
+
+idx_presensi_laporan
+(id_tahun, tanggal, sesi, status)
+
+idx_presensi_siswa
+(id_siswa, tanggal)
+
+idx_presensi_kelas_periode
+(id_tahun, id_kelas, sesi, tanggal)
+
+idx_presensi_siswa_periode
+(id_siswa, id_tahun, sesi, tanggal)
+```
+
+Tujuan:
+
+### `idx_presensi_kelas_periode`
+
+Untuk:
+
+```text
+Matrix kelas
+Rekap bulanan
+Rekap semester
+Export kelas
+EWS kelas
+Dashboard kelas
+```
+
+### `idx_presensi_siswa_periode`
+
+Untuk:
+
+```text
+Dashboard siswa
+Rincian Presensi diri
+Riwayat individual
+Rekap siswa per periode
+```
+
+Aturan query:
+
+- tidak boleh membaca seluruh tabel Presensi untuk kemudian difilter di PHP;
+- query wajib dibatasi scope/periode;
+- agregasi menggunakan `COUNT`, `SUM`, `GROUP BY`, `HAVING` di database;
+- pagination histori dilakukan database-side;
+- `EXPLAIN` wajib digunakan pada query laporan/rekap yang memproses dataset besar.
+
+Index tambahan hanya dibuat bila pola query nyata membutuhkannya. Hindari index berlebihan karena setiap index menambah biaya INSERT.
+
+Partitioning tidak menjadi requirement v0.5.
+
+---
+
+# 8. BK dan Prestasi
 
 ## 7.1 `ref_pelanggaran`
 
@@ -701,7 +778,7 @@ CREATE TABLE catatan_prestasi (
 
 ---
 
-# 8. Kartu Pelajar
+# 9. Kartu Pelajar
 
 ```sql
 CREATE TABLE kartu_pelajar (
@@ -717,7 +794,7 @@ CREATE TABLE kartu_pelajar (
 
 ---
 
-# 9. Settings dan Log
+# 10. Settings dan Log
 
 ## 9.1 `setting_sistem`
 
@@ -749,7 +826,7 @@ CREATE TABLE log_activity (
 
 ---
 
-# 10. Foreign Key Canonical
+# 11. Foreign Key Canonical
 
 ```sql
 ALTER TABLE kelas
@@ -912,7 +989,7 @@ FK BK/Prestasi disesuaikan dengan tabel siswa/guru terkait menggunakan RESTRICT,
 
 ---
 
-# 11. Seeder Mata Pelajaran
+# 12. Seeder Mata Pelajaran
 
 Minimal seed mapel harus mempunyai `kode_mapel` unik.
 
@@ -942,7 +1019,7 @@ Kode final harus konsisten dengan template Jadwal Guru.
 
 ---
 
-# 12. Seeder Admin Awal
+# 13. Seeder Admin Awal
 
 Fresh install memerlukan satu akun bootstrap Admin.
 
@@ -964,7 +1041,7 @@ Admin bootstrap adalah pengecualian terhadap aturan identitas normal.
 
 ---
 
-# 13. Invariant Database + Service
+# 14. Invariant Database + Service
 
 Invariant yang wajib selalu benar:
 
@@ -987,7 +1064,7 @@ Invariant yang wajib selalu benar:
 
 ---
 
-# 14. Fresh Install
+# 15. Fresh Install
 
 Urutan fresh install:
 
@@ -1010,7 +1087,7 @@ Seeder menu dan matriks role/permission harus mengikuti `03_AUTH_RBAC_MENU`.
 
 ---
 
-# 15. Pemeriksaan Fresh Install
+# 16. Pemeriksaan Fresh Install
 
 Setelah import:
 
