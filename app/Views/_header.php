@@ -1,7 +1,25 @@
+<?php
+$settings = $systemSettings ?? [];
+$namaSekolah = trim((string) ($settings['nama_sekolah'] ?? 'MTsN 4 Jombang'));
+$iconSekolah = trim((string) ($settings['icon_sekolah'] ?? ''));
+
+if ($namaSekolah === '') {
+    $namaSekolah = 'MTsN 4 Jombang';
+}
+
+$iconUrl = base_url('assets/img/favicon/favicon.ico');
+
+if (
+    $iconSekolah !== ''
+    && is_file(FCPATH . ltrim($iconSekolah, '/\\'))
+) {
+    $iconUrl = base_url(ltrim($iconSekolah, '/'));
+}
+?>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-<title><?= isset($pageTitle) ? esc($pageTitle) . ' | ' : '' ?>SisisFour - MTsN 4 Jombang</title>
-<meta name="description" content="SisisFour - Sistem Informasi Manajemen Madrasah MTsN 4 Jombang" />
+<title><?= isset($pageTitle) ? esc($pageTitle) . ' | ' : '' ?>SisisFour - <?= esc($namaSekolah) ?></title>
+<meta name="description" content="SisisFour - Sistem Informasi Manajemen Madrasah <?= esc($namaSekolah) ?>" />
 
 <!--
   CSRF untuk seluruh halaman yang memakai layout utama.
@@ -12,7 +30,7 @@
 <meta name="csrf-token" content="<?= esc(csrf_hash()) ?>" />
 <meta name="csrf-header-name" content="X-CSRF-TOKEN" />
 
-<link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/favicon/favicon.ico') ?>" />
+<link rel="icon" type="image/png" href="<?= esc($iconUrl, 'attr') ?>" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

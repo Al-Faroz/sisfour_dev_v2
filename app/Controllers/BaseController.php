@@ -2,12 +2,14 @@
 
 namespace App\Controllers;
 
+use App\Models\SettingSistemModel;
 use App\Services\AuthService;
 use App\Services\MenuService;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 abstract class BaseController extends Controller
 {
@@ -54,6 +56,7 @@ abstract class BaseController extends Controller
                     ? $this->authService->isWaliKelas((int) $idGuru)
                     : false,
             ],
+            'systemSettings' => $this->loadSystemSettings(),
         ];
     }
 
@@ -80,5 +83,39 @@ abstract class BaseController extends Controller
         }
 
         return $result;
+    }
+
+    private function loadSystemSettings(): array
+    {
+        $defaults = [
+            'nama_sekolah' => 'MTsN 4 Jombang',
+            'alamat_sekolah' => '',
+            'logo_sekolah' => '',
+            'icon_sekolah' => '',
+        ];
+
+        try {
+            $rows = (new SettingSistemModel())->allAssoc();
+
+            foreach ($defaults as $key => $default) {
+                if (!isset($rows[$key])) {
+                    continue;
+                }
+
+                $value = trim((string) ($rows[$key]['setting_value'] ?? ''));
+
+                if ($value !== '') {
+                    $defaults[$key] = $value;
+                }
+            }
+        } catch (Throwable $e) {
+            log_message(
+                'warning',
+                'Layout gagal memuat setting_sistem: {message}',
+                ['message' => $e->getMessage()]
+            );
+        }
+
+        return $defaults;
     }
 }

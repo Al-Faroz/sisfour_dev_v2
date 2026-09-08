@@ -8,46 +8,54 @@
  * markActive() di BaseController::prepareLayoutData().
  *
  * Kalau menu untuk suatu role salah/kurang/lebih, JANGAN edit file ini —
- * perbaiki data di tabel role_menus (lihat 03_AUTH_RBAC_MENU §4.2 & §4.3).
+ * perbaiki data di tabel role_menus.
  */
 
-/**
- * Render satu level menu secara rekursif, mengikuti markup Sneat:
- * <li class="menu-item [active] [open]">
- *   <a class="menu-link [menu-toggle]">...</a>
- *   <ul class="menu-sub"> ...children... </ul>
- * </li>
- */
 if (!function_exists('render_menu_items')) {
 function render_menu_items(array $items): void
 {
     foreach ($items as $item) {
         $hasChildren = !empty($item['children']);
-        $isActive    = !empty($item['active']);
-        $isOpen      = !empty($item['open']);
+        $isActive = !empty($item['active']);
+        $isOpen = !empty($item['open']);
 
         $liClass = 'menu-item';
+
         if ($isActive) {
             $liClass .= ' active';
         }
+
         if ($hasChildren && $isOpen) {
             $liClass .= ' open';
         }
 
         $linkClass = 'menu-link' . ($hasChildren ? ' menu-toggle' : '');
-        $href = $hasChildren ? 'javascript:void(0);' : base_url(ltrim($item['link'] ?? '#', '/'));
+        $href = $hasChildren
+            ? 'javascript:void(0);'
+            : base_url(ltrim($item['link'] ?? '#', '/'));
 
         echo '<li class="' . $liClass . '">';
         echo '<a href="' . $href . '" class="' . $linkClass . '">';
 
         if (!empty($item['icon'])) {
-            echo '<i class="menu-icon tf-icons bx ' . esc(str_replace('bx bx-', 'bx-', $item['icon']), 'attr') . '"></i>';
+            echo '<i class="menu-icon tf-icons bx '
+                . esc(
+                    str_replace(
+                        'bx bx-',
+                        'bx-',
+                        $item['icon']
+                    ),
+                    'attr'
+                )
+                . '"></i>';
         } else {
-            // Item tanpa icon (submenu) tetap butuh bullet kecil ala Sneat.
-            echo '<i class="menu-icon tf-icons bx bx-circle" style="font-size:.4rem;opacity:.5"></i>';
+            echo '<i class="menu-icon tf-icons bx bx-circle" '
+                . 'style="font-size:.4rem;opacity:.5"></i>';
         }
 
-        echo '<div class="text-truncate">' . esc($item['nama_menu']) . '</div>';
+        echo '<div class="text-truncate">'
+            . esc($item['nama_menu'])
+            . '</div>';
         echo '</a>';
 
         if ($hasChildren) {
@@ -60,12 +68,39 @@ function render_menu_items(array $items): void
     }
 }
 }
+
+$settings = $systemSettings ?? [];
+$namaSekolah = trim(
+    (string) ($settings['nama_sekolah'] ?? 'MTsN 4 Jombang')
+);
+$logoSekolah = trim(
+    (string) ($settings['logo_sekolah'] ?? '')
+);
+
+if ($namaSekolah === '') {
+    $namaSekolah = 'MTsN 4 Jombang';
+}
+
+$hasLogo = $logoSekolah !== ''
+    && is_file(FCPATH . ltrim($logoSekolah, '/\\'));
+
+$logoUrl = $hasLogo
+    ? base_url(ltrim($logoSekolah, '/'))
+    : '';
 ?>
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
   <div class="app-brand demo">
     <a href="<?= base_url('dashboard') ?>" class="app-brand-link">
       <span class="app-brand-logo demo">
-        <i class="bx bx-buildings bx-md text-primary"></i>
+        <?php if ($hasLogo): ?>
+          <img
+            src="<?= esc($logoUrl, 'attr') ?>"
+            alt="<?= esc($namaSekolah, 'attr') ?>"
+            style="width:34px;height:34px;object-fit:contain"
+          />
+        <?php else: ?>
+          <i class="bx bx-buildings bx-md text-primary"></i>
+        <?php endif; ?>
       </span>
       <span class="app-brand-text demo menu-text fw-bold ms-2">SisisFour</span>
     </a>
