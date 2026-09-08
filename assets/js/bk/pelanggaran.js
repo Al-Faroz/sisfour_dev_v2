@@ -1,0 +1,10 @@
+(() => {
+'use strict';
+const app=document.getElementById('pelanggaranApp');if(!app)return;
+const base=String(app.dataset.baseUrl||'').replace(/\/+$/,''); const form=document.getElementById('formPelanggaran'); const modalEl=document.getElementById('modalPelanggaran'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl);
+function open(row=null){form.reset();form.elements.id.value=row?.dataset.id||'';form.elements.nama_pelanggaran.value=row?.dataset.nama||'';form.elements.kategori.value=row?.dataset.kategori||'Ringan';form.elements.poin.value=row?.dataset.poin||0;modal.show()}
+document.getElementById('btnPelanggaranBaru')?.addEventListener('click',()=>open());
+document.querySelectorAll('.btn-edit').forEach(b=>b.addEventListener('click',()=>open(b.closest('tr'))));
+document.querySelectorAll('.btn-delete').forEach(b=>b.addEventListener('click',async()=>{const id=b.closest('tr').dataset.id;if(!confirm('Hapus pelanggaran ini?'))return;const r=await fetch(`${base}/bk/pelanggaran/delete/${id}`,{method:'DELETE',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest'}});const j=await r.json();if(!r.ok||j.status!=='success'){alert(j.message||'Gagal menghapus');return}location.reload()}));
+form?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(form);const id=fd.get('id');fd.delete('id');let url=`${base}/bk/pelanggaran/create`,opt={method:'POST',body:fd,headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest'}};if(id){url=`${base}/bk/pelanggaran/update/${id}`;opt={method:'PUT',body:new URLSearchParams(fd),headers:{Accept:'application/json','Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}}}const r=await fetch(url,opt);const j=await r.json();if(!r.ok||j.status!=='success'){alert(j.message||'Gagal menyimpan');return}location.reload()});
+})();
