@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\ActivityLogService;
 use App\Services\AuthService;
 use App\Services\JwtService;
 use CodeIgniter\Controller;
@@ -12,8 +13,8 @@ use Psr\Log\LoggerInterface;
 class Auth extends Controller
 {
     protected AuthService $authService;
-
     protected JwtService $jwtService;
+    protected ActivityLogService $activityLog;
 
     public function initController(
         RequestInterface $request,
@@ -28,6 +29,7 @@ class Auth extends Controller
 
         $this->authService = new AuthService();
         $this->jwtService = new JwtService();
+        $this->activityLog = new ActivityLogService();
     }
 
     /**
@@ -83,6 +85,13 @@ class Auth extends Controller
             $result['user']
         );
 
+        $this->activityLog->write(
+            (int) $result['user']['id'],
+            'LOGIN',
+            'Auth',
+            'Login Web berhasil.'
+        );
+
         return redirect()->to('/dashboard');
     }
 
@@ -93,6 +102,17 @@ class Auth extends Controller
      */
     public function logout()
     {
+        $userId = (int) session()->get('user_id');
+
+        if ($userId > 0) {
+            $this->activityLog->write(
+                $userId,
+                'LOGOUT',
+                'Auth',
+                'Logout Web.'
+            );
+        }
+
         session()->destroy();
 
         return redirect()->to('/auth/login');
@@ -164,6 +184,13 @@ class Auth extends Controller
                 ]);
         }
 
+        $this->activityLog->write(
+            (int) $result['user']['id'],
+            'LOGIN',
+            'Auth',
+            'Login API berhasil.'
+        );
+
         return $this->response
             ->setStatusCode(200)
             ->setJSON([
@@ -190,6 +217,7 @@ class Auth extends Controller
     public function apiLogout()
     {
         $token = $this->request->apiAccessToken ?? null;
+        $user = $this->request->apiUser ?? null;
 
         if (!$token) {
             return $this->response
@@ -203,6 +231,15 @@ class Auth extends Controller
         $this->jwtService->revokeAccessToken(
             (string) $token
         );
+
+        if (is_array($user) && !empty($user['id'])) {
+            $this->activityLog->write(
+                (int) $user['id'],
+                'LOGOUT',
+                'Auth',
+                'Logout API.'
+            );
+        }
 
         return $this->response
             ->setStatusCode(200)
@@ -307,19 +344,25 @@ class Auth extends Controller
             'username' => $user['username'],
             'role' => $user['role'],
             'id_guru' => isset($user['id_guru'])
-                ? ($user['id_guru'] !== null
-                    ? (int) $user['id_guru']
-                    : null)
+                ? (
+                    $user['id_guru'] !== null
+                        ? (int) $user['id_guru']
+                        : null
+                )
                 : null,
             'id_siswa' => isset($user['id_siswa'])
-                ? ($user['id_siswa'] !== null
-                    ? (int) $user['id_siswa']
-                    : null)
+                ? (
+                    $user['id_siswa'] !== null
+                        ? (int) $user['id_siswa']
+                        : null
+                )
                 : null,
             'id_pegawai' => isset($user['id_pegawai'])
-                ? ($user['id_pegawai'] !== null
-                    ? (int) $user['id_pegawai']
-                    : null)
+                ? (
+                    $user['id_pegawai'] !== null
+                        ? (int) $user['id_pegawai']
+                        : null
+                )
                 : null,
         ];
     }
