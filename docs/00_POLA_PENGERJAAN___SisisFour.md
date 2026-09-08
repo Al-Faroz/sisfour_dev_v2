@@ -55,6 +55,43 @@ TEST / CHECKPOINT
 
 Business logic tidak boleh dipindahkan ke View atau JavaScript. Controller harus tipis dan mendelegasikan operasi utama kepada Service.
 
+### 1.2 Aturan Revisi dan Penyerahan Full File
+
+Setiap pekerjaan yang membuat atau merevisi file proyek wajib menggunakan **file utuh** sebagai unit penyerahan.
+
+Aturan ini berlaku untuk seluruh jenis file, termasuk tetapi tidak terbatas pada:
+
+```text
+docs/*.md
+app/Config/*.php
+app/Models/*.php
+app/Services/*.php
+app/Filters/*.php
+app/Controllers/*.php
+app/Views/*.php
+app/Config/Routes.php
+assets/js/*.js
+SQL
+script utilitas
+file konfigurasi lain
+```
+
+Ketentuan:
+
+- jangan menyerahkan patch potongan sebagai hasil akhir;
+- jangan menyerahkan hanya function/method yang berubah;
+- jangan menyerahkan hanya blok route yang berubah;
+- jangan menyerahkan hanya paragraf dokumentasi yang berubah;
+- file revisi harus merupakan isi lengkap file setelah perubahan;
+- file baru juga harus diberikan sebagai file lengkap;
+- bagian lama yang masih valid harus dipertahankan;
+- route/modul lama tidak boleh hilang hanya karena fokus pengerjaan berada pada modul baru;
+- jika beberapa file berubah, seluruh file yang berubah harus diserahkan lengkap dan boleh dipaketkan dalam ZIP untuk mengurangi risiko salah salin;
+- perubahan terhadap dokumen acuan harus dilakukan sebelum kode bila perubahan tersebut menetapkan atau mengubah business rule;
+- bila dokumen, database, dan kode bertentangan, konflik wajib dilaporkan dan diputuskan terlebih dahulu; tidak boleh diselesaikan dengan asumsi diam-diam.
+
+Aturan full file adalah aturan tetap proyek dan tidak perlu ditanyakan kembali pada setiap fase pengerjaan.
+
 ---
 
 ## 2. Aturan Kode Aplikasi
@@ -69,7 +106,6 @@ Business logic tidak boleh dipindahkan ke View atau JavaScript. Controller harus
 - Service menjadi pusat business rule.
 - Model fokus pada representasi tabel, allowed fields, validasi dasar, soft delete, dan helper query lokal.
 - Controller fokus pada request/response, delegasi Service, file response, dan rendering View.
-
 
 ### 2.1.1 Database-First Processing untuk Dataset Besar
 
@@ -132,7 +168,6 @@ filter / count / group di PHP
 PHP tetap boleh melakukan transformasi ringan setelah dataset dipersempit database, misalnya membentuk Matrix 1 kelas × 1 bulan dari hasil query periode yang sudah terfilter.
 
 Untuk daftar histori besar, pagination/filter harus dilakukan server-side menggunakan `LIMIT/OFFSET` atau strategi pagination lain yang setara.
-
 
 ### 2.2 Frontend
 
@@ -509,9 +544,12 @@ Checkpoint:
 - input bulk per kelas;
 - scope Guru sesuai jadwal;
 - scope Wali sesuai mapping;
-- revisi;
+- dual-context Guru/Wali diselesaikan di Service per kelas/sesi/aksi;
+- revisi hanya Admin/Operator/Wali aktif;
+- Wali dapat revisi seluruh tanggal dalam tahun ajaran aktif selama mapping Wali masih aktif;
 - time-window;
 - geofencing;
+- fallback hak Wali untuk kelas Wali bila jalur jadwal tidak valid/berakhir;
 - snapshot identitas;
 - atomic save;
 - EWS.
@@ -627,13 +665,22 @@ Setelah push, `git status` harus menunjukkan working tree clean.
 
 ## 16. Aturan Penyerahan File
 
-Untuk setiap file aplikasi yang diperbaiki:
+Aturan pada bagian ini berlaku untuk **semua file proyek**, bukan hanya file aplikasi.
+
+Untuk setiap file yang dibuat atau diperbaiki:
+
 - berikan file utuh;
-- jangan hanya snippet;
+- jangan hanya snippet, diff, potongan method, potongan route, atau paragraf revisi;
+- dokumen acuan yang direvisi juga harus diberikan sebagai file `.md` utuh;
+- file konfigurasi, SQL, PHP, JavaScript, View, CSS, route, dan file pendukung lain juga harus utuh;
+- jangan menghilangkan bagian lama yang masih valid;
 - jangan menghilangkan route/modul lama;
+- bila perubahan business rule memerlukan revisi dokumen acuan, revisi dokumen dilakukan lebih dahulu atau bersamaan sebelum implementasi kode dianggap final;
 - PHP wajib `php -l`;
 - JavaScript wajib `node --check`;
-- bila beberapa file, paketkan ZIP.
+- bila beberapa file berubah, paketkan ZIP bila itu mengurangi risiko kesalahan penyalinan.
+
+Aturan ini bersifat permanen untuk seluruh pengerjaan SisisFour.
 
 ---
 
