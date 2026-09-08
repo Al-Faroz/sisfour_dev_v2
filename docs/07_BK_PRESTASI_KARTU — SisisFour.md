@@ -2,7 +2,7 @@
 
 **Versi Acuan: v0.5**  
 **Tanggal:** 08 September 2026  
-**Status:** FINAL setelah koreksi akses Catatan Kasus Siswa
+**Status:** FINAL v0.5 — BK + Prestasi + Kartu Dua Sisi + QR Universal
 
 Dokumen ini menetapkan aturan BK, Pelanggaran, Catatan Kasus, Prestasi, Top Poin, Kartu Pelajar dan QR Verification.
 
@@ -67,7 +67,7 @@ Berat
 Hak manage:
 
 | Role | Akses |
-| --- | --- |
+|---|---|
 | Admin | Full |
 | Operator | Full |
 | Pimpinan | Readonly melalui modul BK bila diberi view |
@@ -128,7 +128,7 @@ DIRI_SENDIRI
 ## 3.1 Hak Akses Catatan Kasus
 
 | Role | Manage | View |
-| --- | --- | --- |
+|---|---|---|
 | Admin | Semua | Semua |
 | Operator | Semua | Semua |
 | Pimpinan | Tidak | Semua readonly |
@@ -241,7 +241,7 @@ SUM(ref_pelanggaran.poin)
 Top 20 adalah widget analitik, bukan menu utama.
 
 | Role | Top 20 |
-| --- | --- |
+|---|---|
 | Admin | Semua |
 | Operator | Semua |
 | Pimpinan | Semua readonly |
@@ -272,7 +272,7 @@ prestasi.view
 ```
 
 | Role | Manage | View |
-| --- | --- | --- |
+|---|---|---|
 | Admin | Semua | Semua |
 | Operator | Semua | Semua |
 | Pimpinan | Tidak | Semua readonly |
@@ -297,13 +297,13 @@ Upload bukti tidak diwajibkan v0.5.
 
 # 10. Kartu Pelajar
 
-Tabel:
+Tabel bisnis:
 
 ```text
 kartu_pelajar
 ```
 
-Field:
+Field bisnis:
 
 ```text
 id
@@ -314,12 +314,13 @@ tanggal_terbit
 status_aktif
 ```
 
-Status:
+Field teknis final:
 
 ```text
-Aktif
-Nonaktif
+id_siswa_aktif
 ```
+
+`id_siswa_aktif` adalah generated column: berisi `id_siswa` hanya ketika kartu `Aktif`, selain itu `NULL`. Unique index pada field ini menjamin maksimal satu kartu Aktif per siswa, termasuk pada request paralel.
 
 Permission:
 
@@ -340,52 +341,79 @@ View:
 | Wali | KELAS_DIAMPU |
 | Siswa | DIRI_SENDIRI |
 
-Manage v0.5 mengikuti role_permissions final database. Wali dan Siswa tidak manage.
-
 ---
 
 # 11. Generate / Reissue
 
-Generate hanya bila siswa belum mempunyai kartu sesuai kebijakan idempotensi.
+Generate hanya untuk siswa `Aktif` dan belum memiliki kartu Aktif.
+
+Generate batch wajib:
+
+```text
+validasi seluruh ID
+→ validasi seluruh scope
+→ BEGIN TRANSACTION
+→ resolve existing/generate
+→ COMMIT
+```
+
+Jika satu target gagal, seluruh batch rollback. Maksimum batch v0.5 = 200 siswa.
 
 Server membuat:
 
 ```text
 nomor_kartu
-kode_verifikasi
+kode_verifikasi random 64 hex
 tanggal_terbit
 status_aktif = Aktif
 ```
 
-`kode_verifikasi` harus random dan sulit ditebak.
-
-Reissue visual tidak mengubah identitas kartu secara diam-diam.
+Reissue bersifat visual dan tidak mengubah `nomor_kartu` maupun `kode_verifikasi`.
 
 ---
 
-# 12. Cetak
+# 12. Cetak Dua Sisi
 
-Cetak individual harus scoped server-side.
-
-Wali hanya kelas Wali. Siswa hanya kartu diri.
-
-Cetak massal wajib memvalidasi seluruh ID siswa di server dan tidak mempercayai checkbox client sebagai authorization.
-
----
-
-# 13. Format Kartu
-
-Kanvas canonical:
+Kanvas canonical kedua sisi:
 
 ```text
 1011 × 638 px
 ```
 
-Field dapat mencakup:
+PDF individual:
+
+```text
+Page 1 = Sisi depan + data dinamis siswa
+Page 2 = Sisi belakang statis
+```
+
+Sisi belakang tidak mempunyai overlay data siswa. Semua siswa menggunakan `background_kta_belakang` yang sama.
+
+---
+
+# 13. Layout Canonical Sisi Depan
+
+Template depan yang disetujui menjadi sumber layout v0.5.
+
+Background:
+
+```text
+setting_sistem.background_kta_depan
+fallback = assets/kartu/default/background_kta_depan.jpg
+```
+
+Font preferred:
+
+```text
+Poppins
+fallback Arial / DejaVu Sans
+```
+
+Overlay dinamis hanya:
 
 ```text
 Nama
-NIK
+NISN
 Kelas
 Jenis Kelamin
 Tahun Ajaran
@@ -393,51 +421,154 @@ Tempat/Tanggal Lahir
 Alamat
 Foto
 QR
-Nomor/Kode Kartu
+Nomor Kartu
 ```
 
-Foto mengikuti aturan Master Siswa. Bila foto tidak ada, gunakan placeholder; jangan menggagalkan seluruh generate.
+**Kartu tidak memakai NIS; hanya NISN.**
+
+Koordinat canonical pada canvas 1011×638:
+
+```text
+Foto
+x=760 y=73 w=210 h=280
+rasio 3:4
+
+QR
+x=810 y=375 w=120 h=120
+
+Nomor Kartu
+x=790 y=505 w=160
+font 9px, center
+
+Nama
+x=40 y=175 w=570
+font 42px, weight 800, uppercase, line-height 1.15
+adaptive: 42 → 38 → 34px
+maksimal area 2 baris
+
+Meta (NISN/Kelas/Jenis Kelamin/Tahun Ajaran)
+x=40 y=340 w=460
+font isi 19px, weight 700
+label 11px, weight 500
+
+TTL
+x=40 y=460 w=600
+font 17px
+
+Alamat
+x=40 y=490 w=600
+font 17px
+maksimal area 2 baris
+```
+
+Foto siswa canonical disimpan oleh Master Siswa di `ROOTPATH/uploads/foto_siswa`; renderer Kartu wajib membaca lokasi tersebut dan fallback placeholder bila file tidak ada.
 
 ---
 
-# 14. QR Verification Publik
+# 14. Sisi Belakang
 
-Endpoint:
+Background:
+
+```text
+setting_sistem.background_kta_belakang
+fallback = assets/kartu/default/background_kta_belakang.png
+```
+
+Tidak ada overlay:
+
+```text
+Nama
+NISN
+QR
+Kelas
+Foto
+Nomor Kartu
+```
+
+Semua siswa mempunyai sisi belakang identik sesuai background aktif.
+
+---
+
+# 15. QR Universal V1
+
+QR tidak berisi URL saja dan tidak berisi data sensitif.
+
+Payload canonical:
+
+```text
+SISFOUR|V1|NISN={NISN}|NAMA={NAMA_URL_ENCODED}|VERIFY={KODE_VERIFIKASI}
+```
+
+Contoh:
+
+```text
+SISFOUR|V1|NISN=1234567890|NAMA=AHMAD%20FAUZI|VERIFY=8f9b...
+```
+
+Makna:
+
+```text
+SISFOUR = identifier format
+V1      = versi payload
+NISN    = universal student identifier untuk integrasi aplikasi
+NAMA    = informasi tambahan; aplikasi harus URL-decode bila diperlukan
+VERIFY  = authenticity identifier dari kartu_pelajar.kode_verifikasi
+```
+
+Aplikasi perpustakaan/kantin/gate boleh cukup parse `NISN`. Aplikasi yang membutuhkan validasi dapat memakai `NISN + VERIFY` dan endpoint/API SisisFour.
+
+Dilarang memasukkan ke QR:
+
+```text
+NIK
+alamat
+TTL
+telepon
+password/JWT/token
+data BK
+data Presensi
+```
+
+---
+
+# 16. QR Verification Publik
+
+Endpoint tetap:
 
 ```text
 /kartu/verify/{kode_verifikasi}
 ```
 
-Tanpa login, read minimum saja.
-
-Boleh:
+Read minimum tanpa login:
 
 ```text
 Nama
 Kelas
-Status kartu
-Nama madrasah
-Nomor/kode seperlunya
-Foto bila kebijakan mengizinkan
+Nomor Kartu
+Status Kartu
+Status Siswa
+Nama Madrasah
+NIK masked
 ```
 
-Tidak boleh:
-
-```text
-NIK penuh
-alamat lengkap
-orang tua
-telepon
-data BK
-riwayat Presensi
-credential/token
-```
-
-NIK pada halaman publik wajib masking.
+Tidak mengirim foto di payload publik v0.5. Tidak boleh menampilkan NIK penuh, alamat lengkap, orang tua, telepon, data BK, Presensi, atau credential.
 
 ---
 
-# 15. Nonaktif Otomatis
+# 17. Template Settings
+
+Key canonical:
+
+```text
+background_kta_depan
+background_kta_belakang
+```
+
+Modul Settings harus menyediakan upload Admin untuk kedua background. Asset wajib image valid, re-encode, path aman/non-executable, dan hasil akhir canonical 1011×638 px. Renderer selalu mempunyai fallback default agar cetak tidak fatal ketika setting belum diisi.
+
+---
+
+# 18. Nonaktif Otomatis
 
 Saat siswa menjadi:
 
@@ -447,13 +578,27 @@ Pindah
 Keluar
 ```
 
-kartu aktif menjadi `Nonaktif`, idealnya dalam transaction perubahan status siswa.
+seluruh kartu Aktif siswa menjadi `Nonaktif` di transaction perubahan status siswa. Implementasi canonical berada pada `KelasService::luluskan()` dan `KelasService::mutasiSiswa()`.
 
 ---
 
-# 16. Service dan Security
+# 19. Akun BK
 
-Service yang disarankan:
+Akun BK tidak dibuat dari modul BK.
+
+Jika petugas BK berasal dari Pegawai:
+
+```text
+Master Pegawai → users role NULL → Settings/User Management → role bk
+```
+
+Jika petugas BK berasal dari Guru dan hanya bertugas sebagai BK, `users.id_guru` tetap boleh ada tetapi capability operasional dapat hanya role `bk`. Bila benar-benar merangkap Guru Mapel, gunakan multi-role `bk + guru`.
+
+---
+
+# 20. Service dan Security
+
+Service canonical:
 
 ```text
 BkService
@@ -462,26 +607,28 @@ KartuPelajarService
 KartuRenderService
 ```
 
-Semua Service wajib:
+Semua Service wajib resolve permission/scope server-side, tidak percaya actor/target dari browser, database-first, escape output, audit mutation, dan identitas Siswa `DIRI_SENDIRI` selalu dari session/token.
 
-- resolve permission + scope server-side;
-- tidak percaya target/actor dari browser;
-- database-first untuk filter/agregasi;
-- escape output;
-- audit mutation;
-- Siswa `DIRI_SENDIRI` selalu dari session/token identity.
+Catatan Kasus `manage` berarti create/update/delete. Create hanya untuk siswa aktif; edit histori tetap boleh mempertahankan siswa lama yang sudah Lulus/Pindah/Keluar.
 
 ---
 
-# 17. Checkpoint
+# 21. Checkpoint Final
 
 Uji minimal:
 
-- Admin/Operator/BK manage Catatan Kasus;
+- Admin/Operator/BK create/update/delete Catatan Kasus;
+- create Kasus menolak siswa nonaktif/deleted;
 - Pimpinan readonly;
 - Guru biasa tidak dapat akses kasus;
 - Wali hanya siswa kelas Wali;
-- Siswa dapat melihat kasus diri dan tidak dapat mengganti target siswa;
-- Siswa tidak dapat membuka Top 20;
-- Prestasi dan Kartu Siswa hanya diri;
-- menu dan direct URL menghasilkan scope yang sama.
+- Siswa hanya kasus diri dan tidak dapat Top 20;
+- Prestasi scope SEMUA/KELAS_DIAMPU/DIRI_SENDIRI;
+- satu siswa tidak dapat mempunyai dua kartu Aktif;
+- generate batch atomic;
+- preview/PDF sisi depan mengikuti koordinat template;
+- PDF page 2 hanya background belakang;
+- QR payload tepat `SISFOUR|V1|...` dan dapat diparse NISN;
+- public verify tidak mengekspos foto/NIK penuh/BK/Presensi;
+- Lulus/Pindah/Keluar menonaktifkan kartu dalam transaction;
+- multi-role Guru+Operator dan Guru+Pimpinan tetap union permission.

@@ -1,43 +1,6 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<style>
-@page{margin:0}
-body{margin:0;font-family:DejaVu Sans,sans-serif}
-.card{width:758.25pt;height:478.5pt;box-sizing:border-box;padding:28pt;background:#fafaff;border:1px solid #ddd}
-table{width:100%;height:100%;border-collapse:collapse}
-.photo{width:125pt;height:165pt;object-fit:cover;border:1px solid #bbb}
-.qr{width:150pt;height:150pt}
-.title{font-size:12pt;color:#666;text-transform:uppercase}
-.name{font-size:24pt;font-weight:bold;margin:8pt 0 16pt}
-.info{font-size:11pt;line-height:1.7}
-.small{font-size:8pt;color:#666}
-</style>
-</head>
-<body>
-<div class="card">
-<table><tr>
-<td style="width:145pt;vertical-align:middle">
-<?php if ($photo_data_uri): ?><img class="photo" src="<?= esc($photo_data_uri) ?>"><?php else: ?><div class="photo"></div><?php endif; ?>
-</td>
-<td style="vertical-align:middle">
-<div class="title">Kartu Pelajar</div>
-<div class="name"><?= esc($card['nama']) ?></div>
-<div class="info">
-<strong>NISN:</strong> <?= esc($card['nisn']) ?><br>
-<strong>Kelas:</strong> <?= esc($card['kelas']['nama_kelas'] ?? '-') ?><br>
-<strong>Jenis Kelamin:</strong> <?= esc($card['jenis_kelamin']) ?><br>
-<strong>TTL:</strong> <?= esc(($card['tempat_lahir'] ?? '-') . ', ' . ($card['tanggal_lahir'] ?? '-')) ?><br><br>
-<strong>No. Kartu:</strong> <?= esc($card['nomor_kartu']) ?><br>
-<strong>Status:</strong> <?= esc($card['status_aktif']) ?>
-</div>
-</td>
-<td style="width:170pt;text-align:center;vertical-align:middle">
-<img class="qr" src="<?= esc($qr_data_uri) ?>"><br>
-<div class="small">Scan untuk verifikasi kartu</div>
-</td>
-</tr></table>
-</div>
-</body>
-</html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><style>
+@page{margin:0}html,body{margin:0;padding:0;font-family:Poppins,Arial,"DejaVu Sans",sans-serif}.page{position:relative;width:1011px;height:638px;overflow:hidden;background-size:1011px 638px;background-repeat:no-repeat;background-position:0 0}.page-front{background-image:url('<?= esc($background_front_data_uri) ?>');page-break-after:always}.page-back{background-image:url('<?= esc($background_back_data_uri) ?>')}.photo{position:absolute;left:760px;top:73px;width:210px;height:280px;background:#ddd;border:3px solid #fff;overflow:hidden;text-align:center;color:#777;font-size:12px}.photo img{width:210px;height:280px;object-fit:cover}.qr{position:absolute;left:810px;top:375px;width:120px;height:120px;background:#fff;padding:4px}.qr img{width:120px;height:120px}.code{position:absolute;left:790px;top:505px;width:160px;text-align:center;font-size:9px;letter-spacing:.5px;color:#fff}.name{position:absolute;left:40px;top:175px;width:570px;max-height:98px;font-weight:800;line-height:1.15;text-transform:uppercase;color:#fff;overflow:hidden}.meta{position:absolute;left:40px;top:340px;width:460px;color:#fff;font-size:19px;font-weight:700}.meta table{width:100%;border-collapse:collapse}.meta td{width:50%;padding:0 0 10px}.label{display:block;font-size:11px;font-weight:500;opacity:.75;text-transform:uppercase;letter-spacing:.5px}.ttl{position:absolute;left:40px;top:460px;width:600px;color:#fff;font-size:17px;font-weight:500}.alamat{position:absolute;left:40px;top:490px;width:600px;max-height:44px;overflow:hidden;color:#fff;font-size:17px;font-weight:500}
+</style></head><body>
+<div class="page page-front"><div class="photo"><?php if($photo_data_uri):?><img src="<?= esc($photo_data_uri) ?>"><?php else:?>FOTO 3x4<?php endif;?></div><div class="qr"><img src="<?= esc($qr_data_uri) ?>"></div><div class="code"><?= esc($card['nomor_kartu']) ?></div><div class="name" style="font-size:<?= (int)$name_font_size ?>px"><?= esc($nama_display) ?></div><div class="meta"><table><tr><td><span class="label">NISN</span><?= esc($nisn_display) ?></td><td><span class="label">Kelas</span><?= esc($kelas_display) ?></td></tr><tr><td><span class="label">Jenis Kelamin</span><?= esc($jenis_kelamin_display) ?></td><td><span class="label">Tahun Ajaran</span><?= esc($tahun_ajaran_display) ?></td></tr></table></div><div class="ttl"><?= esc($ttl_display) ?></div><div class="alamat"><?= esc($alamat_display) ?></div></div>
+<div class="page page-back"></div>
+</body></html>

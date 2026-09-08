@@ -1,32 +1,16 @@
 <?= $this->extend('main') ?>
 <?= $this->section('content') ?>
 <style>
-.student-card-canvas{width:min(100%,1011px);aspect-ratio:1011/638;border-radius:24px;padding:38px;background:linear-gradient(135deg,#f7f8ff,#ffffff);border:1px solid #ddd;position:relative;overflow:hidden}
-.student-card-grid{display:grid;grid-template-columns:180px 1fr 220px;gap:28px;align-items:center;height:100%}
-.student-photo{width:170px;height:220px;object-fit:cover;border-radius:16px;border:1px solid #ccc;background:#eee}
-.qr-box img{width:200px;height:200px}
-@media(max-width:800px){.student-card-grid{grid-template-columns:1fr;text-align:center}.student-card-canvas{aspect-ratio:auto}.student-photo{margin:auto}.qr-box img{width:160px;height:160px}}
+.kartu-scroll{overflow-x:auto;padding-bottom:8px}.kartu-canvas{position:relative;width:1011px;height:638px;overflow:hidden;background-size:cover;background-position:center;font-family:Poppins,Arial,"DejaVu Sans",sans-serif;color:#fff}.kartu-front{background-image:url('<?= esc($background_front_data_uri) ?>')}.kartu-back{background-image:url('<?= esc($background_back_data_uri) ?>')}.k-photo{position:absolute;left:760px;top:73px;width:210px;height:280px;background:#ddd;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#777;font-size:12px;text-align:center;overflow:hidden}.k-photo img{width:100%;height:100%;object-fit:cover}.k-qr{position:absolute;left:810px;top:375px;width:120px;height:120px;background:#fff;padding:4px;border-radius:4px}.k-qr img{width:100%;height:100%;display:block}.k-code{position:absolute;left:790px;top:505px;width:160px;text-align:center;font-size:9px;letter-spacing:.5px}.k-name{position:absolute;left:40px;top:175px;width:570px;max-height:98px;font-weight:800;line-height:1.15;text-transform:uppercase;text-shadow:0 1px 3px rgba(0,0,0,.25);overflow:hidden}.k-meta{position:absolute;left:40px;top:340px;width:460px;display:flex;flex-wrap:wrap;row-gap:10px;font-size:19px;font-weight:700}.k-item{width:50%}.k-label{display:block;font-size:11px;font-weight:500;opacity:.75;text-transform:uppercase;letter-spacing:.5px}.k-ttl{position:absolute;left:40px;top:460px;width:600px;font-size:17px;font-weight:500}.k-alamat{position:absolute;left:40px;top:490px;width:600px;max-height:44px;overflow:hidden;font-size:17px;font-weight:500}.qr-payload{word-break:break-all}
 </style>
-<div class="d-flex justify-content-between align-items-center mb-3"><h4 class="fw-bold mb-0">Preview Kartu Pelajar</h4><a class="btn btn-primary" href="<?= esc(base_url('kartu/download/' . $card['id'])) ?>">Download PDF</a></div>
-<div class="student-card-canvas">
-    <div class="student-card-grid">
-        <div>
-            <?php if ($photo_data_uri): ?><img class="student-photo" src="<?= esc($photo_data_uri) ?>" alt="Foto"><?php else: ?><div class="student-photo d-flex align-items-center justify-content-center text-muted">Tidak ada foto</div><?php endif; ?>
-        </div>
-        <div>
-            <div class="text-uppercase text-muted small">Kartu Pelajar</div>
-            <h2 class="mt-1 mb-3"><?= esc($card['nama']) ?></h2>
-            <div><strong>NISN:</strong> <?= esc($card['nisn']) ?></div>
-            <div><strong>Kelas:</strong> <?= esc($card['kelas']['nama_kelas'] ?? '-') ?></div>
-            <div><strong>Jenis Kelamin:</strong> <?= esc($card['jenis_kelamin']) ?></div>
-            <div><strong>TTL:</strong> <?= esc(($card['tempat_lahir'] ?? '-') . ', ' . ($card['tanggal_lahir'] ?? '-')) ?></div>
-            <div class="mt-3"><strong>No. Kartu:</strong> <?= esc($card['nomor_kartu']) ?></div>
-            <div><strong>Status:</strong> <?= esc($card['status_aktif']) ?></div>
-        </div>
-        <div class="qr-box text-center">
-            <img src="<?= esc($qr_data_uri) ?>" alt="QR">
-            <div class="small text-muted mt-2">Scan untuk verifikasi</div>
-        </div>
-    </div>
-</div>
+<div class="d-flex justify-content-between align-items-center mb-3"><h4 class="fw-bold mb-0">Preview Kartu Pelajar</h4><a class="btn btn-primary" href="<?= esc(base_url('kartu/download/'.$card['id'])) ?>">Download PDF 2 Sisi</a></div>
+<h6>Depan</h6><div class="kartu-scroll mb-4"><div class="kartu-canvas kartu-front">
+<div class="k-photo"><?php if($photo_data_uri):?><img src="<?= esc($photo_data_uri) ?>" alt="Foto"><?php else:?>FOTO 3x4<?php endif;?></div>
+<div class="k-qr"><img src="<?= esc($qr_data_uri) ?>" alt="QR"></div><div class="k-code"><?= esc($card['nomor_kartu']) ?></div>
+<div class="k-name" style="font-size:<?= (int)$name_font_size ?>px"><?= esc($nama_display) ?></div>
+<div class="k-meta"><div class="k-item"><span class="k-label">NISN</span><?= esc($nisn_display) ?></div><div class="k-item"><span class="k-label">Kelas</span><?= esc($kelas_display) ?></div><div class="k-item"><span class="k-label">Jenis Kelamin</span><?= esc($jenis_kelamin_display) ?></div><div class="k-item"><span class="k-label">Tahun Ajaran</span><?= esc($tahun_ajaran_display) ?></div></div>
+<div class="k-ttl"><?= esc($ttl_display) ?></div><div class="k-alamat"><?= esc($alamat_display) ?></div>
+</div></div>
+<h6>Belakang</h6><div class="kartu-scroll mb-4"><div class="kartu-canvas kartu-back"></div></div>
+<div class="card"><div class="card-body"><strong>QR Universal V1</strong><div class="small text-muted mt-1">Aplikasi lain dapat mengambil NISN langsung dari payload; VERIFY dipakai bila perlu validasi ke SisisFour.</div><code class="qr-payload d-block mt-2"><?= esc($qr_payload) ?></code><a class="small" href="<?= esc($verify_url) ?>" target="_blank" rel="noopener">Buka verifikasi publik</a></div></div>
 <?= $this->endSection() ?>

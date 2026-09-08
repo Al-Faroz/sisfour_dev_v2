@@ -1,27 +1,4 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title><?= esc($title ?? 'Verifikasi Kartu') ?></title>
-<style>
-body{font-family:Arial,sans-serif;background:#f5f6fa;margin:0;padding:24px;color:#222}.box{max-width:520px;margin:40px auto;background:white;border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.08)}.ok{color:#198754}.bad{color:#dc3545}.row{padding:8px 0;border-bottom:1px solid #eee}.label{font-size:12px;color:#777;text-transform:uppercase}
-</style>
-</head>
-<body>
-<div class="box">
-<?php if (empty($result['success'])): ?>
-    <h2 class="bad">Kartu tidak valid</h2>
-    <p><?= esc($result['message'] ?? 'Kode verifikasi tidak ditemukan.') ?></p>
-<?php else: $card = $result['card']; ?>
-    <h2 class="ok">Kartu terverifikasi</h2>
-    <p><?= esc($card['nama_sekolah']) ?></p>
-    <div class="row"><div class="label">Nama</div><strong><?= esc($card['nama']) ?></strong></div>
-    <div class="row"><div class="label">Kelas</div><?= esc($card['kelas']) ?></div>
-    <div class="row"><div class="label">Nomor Kartu</div><?= esc($card['nomor_kartu']) ?></div>
-    <div class="row"><div class="label">Status Kartu</div><?= esc($card['status_kartu']) ?></div>
-    <div class="row"><div class="label">NIK</div><?= esc($card['nik_masked']) ?></div>
-<?php endif; ?>
-</div>
-</body>
-</html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= esc($title ?? 'Verifikasi Kartu') ?></title><style>body{font-family:Arial,sans-serif;background:#f5f6fa;margin:0;padding:24px;color:#222}.box{max-width:520px;margin:40px auto;background:white;border-radius:18px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.08)}.ok{color:#198754}.bad{color:#dc3545}.row{padding:8px 0;border-bottom:1px solid #eee}.label{font-size:12px;color:#777;text-transform:uppercase}</style></head><body><div class="box">
+<?php if(empty($result['success'])):?><h2 class="bad">Kartu tidak valid</h2><p><?= esc($result['message'] ?? 'Kode verifikasi tidak ditemukan.') ?></p>
+<?php else:$card=$result['card'];?><h2 class="ok">Kartu terverifikasi</h2><p><?= esc($card['nama_sekolah']) ?></p><div class="row"><div class="label">Nama</div><strong><?= esc($card['nama']) ?></strong></div><div class="row"><div class="label">Kelas</div><?= esc($card['kelas']) ?></div><div class="row"><div class="label">Nomor Kartu</div><?= esc($card['nomor_kartu']) ?></div><div class="row"><div class="label">Status Kartu</div><?= esc($card['status_kartu']) ?></div><div class="row"><div class="label">Status Siswa</div><?= esc($card['status_siswa']) ?></div><div class="row"><div class="label">NIK</div><?= esc($card['nik_masked']) ?></div><?php endif;?>
+</div></body></html>

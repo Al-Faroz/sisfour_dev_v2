@@ -47,6 +47,17 @@ class BKKasusModel
             ->getResultArray();
     }
 
+    public function getById(int $id): ?array
+    {
+        $row = $this->db
+            ->table('catatan_kasus')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
     public function getTop20(?array $allowedStudentIds): array
     {
         $builder = $this->db
@@ -82,8 +93,23 @@ class BKKasusModel
     public function insert(array $data): int
     {
         $this->db->table('catatan_kasus')->insert($data);
-
         return (int) $this->db->insertID();
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        return (bool) $this->db
+            ->table('catatan_kasus')
+            ->where('id', $id)
+            ->update($data);
+    }
+
+    public function delete(int $id): bool
+    {
+        return (bool) $this->db
+            ->table('catatan_kasus')
+            ->where('id', $id)
+            ->delete();
     }
 
     public function getPelanggaranOptions(): array
@@ -108,6 +134,7 @@ class BKKasusModel
                 'ck.tanggal',
                 'ck.keterangan',
                 'ck.created_at',
+                'ck.updated_at',
                 's.nisn',
                 's.nama AS nama_siswa',
                 'rp.nama_pelanggaran',
@@ -128,19 +155,15 @@ class BKKasusModel
         if (!empty($filter['id_pelanggaran'])) {
             $builder->where('ck.id_pelanggaran', (int) $filter['id_pelanggaran']);
         }
-
         if (!empty($filter['kategori'])) {
             $builder->where('rp.kategori', (string) $filter['kategori']);
         }
-
         if (!empty($filter['tanggal_mulai'])) {
             $builder->where('ck.tanggal >=', (string) $filter['tanggal_mulai']);
         }
-
         if (!empty($filter['tanggal_selesai'])) {
             $builder->where('ck.tanggal <=', (string) $filter['tanggal_selesai']);
         }
-
         if (!empty($filter['search'])) {
             $search = trim((string) $filter['search']);
             $builder->groupStart()

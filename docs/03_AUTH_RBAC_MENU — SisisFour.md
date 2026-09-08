@@ -84,6 +84,10 @@ Untuk aksi yang Operator mempunyai SEMUA:
 
 ---
 
+## 3.1 Contoh Guru + Pimpinan
+
+Kombinasi `guru + pimpinan` valid melalui union `users.role + user_roles.role`. Permission adalah union keduanya. Dashboard priority memilih `Pimpinan`, tetapi identitas `users.id_guru` dan capability Guru yang memang diberikan tetap tersedia. Pimpinan tidak memperoleh mutation yang role Pimpinan sendiri tidak punya; mutation Guru hanya berlaku bila permission/scope Guru valid.
+
 # 4. Prioritas Kewenangan Bisnis
 
 Jika beberapa role/konteks valid bertemu:
@@ -199,7 +203,7 @@ Tidak ada akses. Service tidak boleh meneruskan query tanpa scope.
 # 8. Permission Canonical
 
 | ID | Permission | Scope didukung |
-| ---: | --- | --- |
+|---:|---|---|
 | 1 | `dashboard.view` | Otomatis |
 | 2 | `presensi_siswa.input` | SEMUA,KELAS_DIAMPU,KELAS_TERJADWAL |
 | 3 | `presensi_siswa.revisi` | SEMUA,KELAS_DIAMPU |
@@ -446,6 +450,7 @@ Guru biasa
 Guru + Wali
 Siswa
 Guru + Operator (multi-role)
+Guru + Pimpinan (multi-role)
 ```
 
 Checklist:

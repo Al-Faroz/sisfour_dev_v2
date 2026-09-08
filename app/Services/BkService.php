@@ -29,93 +29,96 @@ class BkService
     public function getKasusPage(int $userId, array $input): array
     {
         $scope = $this->scopeService->resolveStudentIds('bk_kasus.view', $userId);
-
-        if (!$scope['success']) {
-            return $scope;
-        }
+        if (!$scope['success']) return $scope;
 
         $filter = $this->caseFilter($input);
-
-        if (!$filter['success']) {
-            return $filter;
-        }
+        if (!$filter['success']) return $filter;
 
         $limit = max(1, min(200, (int) ($input['limit'] ?? 50)));
         $offset = max(0, (int) ($input['offset'] ?? 0));
         $ids = $scope['student_ids'];
+        $canManage = $this->authService->resolveScope('bk_kasus.manage', $userId) === 'SEMUA';
 
         return [
             'success' => true,
             'scope' => $scope['scope'],
-            'can_manage' => $this->authService->resolveScope('bk_kasus.manage', $userId) === 'SEMUA',
+            'can_manage' => $canManage,
             'rows' => $this->kasusModel->getPaged($filter['filter'], $ids, $limit, $offset),
             'total' => $this->kasusModel->countFiltered($filter['filter'], $ids),
             'limit' => $limit,
             'offset' => $offset,
             'pelanggaran' => $this->kasusModel->getPelanggaranOptions(),
-            'student_options' => $this->authService->resolveScope('bk_kasus.manage', $userId) === 'SEMUA'
-                ? $this->getActiveStudentOptions()
-                : [],
+            'student_options' => $canManage ? $this->getActiveStudentOptions() : [],
         ];
     }
 
     public function createKasus(int $userId, array $input): array
     {
-        if ($this->authService->resolveScope('bk_kasus.manage', $userId) !== 'SEMUA') {
+        if (!$this->canManage($userId)) {
             return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak membuat Catatan Kasus.');
         }
 
-        $idSiswa = (int) ($input['id_siswa'] ?? 0);
-        $idPelanggaran = (int) ($input['id_pelanggaran'] ?? 0);
-        $tanggal = trim((string) ($input['tanggal'] ?? ''));
-        $keterangan = trim((string) ($input['keterangan'] ?? ''));
-
-        if ($idSiswa <= 0 || $idPelanggaran <= 0 || !$this->validDate($tanggal)) {
-            return $this->fail('VALIDATION', 'Siswa, pelanggaran, dan tanggal wajib valid.');
-        }
-
-        $db = db_connect();
-        $siswaExists = $db->table('siswa')
-            ->where('id', $idSiswa)
-            ->countAllResults() > 0;
-        $pelanggaranExists = $db->table('ref_pelanggaran')
-            ->where('id', $idPelanggaran)
-            ->countAllResults() > 0;
-
-        if (!$siswaExists || !$pelanggaranExists) {
-            return $this->fail('INVALID_TARGET', 'Siswa atau pelanggaran tidak ditemukan.');
-        }
+        $validated = $this->validateKasusPayload($input, null);
+        if (!$validated['success']) return $validated;
 
         $now = Time::now(self::TZ)->format('Y-m-d H:i:s');
+        $data = $validated['data'];
+        $data['id_guru_input'] = $this->scopeService->userGuruId($userId);
+        $data['created_at'] = $now;
+        $data['updated_at'] = $now;
+        $data['updated_by'] = $userId;
 
-        $id = $this->kasusModel->insert([
-            'id_siswa' => $idSiswa,
-            'id_pelanggaran' => $idPelanggaran,
-            'tanggal' => $tanggal,
-            'keterangan' => $keterangan !== '' ? $keterangan : null,
-            'id_guru_input' => $this->scopeService->userGuruId($userId),
-            'created_at' => $now,
-            'updated_at' => $now,
-            'updated_by' => $userId,
-        ]);
+        $id = $this->kasusModel->insert($data);
+        $this->log($userId, 'CREATE', 'BK Kasus', "Membuat Catatan Kasus #{$id} siswa #{$data['id_siswa']}");
 
-        $this->log($userId, 'CREATE', 'BK Kasus', "Membuat Catatan Kasus #{$id} siswa #{$idSiswa}");
+        return ['success' => true, 'message' => 'Catatan Kasus berhasil disimpan.', 'id' => $id];
+    }
 
-        return [
-            'success' => true,
-            'message' => 'Catatan Kasus berhasil disimpan.',
-            'id' => $id,
-        ];
+    public function updateKasus(int $userId, int $id, array $input): array
+    {
+        if (!$this->canManage($userId)) {
+            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak memperbarui Catatan Kasus.');
+        }
+
+        $existing = $this->kasusModel->getById($id);
+        if (!$existing) return $this->fail('NOT_FOUND', 'Catatan Kasus tidak ditemukan.');
+
+        $validated = $this->validateKasusPayload($input, $existing);
+        if (!$validated['success']) return $validated;
+
+        $data = $validated['data'];
+        $data['updated_at'] = Time::now(self::TZ)->format('Y-m-d H:i:s');
+        $data['updated_by'] = $userId;
+
+        if (!$this->kasusModel->update($id, $data)) {
+            return $this->fail('UPDATE_FAILED', 'Catatan Kasus gagal diperbarui.');
+        }
+
+        $this->log($userId, 'UPDATE', 'BK Kasus', "Memperbarui Catatan Kasus #{$id}");
+        return ['success' => true, 'message' => 'Catatan Kasus berhasil diperbarui.'];
+    }
+
+    public function deleteKasus(int $userId, int $id): array
+    {
+        if (!$this->canManage($userId)) {
+            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak menghapus Catatan Kasus.');
+        }
+
+        $existing = $this->kasusModel->getById($id);
+        if (!$existing) return $this->fail('NOT_FOUND', 'Catatan Kasus tidak ditemukan.');
+
+        if (!$this->kasusModel->delete($id)) {
+            return $this->fail('DELETE_FAILED', 'Catatan Kasus gagal dihapus.');
+        }
+
+        $this->log($userId, 'DELETE', 'BK Kasus', "Menghapus Catatan Kasus #{$id}");
+        return ['success' => true, 'message' => 'Catatan Kasus berhasil dihapus.'];
     }
 
     public function getTop20(int $userId): array
     {
         $scope = $this->scopeService->resolveStudentIds('bk_kasus.view', $userId);
-
-        if (!$scope['success']) {
-            return $scope;
-        }
-
+        if (!$scope['success']) return $scope;
         if ($scope['scope'] === 'DIRI_SENDIRI') {
             return $this->fail('FORBIDDEN', 'Top 20 tidak tersedia untuk Siswa.');
         }
@@ -129,29 +132,21 @@ class BkService
 
     public function getKasusExport(int $userId, array $input): array
     {
-        if ($this->authService->resolveScope('bk_kasus.manage', $userId) !== 'SEMUA') {
+        if (!$this->canManage($userId)) {
             return $this->fail('FORBIDDEN', 'Export Catatan Kasus hanya untuk pengelola BK.');
         }
 
         $filter = $this->caseFilter($input);
-
-        if (!$filter['success']) {
-            return $filter;
-        }
+        if (!$filter['success']) return $filter;
 
         $total = $this->kasusModel->countFiltered($filter['filter'], null);
-
         if ($total > self::MAX_EXPORT_ROWS) {
             return $this->fail('EXPORT_TOO_LARGE', 'Data melebihi 50.000 baris. Persempit filter.');
         }
 
         return [
             'success' => true,
-            'rows' => $this->kasusModel->getForExport(
-                $filter['filter'],
-                null,
-                self::MAX_EXPORT_ROWS
-            ),
+            'rows' => $this->kasusModel->getForExport($filter['filter'], null, self::MAX_EXPORT_ROWS),
             'filter' => $filter['filter'],
         ];
     }
@@ -167,16 +162,9 @@ class BkService
     public function createPelanggaran(int $userId, array $input): array
     {
         $auth = $this->requireMasterManage($userId);
-
-        if (!$auth['success']) {
-            return $auth;
-        }
-
+        if (!$auth['success']) return $auth;
         $data = $this->validatePelanggaran($input);
-
-        if (!$data['success']) {
-            return $data;
-        }
+        if (!$data['success']) return $data;
 
         try {
             $id = (int) $this->pelanggaranModel->insert($data['data'], true);
@@ -185,27 +173,16 @@ class BkService
         }
 
         $this->log($userId, 'CREATE', 'BK Pelanggaran', "Membuat Master Pelanggaran #{$id}");
-
         return ['success' => true, 'message' => 'Master Pelanggaran berhasil dibuat.', 'id' => $id];
     }
 
     public function updatePelanggaran(int $userId, int $id, array $input): array
     {
         $auth = $this->requireMasterManage($userId);
-
-        if (!$auth['success']) {
-            return $auth;
-        }
-
-        if (!$this->pelanggaranModel->find($id)) {
-            return $this->fail('NOT_FOUND', 'Master Pelanggaran tidak ditemukan.');
-        }
-
+        if (!$auth['success']) return $auth;
+        if (!$this->pelanggaranModel->find($id)) return $this->fail('NOT_FOUND', 'Master Pelanggaran tidak ditemukan.');
         $data = $this->validatePelanggaran($input);
-
-        if (!$data['success']) {
-            return $data;
-        }
+        if (!$data['success']) return $data;
 
         try {
             $this->pelanggaranModel->update($id, $data['data']);
@@ -214,48 +191,73 @@ class BkService
         }
 
         $this->log($userId, 'UPDATE', 'BK Pelanggaran', "Memperbarui Master Pelanggaran #{$id}");
-
         return ['success' => true, 'message' => 'Master Pelanggaran berhasil diperbarui.'];
     }
 
     public function deletePelanggaran(int $userId, int $id): array
     {
         $auth = $this->requireMasterManage($userId);
-
-        if (!$auth['success']) {
-            return $auth;
-        }
-
-        if (!$this->pelanggaranModel->find($id)) {
-            return $this->fail('NOT_FOUND', 'Master Pelanggaran tidak ditemukan.');
-        }
+        if (!$auth['success']) return $auth;
+        if (!$this->pelanggaranModel->find($id)) return $this->fail('NOT_FOUND', 'Master Pelanggaran tidak ditemukan.');
 
         try {
             $deleted = $this->pelanggaranModel->delete($id);
-
             if ($deleted === false) {
-                return $this->fail(
-                    'IN_USE',
-                    'Pelanggaran sudah digunakan pada Catatan Kasus dan tidak dapat dihapus.'
-                );
+                return $this->fail('IN_USE', 'Pelanggaran sudah digunakan pada Catatan Kasus dan tidak dapat dihapus.');
             }
         } catch (DatabaseException $e) {
-            return $this->fail(
-                'IN_USE',
-                'Pelanggaran sudah digunakan pada Catatan Kasus dan tidak dapat dihapus.'
-            );
+            return $this->fail('IN_USE', 'Pelanggaran sudah digunakan pada Catatan Kasus dan tidak dapat dihapus.');
         }
 
         $this->log($userId, 'DELETE', 'BK Pelanggaran', "Menghapus Master Pelanggaran #{$id}");
-
         return ['success' => true, 'message' => 'Master Pelanggaran berhasil dihapus.'];
     }
 
+    private function validateKasusPayload(array $input, ?array $existing): array
+    {
+        $idSiswa = (int) ($input['id_siswa'] ?? 0);
+        $idPelanggaran = (int) ($input['id_pelanggaran'] ?? 0);
+        $tanggal = trim((string) ($input['tanggal'] ?? ''));
+        $keterangan = trim((string) ($input['keterangan'] ?? ''));
+
+        if ($idSiswa <= 0 || $idPelanggaran <= 0 || !$this->validDate($tanggal)) {
+            return $this->fail('VALIDATION', 'Siswa, pelanggaran, dan tanggal wajib valid.');
+        }
+
+        $siswa = db_connect()->table('siswa')
+            ->select('id, status_aktif, deleted_at')
+            ->where('id', $idSiswa)
+            ->get()
+            ->getRowArray();
+
+        if (!$siswa || !empty($siswa['deleted_at'])) {
+            return $this->fail('INVALID_TARGET', 'Siswa tidak ditemukan atau sudah dihapus.');
+        }
+
+        $sameHistoricalStudent = $existing !== null && (int) $existing['id_siswa'] === $idSiswa;
+        if (!$sameHistoricalStudent && (string) $siswa['status_aktif'] !== 'Aktif') {
+            return $this->fail('INVALID_TARGET', 'Catatan Kasus baru hanya dapat diberikan kepada siswa aktif.');
+        }
+
+        $pelanggaranExists = db_connect()->table('ref_pelanggaran')
+            ->where('id', $idPelanggaran)
+            ->countAllResults() > 0;
+        if (!$pelanggaranExists) return $this->fail('INVALID_TARGET', 'Pelanggaran tidak ditemukan.');
+
+        return [
+            'success' => true,
+            'data' => [
+                'id_siswa' => $idSiswa,
+                'id_pelanggaran' => $idPelanggaran,
+                'tanggal' => $tanggal,
+                'keterangan' => $keterangan !== '' ? $keterangan : null,
+            ],
+        ];
+    }
 
     private function getActiveStudentOptions(): array
     {
-        return db_connect()
-            ->table('siswa')
+        return db_connect()->table('siswa')
             ->select('id, nisn, nama')
             ->where('status_aktif', 'Aktif')
             ->where('deleted_at', null)
@@ -270,21 +272,10 @@ class BkService
         $tanggalMulai = trim((string) ($input['tanggal_mulai'] ?? ''));
         $tanggalSelesai = trim((string) ($input['tanggal_selesai'] ?? ''));
 
-        if ($kategori !== '' && !in_array($kategori, self::KATEGORI, true)) {
-            return $this->fail('VALIDATION', 'Kategori tidak valid.');
-        }
-
-        if ($tanggalMulai !== '' && !$this->validDate($tanggalMulai)) {
-            return $this->fail('VALIDATION', 'Tanggal awal tidak valid.');
-        }
-
-        if ($tanggalSelesai !== '' && !$this->validDate($tanggalSelesai)) {
-            return $this->fail('VALIDATION', 'Tanggal akhir tidak valid.');
-        }
-
-        if ($tanggalMulai !== '' && $tanggalSelesai !== '' && $tanggalMulai > $tanggalSelesai) {
-            return $this->fail('VALIDATION', 'Tanggal awal tidak boleh melewati tanggal akhir.');
-        }
+        if ($kategori !== '' && !in_array($kategori, self::KATEGORI, true)) return $this->fail('VALIDATION', 'Kategori tidak valid.');
+        if ($tanggalMulai !== '' && !$this->validDate($tanggalMulai)) return $this->fail('VALIDATION', 'Tanggal awal tidak valid.');
+        if ($tanggalSelesai !== '' && !$this->validDate($tanggalSelesai)) return $this->fail('VALIDATION', 'Tanggal akhir tidak valid.');
+        if ($tanggalMulai !== '' && $tanggalSelesai !== '' && $tanggalMulai > $tanggalSelesai) return $this->fail('VALIDATION', 'Tanggal awal tidak boleh melewati tanggal akhir.');
 
         return [
             'success' => true,
@@ -304,26 +295,16 @@ class BkService
         $kategori = trim((string) ($input['kategori'] ?? ''));
         $poin = filter_var($input['poin'] ?? null, FILTER_VALIDATE_INT);
 
-        if ($nama === '' || mb_strlen($nama) > 150) {
-            return $this->fail('VALIDATION', 'Nama pelanggaran wajib diisi maksimal 150 karakter.');
-        }
+        if ($nama === '' || mb_strlen($nama) > 150) return $this->fail('VALIDATION', 'Nama pelanggaran wajib diisi maksimal 150 karakter.');
+        if (!in_array($kategori, self::KATEGORI, true)) return $this->fail('VALIDATION', 'Kategori pelanggaran tidak valid.');
+        if ($poin === false || $poin < 0 || $poin > 10000) return $this->fail('VALIDATION', 'Poin harus berupa bilangan 0–10000.');
 
-        if (!in_array($kategori, self::KATEGORI, true)) {
-            return $this->fail('VALIDATION', 'Kategori pelanggaran tidak valid.');
-        }
+        return ['success' => true, 'data' => ['nama_pelanggaran' => $nama, 'kategori' => $kategori, 'poin' => $poin]];
+    }
 
-        if ($poin === false || $poin < 0 || $poin > 10000) {
-            return $this->fail('VALIDATION', 'Poin harus berupa bilangan 0–10000.');
-        }
-
-        return [
-            'success' => true,
-            'data' => [
-                'nama_pelanggaran' => $nama,
-                'kategori' => $kategori,
-                'poin' => $poin,
-            ],
-        ];
+    private function canManage(int $userId): bool
+    {
+        return $this->authService->resolveScope('bk_kasus.manage', $userId) === 'SEMUA';
     }
 
     private function requireMasterManage(int $userId): array
@@ -331,7 +312,6 @@ class BkService
         if ($this->authService->resolveScope('bk_pelanggaran_master.manage', $userId) !== 'SEMUA') {
             return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola Master Pelanggaran.');
         }
-
         return ['success' => true];
     }
 
@@ -339,7 +319,6 @@ class BkService
     {
         $d = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         $errors = \DateTimeImmutable::getLastErrors();
-
         return $d !== false
             && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
             && $d->format('Y-m-d') === $date;

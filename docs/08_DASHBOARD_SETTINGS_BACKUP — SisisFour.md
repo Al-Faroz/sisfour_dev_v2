@@ -470,6 +470,8 @@ Role NULL valid untuk Pegawai.
 
 Reset password wajib hash dan tidak menampilkan hash/token.
 
+Provisioning BK canonical: akun berasal dari Master Pegawai/Guru lalu Admin menetapkan role `bk` melalui User Management. Untuk Guru yang benar-benar merangkap, secondary role `guru` dapat dipertahankan. Multi-role Guru+Pimpinan juga didukung oleh mekanisme yang sama.
+
 ---
 
 # 18. Menu & Role
@@ -508,6 +510,8 @@ radius    >0
 ```
 
 Asset branding harus image valid, path aman dan tidak executable.
+
+Khusus Kartu Pelajar, Settings menyediakan upload Admin untuk `background_kta_depan` dan `background_kta_belakang`. Kedua asset harus di-re-encode dan dinormalisasi ke 1011×638 px. Depan menjadi artwork dasar overlay data siswa; belakang dicetak statis tanpa overlay data siswa.
 
 Perubahan setting harus clear cache relevan dan log activity.
 

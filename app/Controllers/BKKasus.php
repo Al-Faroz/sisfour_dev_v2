@@ -20,97 +20,76 @@ class BKKasus extends BaseController
     public function index()
     {
         $userId = (int) session()->get('user_id');
+        if ($this->wantsJson()) return $this->respond($this->service->getKasusPage($userId, $this->request->getGet()));
 
-        if ($this->wantsJson()) {
-            return $this->respond($this->service->getKasusPage($userId, $this->request->getGet()));
-        }
-
-        $initial = $this->service->getKasusPage($userId, []);
-
-        return $this->response->setBody(
-            $this->renderWithLayout('bk/kasus', [
-                'title' => 'Catatan Kasus',
-                'initial' => $initial,
-                'extraJs' => ['assets/js/bk/kasus.js'],
-            ])
-        );
+        return $this->response->setBody($this->renderWithLayout('bk/kasus', [
+            'title' => 'Catatan Kasus',
+            'initial' => $this->service->getKasusPage($userId, []),
+            'extraJs' => ['assets/js/bk/kasus.js'],
+        ]));
     }
 
     public function top()
     {
         $result = $this->service->getTop20((int) session()->get('user_id'));
+        if ($this->wantsJson()) return $this->respond($result);
 
-        if ($this->wantsJson()) {
-            return $this->respond($result);
-        }
-
-        return $this->response->setBody(
-            $this->renderWithLayout('bk/top', [
-                'title' => 'Top 20 Poin Pelanggaran',
-                'result' => $result,
-            ])
-        );
+        return $this->response->setBody($this->renderWithLayout('bk/top', [
+            'title' => 'Top 20 Poin Pelanggaran',
+            'result' => $result,
+        ]));
     }
 
     public function create()
     {
-        return $this->respond(
-            $this->service->createKasus(
-                (int) session()->get('user_id'),
-                $this->request->getPost()
-            )
-        );
+        return $this->respond($this->service->createKasus((int) session()->get('user_id'), $this->request->getPost()));
+    }
+
+    public function update($id)
+    {
+        return $this->respond($this->service->updateKasus(
+            (int) session()->get('user_id'),
+            (int) $id,
+            $this->request->getJSON(true) ?: $this->request->getRawInput()
+        ));
+    }
+
+    public function delete($id)
+    {
+        return $this->respond($this->service->deleteKasus((int) session()->get('user_id'), (int) $id));
     }
 
     public function export()
     {
         $userId = (int) session()->get('user_id');
         $data = $this->service->getKasusExport($userId, $this->request->getGet());
-
-        if (!$data['success']) {
-            return $this->respond($data);
-        }
+        if (!$data['success']) return $this->respond($data);
 
         $file = $this->exportService->kasus($data, $userId);
-
-        if (!$file['success']) {
-            return $this->respond($file);
-        }
-
+        if (!$file['success']) return $this->respond($file);
         return $this->downloadAndCleanup($file['path'], $file['filename']);
     }
 
     private function downloadAndCleanup(string $path, string $filename)
     {
         register_shutdown_function(static function () use ($path): void {
-            if (is_file($path)) {
-                @unlink($path);
-            }
+            if (is_file($path)) @unlink($path);
         });
-
         return $this->response->download($path, null)->setFileName($filename);
     }
 
     private function wantsJson(): bool
     {
         $path = rtrim($this->request->getUri()->getPath(), '/');
-
-        return $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX()
-            || str_ends_with($path, '/json');
+        return $this->request->getGet('format') === 'json' || $this->request->isAJAX() || str_ends_with($path, '/json');
     }
 
     private function respond(array $result)
     {
         $success = (bool) ($result['success'] ?? false);
-
         return $this->response
             ->setStatusCode($success ? 200 : $this->httpCode($result['code'] ?? ''))
-            ->setJSON([
-                'status' => $success ? 'success' : 'error',
-                'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
-                'data' => $result,
-            ]);
+            ->setJSON(['status' => $success ? 'success' : 'error', 'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'), 'data' => $result]);
     }
 
     private function httpCode(string $code): int
