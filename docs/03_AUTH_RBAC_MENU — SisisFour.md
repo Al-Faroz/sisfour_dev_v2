@@ -82,6 +82,43 @@ Permission efektif adalah union semua permission dari role tersebut.
 
 Primary role tidak boleh menghapus permission yang berasal dari secondary role.
 
+## 3.1 Prioritas Kewenangan Efektif
+
+Jika seorang user mempunyai lebih dari satu role atau konteks bisnis sekaligus, kewenangan efektif mengikuti tingkat berikut dari tertinggi ke terendah:
+
+```text
+Admin
+>
+Operator
+>
+Pimpinan
+>
+Wali Kelas
+>
+Guru biasa
+>
+BK
+>
+Siswa
+```
+
+Catatan penting:
+
+- `Wali Kelas` bukan role database, tetapi konteks tambahan untuk user Guru;
+- urutan ini bukan pengganti permission table, melainkan aturan saat beberapa permission/konteks yang sah bertemu pada aksi yang sama;
+- Admin/Operator dengan scope `SEMUA` menang atas scope Guru/Wali yang lebih sempit;
+- Pimpinan tetap readonly walaupun berada di atas Wali/Guru dalam hierarki bisnis;
+- Service tidak boleh hardcode berdasarkan nama role saja bila keputusan sebenarnya berasal dari permission + scope.
+
+Contoh:
+
+```text
+Guru + Operator
+→ permission efektif union
+→ untuk Presensi, hak Operator/SEMUA menang
+→ tidak terkena pembatas time-window/geofence Guru
+```
+
 ---
 
 # 4. Role Resmi
@@ -127,6 +164,22 @@ Wali memperoleh scope tambahan `KELAS_DIAMPU` hanya untuk kelas aktif yang diwal
 Jika mapping dinonaktifkan, akses Wali hilang tanpa mengubah role.
 
 Status Wali tidak boleh di-cache sebagai role permanen.
+
+## 5.1 Pergantian Wali
+
+Hak Wali selalu mengikuti mapping aktif saat ini.
+
+Jika Wali lama tidak lagi menjadi Wali:
+
+```text
+mapping_wali_kelas.deleted_at IS NOT NULL
+```
+
+maka hak `KELAS_DIAMPU` atas kelas tersebut langsung hilang.
+
+Wali baru yang menjadi mapping aktif memperoleh hak Wali terhadap kelas tersebut, termasuk hak melihat dan merevisi histori Presensi kelas pada tahun ajaran aktif sesuai permission.
+
+Hak histori tidak melekat permanen pada Wali lama.
 
 ---
 
@@ -228,6 +281,41 @@ TIDAK → TIDAK_ADA
 ```
 
 Dengan pola ini Admin yang memiliki `SEMUA` tidak ikut terkena pemeriksaan Wali.
+
+## 7.1 Scope Presensi Harus Diselesaikan Per Target
+
+Khusus Presensi, satu nilai scope global tidak cukup untuk menggambarkan user Guru yang juga Wali.
+
+Presensi Service harus melakukan resolusi berdasarkan:
+
+```text
+permission
++ user
++ tahun aktif
++ kelas target
++ tanggal
++ sesi
++ jadwal aktif
++ mapping Wali aktif
++ aksi yang diminta
+```
+
+Contoh:
+
+```text
+User = Guru + Wali 7-A
+
+Target 7-A
+→ dapat memiliki KELAS_DIAMPU
+
+Target 8-B yang dia ajar
+→ KELAS_TERJADWAL
+
+Target 9-C tanpa mapping/jadwal
+→ TIDAK_ADA
+```
+
+Service tidak boleh hanya mengambil satu scalar scope lalu menganggapnya berlaku sama untuk semua kelas.
 
 ---
 
@@ -348,6 +436,8 @@ Operator mendapat kewenangan administratif terhadap:
 
 Identity normal Operator harus terkait Guru/Pegawai.
 
+Jika user juga memiliki role Guru/Wali, kewenangan Operator yang memiliki scope `SEMUA` tetap menang untuk aksi yang permission-nya diberikan kepada Operator.
+
 ---
 
 # 12. Pimpinan
@@ -427,6 +517,42 @@ Wali tidak boleh:
 - import/export Master Siswa;
 - mengelola Tahun/Kelas/Mapel hanya karena menjadi Wali.
 
+## 15.1 Dual-Context Guru + Wali pada Presensi Siswa
+
+Seorang Guru dapat sekaligus menjadi Wali kelas.
+
+Untuk kelas Wali sendiri:
+
+1. bila pada tanggal/sesi tersebut terdapat jadwal aktif miliknya yang cocok, input normal pertama diproses sebagai **Guru Terjadwal**;
+2. pada jalur Guru Terjadwal berlaku time-window dan geofence;
+3. jika jalur jadwal tidak valid atau time-window sudah lewat, hak Wali dapat menjadi fallback untuk kelas Wali;
+4. fallback Wali bebas time-window dan geofence;
+5. Wali tetap dapat melihat dan merevisi data tersimpan pada kelas Wali;
+6. hak Wali tidak berlaku pada kelas lain yang hanya dia ajar.
+
+Contoh:
+
+```text
+Wali 7-A
++ jadwal Sesi Awal 7-A 07:00–08:00
+
+07:30
+→ Guru Terjadwal
+→ time-window berlaku
+→ geofence berlaku
+
+10:00 dan Presensi belum diinput
+→ jalur jadwal sudah lewat
+→ fallback KELAS_DIAMPU
+→ Wali masih boleh input kelas 7-A
+
+Target 8-B yang dia ajar
+→ Guru biasa
+→ tidak ada fallback Wali
+```
+
+Aturan detail Presensi tetap mengacu ke `05_PRESENSI`.
+
 ---
 
 # 16. Siswa
@@ -457,6 +583,8 @@ Filter **tidak boleh dianggap otomatis memfilter setiap query**.
 
 Service tetap bertanggung jawab menerapkan pembatasan dataset sesuai scope.
 
+Khusus Presensi, PermissionFilter hanya menjadi gate permission awal. Presensi Service wajib melakukan resolusi kontekstual per target kelas/tanggal/sesi/aksi sebagaimana bagian 7.1 dan 15.1.
+
 ---
 
 # 18. Data-Level Authorization
@@ -478,6 +606,24 @@ query dibatasi
 ```
 
 Jangan hanya mengandalkan UI.
+
+Untuk Presensi, data-level authorization harus lebih spesifik:
+
+```text
+PermissionFilter
+    ↓
+permission valid
+    ↓
+PresensiService
+    ↓
+resolve target kelas/tanggal/sesi/aksi
+    ↓
+SEMUA / GURU_TERJADWAL / WALI / DIRI_SENDIRI / TIDAK_ADA
+    ↓
+validasi time-window/geofence bila diperlukan
+    ↓
+query/mutasi dibatasi
+```
 
 ---
 
@@ -711,8 +857,13 @@ Sumber identitas adalah session/token + database.
 - Wali bukan role;
 - role NULL didukung;
 - multi-role union;
+- prioritas kewenangan efektif terdokumentasi;
+- Admin/Operator dengan SEMUA menang atas scope lebih sempit;
 - Admin tidak hardcoded bypass;
 - scope Wali tervalidasi;
+- hak Wali hilang saat mapping tidak aktif;
+- Wali baru memperoleh hak histori kelas pada tahun aktif;
+- dual-context Guru/Wali Presensi diselesaikan per target kelas/tanggal/sesi;
 - Guru non-Wali tidak mendapat kelas Wali;
 - menu contextual benar;
 - direct route 403;
