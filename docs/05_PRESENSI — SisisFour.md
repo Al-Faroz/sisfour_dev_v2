@@ -1,183 +1,893 @@
-# ✅ Presensi Siswa &amp; Presensi Mengajar (Jurnal) — SisisFour
+# ✅ Presensi Siswa & Presensi Mengajar — SisisFour
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-Dokumen ini mengatur dua jenis presensi: **Presensi Siswa** (kehadiran siswa di kelas) dan **Presensi Mengajar** (jurnal mengajar guru). Keduanya memiliki aturan, hak akses, dan mekanisme geofencing yang berbeda. Seluruh modul presensi sudah terintegrasi dengan RBAC dan aturan time-window yang granular.
+Dokumen ini menjadi kontrak implementasi Presensi Siswa dan Presensi Mengajar/Jurnal.
 
-* * *
+Semua implementasi Presensi harus menggunakan Master Data final sebagai sumber:
 
-## Bagian 1: Presensi Siswa
+```text
+Siswa
+Anggota Kelas
+Kelas
+Tahun Ajaran
+Mapping Wali Kelas
+Jadwal Guru
+Mata Pelajaran
+```
 
-### 1.1 Status Kehadiran
+---
 
-- Hanya terdapat **4 status**: `Hadir`, `Sakit`, `Izin`, `Alpha`.
-- Status **"Terlambat"** dari versi sebelumnya DIHAPUS.
+# BAGIAN A — DEFINISI UMUM
 
-### 1.2 Sesi Awal (AW) vs Sesi Akhir (AK)
+## 1. Tahun Operasional
 
-- **Sesi Awal (AW):** Merupakan presensi **resmi**. Seluruh laporan (Matrix, Export, EWS) hanya menghitung data dari sesi ini.
-- **Sesi Akhir (AK):** Bersifat **dokumentasi/arsip tambahan**. Data ini disimpan, tetapi **tidak pernah** dihitung dalam laporan resmi, matrix, atau EWS.
-- **Unique Key:** Tabel `presensi` memiliki UNIQUE `(id_kelas, tanggal, sesi, id_siswa)` — memungkinkan 1 siswa memiliki 2 catatan per hari (AW dan AK).
+Presensi selalu terikat:
 
-### 1.3 Hak Akses Presensi Siswa
+```text
+id_tahun
+```
 
-| Role | Input | Lihat hasil tersimpan | Revisi | Scope | Catatan |
-| --- | --- | --- | --- | --- | --- |
-| **Admin** | ✅ | ✅ | ✅ | SEMUA | Full |
-| **Operator** | ✅ | ✅ | ✅ | SEMUA | Full |
-| **Pimpinan** | ❌ | ✅ | ❌ | SEMUA | Read-only |
-| **BK** | ❌ | ❌ | ❌ | — | Tidak mengelola presensi siswa |
-| **Guru Biasa** | ✅ | ❌ | ❌ | KELAS_TERJADWAL | Hanya input sesuai jadwal aktif; setelah simpan tidak dapat membuka hasil tersimpan |
-| **Wali Kelas** | ✅ | ✅ | ✅ | KELAS_DIAMPU | Kelas wali saja; input dan revisi boleh kapan saja; AW dan AK |
-| **Siswa** | ❌ | Diri sendiri | ❌ | DIRI_SENDIRI | Dashboard/rincian hanya menampilkan Sakit, Izin, Alpha |
+Tahun default adalah record:
 
-**Aturan final Guru Biasa:**
+```text
+tahun_ajaran.status_aktif = 1
+deleted_at IS NULL
+```
 
-1. Guru Biasa dapat membuka workflow input hanya untuk kelas yang benar-benar terjadwal pada hari tersebut.
-2. Guru hanya memasukkan status siswa; hasil yang sudah tersimpan **tidak dapat dilihat kembali oleh Guru Biasa**.
-3. Guru Biasa tidak dapat membuka mode revisi dan tidak dapat mengubah presensi yang sudah tersimpan.
-4. Jika terjadi kesalahan, revisi hanya dapat dilakukan oleh **Wali Kelas, Operator, atau Admin**.
+Tidak boleh membuat Presensi tanpa Tahun Ajaran aktif.
 
-**Aturan final Wali Kelas:**
+Jika endpoint menerima `id_tahun`, server tetap harus memastikan user berhak mengakses tahun tersebut.
 
-1. Wali dapat input Presensi Siswa untuk kelas walinya **kapan saja**, tidak bergantung time-window.
-2. Wali dapat input Sesi Awal dan Sesi Akhir.
-3. Wali dapat merevisi presensi yang sudah tersimpan untuk kelas walinya.
-4. Saat Wali mengajar kelas lain yang bukan kelas walinya, ia bertindak sebagai **Guru Biasa** dan tunduk pada aturan jadwal Guru Biasa.
+---
 
-### 1.4 Tampilan Input — Tombol Status Solid (Default Hadir)
+## 2. Kelas Siswa
 
-- Halaman menampilkan **semua siswa** dalam satu kelas (tanpa pagination).
-- Status **default** untuk semua siswa adalah **Hadir** (tombol menyala/terpilih).
-- Guru tinggal mengklik tombol status lain (**Sakit, Izin, Alpha**) jika ada perubahan.
-- Tombol yang aktif berwarna solid/berbeda (UX: tombol radio/button grup yang jelas).
+Daftar siswa kelas berasal dari:
 
-┌─────────────────────────────────────────────────────────────────────────────┐ │ 📋 Input Presensi Siswa – Kelas 7-A │ │ Tanggal: 27-08-2026 | Sesi: Sesi Awal │ ├─────────────────────────────────────────────────────────────────────────────┤ │ No │ NISN │ Nama Siswa │ JK │ Status │ ├────┼──────────┼─────────────┼──────┼─────────────────────────────────────┤ │ 1 │ 12345 │ Ahmad │ L │ \[✅ Hadir] \[Sakit] \[Izin] \[Alpha] │ │ 2 │ 12346 │ Budi │ L │ \[✅ Hadir] \[Sakit] \[Izin] \[Alpha] │ │ 3 │ 12347 │ Cinta │ P │ \[✅ Hadir] \[Sakit] \[Izin] \[Alpha] │ └────┴──────────┴─────────────┴──────┴─────────────────────────────────────┘ 📌 Semua siswa default Hadir. Klik tombol lain untuk mengubah status.
+```text
+anggota_kelas
+JOIN siswa
+```
 
-### 1.5 Tampilan Revisi — Tombol Status Sesuai Tersimpan
+dengan:
 
-- Pada mode revisi, tombol status aktif **sesuai dengan status yang tersimpan** di database.
-- User (Wali Kelas/Admin/Operator) dapat mengklik tombol lain untuk mengubah status.
+```text
+anggota_kelas.id_kelas = kelas target
+anggota_kelas.id_tahun = tahun aktif
+siswa.status_aktif = Aktif
+siswa.deleted_at IS NULL
+```
 
-┌─────────────────────────────────────────────────────────────────────────────┐ │ 📋 Revisi Presensi Siswa – Kelas 7-A │ │ Tanggal: 26-08-2026 | Sesi: Sesi Awal │ ├─────────────────────────────────────────────────────────────────────────────┤ │ No │ NISN │ Nama Siswa │ JK │ Status │ ├────┼──────────┼─────────────┼──────┼─────────────────────────────────────┤ │ 1 │ 12345 │ Ahmad │ L │ \[✅ Hadir] \[Sakit] \[Izin] \[Alpha] │ │ 2 │ 12346 │ Budi │ L │ \[Hadir] \[✅ Sakit] \[Izin] \[Alpha] │ │ 3 │ 12347 │ Cinta │ P │ \[Hadir] \[Sakit] \[✅ Izin] \[Alpha] │ └────┴──────────┴─────────────┴──────┴─────────────────────────────────────┘ 📌 Tombol aktif sesuai status tersimpan di database.
+Jangan menggunakan data kelas dari request tanpa validasi membership.
 
-### 1.6 EWS Radar
+---
 
-- **Kriteria:** Siswa dengan **≥ 3 status Alpha** dalam **14 hari terakhir**.
-- **Sumber data:** Hanya dari **Sesi Awal** (AW).
-- **Hak Akses:** Admin, Operator, Pimpinan, BK, dan Wali Kelas (KELAS\_DIAMPU).
-- **Akses:** Hanya melalui widget dashboard (tidak ada menu sidebar).
+## 3. Jadwal Aktif
 
-* * *
+Untuk workflow Guru biasa, jadwal harus:
 
-## Bagian 2: Presensi Mengajar (Jurnal)
+```text
+jadwal_guru.status_jadwal = Aktif
+jadwal_guru.id_tahun = tahun aktif
+```
 
-### 2.1 Konsep Dasar
+Jadwal Nonaktif hanya untuk histori dan tidak dapat digunakan input Presensi baru.
 
-- Fitur ini **terpisah total** dari Presensi Siswa.
-- **Berlaku untuk SEMUA sesi:** Sesi Awal, Sesi Akhir, maupun **Non Sesi**. Tidak ada pengecualian.
-- **Status:** Hanya 3 pilihan: `Hadir`, `Izin`, `Sakit`.
-- **Materi (TEXT):** WAJIB diisi untuk semua status, termasuk Izin dan Sakit (contoh: "Memberikan tugas melalui grup WA").
-- **Unique Key:** `(id_jadwal, tanggal)` — satu jadwal hanya bisa diisi sekali per hari.
+---
 
-### 2.2 Hak Akses Presensi Mengajar
+# BAGIAN B — PRESENSI SISWA
 
-| Role | Lihat Jadwal | Input Jurnal | Revisi | Laporan Jurnal | Scope |
-| --- | --- | --- | --- | --- | --- |
-| **Admin** | Semua | Semua/atas nama | ✅ | Semua | SEMUA |
-| **Operator** | Semua | Semua/atas nama | ✅ | Semua | SEMUA |
-| **Pimpinan** | Semua | Diri sendiri bila memiliki jadwal | ❌ | Semua readonly | SEMUA untuk laporan |
-| **BK** | ❌ | ❌ | ❌ | ❌ | — |
-| **Guru Biasa** | Jadwal hari ini | Diri sendiri | ❌ | Diri sendiri | DIRI_SENDIRI |
-| **Wali Kelas** | Jadwal hari ini | Diri sendiri | ❌ | Diri sendiri | DIRI_SENDIRI |
-| **Siswa** | ❌ | ❌ | ❌ | ❌ | — |
+## 4. Status
 
-**Catatan:** Status Wali Kelas tidak menambah hak revisi Jurnal. Revisi Presensi Mengajar tetap hanya Admin/Operator.
+Hanya:
 
-### 2.3 Alur Input
+```text
+Hadir
+Sakit
+Izin
+Alpha
+```
 
-1. Guru membuka halaman "Presensi Mengajar" → melihat daftar jadwal hari ini (semua sesi, termasuk Non Sesi).
-2. Klik tombol "Presensi" pada baris jadwal.
-3. Muncul 3 pilihan status: **Hadir**, **Izin**, **Sakit**.
-4. Setelah memilih status, form `materi` (TEXT) muncul dan **wajib diisi**.
-5. Klik Simpan → data langsung tersimpan (final).
+Tidak ada status Terlambat.
 
-* * *
+---
 
-## Bagian 3: Geofencing
+## 5. Sesi Presensi Siswa
 
-### 3.1 Tujuan
+Presensi Siswa hanya:
 
-Memastikan bahwa guru mapel (bukan Wali/Admin/Operator) benar-benar berada di lingkungan sekolah saat melakukan presensi.
+```text
+Sesi Awal
+Sesi Akhir
+```
 
-### 3.2 Spesifikasi Teknis
+`Non Sesi` pada Jadwal Guru tidak menghasilkan kewajiban Presensi Siswa.
 
-- **Rumus:** **Haversine Formula** — dipilih karena akurat untuk jarak skala meter–kilometer di permukaan bumi dan ringan secara komputasi.
-- **Implementasi:** Method di `GeofencingService.php` yang menerima 2 koordinat (titik sekolah, titik device) dan radius (meter), mengembalikan boolean.
-- **Koordinat Sekolah:** Default `-7.533383, 112.217607`, dapat diubah Admin di Settings.
-- **Radius Default (D2):** **500 meter**.
-- **Toggle (D3):** Admin dapat mematikan geofencing global di Settings (`geofencing_aktif = 0`). Jika OFF, semua pengecualian hilang (mode daring bebas lokasi).
+### 5.1 Sesi Awal
 
-### 3.3 Kapan Geofencing Diterapkan?
+- Presensi resmi;
+- dihitung Matrix;
+- dihitung laporan;
+- dihitung EWS;
+- digunakan statistik ketidakhadiran.
 
-| Aksi                                                            | Dikunci Geofencing? | Keterangan                                          |
-|-----------------------------------------------------------------|---------------------|-----------------------------------------------------|
-| Input Presensi Siswa (AW/AK) oleh **Guru Mapel**                | ✅ Ya                | Guru harus berada dalam radius sekolah.             |
-| Input Presensi Siswa (AW/AK) oleh **Wali Kelas/Admin/Operator** | ❌ Tidak             | Bebas lokasi (untuk fleksibilitas input/revisi).    |
-| Input Jurnal oleh **Guru Mapel** dengan status **Hadir**        | ✅ Ya                | Guru harus berada di sekolah untuk mengklaim hadir. |
-| Input Jurnal oleh **Guru Mapel** dengan status **Izin/Sakit**   | ❌ Tidak             | Logis: jika izin/sakit, guru tidak di sekolah.      |
-| Input Jurnal oleh **Admin/Operator** (atas nama guru)           | ❌ Tidak             | Bebas lokasi.                                       |
-| **Toggle Settings OFF**                                         | ❌ Semua bebas       | Geofencing dinonaktifkan total.                     |
+### 5.2 Sesi Akhir
 
-### 3.4 Mekanisme Server-Side
+- dokumentasi;
+- tersimpan;
+- tidak dihitung laporan resmi;
+- tidak dihitung Matrix;
+- tidak dihitung EWS.
 
-1. Frontend (browser/APK) meminta izin akses lokasi via Geolocation API.
-2. Koordinat device dikirim ke server bersama request submit.
-3. Server menghitung jarak (Haversine) antara koordinat device dan koordinat sekolah.
-4. Jika jarak &gt; radius (500m) → **submit ditolak**, tampilkan pesan error.
-5. Jika user **menolak izin lokasi** atau GPS timeout → **submit ditolak** (tidak ada alternatif manual override untuk guru mapel).
+---
 
-**Penting (Mobile):** Pastikan hosting produksi menggunakan **HTTPS/SSL** — Geolocation API tidak berfungsi di halaman non-HTTPS.
+# 6. Hubungan Jadwal dan Sesi
 
-* * *
+Untuk Guru biasa:
 
-## Bagian 4: Time-Window Presensi
+- Guru hanya dapat memulai input bila memiliki jadwal aktif untuk kelas yang bersangkutan;
+- jadwal harus berada dalam konteks hari/tanggal;
+- jadwal `Non Sesi` tidak membuka Presensi Siswa;
+- label Sesi Presensi mengikuti jadwal `Sesi Awal` atau `Sesi Akhir`.
 
-- **Aturan Dasar Guru Biasa:** Presensi Siswa dan Jurnal hanya dapat diinput dalam rentang `jam_mulai` sampai `jam_selesai + 15 menit` (toleransi).
-- **Wali Kelas:** Untuk Presensi Siswa pada kelas walinya, input dan revisi **bebas waktu/time-window**.
-- **Admin/Operator:** Untuk Presensi Siswa, input dan revisi tidak dibatasi time-window.
-- **Catatan:** Jika Wali mengajar kelas yang bukan kelas walinya, aturan Guru Biasa tetap berlaku.
-- **Pengecualian (D4):**
-  
-  - **Guru Biasa:** Terikat time-window untuk **input** Presensi Siswa dan Jurnal.
-  - **Wali Kelas:** Bebas time-window untuk **input dan revisi Presensi Siswa pada kelas walinya**.
-  - **Admin/Operator:** Bebas time-window untuk input/revisi administratif Presensi Siswa.
+Sistem harus mencegah konfigurasi operasional yang menyebabkan lebih dari satu kewajiban Presensi Siswa identik untuk kelas/tanggal/sesi.
 
-* * *
+Unique database menjadi guard terakhir:
 
-### 4.1 Rincian Presensi pada Dashboard Siswa
+```text
+(id_kelas, tanggal, sesi, id_siswa)
+```
 
-- Dashboard Siswa menampilkan total presensi dirinya.
-- Saat kartu total presensi diklik, sistem membuka rincian presensi diri sendiri.
-- Untuk menyederhanakan tampilan, rincian hanya menampilkan **Sakit, Izin, dan Alpha**. Status Hadir tidak perlu ditampilkan.
-- Data tetap dibatasi `id_siswa = session('id_siswa')`.
+---
 
-## Bagian 5: Aturan Bisnis &amp; Catatan Developer
+# 7. Hak Akses Presensi Siswa
 
-- **Sesi vs Jam:** "Sesi" (Awal/Akhir/Non Sesi) adalah **label administratif**. Jam mengajar aktual ada di kolom `jam_mulai`/`jam_selesai`. Jangan pernah menyamakan keduanya.
-- **Presensi Siswa Resmi:** Hanya Sesi Awal yang dihitung di laporan, matrix, dan EWS.
-- **Presensi Mengajar (Jurnal):** Wajib untuk **semua** baris jadwal, termasuk yang bertanda "Non Sesi".
-- **Non Sesi:** Tidak punya kewajiban Presensi Siswa, tetapi **tetap** wajib Jurnal.
-- **Guru Biasa tidak boleh membaca hasil tersimpan:** endpoint/view untuk hasil presensi yang sudah tersimpan harus menolak Guru Biasa; jangan mengandalkan hanya penyembunyian tombol UI.
-- **Validasi `id_guru` (Keamanan):**
-  
-  - Di method `PresensiMengajar::save()`, sistem **WAJIB** memvalidasi bahwa `id_guru` yang dikirim dalam request **sama dengan** `session('id_guru')` untuk role Guru/Wali/Pimpinan. Ini mencegah guru lain mencatatkan jurnal atas nama orang lain.
-  - Admin/Operator dapat menginput atas nama guru lain (tidak terikat validasi ini).
-- **Tidak ada Team Teaching:** 1 kelas + 1 jam overlap hanya boleh diampu oleh 1 guru.
-- **Dual-Output:** Controller harus mendukung `?format=json` untuk kebutuhan mobile.
-- **Audit Revisi (C2/C3):** Perubahan pada Presensi Siswa dan Jurnal dicatat melalui `updated_at` dan `updated_by`.
-- **EWS Radar:** Tidak memiliki menu sidebar, hanya diakses melalui widget dashboard.
+| Role | Input | Lihat Tersimpan | Revisi | Scope |
+|---|---|---|---|---|
+| Admin | Ya | Ya | Ya | SEMUA |
+| Operator | Ya | Ya | Ya | SEMUA |
+| Pimpinan | Tidak | Ya | Tidak | SEMUA |
+| BK | Tidak | Tidak langsung | Tidak | — |
+| Guru biasa | Ya | Tidak | Tidak | KELAS_TERJADWAL |
+| Wali | Ya | Ya | Ya | KELAS_DIAMPU |
+| Siswa | Tidak | Diri | Tidak | DIRI_SENDIRI |
 
-* * *
+---
 
-© 2026 SisisFour · MTsN 4 Jombang · Presensi Final
+# 8. Guru Biasa
+
+Guru biasa:
+
+1. harus memiliki `id_guru`;
+2. harus memiliki jadwal Aktif;
+3. hanya boleh kelas terjadwal;
+4. hanya boleh sesi sesuai Jadwal;
+5. terikat time-window;
+6. terikat geofencing;
+7. setelah submit tidak boleh membuka data Presensi tersimpan;
+8. tidak boleh revise.
+
+Server harus memvalidasi semua rule tersebut, bukan hanya tombol UI.
+
+Jika Guru mempunyai role lain dengan scope lebih tinggi, permission efektif mengikuti union multi-role.
+
+---
+
+# 9. Wali Kelas
+
+Wali:
+
+- tidak bergantung pada Jadwal untuk kelas Wali;
+- dapat input Sesi Awal;
+- dapat input Sesi Akhir;
+- bebas time-window untuk kelas Wali;
+- bebas geofencing untuk kelas Wali;
+- dapat melihat tersimpan;
+- dapat revise;
+- hanya kelas mapping aktif.
+
+Jika Wali mengajar kelas lain, aturan Guru biasa berlaku.
+
+---
+
+# 10. Admin dan Operator
+
+Admin/Operator:
+
+- semua kelas;
+- input administratif;
+- bebas time-window;
+- bebas geofencing;
+- dapat revise;
+- dapat melihat data tersimpan.
+
+Identity `id_guru_input` harus diisi sesuai actor bila tersedia, sedangkan audit actor aplikasi tetap dapat menggunakan `user_id`.
+
+---
+
+# 11. Pimpinan
+
+Pimpinan:
+
+- view-only;
+- tidak boleh input;
+- tidak boleh revise;
+- melihat semua sesuai permission.
+
+---
+
+# 12. Siswa
+
+Siswa hanya dapat membaca miliknya sendiri.
+
+Rincian UI siswa fokus:
+
+```text
+Sakit
+Izin
+Alpha
+```
+
+Hadir tidak perlu ditampilkan pada daftar detail.
+
+Query wajib dibatasi:
+
+```text
+id_siswa = session('id_siswa')
+```
+
+---
+
+# 13. Tampilan Input
+
+Daftar seluruh siswa kelas tanpa pagination.
+
+Default:
+
+```text
+Hadir
+```
+
+Setiap siswa mempunyai button group:
+
+```text
+[Hadir] [Sakit] [Izin] [Alpha]
+```
+
+Button aktif harus terlihat jelas.
+
+Nama dan NISN hanya ditampilkan sesuai kebutuhan operasional dan scope.
+
+---
+
+# 14. Bulk Save
+
+Submit Presensi Siswa adalah operasi bulk satu kelas.
+
+Request minimum:
+
+```text
+id_kelas
+tanggal
+sesi
+daftar siswa + status
+latitude/longitude bila wajib geofence
+```
+
+Server tidak mempercayai:
+
+```text
+nama siswa
+kelas membership
+id_guru
+scope
+status Wali
+```
+
+yang dikirim client.
+
+Semua di-resolve dari database/session.
+
+---
+
+# 15. Atomic Transaction Presensi
+
+Satu submit kelas harus transaction.
+
+Alur:
+
+```text
+BEGIN
+↓
+validasi permission/scope
+↓
+validasi tahun
+↓
+validasi kelas
+↓
+validasi daftar siswa server-side
+↓
+validasi time-window
+↓
+validasi geofence
+↓
+insert/upsert semua siswa
+↓
+COMMIT
+```
+
+Jika satu siswa invalid:
+
+```text
+ROLLBACK seluruh batch
+```
+
+Tidak boleh terjadi setengah kelas tersimpan.
+
+---
+
+# 16. Snapshot
+
+Tabel Presensi menyimpan:
+
+```text
+id_siswa
+nama_siswa_snapshot
+id_guru_input
+nama_guru_input_snapshot
+```
+
+Snapshot diambil server dari data master saat save.
+
+Tujuan:
+
+- histori tetap terbaca jika nama berubah;
+- laporan lama tidak tergantung nama master saat ini;
+- record tetap informatif bila FK tertentu menjadi NULL.
+
+---
+
+# 17. Input Baru vs Revisi
+
+## 17.1 Input Baru
+
+Bila record belum ada:
+
+```text
+INSERT
+created_at
+```
+
+## 17.2 Revisi
+
+Bila record sudah ada:
+
+- hanya Admin/Operator/Wali yang berhak;
+- update status;
+- update `updated_at`;
+- isi `updated_by`.
+
+Guru biasa tidak boleh mengubah record existing.
+
+Jika request Guru biasa menemukan record existing, server menolak, bukan melakukan overwrite diam-diam.
+
+---
+
+# 18. Proteksi Duplicate
+
+Unique:
+
+```text
+id_kelas
+tanggal
+sesi
+id_siswa
+```
+
+Service harus menangani race condition dengan transaction dan DB constraint.
+
+---
+
+# BAGIAN C — TIME WINDOW
+
+# 19. Rumus
+
+Guru biasa dapat input hanya:
+
+```text
+jam_mulai
+≤ waktu server
+≤ jam_selesai + 15 menit
+```
+
+Timezone:
+
+```text
+Asia/Jakarta
+```
+
+Server time menjadi sumber keputusan final.
+
+Client time tidak boleh menjadi sumber authorization.
+
+---
+
+# 20. Pengecualian
+
+| Actor | Presensi Siswa |
+|---|---|
+| Admin | bebas |
+| Operator | bebas |
+| Wali pada kelas Wali | bebas |
+| Guru biasa | terikat |
+| Wali di kelas non-Wali | terikat |
+
+---
+
+# BAGIAN D — GEOFENCING
+
+# 21. Tujuan
+
+Geofence memastikan Guru mapel berada di lokasi sekolah ketika mengklaim aktivitas yang mensyaratkan keberadaan fisik.
+
+---
+
+# 22. Setting
+
+Setting minimum:
+
+```text
+geofencing_aktif
+latitude_sekolah
+longitude_sekolah
+radius_geofencing
+```
+
+Default radius:
+
+```text
+500 meter
+```
+
+Koordinat default dapat disimpan di `setting_sistem` dan harus dapat diubah Admin.
+
+---
+
+# 23. Haversine
+
+Perhitungan dilakukan server-side.
+
+Input device:
+
+```text
+latitude
+longitude
+```
+
+Output:
+
+```text
+distance meter
+inside / outside
+```
+
+Validasi:
+- latitude -90..90;
+- longitude -180..180;
+- null/invalid ditolak bila geofence wajib.
+
+---
+
+# 24. Presensi Siswa Geofence
+
+Guru biasa:
+
+```text
+wajib
+```
+
+Admin/Operator/Wali pada kelas Wali:
+
+```text
+tidak wajib
+```
+
+Jika global OFF:
+
+```text
+semua bebas lokasi
+```
+
+GPS gagal/permission ditolak saat geofence wajib:
+
+```text
+submit ditolak
+```
+
+Tidak ada override manual oleh Guru biasa.
+
+---
+
+# BAGIAN E — PRESENSI MENGAJAR / JURNAL
+
+# 25. Definisi
+
+Jurnal Mengajar terpisah dari Presensi Siswa.
+
+Sumber workflow:
+
+```text
+jadwal_guru
+```
+
+Semua jadwal aktif:
+
+- Sesi Awal;
+- Sesi Akhir;
+- Non Sesi;
+
+mewajibkan jurnal.
+
+---
+
+# 26. Status Jurnal
+
+```text
+Hadir
+Izin
+Sakit
+```
+
+Tidak ada Alpha.
+
+---
+
+# 27. Materi
+
+`materi` wajib untuk seluruh status.
+
+Contoh Izin/Sakit:
+
+```text
+Memberikan tugas melalui grup kelas.
+```
+
+Tidak boleh menyimpan materi kosong atau whitespace-only.
+
+---
+
+# 28. Unique
+
+```text
+UNIQUE(id_jadwal, tanggal)
+```
+
+Satu baris jadwal satu jurnal per hari.
+
+---
+
+# 29. Hak Akses Jurnal
+
+| Role | Lihat Jadwal | Input | Revisi | Scope |
+|---|---|---|---|---|
+| Admin | Semua | Ya | Ya | SEMUA |
+| Operator | Semua | Ya | Ya | SEMUA |
+| Pimpinan | Semua | Diri bila punya jadwal | Tidak | sesuai permission |
+| BK | Tidak | Tidak | Tidak | — |
+| Guru | Diri | Ya | Tidak | DIRI_SENDIRI |
+| Wali | Diri | Ya | Tidak | DIRI_SENDIRI |
+| Siswa | Tidak | Tidak | Tidak | — |
+
+Status Wali tidak menambah kemampuan revisi Jurnal.
+
+---
+
+# 30. Validasi `id_guru`
+
+Untuk Guru/Wali/Pimpinan:
+
+```text
+request id_guru
+```
+
+tidak dipercaya.
+
+Server menggunakan:
+
+```text
+session id_guru
+```
+
+dan memastikan jadwal memang milik user.
+
+Admin/Operator boleh input atas nama Guru lain.
+
+---
+
+# 31. Time Window Jurnal
+
+Guru:
+
+```text
+jam_mulai
+≤ sekarang
+≤ jam_selesai + 15 menit
+```
+
+Admin/Operator administratif tidak terikat.
+
+Untuk status Izin/Sakit, time-window tetap mengikuti aturan input Jurnal kecuali dokumen operasional kemudian menetapkan pengecualian eksplisit.
+
+---
+
+# 32. Geofence Jurnal
+
+## 32.1 Hadir
+
+Guru status Hadir:
+
+```text
+geofence wajib
+```
+
+jika setting aktif.
+
+## 32.2 Izin/Sakit
+
+Tidak wajib geofence.
+
+## 32.3 Admin/Operator
+
+Tidak wajib.
+
+---
+
+# 33. Snapshot Jurnal
+
+Simpan:
+
+```text
+id_guru
+nama_guru_snapshot
+```
+
+Juga simpan:
+
+```text
+id_jadwal
+id_kelas
+id_tahun
+```
+
+agar histori tetap eksplisit.
+
+---
+
+# BAGIAN F — JADWAL REIMPORT
+
+# 34. Jadwal Lama Nonaktif
+
+Reimport Jadwal membuat set lama Nonaktif, bukan delete.
+
+Presensi/Jurnal historis yang sudah tersimpan:
+
+- tetap menunjuk `id_jadwal` lama;
+- tetap valid;
+- tidak boleh ikut berubah ke Jadwal baru.
+
+Jangan melakukan cascading update histori ke Jadwal baru.
+
+---
+
+# 35. Jadwal Baru
+
+Jadwal baru hanya berlaku untuk input setelah import.
+
+Jika kebutuhan administrasi mengharuskan koreksi histori, koreksi dilakukan pada record Presensi/Jurnal dengan authorization khusus, bukan dengan memindahkan foreign key secara massal.
+
+---
+
+# BAGIAN G — SISWA MASUK DI TENGAH SEMESTER
+
+# 36. Siswa Baru
+
+Siswa yang baru menjadi anggota kelas mulai tanggal tertentu hanya boleh muncul pada input setelah menjadi anggota.
+
+Untuk histori sebelum masuk kelas:
+
+- jangan generate Presensi retroaktif otomatis;
+- laporan tidak boleh menganggap tidak adanya record sebelum membership sebagai Alpha.
+
+Tanggal mulai `riwayat_siswa` dapat digunakan sebagai batas keanggotaan saat analitik diperlukan.
+
+---
+
+# 37. Siswa Pindah/Keluar/Lulus
+
+Setelah status siswa bukan Aktif:
+
+- jangan tampilkan pada input baru;
+- histori Presensi lama tetap ada;
+- laporan historis tetap menggunakan snapshot.
+
+---
+
+# BAGIAN H — EWS
+
+# 38. EWS Alpha
+
+Kriteria:
+
+```text
+>= 3 Alpha
+dalam 14 hari terakhir
+```
+
+Sumber:
+
+```text
+Sesi Awal saja
+```
+
+Tidak menghitung Sesi Akhir.
+
+---
+
+# 39. Scope EWS
+
+- Admin: semua;
+- Operator: semua;
+- Pimpinan: semua;
+- BK: sesuai permission;
+- Wali: kelas Wali.
+
+EWS tidak perlu menu sidebar; dapat menjadi widget dashboard.
+
+---
+
+# BAGIAN I — API / JSON
+
+# 40. Dual Output
+
+Endpoint yang dibutuhkan mobile harus dapat menghasilkan JSON.
+
+JSON response tidak boleh membocorkan data di luar scope.
+
+Contoh:
+
+```json
+{
+  "status": "success",
+  "message": "Data berhasil dimuat.",
+  "data": []
+}
+```
+
+---
+
+# BAGIAN J — LOG & AUDIT
+
+# 41. Audit Revisi
+
+Revisi Presensi:
+
+```text
+updated_at
+updated_by
+```
+
+Jika diperlukan audit lebih detail, tulis `log_activity`.
+
+Original `created_at` tidak boleh ditimpa saat revisi.
+
+---
+
+# BAGIAN K — ERROR RULE
+
+# 42. Error Penting
+
+Server harus menolak dengan jelas bila:
+
+- tidak ada Tahun aktif;
+- jadwal tidak aktif;
+- kelas tidak valid;
+- siswa bukan anggota;
+- Guru tidak memiliki jadwal;
+- Guru mencoba membuka hasil tersimpan;
+- Guru mencoba revise;
+- Guru di luar time-window;
+- Guru di luar geofence;
+- duplicate record;
+- sesi Non Sesi dipakai untuk Presensi Siswa;
+- Wali mengakses kelas bukan Wali;
+- request mencampur siswa dari kelas lain;
+- koordinat tidak valid;
+- materi Jurnal kosong;
+- Guru mencoba jurnal milik Guru lain.
+
+---
+
+# BAGIAN L — ROUTE DAN SERVICE
+
+# 43. Service Presensi Siswa
+
+`PresensiService` minimal menangani:
+
+- resolve tahun aktif;
+- resolve scope;
+- resolve kelas terjadwal;
+- resolve kelas Wali;
+- load siswa kelas;
+- validasi time-window;
+- validasi geofence;
+- bulk save;
+- revisi;
+- read sesuai scope;
+- EWS source query.
+
+---
+
+# 44. GeofencingService
+
+Minimal method:
+
+```text
+hitungJarak(...)
+isDalamRadius(...)
+validasiKoordinat(...)
+```
+
+Tidak menyimpan keputusan hanya di frontend.
+
+---
+
+# 45. Service Jurnal
+
+Minimal menangani:
+
+- daftar jadwal hari ini;
+- validasi ownership Guru;
+- validasi time-window;
+- validasi geofence berdasarkan status;
+- save;
+- revisi administratif;
+- read sesuai scope.
+
+---
+
+# BAGIAN M — CHECKPOINT
+
+# 46. Presensi Siswa
+
+- input Sesi Awal;
+- input Sesi Akhir;
+- default Hadir;
+- bulk atomic;
+- Guru sesuai Jadwal;
+- Guru tidak bisa melihat saved;
+- Wali bisa saved/revise;
+- Admin/Operator full;
+- Pimpinan readonly;
+- Siswa diri;
+- time-window;
+- geofence;
+- duplicate guard;
+- snapshots;
+- history membership respected.
+
+# 47. Jurnal
+
+- semua sesi termasuk Non Sesi;
+- status benar;
+- materi wajib;
+- Guru hanya diri;
+- Admin/Operator atas nama;
+- time-window;
+- geofence Hadir;
+- Izin/Sakit tanpa geofence;
+- unique jadwal/tanggal;
+- revisi Guru ditolak;
+- revisi Admin/Operator berhasil;
+- Jadwal lama Nonaktif tetap historis.

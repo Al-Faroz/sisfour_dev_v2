@@ -9,6 +9,12 @@
 <script src="<?= base_url('assets/vendor/libs/sweetalert2/sweetalert2.js') ?>"></script>
 <script src="<?= base_url('assets/vendor/libs/apex-charts/apexcharts.js') ?>"></script>
 
+<!--
+  Harus dimuat sebelum JS modul mana pun.
+  Wrapper ini menyuntikkan token CSRF ke seluruh Fetch mutasi same-origin.
+-->
+<script src="<?= base_url('assets/js/csrf-fetch.js') ?>"></script>
+
 <script src="<?= base_url('assets/js/main.js') ?>"></script>
 
 <?php if (isset($extraJs)): foreach ((array) $extraJs as $js): ?>

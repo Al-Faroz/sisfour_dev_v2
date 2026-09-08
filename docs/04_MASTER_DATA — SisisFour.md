@@ -1,227 +1,891 @@
 # 📋 Master Data — SisisFour
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-Dokumen ini mengatur seluruh data master madrasah: **Guru, Pegawai, Siswa, Kelas, Tahun Ajaran, Mata Pelajaran, Wali Kelas, dan Jadwal Guru**. Setiap modul memiliki aturan bisnis, hak akses, dan mekanisme operasional yang spesifik.
+Dokumen ini menetapkan seluruh aturan bisnis dan integrasi Master Data SisisFour.
 
-* * *
+Master Data terdiri dari:
 
-## 1. Hak Akses Master Data
+1. Guru;
+2. Pegawai;
+3. Siswa;
+4. Kelas;
+5. Tahun Ajaran;
+6. Mata Pelajaran;
+7. Mapping Wali Kelas;
+8. Jadwal Guru.
 
-| Fitur | Admin | Operator | Pimpinan | BK | Guru Biasa | Wali Kelas | Siswa |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| **CRUD Guru** | Full | Full | Readonly | — | — | — | — |
-| **CRUD Pegawai** | Full | Full | Readonly | — | — | — | — |
-| **Lihat Data Siswa** | Full | Full | Semua readonly | — | — | Kelas Wali | Diri sendiri readonly |
-| **Edit Biodata & Foto Siswa** | Full | Full | — | — | — | Kelas Wali | — |
-| **NISN** | Edit sesuai kewenangan | Edit sesuai kewenangan | Lihat | — | — | **Lihat, tidak boleh edit** | Lihat diri |
-| **Mutasi / Kenaikan / Kelulusan** | Full | Full | — | — | — | — | — |
-| **Import/Export Data Siswa** | Full | Full | — | — | — | — | — |
-| **CRUD Kelas** | Full | Full | — | — | — | — | — |
-| **CRUD Tahun Ajaran** | Full | Full | — | — | — | — | — |
-| **CRUD Mata Pelajaran** | Full | Full | — | — | — | — | — |
-| **Import/Export Guru/Pegawai/Jadwal** | Full | Full | — | — | — | — | — |
-| **Mapping Wali Kelas** | Full | Full | View all | — | View diri | — | — |
-| **Jadwal Guru Semua** | Full | Full | Readonly | — | — | — | — |
-| **Jadwal Guru Diri Sendiri** | Full | Full | Diri | — | Diri | Diri | — |
+---
 
-**Catatan Wali Kelas:** Wali dapat mengedit biodata/foto siswa di kelas walinya, tetapi **NISN selalu immutable**. Wali tidak dapat mutasi, kenaikan kelas, kelulusan, import, atau export master siswa.
+# 1. Hak Akses
 
-**Catatan Guru Biasa:** Guru Biasa tidak mempunyai akses menu Master Siswa. Nama siswa hanya boleh ditampilkan dalam konteks halaman input presensi yang memang diizinkan oleh jadwal.
+| Fitur | Admin | Operator | Pimpinan | BK | Guru | Wali | Siswa |
+|---|---|---|---|---|---|---|---|
+| Guru | Full | Full | Readonly | — | — | — | — |
+| Pegawai | Full | Full | Readonly | — | — | — | — |
+| Siswa | Full | Full | Readonly semua | — | — | Kelas Wali | Diri readonly |
+| Edit Biodata Siswa | Full | Full | — | — | — | Kelas Wali | — |
+| Ubah NISN | Full | Full | — | — | — | Tidak | — |
+| Mutasi | Full | Full | — | — | — | — | — |
+| Kenaikan | Full | Full | — | — | — | — | — |
+| Kelulusan | Full | Full | — | — | — | — | — |
+| Kelas | Full | Full | — | — | — | — | — |
+| Tahun Ajaran | Full | Full | — | — | — | — | — |
+| Mata Pelajaran | Full | Full | — | — | — | — | — |
+| Mapping Wali | Full | Full | View all | — | Diri | Diri | — |
+| Jadwal Guru | Full | Full | View all | — | Diri | Diri | — |
+| Import/Export | Full | Full | — | — | — | — | — |
 
-## 2. Soft Delete &amp; Recycle Bin
+Wali adalah konteks Guru, bukan role.
 
-- Tabel yang menggunakan soft delete (`deleted_at`): **guru, pegawai, siswa, kelas, tahun\_ajaran, mapping\_wali\_kelas**.
-- Data yang dihapus sementara dapat **dipulihkan (restore)** atau **dihapus permanen** oleh Admin/Operator.
-- **Pengecualian:** `mata_pelajaran` menggunakan **hard delete** karena strukturnya sederhana.
+---
 
-* * *
+# 2. Soft Delete
 
-## 3. Aturan Spesifik per Modul
+Soft delete:
 
-### 3.1 Guru &amp; Pegawai
-
-- **Auto-create User:**
-  
-  - Saat **Guru** dibuat → otomatis dibuatkan akun `users` dengan `username = NIP`, `password = hash(NIP)`, dan `role = 'guru'`.
-  - Saat **Pegawai** dibuat → otomatis dibuatkan akun `users` dengan `username = NIP`, `password = hash(NIP)`, tetapi **`role = NULL`** . Admin harus menentukan role secara manual (Operator, Pimpinan, atau lainnya).
-- **Validasi NIP Lintas Tabel:** NIP di tabel `guru` dan `pegawai` **tidak boleh sama**. Service wajib mengecek kedua tabel saat validasi.
-- **Upload Foto:** Format **PNG**, max 2MB, di-crop rasio **3:4**, di-re-encode untuk menghilangkan metadata, disimpan di `uploads/foto_guru/`.
-
-### 3.2 Siswa
-
-- **Identifier:** NIK (16 digit, UNIQUE) sebagai pengganti NIS. NISN tetap sebagai basis akun login.
-- **Auto-create User:** Saat siswa dibuat → akun `users` dengan `username = NISN`, `password = hash(NISN)`, dan `role = 'siswa'`.
-- **Upload Foto:** Format **PNG**, max 2MB, crop 3:4, re-encode, disimpan di `uploads/foto_siswa/`.
-- **Status Aktif:** `Aktif, Lulus, Pindah, Keluar`.
-- **Mutasi (Pindah/Keluar) &amp; Kelulusan:**
-  
-  - Hanya Admin/Operator yang dapat melakukan mutasi atau kelulusan.
-  - Saat siswa **Pindah**, **Keluar**, atau **Lulus**, sistem wajib mengisi `tanggal_mutasi` dan `keterangan_mutasi`.
-  - **Efek:** Kartu pelajar otomatis menjadi **Nonaktif**.
-  - **Histori (A4):** Wajib mencatat ke tabel `riwayat_siswa` dengan status yang sesuai dan mengisi `tanggal_selesai`.
-- **Akses Wali Kelas:** Wali Kelas dapat **mengedit biodata dan foto** siswa di kelas yang diampu (scope KELAS\_DIAMPU), tetapi **tidak** dapat melakukan mutasi, kenaikan kelas, atau import/export.
-
-### 3.3 Kelas &amp; Tahun Ajaran
-
-- **Struktur Kelas:** `tingkat` (7/8/9) + `rombel` (A/B/C/...) → `nama_kelas` di-generate otomatis (contoh: "7-A").
-- **Tahun Ajaran (A7):** Setiap tahun ajaran wajib memiliki `semester` (`Ganjil` atau `Genap`).
-- **Status Aktif:** Hanya satu tahun ajaran yang boleh memiliki `status_aktif = 1` pada satu waktu. Mengaktifkan satu tahun ajaran otomatis menonaktifkan yang sebelumnya.
-- **Kenaikan Kelas (A6):**
-  
-  - Admin memilih kelas asal.
-  - Sistem menampilkan **daftar checklist** semua siswa di kelas tersebut, dengan **default semua terpilih**.
-  - Admin dapat **uncheck** siswa tertentu jika ada pengecualian (misal mutasi).
-  - Admin memilih **kelas tujuan** yang sudah dibuat sebelumnya.
-  - Proses: pindahkan siswa yang terpilih ke kelas tujuan &amp; tahun ajaran baru. Catat ke `riwayat_siswa`.
-  - **Catatan:** Wali Kelas &amp; Jadwal Guru **tidak** ikut pindah — harus diinput ulang untuk tahun ajaran baru.
-
-### 3.4 Mata Pelajaran (E4)
-
-- Menggunakan **hard delete** (tanpa `deleted_at`).
-- Jika mapel sudah digunakan di `jadwal_guru`, foreign key `RESTRICT` akan mencegah penghapusan.
-- Data default 17 mapel sudah tersedia di seeder SQL.
-
-* * *
-
-## 4. Mapping Wali Kelas (A2)
-
-- **Aturan Dasar:**
-  
-  - 1 guru = maksimal 1 kelas per tahun ajaran → UNIQUE `(id_guru, id_tahun)`.
-  - 1 kelas = maksimal 1 wali aktif per tahun ajaran → UNIQUE `(id_kelas, id_tahun)`.
-  - Status Wali Kelas **bukan** role, dicek dinamis dari tabel `mapping_wali_kelas`.
-- **Mekanisme Soft Delete (A2 — C2):**
-  
-  - Data **aktif** → `deleted_at = NULL` → dihitung UNIQUE.
-  - Data **nonaktif/dihapus** → `deleted_at = TIMESTAMP` → **tidak** dihitung UNIQUE (karena nilai timestamp unik).
-  - Data nonaktif tetap tersimpan sebagai histori.
-- **Assign &amp; Ganti Wali:**
-  
-  - **Assign baru:** Insert baris dengan `deleted_at = NULL`.
-  - **Ganti wali (restore/reassign):** Jika guru yang sama **pernah** menjadi wali di tahun yang sama (data di-soft-delete), sistem **tidak boleh** melakukan `INSERT` baru. Sistem wajib melakukan **RESTORE**: `UPDATE mapping_wali_kelas SET deleted_at = NULL, id_kelas = {kelas_baru} WHERE id_guru = {guru} AND id_tahun = {tahun}`.
-  - **Hapus (nonaktifkan):** `UPDATE mapping_wali_kelas SET deleted_at = NOW() WHERE id = {id}`.
-- **Dropdown Logic:**
-  
-  - **Dropdown Guru:** Hanya guru yang **belum** menjadi wali aktif (`deleted_at = NULL`) di tahun yang sama yang muncul.
-  - **Dropdown Kelas:** Hanya kelas yang **belum** memiliki wali aktif (`deleted_at = NULL`) di tahun yang sama yang muncul.
-
-* * *
-
-## 5. Jadwal Guru
-
-### 5.1 Konsep Sesi
-
-- **Sesi Awal** → menentukan kewajiban Presensi Siswa (resmi, dihitung di laporan).
-- **Sesi Akhir** → dokumentasi tambahan, tidak dihitung di laporan resmi.
-- **Non Sesi** → **tidak** wajib Presensi Siswa, tetapi **tetap** wajib Presensi Mengajar (Jurnal).
-
-### 5.2 Import Excel (WAJIB)
-
-- Jadwal guru **hanya** dapat diinput melalui **import Excel**. Tidak ada form input manual satu-satu.
-- **Template wajib memiliki kolom:** `nip_guru`, `nama_kelas`, `kode_mapel`, `hari`, `jam_mulai`, `jam_selesai`, `sesi`.
-- **Validasi bentrok (di Service):**
-  
-  - Guru yang sama tidak boleh memiliki 2 jadwal dengan rentang jam overlap di hari yang sama.
-  - Kelas yang sama tidak boleh memiliki 2 jadwal dengan rentang jam overlap di hari yang sama (**tidak ada team teaching**).
-  - Jika ditemukan bentrok, import **berhenti total** dan laporkan baris yang bermasalah.
-- **Atomic Transaction:** Seluruh proses import dibungkus dalam **database transaction**. Jika ada satu baris error, seluruh transaksi **di-rollback** (tidak ada baris yang tersimpan).
-- **Query Builder:** Dilarang menggunakan raw SQL string concat. Wajib menggunakan **Query Builder** atau **parameter binding** untuk keamanan.
-- **Semester/Tahun Ajaran Baru:** Import jadwal baru **tidak menghapus** jadwal lama. Jadwal lama otomatis di-set `status_jadwal = 'Nonaktif'`. Jadwal baru masuk dengan `status_jadwal = 'Aktif'`.
-
-### 5.3 Time-Window Presensi
-
-- Presensi (Siswa &amp; Mengajar) hanya bisa diinput dalam rentang `jam_mulai` sampai `jam_selesai + 15 menit`.
-- **Pengecualian (D4):** Wali Kelas, Admin, dan Operator **tidak terikat** time-window untuk melakukan **revisi** Presensi Siswa.
-
-* * *
-
-## 6. Import &amp; Export Excel
-
-### 6.1 Aturan Umum
-
-- **Template:** Tersedia untuk diunduh di halaman masing-masing modul.
-- **Stop-on-error + Atomic Transaction:** Jika ada satu baris error, seluruh proses **berhenti dan rollback**. Tidak ada baris yang tersimpan.
-- **Hak Akses Import/Export:** Hanya Admin dan Operator.
-- **Export:** Tabel data polos dengan judul laporan di baris atas (tanpa kop surat/logo). Export **wajib** mengikuti filter yang aktif di layar.
-
-### 6.2 Template Import
-
-**Template Import Guru:**
-
-```
-NIP                 | NAMA LENGKAP & GELAR           | JENIS KELAMIN (L/P)
-198501012011011001  | Ahmad Fauzi, S.Pd.I            | L
+```text
+guru
+pegawai
+siswa
+kelas
+tahun_ajaran
+mapping_wali_kelas
 ```
 
-**Template Import Pegawai:**
+Recycle Bin hanya untuk Admin/Operator.
 
-```
-NIP                 | NAMA LENGKAP        | JENIS KELAMIN (L/P) | JABATAN
-198501012011012003  | Siti Aminah, S.E.   | P                   | Tenaga Administrasi
-```
+Hard delete:
 
-**Template Import Siswa (NIK = 16 digit):**
-
-```
-NIK              | NISN        | NAMA LENGKAP    | JENIS KELAMIN | TEMPAT LAHIR | TANGGAL LAHIR | ALAMAT
-3510123412341234 | 9876543210  | Ahmad Fauzi     | L             | Jombang      | 2008-01-15    | Jl. Merdeka No. 10
+```text
+mata_pelajaran
+jadwal_guru
 ```
 
-**Template Import Jadwal Guru:**
+Force delete soft-delete entity harus mempertimbangkan FK dan dependency.
 
+---
+
+# 3. Guru
+
+## 3.1 Field
+
+- NIP;
+- nama;
+- jenis kelamin;
+- tempat lahir;
+- tanggal lahir;
+- alamat;
+- nomor telepon;
+- email;
+- status kepegawaian;
+- foto.
+
+## 3.2 NIP
+
+NIP:
+- wajib;
+- unik pada Guru;
+- tidak boleh sama dengan Pegawai.
+
+Validasi lintas tabel dilakukan Service.
+
+## 3.3 Auto User
+
+Create Guru:
+
+```text
+username = NIP
+password = hash(NIP)
+role = guru
+id_guru = guru.id
+status_aktif = 1
 ```
-NIP_GURU            | NAMA_KELAS | KODE_MAPEL | HARI   | JAM_MULAI | JAM_SELESAI | SESI
-196808212003122001  | 7-A        | MTK        | Senin  | 07:30     | 09:00       | Sesi Awal
+
+User harus dimasukkan ke struktur role sesuai AuthService.
+
+## 3.4 Foto
+
+- PNG;
+- max 2 MB;
+- rasio 3:4;
+- crop;
+- re-encode;
+- simpan `uploads/foto_guru/`.
+
+## 3.5 Import
+
+Template minimum:
+
+```text
+NIP
+NAMA LENGKAP & GELAR
+JENIS KELAMIN (L/P)
 ```
 
-### 6.3 Filter pada Halaman List
+Import wajib:
+- exact header;
+- validasi NIP;
+- validasi lintas Pegawai;
+- stop-on-error;
+- atomic transaction;
+- auto-create user untuk seluruh row valid.
 
-- **Guru:** Nama, NIP, Jenis Kelamin, Status Kepegawaian.
-- **Pegawai:** Nama, NIP, Jenis Kelamin, Jabatan.
-- **Siswa:** Nama, NIK, NISN, Kelas (dropdown), Status Aktif.
-- **Kelas:** Tingkat (7/8/9), Tahun Ajaran.
-- **Jadwal:** Guru (dropdown), Kelas (dropdown dinamis berdasarkan guru), Hari.
-- **Semua filter menggunakan DataTables server-side/client-side hybrid sesuai kebutuhan.**
+## 3.6 Export
 
-* * *
+Export mengikuti filter aktif dan hanya data yang diizinkan scope.
 
-## 7. Service Layer (Business Logic)
+## 3.7 Delete
 
-### 7.1 `KelasService`
+Soft delete Guru:
+- tandai `deleted_at`;
+- user terkait dinonaktifkan;
+- dependency FK dapat mencegah force delete.
 
-- **naikKelas($id\_kelas\_asal, $id\_kelas\_tujuan, $id\_tahun\_baru, $daftar\_siswa\_terpilih):** Memproses kenaikan kelas dengan checklist (A6).
-- **luluskan($id\_kelas, $daftar\_siswa\_terpilih):** Memproses kelulusan.
-- **mutasiSiswa($id\_siswa, $status\_baru, $keterangan):** Memproses mutasi (Pindah/Keluar) dan mencatat histori (A4).
+Restore:
+- `deleted_at = NULL`;
+- user terkait aktif kembali bila valid.
 
-### 7.2 `JadwalGuruService`
+Force delete:
+- hanya dari Recycle Bin;
+- ditolak bila FK masih mereferensikan Guru.
 
-- **importJadwal($file\_excel):** Memproses import jadwal dengan validasi bentrok, atomic transaction, dan Query Builder.
-- **validateBentrok($data):** Mengecek overlap jam untuk guru dan kelas.
-- **setStatusJadwal($id\_tahun):** Menonaktifkan jadwal lama saat tahun ajaran baru.
+---
 
-### 7.3 `MappingWaliService`
+# 4. Pegawai
 
-- **assign($id\_guru, $id\_kelas, $id\_tahun):** Meng-assign wali kelas dengan mekanisme restore (A2).
-- **isWaliAktif($id\_guru, $id\_tahun):** Mengecek apakah guru sedang menjadi wali aktif.
-- **getKelasDiampu($id\_guru, $id\_tahun):** Mengambil daftar kelas yang diampu (untuk scope KELAS\_DIAMPU).
+## 4.1 Field
 
-* * *
+- NIP;
+- nama;
+- jenis kelamin;
+- tempat/tanggal lahir;
+- alamat;
+- telepon;
+- email;
+- jabatan.
 
-## 8. Catatan Penting untuk Developer
+## 4.2 Auto User
 
-- **NIK:** 16 digit, wajib validasi format saat input dan import. NIK **tidak** ditampilkan penuh di halaman verifikasi publik kartu.
-- **NIP:** Tidak boleh sama antara `guru` dan `pegawai`.
-- **Import Jadwal:** Gunakan **Query Builder**, bukan raw SQL string concat.
-- **Atomic Transaction:** Semua import (Guru, Pegawai, Siswa, Jadwal) wajib menggunakan transaction.
-- **Restore Wali Kelas (A2):** Jangan pernah `INSERT` baru untuk assign ulang guru yang sudah pernah menjadi wali. Gunakan `UPDATE` dengan `deleted_at = NULL`.
-- **Kenaikan Kelas (A6):** Gunakan checklist dengan default semua terpilih, bukan hardcode "semua siswa".
-- **Histori Siswa (A4):** Setiap perubahan status/kelas siswa wajib tercatat di `riwayat_siswa`.
-- **Upload Foto (B7):** Wajib re-encode file PNG untuk menghilangkan metadata berbahaya.
-- **Akses Wali Kelas:** Hanya biodata dan foto yang dapat diedit pada siswa di kelas walinya. **NISN tidak boleh diubah**. Mutasi, kenaikan kelas, kelulusan, import/export tetap eksklusif Admin/Operator.
-- **Akses Guru Biasa:** Tidak boleh melihat Master Siswa. Data nama siswa hanya muncul di workflow input Presensi Siswa yang sah.
-- **Akun Admin/Operator:** Wajib memiliki relasi pegawai/guru; pengecualian hanya Admin awal yang dibuat sebelum relasi pegawai tersedia.
+Create Pegawai:
 
-* * *
+```text
+username = NIP
+password = hash(NIP)
+role = NULL
+id_pegawai = pegawai.id
+status_aktif = 1
+```
 
-© 2026 SisisFour · MTsN 4 Jombang · Master Data Final
+Admin dapat kemudian menentukan role.
+
+## 4.3 NIP
+
+Tidak boleh sama dengan Guru.
+
+## 4.4 Import
+
+Template:
+
+```text
+NIP
+NAMA LENGKAP
+JENIS KELAMIN (L/P)
+JABATAN
+```
+
+Import:
+- exact header;
+- stop-on-error;
+- atomic;
+- duplicate lintas Guru/Pegawai ditolak.
+
+## 4.5 Delete/Restore
+
+Soft delete Pegawai menonaktifkan user terkait.
+
+Restore mengaktifkan kembali user bila relasi masih valid.
+
+---
+
+# 5. Siswa
+
+## 5.1 Identifier
+
+NIK:
+- tepat 16 digit;
+- numeric string;
+- unique.
+
+NISN:
+- unique;
+- basis username.
+
+## 5.2 Field Biodata
+
+Field utama:
+- NIK;
+- NISN;
+- nama;
+- jenis kelamin;
+- tempat/tanggal lahir;
+- alamat;
+- telepon;
+- kebutuhan khusus;
+- disabilitas;
+- KIP/PIP;
+- nama ayah;
+- nama ibu;
+- nama wali;
+- foto;
+- status aktif;
+- data mutasi.
+
+## 5.3 User
+
+Create Siswa:
+
+```text
+username = NISN
+password = hash(NISN)
+role = siswa
+id_siswa = siswa.id
+```
+
+Jika Admin mengganti NISN:
+- username ikut disinkronkan;
+- password tidak otomatis di-reset;
+- `auth_version` dapat dinaikkan agar sesi lama invalid.
+
+Wali tidak boleh mengganti NISN meskipun mengirim request secara manual.
+
+## 5.4 Biodata Wali
+
+Wali boleh mengedit:
+- nama;
+- jenis kelamin;
+- tempat/tanggal lahir;
+- alamat;
+- field biodata terkait;
+- foto.
+
+Hanya untuk siswa kelas Wali.
+
+Wali tidak boleh:
+- mengubah NISN;
+- melakukan mutasi;
+- kelulusan;
+- kenaikan kelas;
+- import;
+- export Master Siswa.
+
+## 5.5 Foto
+
+```text
+PNG
+max 2 MB
+crop 3:4
+re-encode
+uploads/foto_siswa/
+```
+
+## 5.6 Status
+
+```text
+Aktif
+Lulus
+Pindah
+Keluar
+```
+
+Pindah/Keluar/Lulus:
+- `tanggal_mutasi` wajib;
+- `keterangan_mutasi` diisi sesuai aksi;
+- histori aktif ditutup;
+- histori final dicatat;
+- kartu pelajar menjadi Nonaktif.
+
+## 5.7 Import
+
+Template:
+
+```text
+NIK
+NISN
+NAMA LENGKAP
+JENIS KELAMIN
+TEMPAT LAHIR
+TANGGAL LAHIR
+ALAMAT
+```
+
+Header harus sama.
+
+Import atomic.
+
+## 5.8 Filter
+
+- Nama;
+- NIK;
+- NISN;
+- Kelas;
+- Status Aktif.
+
+Export mengikuti filter dan scope.
+
+## 5.9 Delete
+
+Soft delete:
+- siswa tidak tampil di Master aktif;
+- user dinonaktifkan.
+
+Restore:
+- siswa aktif kembali sebagai record;
+- user terkait diaktifkan/dibuat kembali sesuai kondisi.
+
+Force delete:
+- harus tunduk FK;
+- histori/presensi/kartu dapat menyebabkan penolakan.
+
+---
+
+# 6. Keanggotaan Kelas
+
+Penempatan siswa ke kelas tidak dilakukan di form Master Siswa.
+
+Sumber hubungan:
+
+```text
+anggota_kelas
+```
+
+Aturan:
+
+```text
+UNIQUE(id_siswa, id_tahun)
+```
+
+Satu siswa hanya satu kelas pada tahun yang sama.
+
+Saat ditambahkan ke kelas:
+- insert `anggota_kelas`;
+- buat `riwayat_siswa` Aktif bila belum ada;
+- jangan membuat histori aktif ganda.
+
+Saat koreksi keluar dari kelas:
+- hapus relasi `anggota_kelas` sesuai Service;
+- tutup histori aktif tahun tersebut;
+- status siswa dapat tetap Aktif bila hanya koreksi administrasi.
+
+---
+
+# 7. Kelas
+
+## 7.1 Struktur
+
+```text
+tingkat: 7 / 8 / 9
+rombel : A / B / C / ...
+nama_kelas = tingkat-rombel
+```
+
+Contoh:
+
+```text
+7 + A = 7-A
+```
+
+`nama_kelas` tidak diinput bebas.
+
+## 7.2 Tahun
+
+Setiap Kelas terkait satu `id_tahun`.
+
+Kelas pada tahun berbeda adalah entity berbeda.
+
+## 7.3 Filter
+
+- Tingkat;
+- Tahun Ajaran.
+
+## 7.4 Anggota
+
+Master Kelas menyediakan pengelolaan anggota.
+
+Candidate siswa:
+- status Aktif;
+- belum punya kelas di tahun tersebut;
+- atau sudah menjadi anggota kelas yang sedang dibuka.
+
+## 7.5 Delete
+
+Kelas tidak dapat dihapus bila masih digunakan secara aktif oleh dependency penting seperti:
+- anggota;
+- wali aktif;
+- jadwal aktif.
+
+Soft delete digunakan untuk Kelas.
+
+---
+
+# 8. Kenaikan Kelas
+
+Alur:
+
+```text
+Pilih kelas asal
+↓
+Ambil seluruh siswa Aktif
+↓
+Checklist default semua
+↓
+Admin uncheck pengecualian
+↓
+Pilih kelas tujuan
+↓
+Pilih tahun tujuan
+↓
+Transaction
+```
+
+Per siswa terpilih:
+
+1. validasi anggota kelas asal;
+2. validasi status Aktif;
+3. tutup riwayat aktif lama;
+4. buat riwayat Aktif tahun baru;
+5. tambah/update anggota kelas tujuan;
+6. status tetap Aktif;
+7. mutation fields dibersihkan bila relevan.
+
+Wali dan Jadwal tidak ikut pindah.
+
+Kelas tujuan harus sudah dibuat sebelumnya.
+
+---
+
+# 9. Kelulusan
+
+Kelulusan hanya untuk kelas tingkat 9.
+
+Per siswa:
+- validasi anggota;
+- tutup histori aktif;
+- insert histori `Lulus`;
+- `status_aktif = Lulus`;
+- isi tanggal/keterangan;
+- kartu Nonaktif.
+
+Semua dalam transaction.
+
+Siswa yang tidak dicentang tidak diproses.
+
+---
+
+# 10. Mutasi Siswa
+
+Status mutasi:
+
+```text
+Pindah
+Keluar
+```
+
+Alur:
+- validasi siswa Aktif;
+- temukan konteks kelas/tahun;
+- tutup histori Aktif;
+- tulis histori final;
+- ubah status siswa;
+- isi tanggal/keterangan;
+- nonaktifkan kartu.
+
+---
+
+# 11. Tahun Ajaran
+
+## 11.1 Format
+
+```text
+YYYY/YYYY
+```
+
+Contoh:
+
+```text
+2026/2027
+```
+
+Tahun kedua harus +1 dari tahun pertama.
+
+Semester:
+
+```text
+Ganjil
+Genap
+```
+
+## 11.2 Status Aktif
+
+Hanya satu record boleh aktif.
+
+Create baru default:
+
+```text
+Nonaktif
+```
+
+Aktivasi:
+
+```text
+BEGIN
+nonaktifkan seluruh record aktif lain
+aktifkan target
+COMMIT
+```
+
+## 11.3 Delete
+
+Record aktif tidak dapat dihapus.
+
+Record yang masih direferensikan data operasional tidak dapat dihapus.
+
+Restore selalu kembali Nonaktif.
+
+## 11.4 Dependency
+
+Dependency dapat mencakup:
+- kelas;
+- anggota kelas;
+- mapping wali;
+- jadwal;
+- histori siswa;
+- presensi;
+- jurnal.
+
+---
+
+# 12. Mata Pelajaran
+
+Field:
+
+```text
+nama_mapel
+kode_mapel
+```
+
+Kode:
+- uppercase;
+- unique;
+- maksimal 10;
+- huruf/angka/underscore/minus.
+
+Tidak menggunakan soft delete.
+
+Delete ditolak bila sudah dipakai Jadwal Guru.
+
+---
+
+# 13. Mapping Wali Kelas
+
+## 13.1 Aturan
+
+```text
+1 Guru maksimal 1 Wali aktif per tahun
+1 Kelas maksimal 1 Wali aktif per tahun
+```
+
+Database menggunakan generated unique columns agar histori soft-delete tidak mengunci assign berikutnya.
+
+## 13.2 Assign
+
+Dropdown Tahun dipilih terlebih dahulu.
+
+Guru yang ditampilkan:
+- Guru aktif;
+- belum menjadi Wali aktif pada tahun tersebut.
+
+Kelas yang ditampilkan:
+- kelas tahun tersebut;
+- belum mempunyai Wali aktif.
+
+## 13.3 Reassign
+
+Jika Guru pernah memiliki row mapping pada tahun sama tetapi sudah soft-deleted:
+
+```text
+RESTORE row lama
++
+update id_kelas
+```
+
+Bukan INSERT row baru.
+
+## 13.4 Nonaktifkan
+
+```text
+deleted_at = timestamp
+```
+
+Row tetap menjadi histori.
+
+## 13.5 Restore
+
+Restore langsung hanya bila:
+- Guru belum Wali aktif;
+- kelas historis belum punya Wali aktif;
+- Guru/Kelas/Tahun masih valid.
+
+## 13.6 Scope
+
+Admin/Operator:
+```text
+SEMUA
+```
+
+Pimpinan:
+```text
+view all readonly
+```
+
+Guru:
+```text
+DIRI_SENDIRI
+```
+
+---
+
+# 14. Jadwal Guru
+
+## 14.1 Input
+
+Tidak ada form create/edit manual.
+
+Sumber input:
+
+```text
+Import Excel
+```
+
+Template:
+
+```text
+NIP_GURU
+NAMA_KELAS
+KODE_MAPEL
+HARI
+JAM_MULAI
+JAM_SELESAI
+SESI
+```
+
+## 14.2 Hari
+
+```text
+Senin
+Selasa
+Rabu
+Kamis
+Jumat
+Sabtu
+Minggu
+```
+
+## 14.3 Sesi
+
+```text
+Sesi Awal
+Sesi Akhir
+Non Sesi
+```
+
+Sesi adalah label administratif. Jam aktual tetap `jam_mulai/jam_selesai`.
+
+## 14.4 Validasi Referensi
+
+Setiap row harus resolve:
+
+```text
+NIP → Guru
+Nama Kelas + Tahun → Kelas
+Kode Mapel → Mata Pelajaran
+```
+
+## 14.5 Validasi Waktu
+
+```text
+jam_mulai < jam_selesai
+```
+
+## 14.6 Bentrok
+
+Overlap bila:
+
+```text
+mulaiA < selesaiB
+AND
+mulaiB < selesaiA
+```
+
+Ditolak bila:
+- Guru sama + hari sama + overlap;
+- Kelas sama + hari sama + overlap.
+
+Tidak ada team teaching.
+
+## 14.7 Atomic Import
+
+Semua row divalidasi lebih dulu.
+
+Satu error:
+
+```text
+seluruh import batal
+```
+
+## 14.8 Replacement Set
+
+Import ke Tahun Ajaran aktif:
+
+```text
+jadwal Aktif lama → Nonaktif
+hasil import → Aktif
+```
+
+Jadwal lama tidak dihapus.
+
+Tujuannya mempertahankan histori dan referensi Presensi/Jurnal lama.
+
+## 14.9 Filter
+
+- Guru;
+- Kelas;
+- Tahun Ajaran;
+- Hari;
+- Status.
+
+Dropdown kelas dapat dipersempit berdasarkan Guru.
+
+## 14.10 Export
+
+Admin/Operator.
+
+Export mengikuti seluruh filter aktif.
+
+Kolom minimal:
+- NIP;
+- Guru;
+- Kelas;
+- Kode Mapel;
+- Mapel;
+- Hari;
+- Jam;
+- Sesi;
+- Status;
+- Tahun;
+- Semester.
+
+---
+
+# 15. Integrasi Master Data
+
+## 15.1 Siswa → Kelas
+
+Presensi dan laporan tidak boleh menebak kelas dari siswa. Gunakan `anggota_kelas` per `id_tahun`.
+
+## 15.2 Wali → Kelas
+
+Gunakan mapping aktif.
+
+## 15.3 Guru → Kelas Terjadwal
+
+Gunakan `jadwal_guru` aktif.
+
+## 15.4 Tahun Aktif
+
+Semua operasi operasional harus menggunakan Tahun Ajaran aktif atau `id_tahun` eksplisit.
+
+## 15.5 Mata Pelajaran → Jadwal
+
+Mapel yang sudah digunakan tidak boleh dihapus karena akan memutus referensi Jadwal.
+
+---
+
+# 16. Import dan Export Umum
+
+Aturan:
+- file XLSX/XLS sesuai modul;
+- header exact;
+- identifier dibaca sebagai string;
+- tidak ada partial success;
+- transaction;
+- error menyebut baris;
+- export mengikuti filter/scope.
+
+---
+
+# 17. CSRF
+
+Semua mutation Fetch Web dilindungi global CSRF.
+
+Module JS tidak perlu membuat mekanisme token sendiri selama wrapper global aktif.
+
+---
+
+# 18. Log Activity
+
+Aksi penting:
+- create/update/delete/restore;
+- mutasi;
+- kenaikan;
+- kelulusan;
+- aktivasi Tahun;
+- mapping;
+- import Jadwal;
+
+dicatat ke `log_activity`.
+
+---
+
+# 19. Error Handling
+
+Business error harus jelas.
+
+Contoh:
+- duplicate NIP;
+- duplicate NIK;
+- duplicate NISN;
+- siswa sudah punya kelas;
+- Wali duplicate;
+- kelas sudah punya Wali;
+- Tahun aktif tidak boleh dihapus;
+- mapel dipakai Jadwal;
+- Jadwal overlap.
+
+---
+
+# 20. Checkpoint Master Data
+
+Master Data lulus bila:
+- Guru CRUD;
+- Pegawai CRUD;
+- Siswa CRUD;
+- Kelas CRUD;
+- Tahun CRUD;
+- Mapel CRUD;
+- Wali mapping;
+- Jadwal import;
+- semua recycle;
+- NIP lintas tabel;
+- NIK 16 digit;
+- role Pegawai NULL;
+- NISN Wali immutable;
+- satu siswa satu kelas/tahun;
+- histori siswa konsisten;
+- satu Tahun aktif;
+- Mapping Wali unique aktif;
+- Jadwal tidak overlap;
+- import rollback;
+- RBAC semua role benar;
+- CSRF semua mutation berhasil.

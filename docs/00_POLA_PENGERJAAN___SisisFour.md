@@ -1,203 +1,588 @@
 # 🛠️ Pola Pengerjaan — SisisFour
 
-**Versi:** 1.0 · **Tanggal:** 29 Agustus 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-Dokumen ini adalah catatan kerja (working order) untuk pengembangan SisisFour. Prinsip utama: **fondasi dikerjakan horizontal (sekali jalan)**, **fitur dikerjakan vertikal per modul** dengan urutan internal `Model → Service → Filter → Controller → View`, dan **setiap modul wajib dites (checkpoint) sebelum lanjut ke modul berikutnya**.
+Dokumen ini menetapkan tata cara pengembangan SisisFour dari fondasi sampai rilis. Dokumen ini bersifat normatif: setiap pengerjaan modul harus mengikuti urutan, pola file, aturan validasi, checkpoint, dan mekanisme integrasi yang dijelaskan di sini.
 
-> Jangan lanjut ke tahap berikutnya sebelum checkpoint tahap saat ini disetujui.
+---
 
-* * *
+## 1. Prinsip Utama Pengembangan
 
-## Fase 0 — Fondasi (Horizontal, Sekali Jalan)
+### 1.1 Fondasi Horizontal, Fitur Vertikal
 
-Dikerjakan berurutan, tidak perlu dites per fitur karena sifatnya struktural/statis.
+Pengerjaan dibagi menjadi dua pola:
 
-| # | Langkah | Detail | Acuan Dokumen |
-| --- | --------- | -------- | ---------------- |
-| 1 | **Setup CI4** | Install via Composer, pasang plugin (PhpSpreadsheet, Dompdf, endroid/qr-code), pindah isi `public/` ke root, setting `.env` (timezone `Asia/Jakarta`), sampai halaman welcome CI4 muncul di localhost | `01_MASTERPLAN` §5, Tahap 1 |
-| 2 | **Assets** | Buat `assets/css`, `assets/js`, `assets/vendor` (Bootstrap 5, jQuery, DataTables, Select2, SweetAlert2), `assets/fonts` (Poppins untuk Dompdf), `assets/img` | `Tree Structure` |
-| 3 | **Uploads** | Buat `uploads/.htaccess` (blokir eksekusi script), `foto_siswa/`, `foto_guru/`, `branding/`, `kartu_pelajar/background_depan/`, `kartu_pelajar/background_belakang/` | `01_MASTERPLAN` §5 |
-| 4 | **Database** | Jalankan seluruh SQL dari `02_DATABASE` (tabel, FK, index, seeder mapel 17, permission 43, role_permissions, role_menus, admin default) | Tahap 2 |
-| 5 | **Config** | Isi `app/Config/App.php`, `Database.php`, `Routes.php` (162 route dari `Routes Final`), `Filters.php`, `Session.php` | `Routes Final` |
+1. **Fondasi horizontal**
+   - konfigurasi framework;
+   - database;
+   - authentication;
+   - RBAC;
+   - layout;
+   - menu;
+   - CSRF;
+   - helper/utilitas umum.
 
-### ✅ Checkpoint Fase 0
+2. **Fitur vertikal per modul**
+   - Model;
+   - Service;
+   - Filter bila diperlukan;
+   - Controller;
+   - View;
+   - JavaScript;
+   - Route;
+   - pengujian modul.
 
-- [ ] Bisa akses aplikasi tanpa `/public/` di URL, `.htaccess` proteksi aktif
-- [ ] SQL berhasil dijalankan, FK constraint aktif
-- [ ] 43 permission + seeder `role_permissions`/`role_menus` terisi **benar**:
-  - [ ] Tidak ada permission `.manage` untuk Pimpinan
-  - [ ] BK mendapat `prestasi.view`
-  - [ ] Guru mendapat `jadwal_guru.view` (bukan `.manage`)
+Urutan internal modul:
 
-* * *
-
-## Fase 1 — Per Modul (Vertikal, Ikuti Urutan Tahap)
-
-**Urutan internal wajib per modul:**
-
-```
-Model(s) → Service(s) → Filter (jika baru) → Controller(s) → View(s) → TES MODUL INI
-```
-
-Alasan urutan ini (bukan Controller dulu): Controller memanggil method dari Service (`01_MASTERPLAN` §7), dan `PermissionFilter` memanggil `AuthService::resolveScope()` (`03_AUTH_RBAC_MENU` §3.1). Jika Controller/Filter ditulis sebelum Service ada, akan terjadi fatal error saat dites.
-
-### Tahap 3 — Auth + RBAC
-
-- **Model:** `UserModel`, `UserRolesModel`, `LoginAttemptsModel`, `ApiTokensModel`
-- **Service:** `AuthService` (login, resolveScope, isWaliKelas), `PermissionService`
-- **Filter:** `AuthFilter`, `PermissionFilter`
-- **Controller:** `Auth`
-- **View:** `auth_login.php`
-- **Tes:** Login, rate limiting 5x gagal → lock 5 menit, `PermissionFilter` jalan, scope resolver benar, single active session (`auth_version`), Pimpinan hanya dapat akses view
-
-### Tahap 4 — Master Data
-
-- **Model:** `GuruModel`, `PegawaiModel`, `SiswaModel`, `RiwayatSiswaModel`, `KelasModel`, `TahunAjaranModel`, `MataPelajaranModel`, `AnggotaKelasModel`, `MappingWaliKelasModel`, `JadwalGuruModel`
-- **Service:** `KelasService`, `JadwalGuruService`, `MappingWaliService`, `UploadService`
-- **Controller:** `MasterGuru`, `MasterPegawai`, `MasterSiswa`, `MasterKelas`, `MasterTahunAjaran`, `MasterMapel`, `MappingWaliKelas`, `JadwalGuru`
-- **View:** `master_*_list.php`, `mapping_wali_list.php`, `jadwal_guru_list.php`
-- **Tes:** CRUD semua entitas, import/export Excel, kenaikan kelas (checklist default semua), mutasi siswa, histori (A4), validasi NIK 16 digit, restore wali kelas (bukan insert baru), validasi bentrok jadwal
-
-### Tahap 5 — Presensi Siswa
-
-- **Model:** `PresensiModel`
-- **Service:** `PresensiService`, `GeofencingService`
-- **Controller:** `PresensiSiswa`
-- **View:** `presensi_siswa_index.php`, `presensi_siswa_input.php`, `presensi_siswa_ews.php`, `presensi_siswa_rekap.php`
-- **Tes:** Input AW/AK (tombol solid default Hadir), revisi oleh Wali/Admin/Operator (bebas time-window), EWS Radar (≥3 Alpha/14 hari), geofencing Haversine 500m
-
-### Tahap 6 — Presensi Mengajar (Jurnal)
-
-- **Model:** `PresensiMengajarModel`
-- **Service:** `PresensiMengajarService`
-- **Controller:** `PresensiMengajar`
-- **View:** `presensi_mengajar_index.php`, `presensi_mengajar_input.php`, `presensi_mengajar_laporan.php`
-- **Tes:** Input semua sesi (termasuk Non Sesi), validasi `id_guru` = session sendiri, revisi hanya Admin/Operator, materi wajib untuk semua status
-
-### Tahap 7 — Laporan & Export
-
-- **Model:** (pakai Model yang sudah ada)
-- **Service:** `LaporanPresensiService`
-- **Controller:** `LaporanPresensi`, `LaporanJurnal`
-- **View:** `laporan_presensi_matrix.php`, `laporan_presensi_export.php`, `laporan_jurnal_index.php`
-- **Tes:** Matrix (Total H\|S\|I\|A dari Sesi Awal saja), Export Bulanan/Semester, Laporan Jurnal filter dinamis Guru→Kelas
-
-### Tahap 8 — BK & Prestasi
-
-- **Model:** `RefPelanggaranModel`, `CatatanKasusModel`, `CatatanPrestasiModel`
-- **Service:** logic ringan, boleh langsung di Model/Controller
-- **Controller:** `BKKasus`, `BKPelanggaran`, `BKPrestasi`
-- **View:** `bk_kasus_list.php`, `bk_kasus_form.php`, `bk_pelanggaran_list.php`, `bk_prestasi_list.php`
-- **Tes:** Audit `updated_at`/`updated_by` pada catatan kasus, master pelanggaran CRUD, prestasi, Top 20 poin, BK dapat akses `/bk/prestasi`
-
-### Tahap 9 — Dashboard
-
-- **Service:** `MenuService` (jika belum ada)
-- **Controller:** `Dashboard`
-- **View:** `dashboard_admin.php`, `dashboard_operator.php`, `dashboard_pimpinan.php`, `dashboard_bk.php`, `dashboard_guru.php`, `dashboard_wali.php`, `dashboard_siswa.php`
-- **Tes:** Semua widget tampil sesuai role & scope, Pimpinan melihat EWS Radar (widget-only, tanpa menu)
-
-### Tahap 10 — Kartu Pelajar
-
-- **Model:** `KartuPelajarModel`
-- **Service:** `KartuPelajarService`
-- **Controller:** `KartuPelajar`
-- **View:** `kartu_pelajar_daftar.php`, `kartu_pelajar_generate.php`, `kartu_pelajar_preview.php`, `kartu_pelajar_verify.php` (publik)
-- **Tes:** Bulk generate, cetak massal per kelas (2×5/A4), QR verifikasi publik, masking NIK (`351012xxxxxx1234`), preview/download, reissue tanpa ubah nomor
-
-### (Sisipan) Profile — bisa setelah Tahap 4
-
-- **Controller:** `ProfileGuru`, `ProfileSiswa`
-- **View:** `profile_guru_view.php`, `profile_siswa_view.php`
-- **Tes:** Guru edit data diri (NIP readonly), Siswa readonly penuh (termasuk NIK)
-
-### Tahap 12 — Settings
-
-- **Model:** `SettingSistemModel`
-- **Controller:** `SettingsUser`, `SettingsMenu`, `SettingsSistem`
-- **View:** `settings_user_index.php`, `settings_menu_index.php`, `settings_sistem_index.php`
-- **Tes:** Reset password (NIP/NISN/username), Menu & Role, Setting Sistem (validasi `type`), Maintenance Mode (kecuali Admin)
-
-### Tahap 13 — Geofencing (Integrasi Ulang & Verifikasi)
-
-- Cek ulang integrasi Haversine di Presensi Siswa & Jurnal
-- **Tes:** Toggle OFF berfungsi, radius 500m akurat, hanya guru mapel dengan status Hadir yang terkunci geofencing
-
-### Tahap 14 — Backup & Log
-
-- **Model:** `LogActivityModel`
-- **Service:** `BackupService`, `LogActivityService`
-- **Controller:** `Backup`, `LogActivity`
-- **View:** `backup_index.php`, `log_activity_index.php`
-- **Tes:** SQL dump PHP murni (tanpa exec/shell), download backup, retensi log 3 tahun
-
-> **Tahap 11 (Cetak Form & Surat) DIHAPUS dari lingkup — dilewati.**
-
-* * *
-
-## Fase 2 — Automated Test (PHPUnit, Paralel)
-
-Ditulis begitu Service terkait selesai — **jangan tunggu sampai akhir proyek**.
-
-| Area | Service | Kapan Ditulis |
-| ------ | --------- | ---------------- |
-| Validasi bentrok jadwal | `JadwalGuruService` | Setelah Tahap 4 |
-| Perhitungan geofencing | `GeofencingService` | Setelah Tahap 5 |
-| Resolusi scope RBAC | `AuthService::resolveScope()` | Setelah Tahap 3 |
-
-Jalankan `php spark test` secara rutin di lokal. Folder `tests/` tidak diupload ke produksi.
-
-* * *
-
-## Fase 3 — Mobile (Cordova)
-
-**Hanya dimulai setelah Tahap 1–15 (web) selesai dan stabil** (`16_MOBILE_CORDOVA` §1).
-
-1. Setup project Cordova, konfigurasi WebView terkunci (no address bar)
-2. Integrasi endpoint API (`/api/...`) yang sudah ada
-3. Implementasi JWT (access 1 jam, refresh 30 hari) + auto-refresh
-4. Plugin: `cordova-plugin-geolocation`, `cordova-plugin-file`, `cordova-plugin-file-transfer`
-5. Build & sideload testing di device Android nyata
-6. Mekanisme cek versi (`/api/version`)
-
-* * *
-
-## Fase 4 — Testing & Polish Akhir (Tahap 15)
-
-- [ ] Semua modul (kecuali Cetak Form & Surat) lolos manual testing per tahap
-- [ ] 3 area PHPUnit lolos secara lokal
-- [ ] README.md instalasi & deploy lengkap, dicoba dari nol
-- [ ] Tidak ada error di console browser / `writable/logs/`
-- [ ] Performa terjaga (DataTables client-side, export selaras filter)
-- [ ] Geofencing teruji indoor/outdoor + toggle OFF
-- [ ] Backup SQL berhasil digenerate & didownload
-- [ ] JWT teruji dengan Postman
-- [ ] Validasi NIK 16 digit (form & import)
-- [ ] Masking NIK di verifikasi publik berfungsi
-- [ ] Wali Kelas bisa edit biodata siswa kelas diampu
-- [ ] Menu Data Guru disembunyikan untuk guru & siswa
-- [ ] PermissionFilter bekerja di semua grup route
-- [ ] Pimpinan tidak punya akses manage/edit di semua modul
-
-* * *
-
-## Ringkasan Alur
-
-```
-Fase 0 (Fondasi)
-   └─ Setup → Assets → Uploads → Database → Config
-        ↓
-Fase 1 (Per Modul — vertikal, checkpoint tiap tahap)
-   └─ Tahap 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 12 → 13 → 14
-        (Model → Service → Filter → Controller → View → TES)
-        ↓
-Fase 2 (PHPUnit — paralel, mengikuti Service terkait)
-        ↓
-Fase 3 (Mobile Cordova — setelah web stabil)
-        ↓
-Fase 4 (Testing & Polish akhir)
+```text
+Model(s)
+   ↓
+Service(s)
+   ↓
+Filter (jika diperlukan)
+   ↓
+Controller(s)
+   ↓
+View(s)
+   ↓
+JavaScript
+   ↓
+Routes
+   ↓
+TEST / CHECKPOINT
 ```
 
-* * *
+Business logic tidak boleh dipindahkan ke View atau JavaScript. Controller harus tipis dan mendelegasikan operasi utama kepada Service.
 
-© 2026 SisisFour · MTsN 4 Jombang · Catatan Pola Pengerjaan
+---
+
+## 2. Aturan Kode Aplikasi
+
+### 2.1 Backend
+
+- Framework: CodeIgniter 4.
+- PHP: 8.2+.
+- Query database menggunakan Query Builder/Model CI4.
+- Raw SQL string concat untuk input user dilarang.
+- Operasi yang mengubah beberapa tabel sekaligus wajib menggunakan transaction.
+- Service menjadi pusat business rule.
+- Model fokus pada representasi tabel, allowed fields, validasi dasar, soft delete, dan helper query lokal.
+- Controller fokus pada request/response, delegasi Service, file response, dan rendering View.
+
+### 2.2 Frontend
+
+Business JavaScript menggunakan:
+
+- Vanilla JavaScript;
+- Fetch API;
+- Bootstrap 5;
+- SweetAlert2;
+- DataTables bila dibutuhkan;
+- Select2 bila dibutuhkan.
+
+jQuery boleh tetap dimuat sebagai dependency vendor/template, tetapi **logic aplikasi baru tidak boleh bergantung pada jQuery**.
+
+Pola request frontend:
+
+```text
+View
+  ↓
+Vanilla JS
+  ↓
+Fetch API
+  ↓
+Route
+  ↓
+PermissionFilter
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Model / Query Builder
+```
+
+### 2.3 CSRF Web
+
+CSRF aktif untuk seluruh route Web.
+
+Semua request mutasi berbasis Fetch:
+
+- POST;
+- PUT;
+- PATCH;
+- DELETE;
+
+wajib membawa CSRF token melalui header global `X-CSRF-TOKEN`.
+
+SisisFour menggunakan wrapper global:
+
+```text
+assets/js/csrf-fetch.js
+```
+
+yang dimuat sebelum JavaScript modul. Wrapper hanya memodifikasi request mutasi same-origin.
+
+Konfigurasi Web menggunakan token stabil selama lifecycle halaman/session cookie agar request AJAX berurutan tidak menggunakan token yang sudah kadaluarsa setelah satu request.
+
+---
+
+## 3. Struktur Dokumen Acuan
+
+Urutan otoritas spesifikasi:
+
+```text
+00_POLA_PENGERJAAN
+        ↓
+01_MASTERPLAN
+        ↓
+02_DATABASE
+        ↓
+03_AUTH_RBAC_MENU
+        ↓
+04_MASTER_DATA
+        ↓
+05_PRESENSI
+        ↓
+06_LAPORAN
+        ↓
+07_BK_PRESTASI_KARTU
+        ↓
+08_DASHBOARD_SETTINGS_BACKUP
+        ↓
+09_PROFILE
+        ↓
+15_TESTING_POLISH
+```
+
+Bila terdapat detail implementasi yang tidak disebut dokumen tingkat atas, gunakan dokumen modul yang paling spesifik.
+
+`Routes.php` adalah kontrak runtime route. Namun route tidak boleh bertentangan dengan dokumen bisnis.
+
+---
+
+## 4. Fase Pengembangan
+
+### Fase 0 — Fondasi
+
+#### 4.1 Setup Project
+
+- CI4 terpasang melalui Composer.
+- Struktur `public/` dipindahkan ke root project sesuai pola deployment.
+- `.htaccess` melindungi `app/`, `writable/`, `vendor/`, `.env`, dan file sensitif lainnya.
+- Timezone `Asia/Jakarta`.
+- Base URL sesuai environment.
+
+#### 4.2 Dependency
+
+Composer:
+
+- PhpSpreadsheet;
+- Dompdf;
+- endroid/qr-code.
+
+Frontend vendor:
+
+- Bootstrap 5;
+- SweetAlert2;
+- DataTables;
+- Select2;
+- ApexCharts bila dibutuhkan dashboard;
+- library template Sneat.
+
+#### 4.3 Struktur Upload
+
+```text
+uploads/
+├── .htaccess
+├── foto_guru/
+├── foto_siswa/
+├── branding/
+└── kartu_pelajar/
+    ├── background_depan/
+    └── background_belakang/
+```
+
+Upload image wajib:
+- tipe yang diizinkan eksplisit;
+- size limit;
+- re-encode;
+- tidak boleh executable;
+- nama file tidak berasal langsung dari input user.
+
+#### 4.4 Database
+
+Database dibangun menggunakan SQL murni berdasarkan `02_DATABASE`.
+
+Tidak menggunakan CI4 migration/seeder sebagai sumber kebenaran.
+
+#### 4.5 Authentication dan RBAC
+
+Fondasi Auth harus selesai sebelum modul bisnis.
+
+Komponen minimum:
+
+```text
+Models:
+- UserModel
+- UserRolesModel
+- LoginAttemptsModel
+- ApiTokensModel
+
+Services:
+- AuthService
+- PermissionService
+- MenuService
+
+Filters:
+- AuthFilter
+- PermissionFilter
+- MaintenanceFilter
+```
+
+Checkpoint:
+- login berhasil;
+- login gagal tercatat;
+- lock username setelah 5 kegagalan berturut-turut;
+- session database;
+- `auth_version`;
+- multi-role;
+- scope resolver;
+- Wali dinamis;
+- menu contextual;
+- route 403 bila tidak memiliki permission.
+
+---
+
+### Fase 1 — Modul Master Data
+
+Urutan implementasi wajib:
+
+```text
+Guru
+↓
+Pegawai
+↓
+Siswa
+↓
+Kelas
+↓
+Tahun Ajaran
+↓
+Mata Pelajaran
+↓
+Mapping Wali Kelas
+↓
+Jadwal Guru
+```
+
+#### 5. Guru
+
+Komponen:
+
+```text
+Model     : GuruModel
+Service   : GuruService
+Controller: MasterGuru
+View      : master/guru.php
+Recycle   : master/guru_recycle.php
+JS        : assets/js/master/guru.js
+            assets/js/master/guru-recycle.js
+```
+
+Checkpoint:
+- CRUD;
+- NIP unik lintas Guru/Pegawai;
+- user otomatis;
+- foto;
+- import/export;
+- soft delete;
+- restore;
+- force delete;
+- user terkait aktif/nonaktif sesuai lifecycle Guru.
+
+#### 6. Pegawai
+
+Checkpoint:
+- CRUD;
+- user otomatis;
+- `users.role` boleh NULL;
+- NIP unik lintas Guru/Pegawai;
+- import/export atomic;
+- soft delete/restore/force delete.
+
+#### 7. Siswa
+
+Checkpoint:
+- NIK 16 digit;
+- NISN unik;
+- user siswa otomatis;
+- Wali hanya kelas diampu;
+- NISN immutable bagi Wali;
+- foto;
+- import/export;
+- mutasi;
+- soft delete/restore/force delete;
+- kartu nonaktif saat Lulus/Pindah/Keluar;
+- histori siswa konsisten.
+
+#### 8. Kelas
+
+Checkpoint:
+- nama kelas otomatis `tingkat-rombel`;
+- satu siswa satu kelas per tahun;
+- kelola anggota kelas;
+- kenaikan kelas;
+- kelulusan tingkat 9;
+- riwayat siswa;
+- dependency sebelum delete;
+- recycle/restore.
+
+#### 9. Tahun Ajaran
+
+Checkpoint:
+- semester Ganjil/Genap;
+- hanya satu record aktif;
+- aktivasi menonaktifkan record sebelumnya;
+- tahun aktif tidak dapat dihapus;
+- dependency diperiksa;
+- restore kembali Nonaktif.
+
+#### 10. Mata Pelajaran
+
+Checkpoint:
+- kode unik;
+- uppercase;
+- hard delete;
+- delete ditolak bila dipakai Jadwal Guru.
+
+#### 11. Mapping Wali Kelas
+
+Checkpoint:
+- Wali bukan role;
+- satu Guru maksimal satu Wali aktif per tahun;
+- satu Kelas maksimal satu Wali aktif per tahun;
+- soft delete sebagai histori;
+- restore/reassign menggunakan row histori lama;
+- scope DIRI_SENDIRI untuk Guru;
+- readonly semua untuk Pimpinan;
+- full untuk Admin/Operator.
+
+#### 12. Jadwal Guru
+
+Checkpoint:
+- hanya import Excel;
+- tidak ada form input manual;
+- validasi Guru/Kelas/Mapel/hari/jam/sesi;
+- bentrok Guru;
+- bentrok Kelas;
+- tidak ada team teaching;
+- import atomic;
+- jadwal aktif lama menjadi Nonaktif;
+- hasil import baru menjadi Aktif;
+- export mengikuti filter;
+- Guru hanya melihat jadwal diri sendiri.
+
+---
+
+### Fase 2 — Finalisasi Integrasi Master Data
+
+Sebelum Presensi dikerjakan, seluruh Master Data wajib melalui integrasi lintas modul.
+
+Area uji:
+
+```text
+Guru ↔ Users/RBAC
+Pegawai ↔ Users/RBAC
+Siswa ↔ Users/RBAC
+Siswa ↔ Anggota Kelas
+Siswa ↔ Riwayat Siswa
+Kelas ↔ Tahun Ajaran
+Guru ↔ Mapping Wali
+Guru ↔ Jadwal
+Kelas ↔ Jadwal
+Mapel ↔ Jadwal
+Tahun Ajaran ↔ seluruh data operasional
+```
+
+CSRF smoke test wajib dilakukan untuk semua POST/PUT/PATCH/DELETE.
+
+Master Data hanya dinyatakan selesai bila:
+- tidak ada 403 CSRF palsu;
+- tidak ada route 404;
+- RBAC benar;
+- scope benar;
+- tidak ada duplicate user;
+- tidak ada duplicate anggota kelas per tahun;
+- tidak ada duplicate mapping aktif;
+- transaction rollback benar;
+- histori tidak putus.
+
+---
+
+### Fase 3 — Presensi
+
+Presensi baru boleh mulai setelah Master Data stabil.
+
+#### 13. Presensi Siswa
+
+Komponen utama:
+
+```text
+PresensiModel
+PresensiService
+GeofencingService
+PresensiSiswa
+Views Presensi Siswa
+JS Presensi Siswa
+```
+
+Checkpoint:
+- Sesi Awal;
+- Sesi Akhir;
+- default Hadir;
+- input bulk per kelas;
+- scope Guru sesuai jadwal;
+- scope Wali sesuai mapping;
+- revisi;
+- time-window;
+- geofencing;
+- snapshot identitas;
+- atomic save;
+- EWS.
+
+#### 14. Presensi Mengajar
+
+Checkpoint:
+- semua sesi jadwal, termasuk Non Sesi;
+- status Hadir/Izin/Sakit;
+- materi wajib;
+- `id_guru` tidak dapat dipalsukan oleh Guru;
+- Admin/Operator boleh atas nama;
+- revisi hanya Admin/Operator;
+- geofencing Hadir Guru;
+- time-window.
+
+---
+
+### Fase 4 — Modul Lanjutan
+
+Urutan:
+
+```text
+Laporan
+↓
+BK & Prestasi
+↓
+Dashboard
+↓
+Kartu Pelajar
+↓
+Profile
+↓
+Settings
+↓
+Backup & Log
+```
+
+Setiap modul mengikuti urutan internal Model → Service → Filter → Controller → View → JS → Route → Test.
+
+---
+
+### Fase 5 — Automated Test
+
+Automated test minimum:
+1. `AuthService::resolveScope()`;
+2. `JadwalGuruService::validateBentrok()`;
+3. `GeofencingService`.
+
+Disarankan menambah test transaction untuk:
+- import Siswa;
+- kenaikan kelas;
+- mapping Wali;
+- import Jadwal;
+- bulk Presensi.
+
+---
+
+### Fase 6 — Mobile
+
+Mobile Cordova hanya dimulai setelah Web stabil.
+
+Mobile menggunakan API terpisah dengan JWT.
+
+CSRF Web tidak digunakan sebagai autentikasi API mobile.
+
+---
+
+### Fase 7 — Testing & Polish
+
+Acuan: `15_TESTING_POLISH`.
+
+Kriteria akhir:
+- semua modul lulus checkpoint;
+- no fatal error;
+- log bersih;
+- fresh install dapat dilakukan dari docs;
+- database fresh install konsisten;
+- RBAC seluruh role teruji;
+- geofencing teruji;
+- backup berhasil;
+- export sesuai filter;
+- semua route protected;
+- dokumentasi deployment lengkap.
+
+---
+
+## 15. Aturan Git
+
+Sebelum push:
+
+```powershell
+git status
+git add -A
+git commit -m "pesan perubahan"
+git push origin main
+```
+
+Tidak boleh commit:
+
+```text
+.env
+uploads/*
+writable/logs/*
+writable/backups/*
+file credential
+file temporary export/import
+```
+
+Setelah push, `git status` harus menunjukkan working tree clean.
+
+---
+
+## 16. Aturan Penyerahan File
+
+Untuk setiap file aplikasi yang diperbaiki:
+- berikan file utuh;
+- jangan hanya snippet;
+- jangan menghilangkan route/modul lama;
+- PHP wajib `php -l`;
+- JavaScript wajib `node --check`;
+- bila beberapa file, paketkan ZIP.
+
+---
+
+## 17. Definisi Selesai
+
+Sebuah modul dinyatakan selesai hanya jika:
+1. business rule terdokumentasi;
+2. schema mendukung;
+3. permission tersedia;
+4. route tersedia;
+5. Service menjalankan rule;
+6. UI hanya menampilkan aksi yang diizinkan;
+7. direct route tetap dijaga Filter/Service;
+8. mutation terlindungi CSRF;
+9. error handling jelas;
+10. checkpoint manual lulus.

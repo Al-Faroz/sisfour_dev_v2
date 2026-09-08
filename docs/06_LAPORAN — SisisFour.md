@@ -1,194 +1,126 @@
 # 📊 Laporan & Export — SisisFour
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-Dokumen ini mengatur seluruh mekanisme pelaporan SisisFour: **Matrix Presensi**, **Export Presensi**, dan **Laporan Jurnal Mengajar**. Aturan akses wajib mengikuti RBAC v4.0 dan status Wali Kelas yang bersifat dinamis.
+Dokumen ini menetapkan seluruh aturan bisnis, scope, filter, struktur data, export, histori, dan audit untuk modul **Matrix Presensi**, **Export Presensi**, dan **Laporan Jurnal Mengajar**.
+
+Dokumen ini harus dibaca bersama:
+
+```text
+02_DATABASE
+03_AUTH_RBAC_MENU
+04_MASTER_DATA
+05_PRESENSI
+```
+
+Semua laporan wajib membaca data dari sumber operasional final dan tidak boleh membuat perhitungan yang berbeda dari aturan Presensi.
 
 ---
 
-## 1. Prinsip Dasar
+# BAGIAN A — PRINSIP UMUM
 
-1. **Presensi resmi** untuk laporan adalah **Sesi Awal (`AWAL`)**.
-2. **Sesi Akhir (`AKHIR`)** hanya merupakan data dokumentasi tambahan dan tidak masuk perhitungan Matrix, rekap resmi, atau EWS.
-3. Seluruh laporan wajib mengikuti **scope permission** user.
-4. **Guru Biasa (non-Wali)** tidak memiliki fitur Matrix maupun laporan/Export Presensi.
-5. **Wali Kelas** hanya dapat melihat/menghasilkan laporan untuk **kelas yang sedang menjadi kelas walinya** pada tahun ajaran aktif.
-6. **Pimpinan** dapat melihat seluruh laporan secara **read-only**.
-7. **Admin dan Operator** memiliki akses administratif penuh.
-8. **BK** tidak memiliki akses laporan presensi maupun laporan jurnal.
-9. Export tidak boleh tersedia tanpa permission view yang relevan.
+## 1. Sumber Presensi Resmi
+
+Perhitungan resmi Presensi Siswa hanya menggunakan:
+
+```text
+presensi.sesi = 'Sesi Awal'
+```
+
+Status:
+
+```text
+Hadir
+Sakit
+Izin
+Alpha
+```
+
+`Sesi Akhir` adalah dokumentasi tambahan dan:
+
+- tidak masuk Matrix resmi;
+- tidak masuk rekap H/S/I/A resmi;
+- tidak masuk EWS;
+- tidak memengaruhi total ketidakhadiran semester.
 
 ---
 
-## 2. Hak Akses Laporan
+## 2. Sumber Data Historis
 
-| Fitur | Admin | Operator | Pimpinan | BK | Guru Biasa | Wali Kelas | Siswa |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Matrix Presensi | Full | Full | Semua, readonly | — | — | Kelas Wali | — |
-| Export Presensi Bulanan | Full | Full | Semua, readonly | — | — | Kelas Wali | — |
-| Export Presensi Semester | Full | Full | Semua, readonly | — | — | Kelas Wali | — |
-| Laporan Jurnal | Semua | Semua | Semua, readonly | — | — | Diri sendiri | — |
-| Export Jurnal | Semua | Semua | Semua | — | — | Diri sendiri | — |
+Laporan tidak boleh hanya mengandalkan kondisi Master Data saat ini.
 
-### Penjelasan
+Data historis dapat berasal dari:
 
-- **Full/SEMUA:** tidak dibatasi kelas.
-- **Kelas Wali:** hanya siswa dan presensi pada kelas yang sedang diwalikan.
-- **Diri sendiri:** hanya jurnal milik guru yang sedang login.
-- Tanda `—` berarti tidak memiliki akses.
+```text
+presensi
+presensi_mengajar
+riwayat_siswa
+jadwal_guru
+tahun_ajaran
+kelas
+```
+
+Snapshot yang tersimpan pada Presensi/Jurnal harus diprioritaskan untuk identitas historis bila diperlukan.
+
+Contoh:
+
+```text
+nama_siswa_snapshot
+nama_guru_snapshot
+```
 
 ---
 
-# 3. Matrix Presensi
+## 3. Scope
 
-## 3.1 Tujuan
+Semua laporan wajib memakai `AuthService::resolveScope()`.
 
-Matrix memberikan gambaran kehadiran siswa per tanggal dalam satu bulan.
-
-### Sumber data
+Scope relevan:
 
 ```text
-presensi_harian.sesi = 'AWAL'
+SEMUA
+KELAS_DIAMPU
+DIRI_SENDIRI
+TIDAK_ADA
 ```
 
-### Status
+`KELAS_TERJADWAL` tidak digunakan untuk Matrix dan Export Presensi.
 
-```text
-H = Hadir
-S = Sakit
-I = Izin
-A = Alpha
-```
+Guru biasa tidak memperoleh Matrix/Export Presensi hanya karena pernah mengajar kelas tersebut.
 
-Status `AKHIR` tidak boleh masuk perhitungan Matrix.
+---
 
-## 3.2 Struktur
+# BAGIAN B — HAK AKSES
 
-Kolom utama:
+## 4. Matriks Akses
 
-```text
-No
-NISN
-Nama Siswa
-H
-S
-I
-A
-01
-02
-03
-...
-31
-```
+| Fitur | Admin | Operator | Pimpinan | BK | Guru | Wali | Siswa |
+|---|---|---|---|---|---|---|---|
+| Matrix Presensi | Semua | Semua | Semua readonly | — | — | Kelas Wali | — |
+| Export Bulanan | Semua | Semua | Semua sesuai permission | — | — | Kelas Wali | — |
+| Export Semester | Semua | Semua | Semua sesuai permission | — | — | Kelas Wali | — |
+| Laporan Jurnal | Semua | Semua | Semua readonly | — | Diri | Diri | — |
+| Export Jurnal | Semua | Semua | Semua sesuai permission | — | Diri | Diri | — |
 
-Setiap tanggal menampilkan status `H/S/I/A`.
+---
 
-Total status dipisahkan menjadi:
+## 5. Permission
 
-```text
-H | S | I | A
-```
-
-## 3.3 Filter
-
-Untuk halaman Matrix:
-
-- Kelas
-- Bulan
-- Tahun ajaran aktif otomatis
-
-User tidak boleh memilih kelas di luar scope yang dimilikinya.
-
-### Aturan scope
-
-**Admin/Operator**
-
-- Dapat memilih seluruh kelas.
-
-**Pimpinan**
-
-- Dapat memilih seluruh kelas.
-- Seluruh halaman bersifat readonly.
-
-**Wali Kelas**
-
-- Dropdown kelas hanya berisi kelas yang sedang diwalikan.
-- Tidak boleh mengakses Matrix kelas lain.
-
-**Guru Biasa**
-
-- Tidak mempunyai akses Matrix.
-
-**BK/Siswa**
-
-- Tidak mempunyai akses Matrix.
-
-## 3.4 Permission
+### Matrix
 
 ```text
 laporan_matrix.view
 ```
 
-Scope yang sah:
+Scope:
 
 ```text
 SEMUA
 KELAS_DIAMPU
 ```
 
-`KELAS_TERJADWAL` **tidak digunakan** untuk Matrix.
-
----
-
-# 4. Export Presensi Bulanan
-
-## 4.1 Tujuan
-
-Menghasilkan rekap presensi seorang/seluruh siswa dalam satu bulan berdasarkan kelas yang dipilih.
-
-## 4.2 Struktur Data
-
-Kolom:
-
-1. No
-2. NISN
-3. Nama Siswa
-4. Kelas
-5. Total H
-6. Total S
-7. Total I
-8. Total A
-9. Tanggal 1–31
-
-Pada export bulanan, setiap tanggal dapat memiliki:
-
-```text
-AW | AK
-```
-
-Contoh:
-
-```text
-01 Aug
-AW = H
-AK = H
-
-02 Aug
-AW = A
-AK = -
-```
-
-### Aturan perhitungan
-
-Total:
-
-```text
-H/S/I/A = hanya dari AWAL
-```
-
-`AKHIR` hanya informasi tambahan.
-
-## 4.3 Permission
+### Export Presensi
 
 ```text
 laporan_export.generate
@@ -201,147 +133,460 @@ SEMUA
 KELAS_DIAMPU
 ```
 
-Export Wali Kelas wajib dibatasi ke kelas walinya.
+User juga harus mempunyai hak view terhadap data yang diekspor.
 
-### Aturan penting
-
-Permission export tidak boleh dipakai sendirian. Sebelum menghasilkan file, aplikasi wajib memastikan user juga memiliki akses view terhadap laporan yang diekspor.
-
----
-
-# 5. Export Presensi Semester
-
-## 5.1 Struktur
-
-Rekap satu semester dengan perhitungan:
+### Laporan Jurnal
 
 ```text
-Total H | S | I | A
+laporan_jurnal.view
 ```
-
-serta rincian per bulan:
-
-```text
-Juli
-H | S | I | A
-
-Agustus
-H | S | I | A
-
-...
-```
-
-Seluruh angka dihitung dari:
-
-```text
-sesi = AWAL
-```
-
-Data `AKHIR` tidak ditampilkan dalam laporan semester.
-
-## 5.2 Semester
-
-| Semester | Periode |
-| --- | --- |
-| Ganjil | Juli–Desember |
-| Genap | Januari–Juni |
-
-Periode mengikuti konfigurasi Tahun Ajaran aktif.
-
----
-
-# 6. Laporan Jurnal Mengajar
-
-## 6.1 Tujuan
-
-Menampilkan histori Presensi Mengajar/jurnal guru.
-
-Kolom:
-
-```text
-Tanggal
-Hari
-Jam
-Guru
-Kelas
-Mapel
-Status
-Materi
-```
-
-## 6.2 Hak Akses
-
-### Admin/Operator
-
-Dapat:
-
-- memilih guru,
-- memilih kelas berdasarkan guru,
-- melihat seluruh jurnal,
-- melakukan export.
 
 Scope:
 
 ```text
 SEMUA
-```
-
-### Pimpinan
-
-Dapat melihat seluruh jurnal secara readonly.
-
-Tidak dapat:
-
-- mengedit jurnal,
-- merevisi jurnal.
-
-### Guru Biasa
-
-Dapat melihat jurnal **diri sendiri** sesuai data yang telah tersimpan dan permission laporan jurnal yang diberikan.
-
-Tidak dapat melihat jurnal guru lain.
-
-### Wali Kelas
-
-Status Wali Kelas **tidak mengubah scope jurnal menjadi KELAS_DIAMPU**.
-
-Wali tetap melihat jurnalnya sendiri sebagai guru:
-
-```text
 DIRI_SENDIRI
 ```
 
-Kelas yang muncul adalah kelas yang memang diajar oleh guru tersebut.
-
-### BK/Siswa
-
-Tidak memiliki akses laporan jurnal.
-
----
-
-# 7. Export Jurnal
-
-Export mengikuti filter Laporan Jurnal.
-
-Permission:
+### Export Jurnal
 
 ```text
 laporan_jurnal.export
 ```
 
-Aturan:
+Scope:
 
-- Guru hanya dapat export jurnal sendiri.
-- Wali tetap hanya export jurnal sendiri.
-- Pimpinan dapat export seluruh jurnal.
-- Admin/Operator dapat export seluruh jurnal.
-- Guru tidak dapat menggunakan export untuk membaca jurnal guru lain.
+```text
+SEMUA
+DIRI_SENDIRI
+```
 
 ---
 
-# 8. Identitas Siswa pada Laporan
+# BAGIAN C — MATRIX PRESENSI
 
-Laporan menggunakan:
+## 6. Tujuan
+
+Matrix menampilkan status Presensi resmi siswa per tanggal dalam satu bulan.
+
+Sumber:
+
+```text
+presensi
+WHERE sesi = 'Sesi Awal'
+```
+
+---
+
+## 7. Struktur Matrix
+
+Kolom:
+
+```text
+No
+NISN
+Nama Siswa
+Kelas
+H
+S
+I
+A
+01
+02
+03
+...
+31
+```
+
+Isi tanggal:
+
+```text
+H
+S
+I
+A
+-
+```
+
+Mapping:
+
+```text
+H = Hadir
+S = Sakit
+I = Izin
+A = Alpha
+- = tidak ada record / bukan hari efektif / belum menjadi anggota
+```
+
+Tanda `-` tidak boleh otomatis dianggap Alpha.
+
+---
+
+## 8. Membership Historis
+
+Matrix harus menghormati periode keanggotaan siswa.
+
+Jika siswa masuk kelas di tengah semester:
+
+- tanggal sebelum `riwayat_siswa.tanggal_mulai` tidak dihitung Alpha;
+- siswa tetap dapat muncul di Matrix periode setelah masuk;
+- laporan historis lama tetap dapat menampilkan siswa walaupun status saat ini Lulus/Pindah/Keluar.
+
+Jika siswa keluar dari kelas:
+
+- tanggal setelah `tanggal_selesai` tidak boleh dianggap Alpha untuk kelas lama.
+
+---
+
+## 9. Hari Efektif
+
+Matrix hanya menampilkan status yang benar-benar ada pada tabel Presensi.
+
+Dokumen ini tidak mendefinisikan tabel kalender akademik terpisah.
+
+Karena itu:
+
+- hari tanpa record tidak otomatis dinilai Alpha;
+- penentuan hari efektif tidak boleh ditebak hanya dari Senin–Minggu;
+- jika kelak dibuat Kalender Akademik, laporan dapat menggunakannya sebagai sumber tambahan.
+
+---
+
+## 10. Filter Matrix
+
+Filter wajib:
+
+```text
+Kelas
+Bulan
+Tahun Ajaran / Semester
+```
+
+Default:
+
+```text
+tahun_ajaran.status_aktif = 1
+```
+
+Admin/Operator/Pimpinan dapat memilih kelas sesuai seluruh scope.
+
+Wali:
+
+```text
+dropdown kelas = kelas Wali aktif
+```
+
+Direct URL dengan kelas lain harus ditolak.
+
+---
+
+## 11. Query Matrix
+
+Service sebaiknya memisahkan:
+
+```text
+resolveScope()
+resolveKelas()
+resolveMembership()
+ambilPresensiBulanan()
+buildMatrix()
+```
+
+Tidak boleh membuat query per siswa × tanggal yang menghasilkan N+1 besar.
+
+Lebih baik mengambil dataset satu periode lalu membentuk Matrix di Service.
+
+---
+
+# BAGIAN D — EXPORT PRESENSI BULANAN
+
+## 12. Tujuan
+
+Menghasilkan file rekap Presensi satu kelas dalam satu bulan.
+
+---
+
+## 13. Format
+
+Kolom dasar:
+
+```text
+No
+NISN
+Nama Siswa
+Kelas
+Total Hadir
+Total Sakit
+Total Izin
+Total Alpha
+Tanggal 01
+Tanggal 02
+...
+Tanggal 31
+```
+
+Untuk export bulanan, tiap tanggal boleh menampilkan dua informasi:
+
+```text
+AW = Sesi Awal
+AK = Sesi Akhir
+```
+
+Contoh:
+
+```text
+01
+AW: H
+AK: H
+```
+
+atau:
+
+```text
+02
+AW: A
+AK: -
+```
+
+Total H/S/I/A tetap hanya menggunakan Sesi Awal.
+
+---
+
+## 14. Format File
+
+Format minimum:
+
+```text
+XLSX
+```
+
+PDF dapat ditambahkan bila dibutuhkan, tetapi tidak menggantikan XLSX sebagai export data utama.
+
+Nama file disarankan:
+
+```text
+presensi_bulanan_{kelas}_{tahun}_{bulan}.xlsx
+```
+
+---
+
+## 15. Metadata Header
+
+File dapat memuat:
+
+```text
+Nama Madrasah
+Tahun Ajaran
+Semester
+Kelas
+Bulan
+Tanggal Generate
+```
+
+Data generator/user tidak wajib ditampilkan di file, tetapi tetap dicatat di audit.
+
+---
+
+# BAGIAN E — EXPORT PRESENSI SEMESTER
+
+## 16. Periode Semester
+
+```text
+Ganjil → Juli–Desember
+Genap  → Januari–Juni
+```
+
+Acuan semester berasal dari:
+
+```text
+tahun_ajaran.semester
+```
+
+---
+
+## 17. Struktur
+
+Per siswa:
+
+```text
+NISN
+Nama
+Kelas
+Total H
+Total S
+Total I
+Total A
+```
+
+Lalu rincian per bulan:
+
+```text
+Juli    H S I A
+Agustus H S I A
+...
+```
+
+Hanya `Sesi Awal`.
+
+---
+
+## 18. Siswa Historis Semester
+
+Siswa yang:
+
+```text
+Pindah
+Keluar
+Lulus
+```
+
+tetap dapat muncul bila mempunyai Presensi pada semester tersebut.
+
+Jangan memfilter semester hanya berdasarkan:
+
+```text
+siswa.status_aktif = 'Aktif'
+```
+
+---
+
+# BAGIAN F — LAPORAN JURNAL MENGAJAR
+
+## 19. Sumber
+
+```text
+presensi_mengajar
+JOIN jadwal_guru
+JOIN kelas
+JOIN mata_pelajaran
+```
+
+Snapshot Guru tetap dipakai untuk histori.
+
+---
+
+## 20. Kolom
+
+```text
+Tanggal
+Hari
+Jam
+NIP
+Guru
+Kelas
+Kode Mapel
+Mata Pelajaran
+Sesi
+Status
+Materi
+Tahun Ajaran
+Semester
+```
+
+Status:
+
+```text
+Hadir
+Izin
+Sakit
+```
+
+---
+
+## 21. Filter
+
+Admin/Operator/Pimpinan:
+
+```text
+Guru
+Kelas
+Tahun Ajaran
+Hari
+Status
+Tanggal Awal
+Tanggal Akhir
+```
+
+Guru/Wali:
+
+```text
+Guru = diri sendiri, fixed
+Kelas = hanya kelas yang pernah/masih diajar sesuai dataset
+Tahun
+Hari
+Status
+Tanggal
+```
+
+---
+
+## 22. Scope Jurnal
+
+Wali tidak mendapatkan `KELAS_DIAMPU` untuk Laporan Jurnal.
+
+Wali tetap:
+
+```text
+DIRI_SENDIRI
+```
+
+karena Jurnal adalah catatan aktivitas mengajar Guru.
+
+---
+
+## 23. Jadwal Nonaktif
+
+Jurnal historis yang merujuk Jadwal Nonaktif tetap ditampilkan.
+
+Jangan memfilter laporan historis hanya:
+
+```text
+jadwal_guru.status_jadwal = 'Aktif'
+```
+
+Status Jadwal aktif hanya relevan untuk input baru, bukan histori.
+
+---
+
+# BAGIAN G — EXPORT JURNAL
+
+## 24. Aturan
+
+Export harus memakai filter yang sama dengan halaman laporan.
+
+Guru/Wali:
+
+```text
+hanya jurnal dirinya
+```
+
+Pimpinan/Admin/Operator:
+
+```text
+SEMUA sesuai permission
+```
+
+---
+
+## 25. Format
+
+XLSX minimum.
+
+Nama file:
+
+```text
+laporan_jurnal_{periode}.xlsx
+```
+
+Kolom sama dengan tampilan atau subset yang tetap mencukupi audit.
+
+---
+
+# BAGIAN H — IDENTITAS DAN PRIVASI
+
+## 26. Identitas Siswa
+
+Laporan Presensi menggunakan:
 
 ```text
 NISN
@@ -349,71 +594,200 @@ Nama Siswa
 Kelas
 ```
 
-NIK tidak perlu ditampilkan karena merupakan data identitas sensitif dan bukan kebutuhan utama laporan presensi.
+NIK tidak ditampilkan karena bukan kebutuhan laporan Presensi.
 
 ---
 
-# 9. Data Historis
+## 27. Data Sensitif
 
-Siswa yang sudah tidak aktif tetap dapat muncul pada laporan historis apabila mempunyai data presensi pada periode yang sedang ditarik.
+Jangan export:
 
-Jangan memfilter laporan historis hanya dengan:
+- password;
+- password hash;
+- token;
+- NIK bila tidak dibutuhkan;
+- data keluarga siswa;
+- alamat lengkap;
+- data BK.
+
+---
+
+# BAGIAN I — AUDIT
+
+## 28. Log Export
+
+Setiap export penting wajib dicatat ke:
 
 ```text
-is_active = 1
+log_activity
 ```
 
-Relasi harus tetap mempertahankan histori presensi.
-
----
-
-# 10. Export dan Audit
-
-Setiap export wajib mencatat:
+Kolom schema:
 
 ```text
 id_user
-permission
-jenis_laporan
-filter
+aksi
+modul
+keterangan
 waktu
 ```
 
-Audit harus masuk ke mekanisme log aktivitas SisisFour.
+Contoh:
+
+```text
+aksi = EXPORT
+modul = Laporan Presensi
+keterangan = Export bulanan kelas 7-A Agustus 2026
+```
+
+Filter dapat ditulis ringkas di `keterangan`.
+
+Tidak membuat schema log kedua.
 
 ---
 
-# 11. Dual Output
+# BAGIAN J — DUAL OUTPUT
 
-Halaman laporan mendukung:
+## 29. HTML dan JSON
+
+Halaman laporan dapat mendukung:
 
 ```text
 HTML
 JSON
 ```
 
-melalui parameter:
+Contoh:
 
 ```text
 ?format=json
 ```
 
-Business logic harus berada di Service, bukan duplikasi di Controller.
+Authorization HTML dan JSON harus identik.
+
+JSON tidak boleh mengirim data di luar scope.
 
 ---
 
-# 12. Catatan Developer
+# BAGIAN K — SERVICE
 
-1. Jangan menggunakan `KELAS_TERJADWAL` untuk Matrix.
-2. Jangan memberikan menu laporan kepada Guru Biasa.
-3. Jangan memberikan export tanpa view.
-4. Scope Wali selalu berasal dari mapping Wali Kelas aktif.
-5. Pimpinan selalu readonly.
-6. Semua query laporan wajib menerapkan scope sebelum data dikembalikan.
-7. `AWAL` adalah satu-satunya sumber perhitungan resmi H/S/I/A.
-8. Export wajib mengikuti filter yang aktif.
-9. Endpoint JSON harus menerapkan authorization yang sama dengan halaman HTML.
+## 30. Service yang Disarankan
+
+```text
+LaporanPresensiService
+LaporanJurnalService
+ExportService
+```
+
+Tanggung jawab:
+
+### `LaporanPresensiService`
+- Matrix;
+- rekap bulanan;
+- rekap semester;
+- membership historis;
+- scope.
+
+### `LaporanJurnalService`
+- daftar jurnal;
+- filter;
+- scope diri/semua;
+- histori Jadwal.
+
+### `ExportService`
+- format XLSX/PDF;
+- filename;
+- metadata;
+- audit export.
 
 ---
 
-© 2026 SisisFour · MTsN 4 Jombang · Laporan & Export Final
+# BAGIAN L — PERFORMANCE
+
+## 31. Query
+
+Gunakan index:
+
+```text
+presensi(id_tahun, tanggal, sesi, status)
+presensi(id_siswa, tanggal)
+presensi_mengajar(id_guru, tanggal)
+```
+
+Hindari:
+
+```text
+query satu siswa per loop
+query satu tanggal per loop
+```
+
+Untuk Matrix, ambil seluruh periode dalam query terkontrol.
+
+---
+
+# BAGIAN M — ERROR RULE
+
+## 32. Server Harus Menolak
+
+- kelas di luar scope;
+- tahun tidak valid;
+- permission export tanpa view;
+- Guru biasa mencoba Matrix;
+- Wali mencoba kelas bukan Wali;
+- Guru export jurnal Guru lain;
+- tanggal awal > tanggal akhir;
+- format bulan tidak valid.
+
+---
+
+# BAGIAN N — CHECKPOINT
+
+## 33. Matrix
+
+- hanya Sesi Awal;
+- total benar;
+- membership historis benar;
+- scope Wali benar;
+- Pimpinan readonly;
+- Guru biasa tidak akses;
+- tidak ada N+1 berat.
+
+## 34. Export Bulanan
+
+- AW masuk total;
+- AK hanya informasi;
+- filter sama;
+- scope sama;
+- XLSX valid;
+- audit tercatat.
+
+## 35. Export Semester
+
+- hanya AW;
+- periode semester benar;
+- siswa historis tetap muncul;
+- total bulanan = total semester.
+
+## 36. Jurnal
+
+- histori Jadwal Nonaktif tetap terlihat;
+- Guru hanya diri;
+- Wali hanya diri;
+- Pimpinan/Admin/Operator semua;
+- export mengikuti filter.
+
+---
+
+# 37. Kriteria Selesai
+
+Modul Laporan dinyatakan selesai bila:
+
+1. seluruh angka bersumber dari data Presensi final;
+2. Sesi Akhir tidak masuk perhitungan resmi;
+3. scope RBAC dijaga Service;
+4. export sama dengan filter layar;
+5. histori tidak hilang karena status Master berubah;
+6. tidak ada kebocoran NIK/BK;
+7. log export tercatat;
+8. HTML dan JSON konsisten;
+9. Matrix dan semester lulus regression test.

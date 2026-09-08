@@ -3,6 +3,15 @@
 <title><?= isset($pageTitle) ? esc($pageTitle) . ' | ' : '' ?>SisisFour - MTsN 4 Jombang</title>
 <meta name="description" content="SisisFour - Sistem Informasi Manajemen Madrasah MTsN 4 Jombang" />
 
+<!--
+  CSRF untuk seluruh halaman yang memakai layout utama.
+  csrf-fetch.js akan memasukkan hash ini ke header X-CSRF-TOKEN pada
+  request POST/PUT/PATCH/DELETE same-origin.
+-->
+<meta name="csrf-token-name" content="<?= esc(csrf_token()) ?>" />
+<meta name="csrf-token" content="<?= esc(csrf_hash()) ?>" />
+<meta name="csrf-header-name" content="X-CSRF-TOKEN" />
+
 <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/favicon/favicon.ico') ?>" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />

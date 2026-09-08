@@ -1,180 +1,594 @@
-# Masterplan SisisFour — MTsN 4 Jombang
+# 🏫 Masterplan SisisFour — MTsN 4 Jombang
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-* * *
+---
 
-## 1. Pendahuluan
+# 1. Identitas Sistem
 
-SisisFour adalah aplikasi manajemen madrasah terpadu yang mencakup presensi siswa, jurnal mengajar guru, bimbingan konseling (BK), pencatatan prestasi, dan kartu pelajar digital untuk MTsN 4 Jombang. Sistem dibangun dari nol menggunakan CodeIgniter 4 dengan pendekatan arsitektur yang bersih dan aman.
+**SisisFour** adalah Sistem Informasi Manajemen Madrasah untuk MTsN 4 Jombang yang mengintegrasikan data master, presensi siswa, jurnal mengajar, laporan, BK, prestasi, kartu pelajar, dashboard, profile, settings, backup, log aktivitas, dan kebutuhan mobile.
 
-### 1.1 Tujuan
+Sistem dibangun sebagai aplikasi terpusat dengan satu database utama dan sistem authorization berbasis role + permission + scope.
 
-- Menyediakan sistem informasi terpadu untuk seluruh warga madrasah.
-- Menggantikan sistem lama yang sudah tidak memadai dengan arsitektur yang modern dan terukur.
-- Mendukung dual-output (HTML + JSON) untuk kebutuhan web dan mobile (Cordova).
-- Menjamin integritas data dan keamanan akses melalui sistem RBAC yang ketat.
+---
 
-### 1.2 Lingkup Proyek
+# 2. Tujuan
 
-| Dalam Lingkup                                                           | Di Luar Lingkup        |
-|-------------------------------------------------------------------------|------------------------|
-| Aplikasi web full-featured (Admin, Operator, Pimpinan, BK, Guru, Siswa) | Push notification      |
-| Aplikasi mobile (Cordova) untuk Guru, Pimpinan, BK, Siswa               | Mode offline           |
-| Manajemen data master (guru, pegawai, siswa, kelas, tahun ajaran)       | Integrasi Dapodik/EMIS |
-| Presensi siswa &amp; guru, jurnal mengajar, BK, prestasi                |                        |
-| Kartu pelajar digital dengan verifikasi QR                              |                        |
-| Laporan &amp; ekspor data (Excel/PDF)                                   |                        |
-| Dashboard per role &amp; sistem pendukung keputusan (EWS Radar)         |                        |
+SisisFour dirancang untuk:
 
-* * *
+1. menyediakan satu sumber data sekolah;
+2. mengurangi input berulang;
+3. menjaga histori siswa;
+4. mendukung pengelolaan kelas per tahun ajaran;
+5. mendukung Presensi Siswa dan Presensi Mengajar;
+6. menyediakan laporan operasional;
+7. menjaga otorisasi secara granular;
+8. mendukung Web dan Mobile;
+9. menjaga keamanan data;
+10. dapat dipelihara oleh tim administrasi sekolah dengan struktur kode yang sederhana.
 
-## 2. Stack Teknis
+---
 
-| Komponen              | Teknologi                                                         |
-|-----------------------|-------------------------------------------------------------------|
-| Framework             | CodeIgniter 4 (Composer, versi stabil terbaru)                    |
-| PHP                   | 8.2.12                                                            |
-| Database              | MySQL (XAMPP lokal / Produksi)                                    |
-| UI                    | Sneat Free (Bootstrap 5) + jQuery                                 |
-| Library Frontend      | DataTables (Server-side/Client-side hybrid), Select2, SweetAlert2 |
-| Composer              | PhpSpreadsheet (Excel), Dompdf (PDF), endroid/qr-code             |
-| Session               | Database session (`ci_sessions`)                                  |
-| Backup                | SQL dump murni PHP (tanpa exec/shell)                             |
-| Authentication Mobile | JWT (1 jam expiry + Refresh Token 30 hari)                        |
+# 3. Lingkup Sistem
 
-* * *
+## 3.1 Dalam Lingkup
 
-## 3. Spesifikasi Hosting Produksi
+- Authentication Web;
+- JWT Mobile;
+- RBAC;
+- Dashboard;
+- Guru;
+- Pegawai;
+- Siswa;
+- Kelas;
+- Tahun Ajaran;
+- Mata Pelajaran;
+- Mapping Wali;
+- Jadwal Guru;
+- Presensi Siswa;
+- Presensi Mengajar/Jurnal;
+- Laporan;
+- EWS;
+- BK;
+- Prestasi;
+- Kartu Pelajar;
+- Profile;
+- Settings;
+- Backup;
+- Log Activity;
+- export Excel/PDF;
+- Mobile Cordova.
 
-- CPU: 1 core, RAM: 2GB
-- `max_execution_time`: 360 detik
-- `memory_limit`: 1536MB
-- `exec()` / `shell_exec()`: **disabled** (backup pakai SQL dump PHP murni)
-- **Timezone:** `Asia/Jakarta` (wajib diset di `app/Config/App.php`)
+## 3.2 Di Luar Lingkup
 
-**Catatan:** Cetak massal Kartu Pelajar dibatasi per kelas, import Excel bertahap per kelas untuk menghindari memory limit.
+- integrasi Dapodik;
+- integrasi EMIS;
+- offline-first sync;
+- push notification wajib;
+- payroll;
+- keuangan sekolah;
+- LMS lengkap.
 
-* * *
+---
 
-## 4. Standar UI/UX
+# 4. Stack Teknis
 
-- **Tabel data:** Menggunakan DataTables. Untuk data master kecil (&lt; 500 row) menggunakan client-side. Untuk data transaksi besar (presensi, log, riwayat) menggunakan server-side processing.
-- **Responsive:** Plugin **Responsive** aktif (collapse ke tombol `+` di layar kecil).
-- **Filter + Export selaras:** Export WAJIB mengikuti filter aktif di layar.
-- **Frontend:** Menggunakan jQuery karena terintegrasi penuh dengan template Sneat.
+| Komponen | Teknologi |
+|---|---|
+| Framework | CodeIgniter 4 |
+| PHP | 8.2+ |
+| Database | MariaDB/MySQL |
+| Local | XAMPP |
+| UI | Sneat Free + Bootstrap 5 |
+| JavaScript aplikasi | Vanilla JS |
+| HTTP frontend | Fetch API |
+| Table | DataTables |
+| Dialog | SweetAlert2 |
+| Dropdown lanjutan | Select2 bila dibutuhkan |
+| Chart | ApexCharts/Chart library sesuai modul |
+| Excel | PhpSpreadsheet |
+| PDF | Dompdf |
+| QR | endroid/qr-code |
+| Session Web | Database (`ci_sessions`) |
+| Mobile Auth | JWT |
+| Timezone | Asia/Jakarta |
 
-* * *
+jQuery boleh tersedia sebagai dependency vendor/template, tetapi business JavaScript SisisFour menggunakan Vanilla JS + Fetch.
 
-## 5. Struktur Folder Final
+---
 
+# 5. Arsitektur Aplikasi
+
+```text
+Browser / Mobile
+       ↓
+Routes
+       ↓
+AuthFilter
+       ↓
+PermissionFilter
+       ↓
+Controller
+       ↓
+Service
+       ↓
+Model / Query Builder
+       ↓
+MariaDB/MySQL
 ```
-sisfour_dev/                          (root project)
-├── index.php                         (front controller CI4)
-├── .htaccess                         (proteksi app/, writable/, vendor/, .env)
-├── assets/                           (aset statis tema Sneat)
+
+## 5.1 Controller
+
+Controller bertanggung jawab untuk:
+- membaca request;
+- upload file;
+- memanggil Service;
+- menentukan HTML/JSON;
+- menghasilkan download;
+- mengembalikan status HTTP.
+
+Controller tidak boleh menjadi lokasi business rule utama.
+
+## 5.2 Service
+
+Service adalah pusat:
+- authorization data-level;
+- transaction;
+- validasi relasi;
+- side effect antar tabel;
+- import/export;
+- status lifecycle;
+- histori;
+- duplicate prevention.
+
+## 5.3 Model
+
+Model menangani:
+- nama tabel;
+- primary key;
+- allowed fields;
+- timestamp;
+- soft delete;
+- validasi dasar;
+- helper query sederhana.
+
+---
+
+# 6. Struktur Folder
+
+```text
+sisfour_dev_v2/
+├── app/
+│   ├── Config/
+│   │   ├── App.php
+│   │   ├── Database.php
+│   │   ├── Filters.php
+│   │   ├── Routes.php
+│   │   ├── Security.php
+│   │   └── Session.php
+│   ├── Controllers/
+│   ├── Filters/
+│   ├── Models/
+│   ├── Services/
+│   └── Views/
+│       ├── main.php
+│       ├── _header.php
+│       ├── _scripts.php
+│       ├── _sidebar.php
+│       └── master/
+├── assets/
 │   ├── css/
 │   ├── js/
-│   ├── vendor/
-│   └── img/
-├── uploads/                          (upload dinamis — TIDAK ikut Git)
-│   ├── .htaccess                     (blokir eksekusi script)
-│   ├── foto_siswa/
+│   │   ├── csrf-fetch.js
+│   │   └── master/
+│   ├── img/
+│   └── vendor/
+├── uploads/
 │   ├── foto_guru/
+│   ├── foto_siswa/
 │   ├── branding/
 │   └── kartu_pelajar/
-│       ├── background_depan/
-│       └── background_belakang/
-├── app/                              (dilindungi .htaccess root)
-│   ├── Controllers/
-│   ├── Models/
-│   ├── Views/
-│   ├── Filters/
-│   │   ├── AuthFilter.php
-│   │   ├── PermissionFilter.php     (Resolve scope & cek akses otomatis)
-│   │   └── MaintenanceFilter.php
-│   └── Services/
-│       ├── AuthService.php
-│       ├── PermissionService.php    (resolveScope)
-│       ├── KelasService.php         (kenaikan kelas, mutasi, lulus)
-│       ├── JadwalGuruService.php    (validasi bentrok, import)
-│       ├── GeofencingService.php    (Haversine)
-│       ├── PresensiService.php
-│       ├── KartuPelajarService.php
-│       └── ...
 ├── writable/
-│   └── backups/                      (hasil backup SQL)
 ├── vendor/
-└── docs/                             (dokumen acuan final)
-    
+├── docs/
+├── .env
+├── .htaccess
+└── index.php
 ```
 
-* * *
+---
 
-## 6. Konvensi Penamaan
+# 7. Authentication
 
-| Jenis file   | Konvensi             | Contoh                                |
-|--------------|----------------------|---------------------------------------|
-| View         | `{modul}_{aksi}.php` | `presensi_siswa_input.php`            |
-| Layout utama | `main.php`           | `main.php`                            |
-| Partial      | `_{nama}.php`        | `_sidebar.php`, `_header.php`         |
-| Controller   | PascalCase per modul | `MasterGuru.php`, `PresensiSiswa.php` |
-| Model        | `{Nama}Model.php`    | `GuruModel.php`                       |
-| Service      | `{Nama}Service.php`  | `GeofencingService.php`               |
+## 7.1 Web
 
-* * *
+Web menggunakan session database.
 
-## 7. Dual-Output (HTML + JSON)
+Session minimum:
 
-- Controller untuk modul: Presensi Siswa, Presensi Mengajar, Laporan, BK, Dashboard, Kartu Pelajar, Profile harus mendukung `?format=json`.
-- Business logic ada di **Service**, bukan langsung di Controller, untuk memudahkan pemeliharaan dan testing.
+```php
+[
+    'user_id'      => ...,
+    'role'         => ...,
+    'username'     => ...,
+    'id_guru'      => ...,
+    'id_pegawai'   => ...,
+    'id_siswa'     => ...,
+    'auth_version' => ...,
+    'logged_in'    => true,
+]
+```
 
-* * *
+## 7.2 Mobile
 
-## 8. Role yang Didukung
+Mobile menggunakan:
+- access token 1 jam;
+- refresh token 30 hari;
+- token tersimpan di `api_tokens`.
 
-| Role       | Basis Identitas             | Catatan                                             |
-|------------|-----------------------------|-----------------------------------------------------|
-| Admin      | Berdiri sendiri             | Full access seluruh sistem.                         |
-| Operator   | `id_pegawai`/`id_guru`     | Wajib terhubung ke `data_pegawai`/`pegawai`, kecuali admin awal. Memiliki kewenangan administratif penuh. |
-| Pimpinan   | `id_pegawai`/`id_guru`     | Read-only untuk data operasional; boleh manage Kartu Pelajar sesuai kewenangan yang ditetapkan. |
-| BK         | `id_guru`                   | Mengelola BK & Prestasi; tidak memiliki kewajiban Presensi Mengajar. |
-| Guru       | `id_guru`                   | Guru Biasa hanya input presensi sesuai jadwal dan jurnal diri sendiri. |
-| Wali Kelas | `id_guru`                   | **BUKAN role.** Status dinamis dari `mapping_wali_kelas`; mendapat tambahan akses khusus hanya untuk kelas walinya. |
-| Siswa      | `id_siswa`                  | Akses data diri, prestasi diri, kartu, dan rincian presensi S/I/A diri sendiri. |
+## 7.3 Single Active Session
 
-**Multi-Role:** Satu user dapat memiliki beberapa role melalui tabel `user_roles` (misal Guru merangkap Operator).
+`users.auth_version` menjadi versi autentikasi.
 
-* * *
+Login baru meningkatkan `auth_version`. Session/token lama dengan versi lebih rendah tidak lagi valid.
 
-## 9. Arsitektur Keamanan &amp; Autentikasi
+---
 
-- **Web:** Menggunakan `ci_sessions` (database) dengan timeout 2 jam.
-- **Mobile (APK):** Menggunakan JWT dengan masa berlaku 1 jam dan refresh token 30 hari.
-- **Single Active Session:** Didukung oleh kolom `auth_version` di tabel `users`. Setiap login baru akan meng-increment versi, sehingga semua token/session lama otomatis invalid.
-- **Rate Limiting:** 5 kali percobaan login gagal berturut-turut akan mengunci akun selama 5 menit (berbasis username).
-- **Password:** Default menggunakan NIP/NISN, di-hash dengan bcrypt.
-- **RBAC:** Menggunakan `PermissionFilter` yang dipasang di setiap grup route untuk mengecek `permission_key` dan `scope` secara otomatis.
+# 8. Role
 
-* * *
+Role resmi:
 
-## 10. Dokumen Acuan Lainnya
+```text
+admin
+operator
+pimpinan
+bk
+guru
+siswa
+```
 
-| \# | Dokumen                        | Isi                                         |
-|----|--------------------------------|---------------------------------------------|
-| 2  | `02_DATABASE`                  | SQL Murni (CREATE TABLE, INSERT, FK, INDEX) |
-| 3  | `03_AUTH_RBAC_MENU`            | Auth, RBAC, Menu, PermissionFilter          |
-| 4  | `04_MASTER_DATA`               | Master Data, Wali Kelas, Jadwal, Service    |
-| 5  | `05_PRESENSI`                  | Presensi Siswa + Jurnal + Geofencing        |
-| 6  | `06_LAPORAN`                   | Laporan &amp; Export (Total H\|S\|I\|A)     |
-| 7  | `07_BK_PRESTASI_KARTU`         | BK, Prestasi, Kartu Pelajar                 |
-| 8  | `08_DASHBOARD_SETTINGS_BACKUP` | Dashboard, Settings, Backup                 |
-| 9  | `09_PROFILE`                   | Profile Guru &amp; Siswa                    |
-| 10 | `15_TESTING_POLISH`            | Testing &amp; Polish                        |
-| 11 | `16_MOBILE_CORDOVA`            | Mobile App (Cordova)                        |
-| 12 | `Routes Final`                 | Daftar route lengkap                        |
-| 13 | `Tree Structure`               | Struktur folder final                       |
+Tidak ada role `wali_kelas`.
 
-* * *
+## 8.1 Wali Kelas
 
-© 2026 SisisFour · MTsN 4 Jombang · Masterplan Final
+Wali Kelas adalah status dinamis.
+
+Sumber:
+
+```text
+mapping_wali_kelas
+WHERE deleted_at IS NULL
+AND id_tahun = tahun aktif
+```
+
+Seorang Guru dapat memperoleh akses tambahan scope `KELAS_DIAMPU` tanpa mengubah role.
+
+## 8.2 Multi-Role
+
+Permission user adalah union dari:
+
+```text
+users.role
++
+user_roles.role
+```
+
+`users.role` boleh NULL untuk akun Pegawai yang belum diberi role operasional.
+
+---
+
+# 9. Frontend dan CSRF
+
+## 9.1 Prinsip
+
+- View menghasilkan markup.
+- JS menangani interaksi.
+- Fetch menangani data.
+- SweetAlert menangani feedback.
+- Server tetap menjadi sumber validasi final.
+
+## 9.2 CSRF
+
+CSRF aktif untuk Web.
+
+`_header.php` menyediakan metadata token.
+
+`_scripts.php` memuat:
+
+```text
+csrf-fetch.js
+```
+
+sebelum JS modul.
+
+Wrapper otomatis memasang header CSRF pada request mutasi same-origin.
+
+Route API mobile tidak menggunakan mekanisme session-CSRF Web.
+
+---
+
+# 10. Master Data
+
+Master Data terdiri dari:
+
+1. Guru;
+2. Pegawai;
+3. Siswa;
+4. Kelas;
+5. Tahun Ajaran;
+6. Mata Pelajaran;
+7. Mapping Wali Kelas;
+8. Jadwal Guru.
+
+Business rule detail ada di `04_MASTER_DATA`.
+
+---
+
+# 11. Data Siswa dan Histori
+
+Siswa memiliki:
+- NIK 16 digit;
+- NISN;
+- status Aktif/Lulus/Pindah/Keluar.
+
+Kelas per tahun disimpan pada `anggota_kelas`.
+
+Histori perjalanan siswa disimpan di `riwayat_siswa`.
+
+Tidak boleh mengandalkan hanya nilai kelas saat ini tanpa histori.
+
+---
+
+# 12. Tahun Ajaran
+
+Tahun ajaran mencakup:
+- nama tahun, contoh `2026/2027`;
+- semester `Ganjil/Genap`;
+- status aktif.
+
+Hanya satu record boleh aktif pada satu waktu.
+
+Semua modul operasional harus mengetahui `id_tahun` secara eksplisit.
+
+---
+
+# 13. Jadwal
+
+Jadwal Guru adalah sumber:
+- kelas terjadwal;
+- jam mulai;
+- jam selesai;
+- sesi;
+- kewajiban Presensi;
+- validasi overlap.
+
+Jadwal tidak diinput manual satu per satu.
+
+Input resmi melalui import Excel atomic.
+
+---
+
+# 14. Presensi
+
+## 14.1 Presensi Siswa
+
+Status:
+
+```text
+Hadir
+Sakit
+Izin
+Alpha
+```
+
+Sesi:
+
+```text
+Sesi Awal
+Sesi Akhir
+```
+
+Sesi Awal adalah data resmi laporan.
+
+Sesi Akhir adalah dokumentasi tambahan.
+
+## 14.2 Presensi Mengajar
+
+Status:
+
+```text
+Hadir
+Izin
+Sakit
+```
+
+Materi wajib.
+
+Semua sesi Jadwal Guru termasuk `Non Sesi` tetap wajib Jurnal.
+
+---
+
+# 15. Geofencing
+
+Geofencing:
+- dihitung server-side;
+- rumus Haversine;
+- radius default 500 meter;
+- koordinat sekolah disimpan di Settings;
+- dapat dimatikan global.
+
+Guru mapel wajib geofencing pada aksi tertentu. Admin/Operator/Wali memiliki pengecualian sesuai spesifikasi Presensi.
+
+---
+
+# 16. Soft Delete
+
+Soft delete digunakan pada:
+
+```text
+guru
+pegawai
+siswa
+kelas
+tahun_ajaran
+mapping_wali_kelas
+```
+
+Lifecycle umum:
+
+```text
+Aktif
+  ↓ delete
+Recycle Bin
+  ↓ restore
+Aktif
+
+atau
+
+Recycle Bin
+  ↓ force delete
+Hapus Permanen
+```
+
+Mata Pelajaran menggunakan hard delete.
+
+---
+
+# 17. Import/Export
+
+Import:
+- template resmi;
+- validasi header;
+- validasi semua row;
+- stop-on-error;
+- transaction;
+- rollback total.
+
+Export:
+- mengikuti filter aktif;
+- format data polos;
+- tidak memasukkan data di luar scope.
+
+---
+
+# 18. Upload Image
+
+Foto Guru/Siswa:
+- PNG;
+- maksimal 2 MB;
+- crop 3:4;
+- re-encode;
+- metadata dibuang;
+- lokasi upload terpisah.
+
+---
+
+# 19. Audit
+
+Perubahan penting dicatat ke:
+
+```text
+log_activity
+```
+
+Kolom:
+
+```text
+id_user
+aksi
+modul
+keterangan
+waktu
+```
+
+Transaksi yang memiliki audit log harus mempertimbangkan konsistensi transaction.
+
+---
+
+# 20. Route dan Permission
+
+Semua route privat:
+- melewati AuthFilter;
+- memiliki PermissionFilter yang sesuai.
+
+Penyembunyian tombol/menu bukan pengganti authorization server-side.
+
+---
+
+# 21. Output HTML + JSON
+
+Controller modul yang membutuhkan mobile atau AJAX dapat memberikan:
+
+```text
+HTML
+JSON
+```
+
+Format JSON minimum:
+
+```json
+{
+  "status": "success",
+  "message": "Berhasil.",
+  "data": {}
+}
+```
+
+Error menggunakan status HTTP yang relevan.
+
+---
+
+# 22. Deployment
+
+Target produksi minimum:
+- PHP 8.2+;
+- MariaDB/MySQL;
+- HTTPS;
+- GD;
+- intl;
+- mbstring;
+- fileinfo;
+- zip;
+- mysqlnd.
+
+Direkomendasikan:
+- RAM ≥ 2 GB;
+- `memory_limit` memadai untuk Excel/PDF;
+- backup tidak menggunakan shell bila hosting menonaktifkan exec.
+
+---
+
+# 23. Dokumen Modul
+
+| Dokumen | Fokus |
+|---|---|
+| 00 | Pola pengerjaan |
+| 01 | Arsitektur dan masterplan |
+| 02 | Database |
+| 03 | Auth/RBAC/Menu |
+| 04 | Master Data |
+| 05 | Presensi |
+| 06 | Laporan |
+| 07 | BK/Prestasi/Kartu |
+| 08 | Dashboard/Settings/Backup |
+| 09 | Profile |
+| 15 | Testing & Polish |
+
+---
+
+# 24. Kriteria Arsitektur Final
+
+SisisFour dianggap konsisten bila:
+
+1. business logic tidak tersebar di View;
+2. permission tidak hardcoded per role di Controller;
+3. Wali bukan role;
+4. satu siswa satu kelas per tahun;
+5. histori siswa tidak hilang;
+6. jadwal tidak overlap;
+7. Presensi selalu terkait tahun/kelas;
+8. Web mutation terlindungi CSRF;
+9. import atomic;
+10. fresh install database dapat dibangun dari dokumen database;
+11. seluruh role dan scope dapat diuji secara deterministik.

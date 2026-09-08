@@ -69,9 +69,15 @@ class Security extends BaseConfig
      * CSRF Regenerate
      * --------------------------------------------------------------------------
      *
-     * Regenerate CSRF Token on every submission.
+     * SisisFour menggunakan banyak request Fetch/AJAX pada halaman Master Data.
+     * Token dipasang ke seluruh request mutasi same-origin oleh
+     * assets/js/csrf-fetch.js.
+     *
+     * Token dibuat stabil selama lifetime halaman/session cookie agar seluruh
+     * request POST/PUT/PATCH/DELETE tidak menggunakan token lama sesudah satu
+     * request AJAX berhasil. Token tetap diverifikasi oleh CSRF Filter.
      */
-    public bool $regenerate = true;
+    public bool $regenerate = false;
 
     /**
      * --------------------------------------------------------------------------

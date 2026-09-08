@@ -1,104 +1,1039 @@
 # 🗄️ Database Schema — SisisFour
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan: v0.5**  
+**Tanggal:** 08 September 2026
 
-**Metode:** SQL Murni. Jalankan seluruh script di bawah secara berurutan. Tidak menggunakan Migration/Seeder CI4.
+Dokumen ini menetapkan struktur database canonical SisisFour. Database menggunakan MariaDB/MySQL dan dibangun dengan SQL murni. Struktur ini menjadi acuan untuk fresh install dan harus konsisten dengan Model/Service aplikasi.
 
-* * *
+---
 
-## 1. Konvensi Database
+# 1. Konvensi
 
-- **Penamaan:** `snake_case` Bahasa Indonesia.
-- **Primary Key:** `id INT UNSIGNED AUTO_INCREMENT` di semua tabel.
-- **Soft Delete:** `guru, pegawai, siswa, kelas, tahun_ajaran, mapping_wali_kelas` menggunakan `deleted_at DATETIME NULL`.
-- **Aturan Khusus A2 (Mapping Wali Kelas):** `deleted_at = NULL` (aktif) dihitung UNIQUE. `deleted_at = TIMESTAMP` (nonaktif) tidak dihitung UNIQUE.
-- **Foreign Key:** Aktif dengan constraint sesuai kebutuhan (RESTRICT, CASCADE, SET NULL).
-- **Time Zone:** `Asia/Jakarta`.
+- Database engine: InnoDB.
+- Charset: `utf8mb4`.
+- Collation: `utf8mb4_general_ci` atau collation utf8mb4 setara.
+- Timezone aplikasi: `Asia/Jakarta`.
+- Primary key: `id INT UNSIGNED AUTO_INCREMENT`.
+- Foreign key aktif.
+- Nama tabel/kolom: `snake_case`.
+- Timestamp aplikasi menggunakan `DATETIME`.
+- Soft delete menggunakan `deleted_at DATETIME NULL`.
+- Business identifier seperti NIP/NIK/NISN menggunakan VARCHAR untuk mempertahankan leading zero.
 
-* * *
+Soft delete:
 
-## 1.1 Catatan Perubahan RBAC 4.0
+```text
+guru
+pegawai
+siswa
+kelas
+tahun_ajaran
+mapping_wali_kelas
+```
 
-Dokumen ini tetap menggunakan SQL murni tanpa Migration/Seeder CI4. Aturan RBAC di bawah adalah **spesifikasi final** yang harus menjadi sumber data permission/menu saat database dibangun ulang. Karena status Wali Kelas bukan role, akses Wali-only harus diputuskan secara dinamis oleh application service/filter berdasarkan `mapping_wali_kelas`.
+Hard delete:
 
-### Aturan Identitas User
+```text
+mata_pelajaran
+jadwal_guru
+```
 
-- Role valid tetap: `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`. **Tidak ada role `wali_kelas`.**
-- Admin/Operator wajib memiliki relasi pegawai/guru pada akun normal. **Admin awal** adalah pengecualian dan boleh berdiri sendiri.
-- Multi-role menggunakan union `users.role` + `user_roles.role`.
+---
 
-### Aturan Scope
+# 2. SQL Dasar
 
-- `SEMUA`: seluruh data.
-- `KELAS_DIAMPU`: hanya kelas yang sedang diwalikan user pada tahun ajaran aktif.
-- `KELAS_TERJADWAL`: hanya kelas yang terjadwal kepada guru pada hari aktif.
-- `DIRI_SENDIRI`: hanya data langsung milik user.
-- `TIDAK_ADA`: tidak ada akses.
+```sql
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+```
 
-### Matriks Role-Permission Canonical
+---
 
-| Role | Permission utama | Scope |
-| --- | --- | --- |
-| Admin | 1–43 | SEMUA, kecuali profile tetap DIRI_SENDIRI dan permission yang memang bersifat diri |
-| Operator | Dashboard, seluruh presensi, master, laporan, BK, prestasi, kartu, settings, backup/log | SEMUA |
-| Pimpinan | Dashboard, presensi view, master view, mapping/jadwal view-all, laporan, EWS, BK view, prestasi view, kartu manage/view, profile diri | SEMUA/DIRI_SENDIRI sesuai data |
-| BK | Dashboard, EWS, BK manage/view, pelanggaran manage, prestasi manage/view, profile diri | SEMUA/DIRI_SENDIRI |
-| Guru | Dashboard, presensi siswa input, jurnal input/view, mapping diri, jadwal diri, profile diri | KELAS_TERJADWAL/DIRI_SENDIRI |
-| Siswa | Dashboard, kartu view, profile siswa, rincian presensi diri, prestasi diri | DIRI_SENDIRI |
+# 3. Tabel Master
 
-**Wali Kelas** mendapatkan tambahan akses kontekstual melalui application layer untuk: presensi siswa view/input/revisi, master siswa view/edit biodata, matrix/export, EWS, BK view, prestasi view, kartu view/cetak. Semua dibatasi `KELAS_DIAMPU`.
+## 3.1 `guru`
 
-### Aturan Menu Canonical
+```sql
+CREATE TABLE guru (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nip VARCHAR(30) NOT NULL UNIQUE,
+    nama VARCHAR(150) NOT NULL,
+    jenis_kelamin ENUM('L','P') NOT NULL,
+    tempat_lahir VARCHAR(100) NULL,
+    tanggal_lahir DATE NULL,
+    alamat TEXT NULL,
+    no_telepon VARCHAR(20) NULL,
+    email VARCHAR(100) NULL,
+    status_kepegawaian ENUM(
+        'PNS',
+        'PPPK',
+        'NON ASN',
+        'Yayasan',
+        'Outsourcing'
+    ) NULL,
+    foto VARCHAR(255) NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
 
-- Guru Biasa tidak boleh melihat menu Wali-only.
-- Wali Kelas mendapatkan menu Wali-only secara dinamis setelah `isWaliKelas()` true.
-- Log Activity hanya Admin + Operator.
-- Guru Biasa tidak mendapat menu Matrix, Export Presensi, atau laporan presensi.
-- Kartu Wali hanya view/cetak, sedangkan manage/terbitkan tetap Admin/Operator/Pimpinan.
+NIP juga harus divalidasi lintas tabel terhadap `pegawai.nip` di Service.
 
-## 2. SQL Final
+---
 
--- ================================================================ -- SISISFOUR DATABASE — SQL FINAL v3.1 -- ================================================================ -- ---------------------------------------------------------------- -- 1. TABEL MASTER -- ---------------------------------------------------------------- -- 1.1 Guru CREATE TABLE guru ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nip VARCHAR(30) NOT NULL UNIQUE, nama VARCHAR(150) NOT NULL, jenis\_kelamin ENUM('L','P') NOT NULL, tempat\_lahir VARCHAR(100) NULL, tanggal\_lahir DATE NULL, alamat TEXT NULL, no\_telepon VARCHAR(20) NULL, email VARCHAR(100) NULL, status\_kepegawaian ENUM('PNS','PPPK','NON ASN','Yayasan','Outsourcing') NULL, foto VARCHAR(255) NULL, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 1.2 Pegawai CREATE TABLE pegawai ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nip VARCHAR(30) NOT NULL UNIQUE, nama VARCHAR(150) NOT NULL, jenis\_kelamin ENUM('L','P') NOT NULL, tempat\_lahir VARCHAR(100) NULL, tanggal\_lahir DATE NULL, alamat TEXT NULL, no\_telepon VARCHAR(20) NULL, email VARCHAR(100) NULL, jabatan VARCHAR(100) NULL, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 1.3 Siswa CREATE TABLE siswa ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nik VARCHAR(16) NOT NULL UNIQUE, nisn VARCHAR(20) NOT NULL UNIQUE, nama VARCHAR(150) NOT NULL, jenis\_kelamin ENUM('L','P') NOT NULL, tempat\_lahir VARCHAR(100) NULL, tanggal\_lahir DATE NULL, alamat TEXT NULL, no\_telepon VARCHAR(20) NULL, kebutuhan\_khusus VARCHAR(100) NULL, disabilitas VARCHAR(100) NULL, nomor\_kip\_pip VARCHAR(50) NULL, nama\_ayah\_kandung VARCHAR(150) NULL, nama\_ibu\_kandung VARCHAR(150) NULL, nama\_wali VARCHAR(150) NULL, foto VARCHAR(255) NULL, status\_aktif ENUM('Aktif','Lulus','Pindah','Keluar') NOT NULL DEFAULT 'Aktif', tanggal\_mutasi DATE NULL, keterangan\_mutasi TEXT NULL, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 1.4 Kelas CREATE TABLE kelas ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, tingkat ENUM('7','8','9') NOT NULL, rombel VARCHAR(10) NOT NULL, nama\_kelas VARCHAR(20) NOT NULL, id\_tahun INT UNSIGNED NOT NULL, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 1.5 Tahun Ajaran CREATE TABLE tahun\_ajaran ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nama\_tahun VARCHAR(20) NOT NULL, semester ENUM('Ganjil','Genap') NOT NULL, status\_aktif TINYINT(1) NOT NULL DEFAULT 0, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 1.6 Mata Pelajaran CREATE TABLE mata\_pelajaran ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nama\_mapel VARCHAR(100) NOT NULL, kode\_mapel VARCHAR(10) NOT NULL UNIQUE ); -- 1.7 Anggota Kelas CREATE TABLE anggota\_kelas ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NOT NULL, id\_kelas INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, UNIQUE KEY (id\_siswa, id\_tahun) ); -- 1.8 Mapping Wali Kelas CREATE TABLE mapping\_wali\_kelas ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_guru INT UNSIGNED NOT NULL, id\_kelas INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, deleted\_at DATETIME NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL, UNIQUE KEY (id\_guru, id\_tahun), UNIQUE KEY (id\_kelas, id\_tahun) ); -- 1.9 Jadwal Guru CREATE TABLE jadwal\_guru ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_guru INT UNSIGNED NOT NULL, id\_kelas INT UNSIGNED NOT NULL, id\_mapel INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, hari ENUM('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu') NOT NULL, jam\_mulai TIME NOT NULL, jam\_selesai TIME NOT NULL, sesi ENUM('Sesi Awal','Sesi Akhir','Non Sesi') NOT NULL, status\_jadwal ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif' ); -- ---------------------------------------------------------------- -- 2. TABEL HISTORI -- ---------------------------------------------------------------- CREATE TABLE riwayat\_siswa ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, id\_kelas INT UNSIGNED NOT NULL, status ENUM('Aktif','Pindah','Keluar','Lulus') NOT NULL, tanggal\_mulai DATE NOT NULL, tanggal\_selesai DATE NULL, keterangan TEXT NULL, created\_at DATETIME NULL ); -- ---------------------------------------------------------------- -- 3. TABEL AUTH &amp; RBAC -- ---------------------------------------------------------------- -- 3.1 Users CREATE TABLE users ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, password VARCHAR(255) NOT NULL, role ENUM('admin','operator','pimpinan','bk','guru','siswa') NOT NULL, id\_guru INT UNSIGNED NULL, id\_pegawai INT UNSIGNED NULL, id\_siswa INT UNSIGNED NULL, status\_aktif TINYINT(1) NOT NULL DEFAULT 1, auth\_version INT UNSIGNED NOT NULL DEFAULT 1, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 3.2 User Roles CREATE TABLE user\_roles ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_user INT UNSIGNED NOT NULL, role ENUM('admin','operator','pimpinan','bk','guru','siswa') NOT NULL, created\_at DATETIME NULL, UNIQUE KEY (id\_user, role) ); -- 3.3 Login Attempts CREATE TABLE login\_attempts ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, username VARCHAR(50) NOT NULL, ip\_address VARCHAR(45) NOT NULL, waktu DATETIME NOT NULL, berhasil TINYINT(1) NOT NULL ); -- 3.4 CI Sessions CREATE TABLE ci\_sessions ( id VARCHAR(128) NOT NULL PRIMARY KEY, ip\_address VARCHAR(45) NOT NULL, timestamp INT UNSIGNED NOT NULL DEFAULT 0, data BLOB NOT NULL, KEY ci\_sessions\_timestamp (timestamp) ); -- 3.5 API Tokens CREATE TABLE api\_tokens ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_user INT UNSIGNED NOT NULL, token VARCHAR(255) NOT NULL UNIQUE, refresh\_token VARCHAR(255) NOT NULL UNIQUE, device\_name VARCHAR(100) NULL, expires\_at DATETIME NOT NULL, refresh\_expires\_at DATETIME NOT NULL, revoked\_at DATETIME NULL, created\_at DATETIME NULL ); -- 3.6 Menus CREATE TABLE menus ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nama\_menu VARCHAR(100) NOT NULL, parent\_id INT UNSIGNED NULL, urutan INT NOT NULL DEFAULT 0, icon VARCHAR(100) NULL, link VARCHAR(100) NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL ); -- 3.7 Permissions (43 permission final) CREATE TABLE permissions ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, permission\_key VARCHAR(100) NOT NULL UNIQUE, nama VARCHAR(100) NOT NULL, modul VARCHAR(50) NOT NULL, scope\_didukung VARCHAR(100) NOT NULL ); -- 3.8 Role Permissions CREATE TABLE role\_permissions ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, role ENUM('admin','operator','pimpinan','bk','guru','siswa') NOT NULL, id\_permission INT UNSIGNED NOT NULL, scope VARCHAR(50) NOT NULL ); -- 3.9 Role Menus CREATE TABLE role\_menus ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, role ENUM('admin','operator','pimpinan','bk','guru','siswa') NOT NULL, id\_menu INT UNSIGNED NOT NULL, tampil TINYINT(1) NOT NULL DEFAULT 1 ); -- ---------------------------------------------------------------- -- 4. TABEL PRESENSI -- ---------------------------------------------------------------- -- 4.1 Presensi Siswa CREATE TABLE presensi ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NULL, nama\_siswa\_snapshot VARCHAR(150) NOT NULL, id\_kelas INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, tanggal DATE NOT NULL, sesi ENUM('Sesi Awal','Sesi Akhir') NOT NULL, status ENUM('Hadir','Sakit','Izin','Alpha') NOT NULL, id\_guru\_input INT UNSIGNED NULL, nama\_guru\_input\_snapshot VARCHAR(150) NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL, updated\_by INT UNSIGNED NULL, UNIQUE KEY (id\_kelas, tanggal, sesi, id\_siswa) ); -- 4.2 Presensi Mengajar CREATE TABLE presensi\_mengajar ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_guru INT UNSIGNED NULL, nama\_guru\_snapshot VARCHAR(150) NOT NULL, id\_jadwal INT UNSIGNED NOT NULL, id\_kelas INT UNSIGNED NOT NULL, id\_tahun INT UNSIGNED NOT NULL, tanggal DATE NOT NULL, status ENUM('Hadir','Izin','Sakit') NOT NULL, materi TEXT NOT NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL, updated\_by INT UNSIGNED NULL, UNIQUE KEY (id\_jadwal, tanggal) ); -- ---------------------------------------------------------------- -- 5. TABEL BK &amp; PRESTASI -- ---------------------------------------------------------------- -- 5.1 Referensi Pelanggaran CREATE TABLE ref\_pelanggaran ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, nama\_pelanggaran VARCHAR(150) NOT NULL, kategori ENUM('Ringan','Sedang','Berat') NOT NULL, poin INT NOT NULL DEFAULT 0 ); -- 5.2 Catatan Kasus CREATE TABLE catatan\_kasus ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NOT NULL, id\_pelanggaran INT UNSIGNED NOT NULL, tanggal DATE NOT NULL, keterangan TEXT NULL, id\_guru\_input INT UNSIGNED NOT NULL, created\_at DATETIME NULL, updated\_at DATETIME NULL, updated\_by INT UNSIGNED NULL ); -- 5.3 Catatan Prestasi CREATE TABLE catatan\_prestasi ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NOT NULL, nama\_prestasi VARCHAR(200) NOT NULL, tingkat VARCHAR(100) NULL, tanggal DATE NOT NULL, penyelenggara VARCHAR(200) NULL, keterangan TEXT NULL, id\_guru\_input INT UNSIGNED NOT NULL, created\_at DATETIME NULL ); -- ---------------------------------------------------------------- -- 6. TABEL KARTU PELAJAR -- ---------------------------------------------------------------- CREATE TABLE kartu\_pelajar ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_siswa INT UNSIGNED NOT NULL, nomor\_kartu VARCHAR(50) NOT NULL UNIQUE, kode\_verifikasi VARCHAR(100) NOT NULL UNIQUE, tanggal\_terbit DATE NOT NULL, status\_aktif ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif' ); -- ---------------------------------------------------------------- -- 7. TABEL SETTINGS &amp; LOG -- ---------------------------------------------------------------- -- 7.1 Setting Sistem CREATE TABLE setting\_sistem ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, setting\_key VARCHAR(100) NOT NULL UNIQUE, setting\_value TEXT NOT NULL, type VARCHAR(20) NOT NULL DEFAULT 'string', updated\_at DATETIME NULL, updated\_by INT UNSIGNED NULL ); -- 7.2 Log Activity CREATE TABLE log\_activity ( id INT UNSIGNED AUTO\_INCREMENT PRIMARY KEY, id\_user INT UNSIGNED NULL, aksi VARCHAR(100) NOT NULL, modul VARCHAR(100) NOT NULL, keterangan TEXT NULL, waktu DATETIME NOT NULL ); -- ================================================================ -- 8. FOREIGN KEY -- ================================================================ -- 8.1 Master Data ALTER TABLE kelas ADD CONSTRAINT fk\_kelas\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE anggota\_kelas ADD CONSTRAINT fk\_anggota\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE anggota\_kelas ADD CONSTRAINT fk\_anggota\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE anggota\_kelas ADD CONSTRAINT fk\_anggota\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE mapping\_wali\_kelas ADD CONSTRAINT fk\_wali\_guru FOREIGN KEY (id\_guru) REFERENCES guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE mapping\_wali\_kelas ADD CONSTRAINT fk\_wali\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE mapping\_wali\_kelas ADD CONSTRAINT fk\_wali\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE jadwal\_guru ADD CONSTRAINT fk\_jadwal\_guru FOREIGN KEY (id\_guru) REFERENCES guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE jadwal\_guru ADD CONSTRAINT fk\_jadwal\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE jadwal\_guru ADD CONSTRAINT fk\_jadwal\_mapel FOREIGN KEY (id\_mapel) REFERENCES mata\_pelajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE jadwal\_guru ADD CONSTRAINT fk\_jadwal\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; -- 8.2 Presensi ALTER TABLE presensi ADD CONSTRAINT fk\_presensi\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE presensi ADD CONSTRAINT fk\_presensi\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE presensi ADD CONSTRAINT fk\_presensi\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE presensi ADD CONSTRAINT fk\_presensi\_guru\_input FOREIGN KEY (id\_guru\_input) REFERENCES guru(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE presensi ADD CONSTRAINT fk\_presensi\_updated\_by FOREIGN KEY (updated\_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE presensi\_mengajar ADD CONSTRAINT fk\_jurnal\_guru FOREIGN KEY (id\_guru) REFERENCES guru(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE presensi\_mengajar ADD CONSTRAINT fk\_jurnal\_jadwal FOREIGN KEY (id\_jadwal) REFERENCES jadwal\_guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE presensi\_mengajar ADD CONSTRAINT fk\_jurnal\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE presensi\_mengajar ADD CONSTRAINT fk\_jurnal\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE presensi\_mengajar ADD CONSTRAINT fk\_jurnal\_updated\_by FOREIGN KEY (updated\_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE; -- 8.3 BK &amp; Prestasi ALTER TABLE catatan\_kasus ADD CONSTRAINT fk\_kasus\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE catatan\_kasus ADD CONSTRAINT fk\_kasus\_pelanggaran FOREIGN KEY (id\_pelanggaran) REFERENCES ref\_pelanggaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE catatan\_kasus ADD CONSTRAINT fk\_kasus\_guru\_input FOREIGN KEY (id\_guru\_input) REFERENCES guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE catatan\_kasus ADD CONSTRAINT fk\_kasus\_updated\_by FOREIGN KEY (updated\_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE catatan\_prestasi ADD CONSTRAINT fk\_prestasi\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE catatan\_prestasi ADD CONSTRAINT fk\_prestasi\_guru\_input FOREIGN KEY (id\_guru\_input) REFERENCES guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; -- 8.4 Kartu Pelajar ALTER TABLE kartu\_pelajar ADD CONSTRAINT fk\_kartu\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; -- 8.5 Auth &amp; RBAC ALTER TABLE users ADD CONSTRAINT fk\_user\_guru FOREIGN KEY (id\_guru) REFERENCES guru(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE users ADD CONSTRAINT fk\_user\_pegawai FOREIGN KEY (id\_pegawai) REFERENCES pegawai(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE users ADD CONSTRAINT fk\_user\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE user\_roles ADD CONSTRAINT fk\_user\_roles\_user FOREIGN KEY (id\_user) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE; ALTER TABLE api\_tokens ADD CONSTRAINT fk\_api\_tokens\_user FOREIGN KEY (id\_user) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE; ALTER TABLE role\_permissions ADD CONSTRAINT fk\_rp\_permission FOREIGN KEY (id\_permission) REFERENCES permissions(id) ON DELETE CASCADE ON UPDATE CASCADE; ALTER TABLE role\_menus ADD CONSTRAINT fk\_rm\_menu FOREIGN KEY (id\_menu) REFERENCES menus(id) ON DELETE CASCADE ON UPDATE CASCADE; -- 8.6 Histori ALTER TABLE riwayat\_siswa ADD CONSTRAINT fk\_riwayat\_siswa FOREIGN KEY (id\_siswa) REFERENCES siswa(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE riwayat\_siswa ADD CONSTRAINT fk\_riwayat\_tahun FOREIGN KEY (id\_tahun) REFERENCES tahun\_ajaran(id) ON DELETE RESTRICT ON UPDATE CASCADE; ALTER TABLE riwayat\_siswa ADD CONSTRAINT fk\_riwayat\_kelas FOREIGN KEY (id\_kelas) REFERENCES kelas(id) ON DELETE RESTRICT ON UPDATE CASCADE; -- 8.7 Settings &amp; Log ALTER TABLE setting\_sistem ADD CONSTRAINT fk\_setting\_updated\_by FOREIGN KEY (updated\_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE; ALTER TABLE log\_activity ADD CONSTRAINT fk\_log\_user FOREIGN KEY (id\_user) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE; -- ================================================================ -- 9. INDEX -- ================================================================ CREATE INDEX idx\_presensi\_tanggal ON presensi(tanggal); CREATE INDEX idx\_presensi\_siswa\_id ON presensi(id\_siswa); CREATE INDEX idx\_presensi\_kelas\_tahun ON presensi(id\_kelas, id\_tahun); CREATE INDEX idx\_jurnal\_tanggal ON presensi\_mengajar(tanggal); CREATE INDEX idx\_jurnal\_guru\_tanggal ON presensi\_mengajar(id\_guru, tanggal); CREATE INDEX idx\_kasus\_siswa\_tanggal ON catatan\_kasus(id\_siswa, tanggal); CREATE INDEX idx\_prestasi\_siswa\_tanggal ON catatan\_prestasi(id\_siswa, tanggal); CREATE INDEX idx\_log\_waktu ON log\_activity(waktu); CREATE INDEX idx\_kartu\_siswa ON kartu\_pelajar(id\_siswa); CREATE INDEX idx\_riwayat\_siswa\_tahun ON riwayat\_siswa(id\_siswa, id\_tahun); -- ================================================================ -- 10. DATA AWAL (Seeder) -- ================================================================ -- 10.1 Mata Pelajaran INSERT INTO mata\_pelajaran (nama\_mapel, kode\_mapel) VALUES ('Al-Qur\\'an Hadits', 'QH'), ('Akidah Akhlak', 'AA'), ('Fikih', 'FQ'), ('Sejarah Kebudayaan Islam', 'SKI'), ('Bahasa Arab', 'BAR'), ('Pendidikan Pancasila', 'PPKN'), ('Bahasa Indonesia', 'BIND'), ('Matematika', 'MTK'), ('Ilmu Pengetahuan Alam', 'IPA'), ('Ilmu Pengetahuan Sosial', 'IPS'), ('Bahasa Inggris', 'BING'), ('Seni Budaya', 'SBD'), ('PJOK', 'PJOK'), ('Prakarya', 'PKY'), ('Bahasa Jawa', 'BJW'), ('Bimbingan Konseling', 'BK'), ('Informatika', 'INF'); -- 10.2 Setting Sistem INSERT INTO setting\_sistem (setting\_key, setting\_value, type) VALUES ('koordinat\_lat', '-7.533383', 'string'), ('koordinat\_lng', '112.217607', 'string'), ('radius\_geofencing', '500', 'int'), ('geofencing\_aktif', '1', 'boolean'), ('nama\_sekolah', 'MTsN 4 Jombang', 'string'), ('alamat\_sekolah', 'Jl. Pendidikan No. 1, Jombang', 'string'), ('maintenance\_mode', '0', 'boolean'), ('maintenance\_message', 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.', 'string'); -- 10.3 Menu INSERT INTO menus (id, nama\_menu, parent\_id, urutan, icon, link) VALUES (1, 'Dashboard', NULL, 1, 'bx bx-home-circle', 'dashboard'), (2, 'Presensi', NULL, 2, 'bx bx-check-shield', '#'), (21, 'Presensi Siswa', 2, 1, NULL, 'presensi/siswa'), (22, 'Presensi Mengajar', 2, 2, NULL, 'presensi/mengajar'), (3, 'Master Data', NULL, 3, 'bx bx-data', '#'), (31, 'Data Guru', 3, 1, NULL, 'master/guru'), (32, 'Data Pegawai', 3, 2, NULL, 'master/pegawai'), (33, 'Data Siswa', 3, 3, NULL, 'master/siswa'), (34, 'Data Kelas', 3, 4, NULL, 'master/kelas'), (35, 'Tahun Ajaran', 3, 5, NULL, 'master/tahun'), (36, 'Mata Pelajaran', 3, 6, NULL, 'master/mapel'), (37, 'Mapping Wali Kelas', 3, 7, NULL, 'master/wali-kelas'), (38, 'Jadwal Guru', 3, 8, NULL, 'master/jadwal'), (4, 'Laporan', NULL, 4, 'bx bx-file', '#'), (41, 'Matrix Presensi', 4, 1, NULL, 'laporan/presensi/matrix'), (42, 'Export Presensi', 4, 2, NULL, 'laporan/presensi/export'), (43, 'Laporan Jurnal', 4, 3, NULL, 'laporan/jurnal'), (5, 'BK &amp; Prestasi', NULL, 5, 'bx bx-user-voice', '#'), (51, 'Catatan Kasus', 5, 1, NULL, 'bk/kasus'), (52, 'Master Pelanggaran', 5, 2, NULL, 'bk/pelanggaran'), (53, 'Prestasi Siswa', 5, 3, NULL, 'bk/prestasi'), (6, 'Kartu Pelajar', NULL, 6, 'bx bx-id-card', '#'), (61, 'Daftar Kartu', 6, 1, NULL, 'kartu/daftar'), (62, 'Terbitkan Kartu', 6, 2, NULL, 'kartu/generate'), (9, 'Profile Guru', NULL, 7, 'bx bx-user', 'profile/guru'), (10, 'Profile Siswa', NULL, 7, 'bx bx-user', 'profile/siswa'), (7, 'Settings', NULL, 8, 'bx bx-cog', '#'), (71, 'Manajemen User', 7, 1, NULL, 'settings/user'), (72, 'Menu &amp; Role', 7, 2, NULL, 'settings/menu'), (73, 'Setting Sistem', 7, 3, NULL, 'settings/sistem'), (8, 'Backup &amp; Log', NULL, 9, 'bx bx-server', '#'), (81, 'Backup', 8, 1, NULL, 'backup'), (82, 'Log Activity', 8, 2, NULL, 'log/activity'); -- 10.4 Permissions (43) INSERT INTO permissions (permission\_key, nama, modul, scope\_didukung) VALUES ('dashboard.view', 'Lihat Dashboard', 'Dashboard', 'Otomatis'), ('presensi\_siswa.input', 'Input Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS\_DIAMPU,KELAS\_TERJADWAL'), ('presensi\_siswa.revisi', 'Revisi Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS\_DIAMPU'), ('presensi\_siswa.view', 'Lihat Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS\_DIAMPU,KELAS\_TERJADWAL,DIRI\_SENDIRI'), ('presensi\_mengajar.input', 'Input Jurnal Mengajar', 'Presensi Mengajar', 'SEMUA,KELAS\_TERJADWAL,DIRI\_SENDIRI'), ('presensi\_mengajar.view', 'Lihat Jurnal Mengajar', 'Presensi Mengajar', 'SEMUA,DIRI\_SENDIRI'), ('master\_guru.manage', 'Kelola Master Guru', 'Master Data', 'SEMUA'), ('master\_guru.view', 'Lihat Master Guru (Readonly)', 'Master Data', 'SEMUA'), ('master\_pegawai.manage', 'Kelola Master Pegawai', 'Master Data', 'SEMUA'), ('master\_pegawai.view', 'Lihat Master Pegawai (Readonly)', 'Master Data', 'SEMUA'), ('master\_siswa.view', 'Lihat Data Siswa', 'Master Data', 'SEMUA,KELAS\_DIAMPU,DIRI\_SENDIRI'), ('master\_siswa.edit\_biodata', 'Edit Biodata Siswa', 'Master Data', 'SEMUA,KELAS\_DIAMPU'), ('master\_siswa.manage', 'Kelola Mutasi/Kenaikan Kelas Siswa', 'Master Data', 'SEMUA'), ('master\_siswa.import\_export', 'Import/Export Data Siswa', 'Master Data', 'SEMUA'), ('master\_kelas.manage', 'Kelola Master Kelas', 'Master Data', 'SEMUA'), ('master\_tahun\_ajaran.manage', 'Kelola Tahun Ajaran', 'Master Data', 'SEMUA'), ('master\_mapel.manage', 'Kelola Mata Pelajaran', 'Master Data', 'SEMUA'), ('mapping\_wali.manage', 'Kelola Wali Kelas', 'Master Data', 'SEMUA'), ('mapping\_wali.view', 'Lihat Wali Kelas (Diri Sendiri)', 'Master Data', 'DIRI\_SENDIRI'), ('mapping\_wali.view\_all', 'Lihat Semua Wali Kelas (Readonly)', 'Master Data', 'SEMUA'), ('jadwal\_guru.manage', 'Kelola Jadwal Guru', 'Master Data', 'SEMUA'), ('jadwal\_guru.view', 'Lihat Jadwal Diri Sendiri', 'Master Data', 'DIRI\_SENDIRI'), ('jadwal\_guru.view\_all', 'Lihat Semua Jadwal Guru (Readonly)', 'Master Data', 'SEMUA'), ('laporan\_matrix.view', 'Lihat Matrix Presensi', 'Laporan', 'SEMUA,KELAS\_DIAMPU,KELAS\_TERJADWAL'), ('laporan\_export.generate', 'Export Laporan Presensi', 'Laporan', 'SEMUA,KELAS\_DIAMPU'), ('laporan\_jurnal.view', 'Lihat Laporan Jurnal', 'Laporan', 'SEMUA,DIRI\_SENDIRI'), ('laporan\_jurnal.export', 'Export Laporan Jurnal', 'Laporan', 'SEMUA,DIRI\_SENDIRI'), ('ews\_radar.view', 'Lihat EWS Radar', 'Presensi', 'SEMUA,KELAS\_DIAMPU'), ('bk\_kasus.manage', 'Kelola Catatan Kasus', 'BK', 'SEMUA'), ('bk\_kasus.view', 'Lihat Catatan Kasus', 'BK', 'SEMUA,KELAS\_DIAMPU,DIRI\_SENDIRI'), ('bk\_pelanggaran\_master.manage', 'Kelola Master Pelanggaran', 'BK', 'SEMUA'), ('prestasi.manage', 'Kelola Prestasi', 'BK', 'SEMUA'), ('prestasi.view', 'Lihat Prestasi', 'BK', 'SEMUA,KELAS\_DIAMPU,DIRI\_SENDIRI'), ('kartu\_pelajar.manage', 'Kelola Kartu Pelajar', 'Kartu Pelajar', 'SEMUA,KELAS\_DIAMPU'), ('kartu\_pelajar.view', 'Lihat Kartu Pelajar', 'Kartu Pelajar', 'SEMUA,KELAS\_DIAMPU,DIRI\_SENDIRI'), ('settings\_user.manage', 'Kelola User', 'Settings', 'SEMUA'), ('settings\_menu.manage', 'Kelola Menu &amp; Role', 'Settings', 'SEMUA'), ('settings\_sistem.manage', 'Kelola Setting Sistem', 'Settings', 'SEMUA'), ('backup.manage', 'Kelola Backup DB', 'Backup', 'SEMUA'), ('log\_activity.view', 'Lihat Log Activity', 'Backup', 'SEMUA'), ('profile\_guru.view', 'Lihat Profile Guru', 'Profile', 'DIRI\_SENDIRI'), ('profile\_guru.edit', 'Edit Profile Guru', 'Profile', 'DIRI\_SENDIRI'), ('profile\_siswa.view', 'Lihat Profile Siswa', 'Profile', 'DIRI\_SENDIRI'); -- 10.5 Referensi Pelanggaran INSERT INTO ref\_pelanggaran (nama\_pelanggaran, kategori, poin) VALUES ('Terlambat masuk kelas', 'Ringan', 5), ('Tidak membawa buku pelajaran', 'Ringan', 5), ('Tidak mengerjakan PR', 'Ringan', 10), ('Membuang sampah sembarangan', 'Ringan', 10), ('Berbicara kasar', 'Sedang', 20), ('Mencontek saat ujian', 'Sedang', 30), ('Bolos sekolah', 'Sedang', 35), ('Merokok di lingkungan sekolah', 'Berat', 50), ('Berkelahi', 'Berat', 60), ('Membawa senjata tajam', 'Berat', 80), ('Mencuri', 'Berat', 75), ('Mengancam guru', 'Berat', 90); -- 10.6 Default Tahun Ajaran INSERT INTO tahun\_ajaran (nama\_tahun, semester, status\_aktif) VALUES ('2026/2027', 'Ganjil', 1); -- 10.7 User Admin INSERT INTO users (username, password, role, status\_aktif, auth\_version) VALUES ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', 1, 1); -- 10.8 User Roles for Admin INSERT INTO user\_roles (id\_user, role) VALUES (1, 'admin'); -- ================================================================ -- 11. SEEDER ROLE\_PERMISSIONS -- ================================================================ INSERT INTO role\_permissions (role, id\_permission, scope) VALUES -- ================================================================ -- ADMIN (SEMUA) -- ================================================================ ('admin', 1, 'SEMUA'), ('admin', 2, 'SEMUA'), ('admin', 3, 'SEMUA'), ('admin', 4, 'SEMUA'), ('admin', 5, 'SEMUA'), ('admin', 6, 'SEMUA'), ('admin', 7, 'SEMUA'), ('admin', 8, 'SEMUA'), ('admin', 9, 'SEMUA'), ('admin', 10, 'SEMUA'), ('admin', 11, 'SEMUA'), ('admin', 12, 'SEMUA'), ('admin', 13, 'SEMUA'), ('admin', 14, 'SEMUA'), ('admin', 15, 'SEMUA'), ('admin', 16, 'SEMUA'), ('admin', 17, 'SEMUA'), ('admin', 18, 'SEMUA'), ('admin', 19, 'SEMUA'), ('admin', 20, 'SEMUA'), ('admin', 21, 'SEMUA'), ('admin', 22, 'SEMUA'), ('admin', 23, 'SEMUA'), ('admin', 24, 'SEMUA'), ('admin', 25, 'SEMUA'), ('admin', 26, 'SEMUA'), ('admin', 27, 'SEMUA'), ('admin', 28, 'SEMUA'), ('admin', 29, 'SEMUA'), ('admin', 30, 'SEMUA'), ('admin', 31, 'SEMUA'), ('admin', 32, 'SEMUA'), ('admin', 33, 'SEMUA'), ('admin', 34, 'SEMUA'), ('admin', 35, 'SEMUA'), ('admin', 36, 'SEMUA'), ('admin', 37, 'SEMUA'), ('admin', 38, 'SEMUA'), ('admin', 39, 'SEMUA'), -- ================================================================ -- OPERATOR (tanpa Settings &amp; Backup) -- ================================================================ ('operator', 1, 'SEMUA'), ('operator', 2, 'SEMUA'), ('operator', 3, 'SEMUA'), ('operator', 4, 'SEMUA'), ('operator', 5, 'SEMUA'), ('operator', 6, 'SEMUA'), ('operator', 7, 'SEMUA'), ('operator', 8, 'SEMUA'), ('operator', 9, 'SEMUA'), ('operator', 10, 'SEMUA'), ('operator', 11, 'SEMUA'), ('operator', 12, 'SEMUA'), ('operator', 13, 'SEMUA'), ('operator', 14, 'SEMUA'), ('operator', 15, 'SEMUA'), ('operator', 16, 'SEMUA'), ('operator', 17, 'SEMUA'), ('operator', 18, 'SEMUA'), ('operator', 19, 'SEMUA'), ('operator', 20, 'SEMUA'), ('operator', 21, 'SEMUA'), ('operator', 22, 'SEMUA'), ('operator', 23, 'SEMUA'), ('operator', 24, 'SEMUA'), ('operator', 25, 'SEMUA'), ('operator', 26, 'SEMUA'), ('operator', 27, 'SEMUA'), ('operator', 28, 'SEMUA'), ('operator', 29, 'SEMUA'), ('operator', 30, 'SEMUA'), ('operator', 31, 'SEMUA'), ('operator', 32, 'SEMUA'), ('operator', 33, 'SEMUA'), ('operator', 34, 'SEMUA'), -- ================================================================ -- PIMPINAN (Readonly — semua view, tanpa .manage) -- ================================================================ ('pimpinan', 1, 'SEMUA'), -- dashboard.view ('pimpinan', 4, 'SEMUA'), -- presensi\_siswa.view ('pimpinan', 6, 'SEMUA'), -- presensi\_mengajar.view ('pimpinan', 8, 'SEMUA'), -- master\_guru.view ('pimpinan', 10, 'SEMUA'), -- master\_pegawai.view ('pimpinan', 11, 'SEMUA'), -- master\_siswa.view ('pimpinan', 19, 'SEMUA'), -- mapping\_wali.view\_all (BARU) ('pimpinan', 22, 'SEMUA'), -- jadwal\_guru.view\_all ('pimpinan', 23, 'SEMUA'), -- laporan\_matrix.view ('pimpinan', 24, 'SEMUA'), -- laporan\_export.generate ('pimpinan', 25, 'SEMUA'), -- laporan\_jurnal.view ('pimpinan', 27, 'SEMUA'), -- ews\_radar.view ('pimpinan', 29, 'SEMUA'), -- bk\_kasus.view ('pimpinan', 32, 'SEMUA'), -- prestasi.view ('pimpinan', 34, 'SEMUA'), -- kartu\_pelajar.view ('pimpinan', 40, 'DIRI\_SENDIRI'), -- profile\_guru.view ('pimpinan', 41, 'DIRI\_SENDIRI'), -- profile\_guru.edit -- ================================================================ -- BK -- ================================================================ ('bk', 1, 'SEMUA'), -- dashboard.view ('bk', 27, 'SEMUA'), -- ews\_radar.view ('bk', 28, 'SEMUA'), -- bk\_kasus.manage ('bk', 29, 'SEMUA'), -- bk\_kasus.view ('bk', 30, 'SEMUA'), -- bk\_pelanggaran\_master.manage ('bk', 31, 'SEMUA'), -- prestasi.manage ('bk', 32, 'SEMUA'), -- prestasi.view ('bk', 40, 'DIRI\_SENDIRI'), -- profile\_guru.view ('bk', 41, 'DIRI\_SENDIRI'), -- profile\_guru.edit -- ================================================================ -- GURU (termasuk Wali Kelas — scope dibedakan di resolver) -- ================================================================ ('guru', 1, 'DIRI\_SENDIRI'), -- dashboard.view ('guru', 2, 'KELAS\_TERJADWAL'), -- presensi\_siswa.input ('guru', 3, 'KELAS\_DIAMPU'), -- presensi\_siswa.revisi (hanya wali yang punya kelas) ('guru', 4, 'KELAS\_TERJADWAL'), -- presensi\_siswa.view ('guru', 5, 'DIRI\_SENDIRI'), -- presensi\_mengajar.input ('guru', 6, 'DIRI\_SENDIRI'), -- presensi\_mengajar.view ('guru', 11, 'KELAS\_DIAMPU'), -- master\_siswa.view ('guru', 12, 'KELAS\_DIAMPU'), -- master\_siswa.edit\_biodata ('guru', 19, 'DIRI\_SENDIRI'), -- mapping\_wali.view ('guru', 21, 'DIRI\_SENDIRI'), -- jadwal\_guru.view ('guru', 25, 'DIRI\_SENDIRI'), -- laporan\_jurnal.view ('guru', 26, 'DIRI\_SENDIRI'), -- laporan\_jurnal.export ('guru', 27, 'KELAS\_DIAMPU'), -- ews\_radar.view (hanya wali) ('guru', 29, 'KELAS\_DIAMPU'), -- bk\_kasus.view (hanya wali) ('guru', 32, 'KELAS\_DIAMPU'), -- prestasi.view (hanya wali) ('guru', 34, 'KELAS\_DIAMPU'), -- kartu\_pelajar.view (wali dapat cetak massal) ('guru', 40, 'DIRI\_SENDIRI'), -- profile\_guru.view ('guru', 41, 'DIRI\_SENDIRI'), -- profile\_guru.edit -- ================================================================ -- SISWA -- ================================================================ ('siswa', 1, 'DIRI\_SENDIRI'), -- dashboard.view ('siswa', 34, 'DIRI\_SENDIRI'), -- kartu\_pelajar.view ('siswa', 42, 'DIRI\_SENDIRI'); -- profile\_siswa.view -- ================================================================ -- 12. SEEDER ROLE\_MENUS -- ================================================================ INSERT INTO role\_menus (role, id\_menu, tampil) VALUES -- ADMIN ('admin', 1, 1), ('admin', 2, 1), ('admin', 21, 1), ('admin', 22, 1), ('admin', 3, 1), ('admin', 31, 1), ('admin', 32, 1), ('admin', 33, 1), ('admin', 34, 1), ('admin', 35, 1), ('admin', 36, 1), ('admin', 37, 1), ('admin', 38, 1), ('admin', 4, 1), ('admin', 41, 1), ('admin', 42, 1), ('admin', 43, 1), ('admin', 5, 1), ('admin', 51, 1), ('admin', 52, 1), ('admin', 53, 1), ('admin', 6, 1), ('admin', 61, 1), ('admin', 62, 1), ('admin', 7, 1), ('admin', 71, 1), ('admin', 72, 1), ('admin', 73, 1), ('admin', 8, 1), ('admin', 81, 1), ('admin', 82, 1), -- OPERATOR (tanpa Settings &amp; Backup) ('operator', 1, 1), ('operator', 2, 1), ('operator', 21, 1), ('operator', 22, 1), ('operator', 3, 1), ('operator', 31, 1), ('operator', 32, 1), ('operator', 33, 1), ('operator', 34, 1), ('operator', 35, 1), ('operator', 36, 1), ('operator', 37, 1), ('operator', 38, 1), ('operator', 4, 1), ('operator', 41, 1), ('operator', 42, 1), ('operator', 43, 1), ('operator', 5, 1), ('operator', 51, 1), ('operator', 52, 1), ('operator', 53, 1), ('operator', 6, 1), ('operator', 61, 1), ('operator', 62, 1), ('operator', 7, 0), ('operator', 71, 0), ('operator', 72, 0), ('operator', 73, 0), ('operator', 8, 0), ('operator', 81, 0), ('operator', 82, 0), -- PIMPINAN ('pimpinan', 1, 1), ('pimpinan', 2, 1), ('pimpinan', 21, 1), ('pimpinan', 22, 1), ('pimpinan', 3, 1), ('pimpinan', 31, 1), ('pimpinan', 32, 1), ('pimpinan', 33, 1), ('pimpinan', 34, 0), ('pimpinan', 35, 0), ('pimpinan', 36, 0), ('pimpinan', 37, 1), ('pimpinan', 38, 1), ('pimpinan', 4, 1), ('pimpinan', 41, 1), ('pimpinan', 42, 1), ('pimpinan', 43, 1), ('pimpinan', 5, 1), ('pimpinan', 51, 1), ('pimpinan', 52, 1), ('pimpinan', 53, 1), ('pimpinan', 6, 1), ('pimpinan', 61, 1), ('pimpinan', 62, 0), ('pimpinan', 9, 1), ('pimpinan', 7, 0), ('pimpinan', 8, 0), -- BK ('bk', 1, 1), ('bk', 2, 0), ('bk', 21, 0), ('bk', 22, 0), ('bk', 3, 0), ('bk', 31, 0), ('bk', 32, 0), ('bk', 33, 0), ('bk', 34, 0), ('bk', 35, 0), ('bk', 36, 0), ('bk', 37, 0), ('bk', 38, 0), ('bk', 4, 0), ('bk', 41, 0), ('bk', 42, 0), ('bk', 43, 0), ('bk', 5, 1), ('bk', 51, 1), ('bk', 52, 1), ('bk', 53, 1), ('bk', 6, 0), ('bk', 61, 0), ('bk', 62, 0), ('bk', 9, 1), ('bk', 7, 0), ('bk', 8, 0), -- GURU (non-wali &amp; wali) ('guru', 1, 1), ('guru', 2, 1), ('guru', 21, 1), ('guru', 22, 1), ('guru', 3, 1), ('guru', 31, 0), -- Data Guru disembunyikan ('guru', 32, 0), ('guru', 33, 1), ('guru', 34, 0), ('guru', 35, 0), ('guru', 36, 0), ('guru', 37, 1), ('guru', 38, 1), ('guru', 4, 1), ('guru', 41, 1), ('guru', 42, 0), -- Export Presensi = 0 untuk guru non-wali ('guru', 43, 1), ('guru', 5, 1), ('guru', 51, 1), ('guru', 52, 0), ('guru', 53, 1), ('guru', 6, 0), ('guru', 61, 0), ('guru', 62, 0), ('guru', 9, 1), ('guru', 7, 0), ('guru', 8, 0), -- SISWA ('siswa', 1, 1), ('siswa', 2, 0), ('siswa', 21, 0), ('siswa', 22, 0), ('siswa', 3, 0), ('siswa', 31, 0), ('siswa', 32, 0), ('siswa', 33, 0), ('siswa', 34, 0), ('siswa', 35, 0), ('siswa', 36, 0), ('siswa', 37, 0), ('siswa', 38, 0), ('siswa', 4, 0), ('siswa', 41, 0), ('siswa', 42, 0), ('siswa', 43, 0), ('siswa', 5, 0), ('siswa', 51, 0), ('siswa', 52, 0), ('siswa', 53, 0), ('siswa', 6, 1), ('siswa', 61, 1), ('siswa', 62, 0), ('siswa', 10, 1), ('siswa', 7, 0), ('siswa', 8, 0); -- ================================================================ -- 13. RBAC FINAL 4.0 OVERRIDE -- ================================================================ -- Catatan: bagian ini dijalankan PALING AKHIR setelah seed lama. DELETE FROM role_permissions; INSERT INTO role_permissions (role, id_permission, scope) VALUES
--- ADMIN
-('admin',1,'SEMUA'),('admin',2,'SEMUA'),('admin',3,'SEMUA'),('admin',4,'SEMUA'),('admin',5,'SEMUA'),('admin',6,'SEMUA'),('admin',7,'SEMUA'),('admin',8,'SEMUA'),('admin',9,'SEMUA'),('admin',10,'SEMUA'),('admin',11,'SEMUA'),('admin',12,'SEMUA'),('admin',13,'SEMUA'),('admin',14,'SEMUA'),('admin',15,'SEMUA'),('admin',16,'SEMUA'),('admin',17,'SEMUA'),('admin',18,'SEMUA'),('admin',19,'SEMUA'),('admin',20,'SEMUA'),('admin',21,'SEMUA'),('admin',22,'SEMUA'),('admin',23,'SEMUA'),('admin',24,'SEMUA'),('admin',25,'SEMUA'),('admin',26,'SEMUA'),('admin',27,'SEMUA'),('admin',28,'SEMUA'),('admin',29,'SEMUA'),('admin',30,'SEMUA'),('admin',31,'SEMUA'),('admin',32,'SEMUA'),('admin',33,'SEMUA'),('admin',34,'SEMUA'),('admin',35,'SEMUA'),('admin',36,'SEMUA'),('admin',37,'SEMUA'),('admin',38,'SEMUA'),('admin',39,'SEMUA'),('admin',40,'SEMUA'),('admin',41,'DIRI_SENDIRI'),('admin',42,'DIRI_SENDIRI'),('admin',43,'DIRI_SENDIRI'),
--- OPERATOR
-('operator',1,'SEMUA'),('operator',2,'SEMUA'),('operator',3,'SEMUA'),('operator',4,'SEMUA'),('operator',5,'SEMUA'),('operator',6,'SEMUA'),('operator',7,'SEMUA'),('operator',8,'SEMUA'),('operator',9,'SEMUA'),('operator',10,'SEMUA'),('operator',11,'SEMUA'),('operator',12,'SEMUA'),('operator',13,'SEMUA'),('operator',14,'SEMUA'),('operator',15,'SEMUA'),('operator',16,'SEMUA'),('operator',17,'SEMUA'),('operator',18,'SEMUA'),('operator',19,'SEMUA'),('operator',20,'SEMUA'),('operator',21,'SEMUA'),('operator',22,'SEMUA'),('operator',23,'SEMUA'),('operator',24,'SEMUA'),('operator',25,'SEMUA'),('operator',26,'SEMUA'),('operator',27,'SEMUA'),('operator',28,'SEMUA'),('operator',29,'SEMUA'),('operator',30,'SEMUA'),('operator',31,'SEMUA'),('operator',32,'SEMUA'),('operator',33,'SEMUA'),('operator',34,'SEMUA'),('operator',35,'SEMUA'),('operator',36,'SEMUA'),('operator',37,'SEMUA'),('operator',38,'SEMUA'),('operator',39,'SEMUA'),('operator',40,'SEMUA'),('operator',41,'DIRI_SENDIRI'),('operator',42,'DIRI_SENDIRI'),('operator',43,'DIRI_SENDIRI'),
--- PIMPINAN
-('pimpinan',1,'SEMUA'),('pimpinan',4,'SEMUA'),('pimpinan',6,'SEMUA'),('pimpinan',8,'SEMUA'),('pimpinan',10,'SEMUA'),('pimpinan',11,'SEMUA'),('pimpinan',19,'SEMUA'),('pimpinan',22,'SEMUA'),('pimpinan',23,'SEMUA'),('pimpinan',24,'SEMUA'),('pimpinan',25,'SEMUA'),('pimpinan',26,'SEMUA'),('pimpinan',27,'SEMUA'),('pimpinan',28,'SEMUA'),('pimpinan',30,'SEMUA'),('pimpinan',33,'SEMUA'),('pimpinan',34,'SEMUA'),('pimpinan',35,'SEMUA'),('pimpinan',41,'DIRI_SENDIRI'),('pimpinan',42,'DIRI_SENDIRI'),
--- BK
-('bk',1,'SEMUA'),('bk',28,'SEMUA'),('bk',29,'SEMUA'),('bk',30,'SEMUA'),('bk',31,'SEMUA'),('bk',32,'SEMUA'),('bk',33,'SEMUA'),('bk',41,'DIRI_SENDIRI'),('bk',42,'DIRI_SENDIRI'),
--- GURU BIASA + WALI BASE; WALI-ONLY harus divalidasi dinamis
-('guru',1,'DIRI_SENDIRI'),('guru',2,'KELAS_TERJADWAL'),('guru',5,'DIRI_SENDIRI'),('guru',6,'DIRI_SENDIRI'),('guru',20,'DIRI_SENDIRI'),('guru',22,'DIRI_SENDIRI'),('guru',41,'DIRI_SENDIRI'),('guru',42,'DIRI_SENDIRI'),
--- SISWA
-('siswa',1,'DIRI_SENDIRI'),('siswa',4,'DIRI_SENDIRI'),('siswa',33,'DIRI_SENDIRI'),('siswa',35,'DIRI_SENDIRI'),('siswa',43,'DIRI_SENDIRI');
+## 3.2 `pegawai`
 
-DELETE FROM role_menus; INSERT INTO role_menus (role,id_menu,tampil) VALUES
--- ADMIN
-('admin',1,1),('admin',2,1),('admin',21,1),('admin',22,1),('admin',3,1),('admin',31,1),('admin',32,1),('admin',33,1),('admin',34,1),('admin',35,1),('admin',36,1),('admin',37,1),('admin',38,1),('admin',4,1),('admin',41,1),('admin',42,1),('admin',43,1),('admin',5,1),('admin',51,1),('admin',52,1),('admin',53,1),('admin',6,1),('admin',61,1),('admin',62,1),('admin',7,1),('admin',71,1),('admin',72,1),('admin',73,1),('admin',8,1),('admin',81,1),('admin',82,1),
--- OPERATOR
-('operator',1,1),('operator',2,1),('operator',21,1),('operator',22,1),('operator',3,1),('operator',31,1),('operator',32,1),('operator',33,1),('operator',34,1),('operator',35,1),('operator',36,1),('operator',37,1),('operator',38,1),('operator',4,1),('operator',41,1),('operator',42,1),('operator',43,1),('operator',5,1),('operator',51,1),('operator',52,1),('operator',53,1),('operator',6,1),('operator',61,1),('operator',62,1),('operator',7,1),('operator',71,1),('operator',72,1),('operator',73,1),('operator',8,1),('operator',81,1),('operator',82,1),
--- PIMPINAN
-('pimpinan',1,1),('pimpinan',2,1),('pimpinan',21,1),('pimpinan',22,1),('pimpinan',3,1),('pimpinan',31,1),('pimpinan',32,1),('pimpinan',33,1),('pimpinan',37,1),('pimpinan',38,1),('pimpinan',4,1),('pimpinan',41,1),('pimpinan',42,1),('pimpinan',43,1),('pimpinan',5,1),('pimpinan',51,1),('pimpinan',53,1),('pimpinan',6,1),('pimpinan',61,1),('pimpinan',62,1),('pimpinan',9,1),
--- BK
-('bk',1,1),('bk',5,1),('bk',51,1),('bk',52,1),('bk',53,1),('bk',9,1),
--- GURU: hanya menu yang aman untuk semua Guru; Wali-only ditambahkan dinamis
-('guru',1,1),('guru',2,1),('guru',21,1),('guru',22,1),('guru',3,0),('guru',31,0),('guru',32,0),('guru',33,0),('guru',34,0),('guru',35,0),('guru',36,0),('guru',37,0),('guru',38,1),('guru',4,0),('guru',41,0),('guru',42,0),('guru',43,1),('guru',5,0),('guru',51,0),('guru',52,0),('guru',53,0),('guru',6,0),('guru',61,0),('guru',62,0),('guru',9,1),
--- SISWA
-('siswa',1,1),('siswa',6,1),('siswa',61,1),('siswa',62,0),('siswa',10,1);
--- ================================================================ -- END OF SQL -- ================================================================
+```sql
+CREATE TABLE pegawai (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nip VARCHAR(30) NOT NULL UNIQUE,
+    nama VARCHAR(150) NOT NULL,
+    jenis_kelamin ENUM('L','P') NOT NULL,
+    tempat_lahir VARCHAR(100) NULL,
+    tanggal_lahir DATE NULL,
+    alamat TEXT NULL,
+    no_telepon VARCHAR(20) NULL,
+    email VARCHAR(100) NULL,
+    jabatan VARCHAR(100) NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
 
-* * *
+---
 
-## 3. Catatan Penting
+## 3.3 `siswa`
 
-- **NIK vs NISN:** NIK (16 digit) adalah identifier utama siswa (UNIQUE). NISN tetap digunakan sebagai basis akun login (username = NISN).
-- **Verifikasi Publik (Masking NIK):** Di endpoint `/kartu/verify/{kode}`, NIK **tidak** ditampilkan penuh. Format: `351012xxxxxx1234` (6 digit awal + 6 mask + 4 digit akhir).
-- **Permission Wali Kelas:** Wali Kelas mendapatkan akses kontekstual `KELAS_DIAMPU` untuk Presensi Siswa (input/view/revisi), Master Siswa (view/edit biodata kecuali NISN), Matrix/Export, EWS, BK view, Prestasi view, serta Kartu view/cetak. `kartu_pelajar.manage` untuk Wali **tidak** digunakan; pencetakan dilakukan melalui capability cetak pada UI yang dibatasi kelas wali.
-- **Master Data Guru:** Menu `Data Guru (31)` disembunyikan untuk role `guru` dan `siswa`. Untuk Pimpinan tetap tampil (readonly via permission `master_guru.view`).
-- **FK Integrity:** Semua FK yang hilang sudah ditambahkan, termasuk untuk `api_tokens`, `role_permissions`, dan `role_menus`.
-- **Permission Khusus Pimpinan:** Pimpinan hanya memiliki permission \`.view\` dan \`.view\_all\`, **tidak** memiliki permission \`.manage\` apapun.
-- **Default Tahun Ajaran:** Disesuaikan dengan tanggal dokumen (`2026/2027 Ganjil`).
+```sql
+CREATE TABLE siswa (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nik VARCHAR(16) NOT NULL UNIQUE,
+    nisn VARCHAR(20) NOT NULL UNIQUE,
+    nama VARCHAR(150) NOT NULL,
+    jenis_kelamin ENUM('L','P') NOT NULL,
+    tempat_lahir VARCHAR(100) NULL,
+    tanggal_lahir DATE NULL,
+    alamat TEXT NULL,
+    no_telepon VARCHAR(20) NULL,
+    kebutuhan_khusus VARCHAR(100) NULL,
+    disabilitas VARCHAR(100) NULL,
+    nomor_kip_pip VARCHAR(50) NULL,
+    nama_ayah_kandung VARCHAR(150) NULL,
+    nama_ibu_kandung VARCHAR(150) NULL,
+    nama_wali VARCHAR(150) NULL,
+    foto VARCHAR(255) NULL,
+    status_aktif ENUM(
+        'Aktif',
+        'Lulus',
+        'Pindah',
+        'Keluar'
+    ) NOT NULL DEFAULT 'Aktif',
+    tanggal_mutasi DATE NULL,
+    keterangan_mutasi TEXT NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
 
-* * *
+Aturan NIK 16 digit divalidasi di aplikasi.
 
-© 2026 SisisFour · MTsN 4 Jombang · Database Final
+---
+
+## 3.4 `tahun_ajaran`
+
+```sql
+CREATE TABLE tahun_ajaran (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nama_tahun VARCHAR(20) NOT NULL,
+    semester ENUM('Ganjil','Genap') NOT NULL,
+    status_aktif TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_tahun_semester (nama_tahun, semester)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Invariant satu tahun ajaran aktif dijaga Service dalam transaction.
+
+---
+
+## 3.5 `kelas`
+
+```sql
+CREATE TABLE kelas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    tingkat ENUM('7','8','9') NOT NULL,
+    rombel VARCHAR(10) NOT NULL,
+    nama_kelas VARCHAR(20) NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    UNIQUE KEY uk_kelas_tahun (id_tahun, nama_kelas)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 3.6 `mata_pelajaran`
+
+```sql
+CREATE TABLE mata_pelajaran (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nama_mapel VARCHAR(100) NOT NULL,
+    kode_mapel VARCHAR(10) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 3.7 `anggota_kelas`
+
+```sql
+CREATE TABLE anggota_kelas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    UNIQUE KEY uk_siswa_tahun (id_siswa, id_tahun),
+    KEY idx_anggota_kelas (id_kelas, id_tahun)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Satu siswa hanya boleh menjadi anggota satu kelas pada tahun yang sama.
+
+---
+
+## 3.8 `mapping_wali_kelas`
+
+Mapping Wali membutuhkan histori soft delete sekaligus UNIQUE hanya untuk record aktif.
+
+Struktur canonical:
+
+```sql
+CREATE TABLE mapping_wali_kelas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_guru INT UNSIGNED NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+
+    deleted_at DATETIME NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    uk_guru_aktif INT UNSIGNED
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN deleted_at IS NULL THEN id_guru
+                ELSE NULL
+            END
+        ) STORED,
+
+    uk_kelas_aktif INT UNSIGNED
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN deleted_at IS NULL THEN id_kelas
+                ELSE NULL
+            END
+        ) STORED,
+
+    UNIQUE KEY uk_mapping_guru_aktif (
+        id_tahun,
+        uk_guru_aktif
+    ),
+
+    UNIQUE KEY uk_mapping_kelas_aktif (
+        id_tahun,
+        uk_kelas_aktif
+    ),
+
+    KEY idx_mapping_wali_tahun (
+        id_tahun,
+        deleted_at
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Konsekuensi:
+- row aktif: generated column berisi ID dan terkena UNIQUE;
+- row nonaktif: generated column NULL sehingga histori dapat tetap disimpan;
+- restore/reassign row lama dimungkinkan.
+
+---
+
+## 3.9 `jadwal_guru`
+
+```sql
+CREATE TABLE jadwal_guru (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_guru INT UNSIGNED NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    id_mapel INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    hari ENUM(
+        'Senin',
+        'Selasa',
+        'Rabu',
+        'Kamis',
+        'Jumat',
+        'Sabtu',
+        'Minggu'
+    ) NOT NULL,
+    jam_mulai TIME NOT NULL,
+    jam_selesai TIME NOT NULL,
+    sesi ENUM(
+        'Sesi Awal',
+        'Sesi Akhir',
+        'Non Sesi'
+    ) NOT NULL,
+    status_jadwal ENUM(
+        'Aktif',
+        'Nonaktif'
+    ) NOT NULL DEFAULT 'Aktif',
+
+    KEY idx_jadwal_guru (
+        id_guru,
+        id_tahun,
+        hari,
+        status_jadwal
+    ),
+
+    KEY idx_jadwal_kelas (
+        id_kelas,
+        id_tahun,
+        hari,
+        status_jadwal
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Overlap tidak dapat dijaga hanya dengan unique index karena memakai interval waktu; validasi overlap dilakukan Service.
+
+---
+
+# 4. Histori Siswa
+
+```sql
+CREATE TABLE riwayat_siswa (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    status ENUM(
+        'Aktif',
+        'Pindah',
+        'Keluar',
+        'Lulus'
+    ) NOT NULL,
+    tanggal_mulai DATE NOT NULL,
+    tanggal_selesai DATE NULL,
+    keterangan TEXT NULL,
+    created_at DATETIME NULL,
+    KEY idx_riwayat_siswa (id_siswa, id_tahun)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+# 5. Authentication dan RBAC
+
+## 5.1 `users`
+
+`role` boleh NULL.
+
+```sql
+CREATE TABLE users (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+
+    role ENUM(
+        'admin',
+        'operator',
+        'pimpinan',
+        'bk',
+        'guru',
+        'siswa'
+    ) NULL DEFAULT NULL,
+
+    id_guru INT UNSIGNED NULL,
+    id_pegawai INT UNSIGNED NULL,
+    id_siswa INT UNSIGNED NULL,
+
+    status_aktif TINYINT(1) NOT NULL DEFAULT 1,
+    auth_version INT UNSIGNED NOT NULL DEFAULT 1,
+
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+
+    KEY idx_users_role (role),
+    KEY idx_users_guru (id_guru),
+    KEY idx_users_pegawai (id_pegawai),
+    KEY idx_users_siswa (id_siswa)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Akun Pegawai dapat dibuat dengan `role = NULL` sampai role diberikan Admin.
+
+---
+
+## 5.2 `user_roles`
+
+```sql
+CREATE TABLE user_roles (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_user INT UNSIGNED NOT NULL,
+    role ENUM(
+        'admin',
+        'operator',
+        'pimpinan',
+        'bk',
+        'guru',
+        'siswa'
+    ) NOT NULL,
+    created_at DATETIME NULL,
+    UNIQUE KEY uk_user_role (id_user, role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 5.3 `login_attempts`
+
+```sql
+CREATE TABLE login_attempts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    waktu DATETIME NOT NULL,
+    berhasil TINYINT(1) NOT NULL,
+    KEY idx_login_username_waktu (username, waktu)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 5.4 `ci_sessions`
+
+```sql
+CREATE TABLE ci_sessions (
+    id VARCHAR(128) NOT NULL PRIMARY KEY,
+    ip_address VARCHAR(45) NOT NULL,
+    timestamp INT UNSIGNED NOT NULL DEFAULT 0,
+    data BLOB NOT NULL,
+    KEY ci_sessions_timestamp (timestamp)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 5.5 `api_tokens`
+
+```sql
+CREATE TABLE api_tokens (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_user INT UNSIGNED NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    refresh_token VARCHAR(255) NOT NULL UNIQUE,
+    device_name VARCHAR(100) NULL,
+    expires_at DATETIME NOT NULL,
+    refresh_expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    created_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 5.6 `menus`
+
+```sql
+CREATE TABLE menus (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nama_menu VARCHAR(100) NOT NULL,
+    parent_id INT UNSIGNED NULL,
+    urutan INT NOT NULL DEFAULT 0,
+    icon VARCHAR(100) NULL,
+    link VARCHAR(100) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    KEY idx_menu_parent (parent_id, urutan)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+## 5.7 `permissions`
+
+```sql
+CREATE TABLE permissions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    permission_key VARCHAR(100) NOT NULL UNIQUE,
+    nama VARCHAR(100) NOT NULL,
+    modul VARCHAR(50) NOT NULL,
+    scope_didukung VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Permission canonical:
+
+```sql
+INSERT INTO permissions
+(id, permission_key, nama, modul, scope_didukung)
+VALUES
+(1,  'dashboard.view', 'Lihat Dashboard', 'Dashboard', 'OTOMATIS'),
+(2,  'presensi_siswa.input', 'Input Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS_DIAMPU,KELAS_TERJADWAL'),
+(3,  'presensi_siswa.revisi', 'Revisi Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS_DIAMPU'),
+(4,  'presensi_siswa.view', 'Lihat Presensi Siswa', 'Presensi Siswa', 'SEMUA,KELAS_DIAMPU,DIRI_SENDIRI'),
+(5,  'presensi_mengajar.input', 'Input Presensi Mengajar', 'Presensi Mengajar', 'SEMUA,KELAS_TERJADWAL,DIRI_SENDIRI'),
+(6,  'presensi_mengajar.view', 'Lihat Presensi Mengajar', 'Presensi Mengajar', 'SEMUA,DIRI_SENDIRI'),
+(7,  'master_guru.manage', 'Kelola Guru', 'Master Data', 'SEMUA'),
+(8,  'master_guru.view', 'Lihat Guru', 'Master Data', 'SEMUA'),
+(9,  'master_pegawai.manage', 'Kelola Pegawai', 'Master Data', 'SEMUA'),
+(10, 'master_pegawai.view', 'Lihat Pegawai', 'Master Data', 'SEMUA'),
+(11, 'master_siswa.view', 'Lihat Siswa', 'Master Data', 'SEMUA,KELAS_DIAMPU,DIRI_SENDIRI'),
+(12, 'master_siswa.edit_biodata', 'Edit Biodata Siswa', 'Master Data', 'SEMUA,KELAS_DIAMPU'),
+(13, 'master_siswa.manage', 'Kelola Siswa', 'Master Data', 'SEMUA'),
+(14, 'master_siswa.import_export', 'Import Export Siswa', 'Master Data', 'SEMUA'),
+(15, 'master_kelas.manage', 'Kelola Kelas', 'Master Data', 'SEMUA'),
+(16, 'master_tahun_ajaran.manage', 'Kelola Tahun Ajaran', 'Master Data', 'SEMUA'),
+(17, 'master_mapel.manage', 'Kelola Mata Pelajaran', 'Master Data', 'SEMUA'),
+(18, 'mapping_wali.manage', 'Kelola Mapping Wali', 'Master Data', 'SEMUA'),
+(19, 'mapping_wali.view', 'Lihat Mapping Wali Diri', 'Master Data', 'DIRI_SENDIRI'),
+(20, 'mapping_wali.view_all', 'Lihat Semua Mapping Wali', 'Master Data', 'SEMUA'),
+(21, 'jadwal_guru.manage', 'Kelola Jadwal Guru', 'Master Data', 'SEMUA'),
+(22, 'jadwal_guru.view', 'Lihat Jadwal Diri', 'Master Data', 'DIRI_SENDIRI'),
+(23, 'jadwal_guru.view_all', 'Lihat Semua Jadwal', 'Master Data', 'SEMUA'),
+(24, 'laporan_matrix.view', 'Lihat Matrix Presensi', 'Laporan', 'SEMUA,KELAS_DIAMPU'),
+(25, 'laporan_export.generate', 'Generate Export Presensi', 'Laporan', 'SEMUA,KELAS_DIAMPU'),
+(26, 'laporan_jurnal.view', 'Lihat Laporan Jurnal', 'Laporan', 'SEMUA,DIRI_SENDIRI'),
+(27, 'laporan_jurnal.export', 'Export Laporan Jurnal', 'Laporan', 'SEMUA,DIRI_SENDIRI'),
+(28, 'ews_radar.view', 'Lihat EWS Radar', 'Presensi', 'SEMUA,KELAS_DIAMPU'),
+(29, 'bk_kasus.manage', 'Kelola Kasus BK', 'BK', 'SEMUA'),
+(30, 'bk_kasus.view', 'Lihat Kasus BK', 'BK', 'SEMUA,KELAS_DIAMPU,DIRI_SENDIRI'),
+(31, 'bk_pelanggaran_master.manage', 'Kelola Master Pelanggaran', 'BK', 'SEMUA'),
+(32, 'prestasi.manage', 'Kelola Prestasi', 'BK', 'SEMUA'),
+(33, 'prestasi.view', 'Lihat Prestasi', 'BK', 'SEMUA,KELAS_DIAMPU,DIRI_SENDIRI'),
+(34, 'kartu_pelajar.manage', 'Kelola Kartu Pelajar', 'Kartu Pelajar', 'SEMUA,KELAS_DIAMPU'),
+(35, 'kartu_pelajar.view', 'Lihat Kartu Pelajar', 'Kartu Pelajar', 'SEMUA,KELAS_DIAMPU,DIRI_SENDIRI'),
+(36, 'settings_user.manage', 'Kelola User', 'Settings', 'SEMUA'),
+(37, 'settings_menu.manage', 'Kelola Menu Role', 'Settings', 'SEMUA'),
+(38, 'settings_sistem.manage', 'Kelola Setting Sistem', 'Settings', 'SEMUA'),
+(39, 'backup.manage', 'Kelola Backup', 'Backup', 'SEMUA'),
+(40, 'log_activity.view', 'Lihat Log Activity', 'Backup', 'SEMUA'),
+(41, 'profile_guru.view', 'Lihat Profile Guru', 'Profile', 'DIRI_SENDIRI'),
+(42, 'profile_guru.edit', 'Edit Profile Guru', 'Profile', 'DIRI_SENDIRI'),
+(43, 'profile_siswa.view', 'Lihat Profile Siswa', 'Profile', 'DIRI_SENDIRI');
+```
+
+---
+
+## 5.8 `role_permissions`
+
+```sql
+CREATE TABLE role_permissions (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    role ENUM(
+        'admin',
+        'operator',
+        'pimpinan',
+        'bk',
+        'guru',
+        'siswa'
+    ) NOT NULL,
+    id_permission INT UNSIGNED NOT NULL,
+    scope VARCHAR(50) NOT NULL,
+    UNIQUE KEY uk_role_permission (role, id_permission)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Mapping canonical dijelaskan rinci pada `03_AUTH_RBAC_MENU`.
+
+---
+
+## 5.9 `role_menus`
+
+```sql
+CREATE TABLE role_menus (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    role ENUM(
+        'admin',
+        'operator',
+        'pimpinan',
+        'bk',
+        'guru',
+        'siswa'
+    ) NOT NULL,
+    id_menu INT UNSIGNED NOT NULL,
+    tampil TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY uk_role_menu (role, id_menu)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Menu contextual Wali tetap ditentukan application layer.
+
+---
+
+# 6. Presensi
+
+## 6.1 `presensi`
+
+```sql
+CREATE TABLE presensi (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NULL,
+    nama_siswa_snapshot VARCHAR(150) NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    tanggal DATE NOT NULL,
+    sesi ENUM('Sesi Awal','Sesi Akhir') NOT NULL,
+    status ENUM('Hadir','Sakit','Izin','Alpha') NOT NULL,
+    id_guru_input INT UNSIGNED NULL,
+    nama_guru_input_snapshot VARCHAR(150) NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    updated_by INT UNSIGNED NULL,
+
+    UNIQUE KEY uk_presensi_siswa (
+        id_kelas,
+        tanggal,
+        sesi,
+        id_siswa
+    ),
+
+    KEY idx_presensi_laporan (
+        id_tahun,
+        tanggal,
+        sesi,
+        status
+    ),
+
+    KEY idx_presensi_siswa (
+        id_siswa,
+        tanggal
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Snapshot mempertahankan identitas historis bila data master berubah.
+
+---
+
+## 6.2 `presensi_mengajar`
+
+```sql
+CREATE TABLE presensi_mengajar (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_guru INT UNSIGNED NULL,
+    nama_guru_snapshot VARCHAR(150) NOT NULL,
+    id_jadwal INT UNSIGNED NOT NULL,
+    id_kelas INT UNSIGNED NOT NULL,
+    id_tahun INT UNSIGNED NOT NULL,
+    tanggal DATE NOT NULL,
+    status ENUM('Hadir','Izin','Sakit') NOT NULL,
+    materi TEXT NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    updated_by INT UNSIGNED NULL,
+
+    UNIQUE KEY uk_jurnal_jadwal_tanggal (
+        id_jadwal,
+        tanggal
+    ),
+
+    KEY idx_jurnal_guru_tanggal (
+        id_guru,
+        tanggal
+    )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+# 7. BK dan Prestasi
+
+## 7.1 `ref_pelanggaran`
+
+```sql
+CREATE TABLE ref_pelanggaran (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nama_pelanggaran VARCHAR(150) NOT NULL,
+    kategori ENUM('Ringan','Sedang','Berat') NOT NULL,
+    poin INT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+## 7.2 `catatan_kasus`
+
+```sql
+CREATE TABLE catatan_kasus (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NOT NULL,
+    id_pelanggaran INT UNSIGNED NOT NULL,
+    tanggal DATE NOT NULL,
+    keterangan TEXT NULL,
+    id_guru_input INT UNSIGNED NOT NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    updated_by INT UNSIGNED NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+## 7.3 `catatan_prestasi`
+
+```sql
+CREATE TABLE catatan_prestasi (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NOT NULL,
+    nama_prestasi VARCHAR(200) NOT NULL,
+    tingkat VARCHAR(100) NULL,
+    tanggal DATE NOT NULL,
+    penyelenggara VARCHAR(200) NULL,
+    keterangan TEXT NULL,
+    id_guru_input INT UNSIGNED NOT NULL,
+    created_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+# 8. Kartu Pelajar
+
+```sql
+CREATE TABLE kartu_pelajar (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_siswa INT UNSIGNED NOT NULL,
+    nomor_kartu VARCHAR(50) NOT NULL UNIQUE,
+    kode_verifikasi VARCHAR(100) NOT NULL UNIQUE,
+    tanggal_terbit DATE NOT NULL,
+    status_aktif ENUM('Aktif','Nonaktif') NOT NULL DEFAULT 'Aktif',
+    KEY idx_kartu_siswa (id_siswa, status_aktif)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+# 9. Settings dan Log
+
+## 9.1 `setting_sistem`
+
+```sql
+CREATE TABLE setting_sistem (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'string',
+    updated_at DATETIME NULL,
+    updated_by INT UNSIGNED NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+## 9.2 `log_activity`
+
+```sql
+CREATE TABLE log_activity (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_user INT UNSIGNED NULL,
+    aksi VARCHAR(100) NOT NULL,
+    modul VARCHAR(100) NOT NULL,
+    keterangan TEXT NULL,
+    waktu DATETIME NOT NULL,
+    KEY idx_log_waktu (waktu),
+    KEY idx_log_user (id_user)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+---
+
+# 10. Foreign Key Canonical
+
+```sql
+ALTER TABLE kelas
+ADD CONSTRAINT fk_kelas_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE anggota_kelas
+ADD CONSTRAINT fk_anggota_siswa
+FOREIGN KEY (id_siswa) REFERENCES siswa(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE anggota_kelas
+ADD CONSTRAINT fk_anggota_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE anggota_kelas
+ADD CONSTRAINT fk_anggota_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE mapping_wali_kelas
+ADD CONSTRAINT fk_mapping_guru
+FOREIGN KEY (id_guru) REFERENCES guru(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE mapping_wali_kelas
+ADD CONSTRAINT fk_mapping_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE mapping_wali_kelas
+ADD CONSTRAINT fk_mapping_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE jadwal_guru
+ADD CONSTRAINT fk_jadwal_guru
+FOREIGN KEY (id_guru) REFERENCES guru(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE jadwal_guru
+ADD CONSTRAINT fk_jadwal_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE jadwal_guru
+ADD CONSTRAINT fk_jadwal_mapel
+FOREIGN KEY (id_mapel) REFERENCES mata_pelajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE jadwal_guru
+ADD CONSTRAINT fk_jadwal_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE riwayat_siswa
+ADD CONSTRAINT fk_riwayat_siswa
+FOREIGN KEY (id_siswa) REFERENCES siswa(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE riwayat_siswa
+ADD CONSTRAINT fk_riwayat_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE riwayat_siswa
+ADD CONSTRAINT fk_riwayat_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE users
+ADD CONSTRAINT fk_users_guru
+FOREIGN KEY (id_guru) REFERENCES guru(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE users
+ADD CONSTRAINT fk_users_pegawai
+FOREIGN KEY (id_pegawai) REFERENCES pegawai(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE users
+ADD CONSTRAINT fk_users_siswa
+FOREIGN KEY (id_siswa) REFERENCES siswa(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE user_roles
+ADD CONSTRAINT fk_user_roles_user
+FOREIGN KEY (id_user) REFERENCES users(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE api_tokens
+ADD CONSTRAINT fk_api_tokens_user
+FOREIGN KEY (id_user) REFERENCES users(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE role_permissions
+ADD CONSTRAINT fk_role_permission_permission
+FOREIGN KEY (id_permission) REFERENCES permissions(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE role_menus
+ADD CONSTRAINT fk_role_menu_menu
+FOREIGN KEY (id_menu) REFERENCES menus(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE menus
+ADD CONSTRAINT fk_menu_parent
+FOREIGN KEY (parent_id) REFERENCES menus(id)
+ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE presensi
+ADD CONSTRAINT fk_presensi_siswa
+FOREIGN KEY (id_siswa) REFERENCES siswa(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE presensi
+ADD CONSTRAINT fk_presensi_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE presensi
+ADD CONSTRAINT fk_presensi_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE presensi
+ADD CONSTRAINT fk_presensi_guru_input
+FOREIGN KEY (id_guru_input) REFERENCES guru(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE presensi_mengajar
+ADD CONSTRAINT fk_jurnal_guru
+FOREIGN KEY (id_guru) REFERENCES guru(id)
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE presensi_mengajar
+ADD CONSTRAINT fk_jurnal_jadwal
+FOREIGN KEY (id_jadwal) REFERENCES jadwal_guru(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE presensi_mengajar
+ADD CONSTRAINT fk_jurnal_kelas
+FOREIGN KEY (id_kelas) REFERENCES kelas(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE presensi_mengajar
+ADD CONSTRAINT fk_jurnal_tahun
+FOREIGN KEY (id_tahun) REFERENCES tahun_ajaran(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+
+ALTER TABLE kartu_pelajar
+ADD CONSTRAINT fk_kartu_siswa
+FOREIGN KEY (id_siswa) REFERENCES siswa(id)
+ON DELETE RESTRICT ON UPDATE CASCADE;
+```
+
+FK BK/Prestasi disesuaikan dengan tabel siswa/guru terkait menggunakan RESTRICT, kecuali kebutuhan histori mengharuskan snapshot/SET NULL.
+
+---
+
+# 11. Seeder Mata Pelajaran
+
+Minimal seed mapel harus mempunyai `kode_mapel` unik.
+
+Kategori mapel canonical sekolah:
+
+```text
+Al-Qur'an Hadis
+Akidah Akhlak
+Fikih
+SKI
+Bahasa Arab
+PPKn
+Bahasa Indonesia
+Matematika
+IPA
+IPS
+Bahasa Inggris
+PJOK
+Informatika
+Seni Budaya
+Bahasa Daerah
+Prakarya
+Bimbingan/Kegiatan sesuai kebijakan madrasah
+```
+
+Kode final harus konsisten dengan template Jadwal Guru.
+
+---
+
+# 12. Seeder Admin Awal
+
+Fresh install memerlukan satu akun bootstrap Admin.
+
+Password wajib di-hash menggunakan PHP `password_hash()` dan tidak boleh disimpan plaintext di SQL produksi.
+
+Konsep data:
+
+```text
+username      = admin
+role          = admin
+status_aktif  = 1
+auth_version  = 1
+id_guru       = NULL
+id_pegawai    = NULL
+id_siswa      = NULL
+```
+
+Admin bootstrap adalah pengecualian terhadap aturan identitas normal.
+
+---
+
+# 13. Invariant Database + Service
+
+Invariant yang wajib selalu benar:
+
+1. NIK siswa unik dan 16 digit.
+2. NISN unik.
+3. NIP Guru unik di Guru.
+4. NIP Pegawai unik di Pegawai.
+5. NIP lintas Guru/Pegawai tidak boleh sama.
+6. satu siswa hanya satu kelas per tahun.
+7. satu mapping Wali aktif per Guru/tahun.
+8. satu mapping Wali aktif per Kelas/tahun.
+9. satu Tahun Ajaran aktif.
+10. satu Presensi siswa per kelas/tanggal/sesi/siswa.
+11. satu jurnal per jadwal/tanggal.
+12. jadwal Guru tidak overlap.
+13. jadwal Kelas tidak overlap.
+14. role Pegawai boleh NULL.
+15. Wali bukan role.
+16. data historis tidak dihapus hanya karena data master berubah.
+
+---
+
+# 14. Fresh Install
+
+Urutan fresh install:
+
+```text
+1. Buat database
+2. CREATE tabel
+3. Buat index/generated column
+4. Tambah FK
+5. Insert permissions
+6. Insert menus
+7. Insert role_permissions
+8. Insert role_menus
+9. Insert mapel
+10. Insert settings default
+11. Insert admin bootstrap
+12. SET FOREIGN_KEY_CHECKS = 1
+```
+
+Seeder menu dan matriks role/permission harus mengikuti `03_AUTH_RBAC_MENU`.
+
+---
+
+# 15. Pemeriksaan Fresh Install
+
+Setelah import:
+
+```sql
+SHOW TABLES;
+
+SELECT COUNT(*) FROM permissions;
+SELECT COUNT(*) FROM mata_pelajaran;
+SELECT role, COUNT(*) FROM role_permissions GROUP BY role;
+SELECT role, COUNT(*) FROM role_menus GROUP BY role;
+
+SELECT
+    id,
+    nama_tahun,
+    semester,
+    status_aktif
+FROM tahun_ajaran;
+```
+
+Expected:
+- permission = 43;
+- tidak ada FK error;
+- `mapping_wali_kelas` memiliki generated column;
+- `users.role` nullable;
+- tidak ada role `wali_kelas`;
+- seluruh tabel memakai engine InnoDB.
