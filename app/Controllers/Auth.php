@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\SettingSistemModel;
 use App\Services\ActivityLogService;
 use App\Services\AuthService;
 use App\Services\JwtService;
@@ -9,6 +10,7 @@ use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 class Auth extends Controller
 {
@@ -49,7 +51,12 @@ class Auth extends Controller
                 $this->request->getMethod()
             ) !== 'POST'
         ) {
-            return view('auth_login');
+            return view(
+                'auth_login',
+                [
+                    'loginBranding' => $this->loginBranding(),
+                ]
+            );
         }
 
         $username = trim(
@@ -167,7 +174,7 @@ class Auth extends Controller
                 $result['user'],
                 $deviceName
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             log_message(
                 'error',
                 'API login token error: {message}',
@@ -308,7 +315,7 @@ class Auth extends Controller
                 $refreshToken,
                 $deviceName
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -365,5 +372,43 @@ class Auth extends Controller
                 )
                 : null,
         ];
+    }
+
+    private function loginBranding(): array
+    {
+        $branding = [
+            'nama_sekolah' => 'MTsN 4 Jombang',
+            'logo_sekolah' => '',
+            'icon_sekolah' => '',
+        ];
+
+        try {
+            $rows = (new SettingSistemModel())->allAssoc();
+
+            foreach ($branding as $key => $default) {
+                if (!isset($rows[$key])) {
+                    continue;
+                }
+
+                $value = trim(
+                    (string) (
+                        $rows[$key]['setting_value']
+                        ?? ''
+                    )
+                );
+
+                if ($value !== '') {
+                    $branding[$key] = $value;
+                }
+            }
+        } catch (Throwable $e) {
+            log_message(
+                'warning',
+                'Login gagal memuat branding: {message}',
+                ['message' => $e->getMessage()]
+            );
+        }
+
+        return $branding;
     }
 }
