@@ -9,19 +9,20 @@ use Config\Database;
  * AuthService
  *
  * Menangani:
- * - autentikasi web berbasis session
- * - rate limiting login
- * - auth_version
- * - multi-role
- * - resolusi permission scope
- * - status Wali Kelas dinamis
- * - daftar kelas yang diampu
- * - daftar kelas terjadwal hari ini
+ * - autentikasi web berbasis session;
+ * - rate limiting login;
+ * - auth_version;
+ * - multi-role;
+ * - resolusi permission scope multi-scope;
+ * - status Wali Kelas dinamis;
+ * - daftar kelas yang diampu;
+ * - daftar kelas terjadwal hari ini.
  *
  * Catatan:
  * - Wali Kelas bukan role.
  * - Status Wali selalu dihitung dinamis dari mapping_wali_kelas.
- * - JWT/API ditangani pada tahap API/Mobile.
+ * - Permission user adalah union primary role + secondary roles.
+ * - Satu role dapat mempunyai lebih dari satu scope untuk permission yang sama.
  */
 class AuthService
 {
@@ -35,23 +36,10 @@ class AuthService
     /**
      * Proses login web berbasis session.
      *
-     * Aturan:
-     * - username/password wajib diisi
-     * - 5 kegagalan berturut-turut untuk username yang sama
-     *   menyebabkan lock selama 5 menit
-     * - login sukses memutus rangkaian kegagalan
-     * - auth_version dinaikkan setiap login sukses
-     *
-     * @return array{
-     *     success: bool,
-     *     message: string,
-     *     user?: array
-     * }
+     * @return array{success:bool,message:string,user?:array}
      */
-    public function attemptLogin(
-        string $username,
-        string $password
-    ): array {
+    public function attemptLogin(string $username, string $password): array
+    {
         $username = trim($username);
 
         if ($username === '' || $password === '') {
@@ -61,9 +49,6 @@ class AuthService
             ];
         }
 
-        /*
-         * Cek lock berdasarkan username.
-         */
         if ($this->isLocked($username)) {
             return [
                 'success' => false,
@@ -71,9 +56,6 @@ class AuthService
             ];
         }
 
-        /*
-         * Ambil user aktif.
-         */
         $user = $this->db
             ->table('users')
             ->where('username', $username)
@@ -81,12 +63,7 @@ class AuthService
             ->get()
             ->getRowArray();
 
-        /*
-         * User tidak ditemukan / tidak aktif.
-         *
-         * Tetap dicatat sebagai kegagalan berdasarkan username.
-         */
-        if (!$user) {
+        if (! $user) {
             $this->recordAttempt($username, false);
 
             return [
@@ -95,20 +72,9 @@ class AuthService
             ];
         }
 
-        /*
-         * Verifikasi password menggunakan bcrypt/password_verify().
-         */
-        $passwordValid = password_verify(
-            $password,
-            (string) $user['password']
-        );
-
-        if (!$passwordValid) {
+        if (! password_verify($password, (string) $user['password'])) {
             $this->recordAttempt($username, false);
 
-            /*
-             * Setelah kegagalan ke-5, langsung dianggap locked.
-             */
             if ($this->isLocked($username)) {
                 return [
                     'success' => false,
@@ -122,20 +88,8 @@ class AuthService
             ];
         }
 
-        /*
-         * Login berhasil.
-         *
-         * Record success memutus rangkaian kegagalan berturut-turut.
-         */
         $this->recordAttempt($username, true);
 
-        /*
-         * Single Active Session:
-         * setiap login sukses menaikkan auth_version.
-         *
-         * Session/token lama dengan auth_version sebelumnya
-         * otomatis menjadi tidak valid.
-         */
         $newAuthVersion = ((int) ($user['auth_version'] ?? 0)) + 1;
 
         $updated = $this->db
@@ -146,7 +100,7 @@ class AuthService
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-        if (!$updated) {
+        if (! $updated) {
             return [
                 'success' => false,
                 'message' => 'Login gagal diproses. Silakan coba lagi.',
@@ -164,9 +118,7 @@ class AuthService
 
     /**
      * Menyimpan data user ke session setelah login berhasil.
-     *
-     * Wali Kelas TIDAK disimpan di session.
-     * Status Wali Kelas selalu dihitung secara dinamis.
+     * Status Wali tidak disimpan di session.
      */
     public function setUserSession(array $user): void
     {
@@ -182,34 +134,8 @@ class AuthService
         ]);
     }
 
-    /**
-     * Mengecek apakah username sedang terkunci.
-     *
-     * Aturan:
-     * - dihitung berdasarkan kegagalan BERTURUT-TURUT;
-     * - keberhasilan login memutus rangkaian;
-     * - setelah 5 kegagalan berturut-turut, username terkunci 5 menit;
-     * - lock dihitung dari waktu kegagalan ke-5.
-     *
-     * Contoh:
-     * gagal
-     * gagal
-     * gagal
-     * sukses
-     * gagal
-     *
-     * Hanya 1 kegagalan terakhir yang dihitung.
-     */
     protected function isLocked(string $username): bool
     {
-        /*
-         * Ambil 5 attempt terakhir untuk username.
-         *
-         * Tidak menggunakan WHERE waktu >= -5 menit sebagai
-         * dasar utama karena yang menentukan lock adalah 5
-         * kegagalan berturut-turut, lalu lock berlangsung 5 menit
-         * sejak kegagalan ke-5.
-         */
         $attempts = $this->db
             ->table('login_attempts')
             ->select('berhasil, waktu')
@@ -223,42 +149,23 @@ class AuthService
             return false;
         }
 
-        /*
-         * Lima attempt terakhir harus semuanya gagal.
-         */
         foreach ($attempts as $attempt) {
             if ((int) ($attempt['berhasil'] ?? 0) === 1) {
                 return false;
             }
         }
 
-        /*
-         * Attempt paling lama dari lima kegagalan tersebut
-         * adalah titik terjadinya kegagalan ke-5 berturut-turut.
-         *
-         * Karena hasil diurutkan DESC:
-         * [0] = terbaru
-         * [4] = paling lama
-         */
         $lockStartedAt = strtotime((string) ($attempts[4]['waktu'] ?? ''));
 
         if ($lockStartedAt === false) {
             return false;
         }
 
-        /*
-         * Lock berlaku selama 5 menit sejak kegagalan ke-5.
-         */
         return time() < ($lockStartedAt + (5 * 60));
     }
 
-    /**
-     * Menyimpan histori percobaan login.
-     */
-    protected function recordAttempt(
-        string $username,
-        bool $berhasil
-    ): void {
+    protected function recordAttempt(string $username, bool $berhasil): void
+    {
         $this->db
             ->table('login_attempts')
             ->insert([
@@ -270,25 +177,18 @@ class AuthService
     }
 
     /**
-     * Ambil semua role milik user.
-     *
-     * Role utama:
-     * users.role
-     *
-     * Role tambahan:
-     * user_roles.role
-     *
-     * Permission user adalah UNION dari keduanya.
+     * Ambil seluruh effective role user.
      *
      * @return string[]
      */
     public function getUserRoles(int $userId): array
     {
+        if ($userId <= 0) {
+            return [];
+        }
+
         $roles = [];
 
-        /*
-         * Role utama.
-         */
         $primary = $this->db
             ->table('users')
             ->select('role')
@@ -296,13 +196,10 @@ class AuthService
             ->get()
             ->getRowArray();
 
-        if ($primary && !empty($primary['role'])) {
+        if ($primary && ! empty($primary['role'])) {
             $roles[] = (string) $primary['role'];
         }
 
-        /*
-         * Multi-role.
-         */
         $extra = $this->db
             ->table('user_roles')
             ->select('role')
@@ -311,7 +208,7 @@ class AuthService
             ->getResultArray();
 
         foreach ($extra as $row) {
-            if (!empty($row['role'])) {
+            if (! empty($row['role'])) {
                 $roles[] = (string) $row['role'];
             }
         }
@@ -320,173 +217,149 @@ class AuthService
     }
 
     /**
-     * Resolusi scope permission berdasarkan seluruh role user.
+     * Ambil seluruh scope mentah untuk satu permission.
      *
-     * Prioritas:
-     *
-     * SEMUA
-     * > KELAS_DIAMPU / KELAS_TERJADWAL
-     * > DIRI_SENDIRI
-     * > TIDAK_ADA
-     *
-     * Catatan penting:
-     * KELAS_DIAMPU adalah scope kontekstual Wali Kelas.
-     * Jika user bukan Wali Kelas aktif, scope tersebut tidak
-     * boleh menghasilkan akses.
+     * @return string[]
      */
-    public function resolveScope(
-        string $permissionKey,
-        int $userId
-    ): string {
+    public function getPermissionScopes(string $permissionKey, int $userId): array
+    {
         $roles = $this->getUserRoles($userId);
 
-        if (empty($roles)) {
-            return 'TIDAK_ADA';
+        if ($roles === []) {
+            return [];
         }
 
         $rows = $this->db
             ->table('role_permissions rp')
             ->select('rp.scope')
-            ->join(
-                'permissions p',
-                'p.id = rp.id_permission'
-            )
+            ->join('permissions p', 'p.id = rp.id_permission')
             ->whereIn('rp.role', $roles)
-            ->where(
-                'p.permission_key',
-                $permissionKey
-            )
+            ->where('p.permission_key', $permissionKey)
             ->get()
             ->getResultArray();
 
-        if (empty($rows)) {
-            return 'TIDAK_ADA';
-        }
-
-        /*
-         * Prioritas scope.
-         */
-        $priority = [
-            'SEMUA' => 4,
-            'KELAS_DIAMPU' => 3,
-            'KELAS_TERJADWAL' => 3,
-            'DIRI_SENDIRI' => 2,
-            'TIDAK_ADA' => 0,
-        ];
-
-        $best = 'TIDAK_ADA';
-        $bestScore = 0;
+        $scopes = [];
 
         foreach ($rows as $row) {
-            $scope = (string) ($row['scope'] ?? '');
-            $score = $priority[$scope] ?? 0;
+            $scope = trim((string) ($row['scope'] ?? ''));
 
-            if ($score > $bestScore) {
-                $bestScore = $score;
-                $best = $scope;
+            if ($scope !== '' && $scope !== 'TIDAK_ADA') {
+                $scopes[$scope] = $scope;
             }
         }
 
-        /*
-         * KELAS_DIAMPU adalah akses kontekstual Wali Kelas.
-         *
-         * Jangan memberikan scope ini kepada Guru Biasa hanya
-         * karena permission ditemukan dari role/multi-role.
-         */
-        if ($best === 'KELAS_DIAMPU') {
-            $user = $this->db
-                ->table('users')
-                ->select('id_guru')
-                ->where('id', $userId)
-                ->get()
-                ->getRowArray();
-
-            $idGuru = isset($user['id_guru'])
-                ? (int) $user['id_guru']
-                : 0;
-
-            if ($idGuru <= 0 || !$this->isWaliKelas($idGuru)) {
-                return 'TIDAK_ADA';
-            }
-        }
-
-        return $best;
+        return array_values($scopes);
     }
 
     /**
-     * Mengecek apakah guru merupakan Wali Kelas
-     * pada Tahun Ajaran tertentu.
+     * Resolusi scalar scope untuk route gate/menu.
      *
-     * Status Wali Kelas bersifat dinamis.
-     *
-     * @param int|null $idGuru
-     * @param int|null $idTahun
+     * Penting:
+     * - Service bisnis tetap boleh membaca seluruh scope melalui getPermissionScopes().
+     * - KELAS_DIAMPU hanya valid jika user benar-benar Wali aktif.
+     * - Bila user bukan Wali tetapi juga memiliki KELAS_TERJADWAL,
+     *   jangan mengembalikan TIDAK_ADA; gunakan KELAS_TERJADWAL.
      */
-    public function isWaliKelas(
-        ?int $idGuru,
-        ?int $idTahun = null
-    ): bool {
-        if (!$idGuru) {
+    public function resolveScope(string $permissionKey, int $userId): string
+    {
+        $scopes = $this->getPermissionScopes($permissionKey, $userId);
+
+        if ($scopes === []) {
+            return 'TIDAK_ADA';
+        }
+
+        if (in_array('SEMUA', $scopes, true)) {
+            return 'SEMUA';
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select('id_guru')
+            ->where('id', $userId)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
+
+        $idGuru = (int) ($user['id_guru'] ?? 0);
+        $isWali = $idGuru > 0 && $this->isWaliKelas($idGuru);
+
+        if (in_array('KELAS_DIAMPU', $scopes, true) && $isWali) {
+            return 'KELAS_DIAMPU';
+        }
+
+        if (in_array('KELAS_TERJADWAL', $scopes, true)) {
+            return 'KELAS_TERJADWAL';
+        }
+
+        if (in_array('DIRI_SENDIRI', $scopes, true)) {
+            return 'DIRI_SENDIRI';
+        }
+
+        return 'TIDAK_ADA';
+    }
+
+    public function hasPermission(string $permissionKey, int $userId): bool
+    {
+        return $this->resolveScope($permissionKey, $userId) !== 'TIDAK_ADA';
+    }
+
+    /**
+     * Status Wali Kelas dinamis.
+     */
+    public function isWaliKelas(?int $idGuru, ?int $idTahun = null): bool
+    {
+        if (! $idGuru) {
             return false;
         }
 
-        /*
-         * Jika tahun tidak diberikan, gunakan tahun ajaran aktif.
-         */
         if ($idTahun === null) {
             $tahun = $this->db
                 ->table('tahun_ajaran')
+                ->select('id')
                 ->where('status_aktif', 1)
+                ->where('deleted_at', null)
                 ->get()
                 ->getRowArray();
 
-            $idTahun = isset($tahun['id'])
-                ? (int) $tahun['id']
-                : null;
+            $idTahun = isset($tahun['id']) ? (int) $tahun['id'] : null;
         }
 
-        if (!$idTahun) {
+        if (! $idTahun) {
             return false;
         }
 
-        return (bool) $this->db
+        return $this->db
             ->table('mapping_wali_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
-            ->countAllResults();
+            ->countAllResults() > 0;
     }
 
     /**
-     * Ambil daftar kelas yang sedang menjadi kelas wali
-     * untuk scope KELAS_DIAMPU.
+     * Kelas Wali aktif.
      *
      * @return int[]
      */
-    public function getKelasDiampu(
-        ?int $idGuru,
-        ?int $idTahun = null
-    ): array {
-        if (!$idGuru) {
+    public function getKelasDiampu(?int $idGuru, ?int $idTahun = null): array
+    {
+        if (! $idGuru) {
             return [];
         }
 
-        /*
-         * Jika tahun tidak diberikan, gunakan tahun ajaran aktif.
-         */
         if ($idTahun === null) {
             $tahun = $this->db
                 ->table('tahun_ajaran')
+                ->select('id')
                 ->where('status_aktif', 1)
+                ->where('deleted_at', null)
                 ->get()
                 ->getRowArray();
 
-            $idTahun = isset($tahun['id'])
-                ? (int) $tahun['id']
-                : null;
+            $idTahun = isset($tahun['id']) ? (int) $tahun['id'] : null;
         }
 
-        if (!$idTahun) {
+        if (! $idTahun) {
             return [];
         }
 
@@ -501,74 +374,58 @@ class AuthService
 
         return array_values(
             array_unique(
-                array_map(
-                    'intval',
-                    array_column($rows, 'id_kelas')
-                )
+                array_map('intval', array_column($rows, 'id_kelas'))
             )
         );
     }
 
     /**
-     * Ambil kelas yang terjadwal untuk guru hari ini.
+     * Kelas yang terjadwal hari ini untuk Guru.
      *
      * @return int[]
      */
-    public function getKelasTerjadwalHariIni(
-        ?int $idGuru,
-        ?int $idTahun = null
-    ): array {
-        if (!$idGuru) {
+    public function getKelasTerjadwalHariIni(?int $idGuru, ?int $idTahun = null): array
+    {
+        if (! $idGuru) {
             return [];
         }
 
-        /*
-         * Jika tahun tidak diberikan, gunakan tahun ajaran aktif.
-         */
         if ($idTahun === null) {
             $tahun = $this->db
                 ->table('tahun_ajaran')
+                ->select('id')
                 ->where('status_aktif', 1)
+                ->where('deleted_at', null)
                 ->get()
                 ->getRowArray();
 
-            $idTahun = isset($tahun['id'])
-                ? (int) $tahun['id']
-                : null;
+            $idTahun = isset($tahun['id']) ? (int) $tahun['id'] : null;
         }
 
-        if (!$idTahun) {
+        if (! $idTahun) {
             return [];
         }
-
-        $hariIni = $this->hariIndonesia();
 
         $rows = $this->db
             ->table('jadwal_guru')
             ->select('id_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
-            ->where('hari', $hariIni)
+            ->where('hari', $this->hariIndonesia())
             ->where('status_jadwal', 'Aktif')
             ->get()
             ->getResultArray();
 
         return array_values(
             array_unique(
-                array_map(
-                    'intval',
-                    array_column($rows, 'id_kelas')
-                )
+                array_map('intval', array_column($rows, 'id_kelas'))
             )
         );
     }
 
-    /**
-     * Nama hari Indonesia.
-     */
     protected function hariIndonesia(): string
     {
-        $map = [
+        return match (date('l')) {
             'Monday' => 'Senin',
             'Tuesday' => 'Selasa',
             'Wednesday' => 'Rabu',
@@ -576,8 +433,7 @@ class AuthService
             'Friday' => 'Jumat',
             'Saturday' => 'Sabtu',
             'Sunday' => 'Minggu',
-        ];
-
-        return $map[date('l')] ?? 'Senin';
+            default => 'Senin',
+        };
     }
 }

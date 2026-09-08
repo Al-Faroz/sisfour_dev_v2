@@ -1,15 +1,14 @@
 # 📊 Dashboard, Settings, Backup & Log Activity — SisisFour
 
 **Versi Acuan: v0.5**  
-**Tanggal:** 08 September 2026
-
-Dokumen ini menetapkan Dashboard per konteks user, Settings, Maintenance Mode, Backup, dan Log Activity.
+**Tanggal:** 08 September 2026  
+**Status:** FINAL Dashboard per Effective Role
 
 ---
 
 # BAGIAN A — DASHBOARD
 
-## 1. Prinsip
+# 1. Prinsip
 
 Dashboard adalah agregasi data, bukan security boundary.
 
@@ -17,15 +16,53 @@ Setiap widget wajib:
 
 - mempunyai permission sumber;
 - menerapkan scope server-side;
+- query database-first;
 - tidak mengirim dataset global untuk difilter frontend;
-- tidak menyediakan bypass ke route yang tidak boleh diakses user;
-- memiliki fallback bila data kosong.
+- tidak menyediakan shortcut ke route yang tidak usable;
+- mempunyai fallback data kosong.
 
-Dashboard dapat berbeda berdasarkan effective roles + contextual Wali.
+Dashboard menggunakan effective roles, bukan hanya primary role session.
+
+Priority dashboard:
+
+```text
+Admin > Operator > Pimpinan > Guru/Wali > BK > Siswa
+```
+
+Jika effective role Guru dan mapping Wali aktif, tampilkan Dashboard Guru + widget Wali contextual.
 
 ---
 
-# 2. Permission Dashboard
+# 2. Arsitektur
+
+Controller:
+
+```text
+Dashboard.php
+```
+
+harus tipis.
+
+Agregasi:
+
+```text
+DashboardService.php
+```
+
+Alur:
+
+```text
+user_id
+→ AuthService::getUserRoles()
+→ resolve effective dashboard role
+→ resolve contextual Wali
+→ permission-aware widgets
+→ View
+```
+
+---
+
+# 3. Permission Dashboard
 
 Permission dasar:
 
@@ -33,164 +70,217 @@ Permission dasar:
 dashboard.view
 ```
 
-Permission widget tambahan tetap mengikuti modul sumber.
-
-Contoh:
+Widget tambahan mengikuti permission modul sumber:
 
 ```text
-EWS → ews_radar.view
-BK → bk_kasus.view
-Prestasi → prestasi.view
-Kartu → kartu_pelajar.view
+EWS       → ews_radar.view
+BK        → bk_kasus.view
+Prestasi  → prestasi.view
+Kartu     → kartu_pelajar.view
+Log       → log_activity.view
 ```
 
-Memiliki `dashboard.view` tidak otomatis memberi akses seluruh widget.
+`dashboard.view` tidak memberi seluruh widget otomatis.
 
 ---
 
-# 3. Dashboard Admin
+# 4. Dashboard Admin
 
-Widget utama:
+Scope operasional `SEMUA`.
+
+Widget final:
 
 ```text
-Total Siswa Aktif
-Total Guru
-Total Pegawai
-Total Kelas
+Siswa Aktif
+Guru
+Pegawai
+Kelas Aktif
 Tahun Ajaran Aktif
-Presensi Hari Ini
+Kelas Wajib Presensi Hari Ini
+Kelas Sudah Presensi
 Kelas Belum Presensi
-Guru Belum Jurnal
-EWS Radar
-Kasus BK
-Prestasi
-Status Kartu
-Aktivitas Terakhir
-Status Sistem
+Ringkasan H/S/I/A Sesi Awal
+Jadwal Wajib Jurnal
+Jadwal Sudah Jurnal
+Jadwal Belum Jurnal
+EWS 14 hari
+Kasus BK bulan ini
+Prestasi bulan ini
+Kartu aktif
+Status Geofence
+Status Maintenance
+Tren Presensi 7 hari
+Aktivitas terakhir
 ```
 
-Scope:
+Admin bootstrap tetap valid tanpa relasi Guru/Pegawai.
+
+---
+
+# 5. Dashboard Operator
+
+Fokus operasional, bukan Settings/Backup.
+
+Prioritas:
 
 ```text
-SEMUA
+Kelas Belum Presensi
+Jadwal Belum Jurnal
+EWS
+Presensi Hari Ini
+Siswa/Guru/Pegawai/Kelas
+BK
+Prestasi
+Kartu
+Tren Presensi
+Aktivitas terbaru bila log_activity.view diberikan
 ```
 
-Admin bootstrap tetap dapat menggunakan dashboard walaupun tidak terkait Guru/Pegawai.
+Operator tidak otomatis mendapat Settings/Backup.
 
 ---
 
-# 4. Dashboard Operator
-
-Dashboard operasional:
-
-- total siswa;
-- total Guru/Pegawai;
-- total kelas;
-- Presensi hari ini;
-- kelas belum Presensi;
-- Guru belum Jurnal;
-- EWS;
-- BK;
-- Prestasi;
-- status Kartu;
-- aktivitas terbaru sesuai akses.
-
-Operator tidak otomatis memperoleh Settings/Backup bila permission tidak diberikan.
-
----
-
-# 5. Dashboard Pimpinan
+# 6. Dashboard Pimpinan
 
 Readonly.
 
 Widget:
 
-1. kelas belum Presensi;
-2. EWS Radar;
-3. kasus BK bulan ini;
-4. tren Presensi;
-5. Guru belum input Jurnal;
-6. Top 20 poin pelanggaran;
-7. Prestasi terbaru;
-8. ringkasan Kartu bila permission tersedia;
-9. ringkasan Master Data.
+```text
+Kelas Belum Presensi
+Jadwal Belum Jurnal
+EWS Radar
+Kasus BK bulan ini
+Tren Presensi
+EWS Alpha teratas
+Top 20 poin pelanggaran
+Prestasi terbaru
+Ringkasan Kartu
+Ringkasan Master Data
+```
 
-Tidak boleh ada create/update/delete dari Dashboard Pimpinan kecuali fitur khusus yang permission-nya memang mengizinkan.
+Dashboard Pimpinan tidak menyediakan mutation Presensi/BK/Laporan.
+
+Jurnal diri, bila Pimpinan mempunyai `id_guru` + jadwal, tetap diatur permission `presensi_mengajar.input = DIRI_SENDIRI` pada menu/route Jurnal, bukan mutation dari widget supervisi.
 
 ---
 
-# 6. Dashboard BK
+# 7. Dashboard BK
 
 Widget:
 
 ```text
 Kasus bulan ini
+Pelanggaran berat bulan ini
+EWS 14 hari
+Prestasi bulan ini
+EWS Alpha teratas
 Top 20 poin pelanggaran
-EWS Radar
+Kasus terbaru
 Prestasi terbaru
 ```
 
-BK hanya dapat membuka detail sesuai permission BK/Prestasi.
-
-BK tidak memperoleh Master Siswa global.
+BK tidak memperoleh Master Siswa global hanya karena dashboard menampilkan nama siswa dari kasus/EWS.
 
 ---
 
-# 7. Dashboard Guru Biasa
+# 8. Dashboard Guru Biasa
 
-Widget:
+Dashboard bersifat task-oriented.
 
-```text
-Jadwal hari ini
-Presensi Siswa yang dapat diinput
-Jurnal yang harus diisi
-Status Jurnal diri
-Profile
-```
-
-Tidak mendapatkan shortcut ke:
+Summary:
 
 ```text
-Matrix Presensi
-Export Presensi
-Master Siswa
-BK global
-Prestasi global
-Master Data admin
+Jumlah Jadwal Hari Ini
+Presensi Siswa Perlu Diisi
+Jurnal Perlu Diisi
+Jurnal Selesai
 ```
+
+Setiap Jadwal menampilkan:
+
+```text
+Jam
+Kelas
+Mapel
+Sesi
+Status Presensi
+Status Jurnal
+```
+
+Status Presensi:
+
+```text
+Non Sesi       → tidak berlaku
+Sudah Diinput  → existing business key
+Belum Waktunya → sebelum jam_mulai
+Isi Presensi   → window valid
+Waktu Habis    → setelah jam_selesai + 15
+```
+
+Link Presensi wajib membawa:
+
+```text
+id_kelas
+tanggal
+sesi
+```
+
+Status Jurnal:
+
+```text
+Sudah
+Belum Waktunya
+Isi Jurnal
+Terlewat
+```
+
+Guru juga melihat riwayat Jurnal diri dan Profile.
+
+Tidak ada Matrix/Export/BK global/Master Siswa global.
 
 ---
 
-# 8. Dashboard Wali
+# 9. Dashboard Wali
 
-Wali = Dashboard Guru + contextual widget:
+Dashboard Wali = Dashboard Guru + contextual widget.
+
+Widget Wali:
 
 ```text
 Kelas Wali
-Jumlah Siswa
-Ringkasan H/S/I/A
+Jumlah siswa aktif
+Ringkasan H/S/I/A hari ini Sesi Awal
 EWS kelas
-Data Siswa kelas
-Matrix kelas
-Export kelas
-Kartu kelas
-Prestasi kelas
-BK detail kelas readonly
+Top EWS kelas
+Sakit/Izin/Alpha terbaru
+Quick link contextual
 ```
 
-Semua tambahan hanya jika permission + scope tersedia.
+Quick link hanya tampil jika permission valid:
 
-Jika mapping Wali dinonaktifkan, widget tersebut hilang.
+```text
+Presensi Kelas
+Rekap Presensi
+Matrix Kelas
+Export Kelas
+Data Siswa
+Catatan Kasus readonly
+Prestasi
+Kartu Pelajar
+```
+
+Jika mapping Wali dinonaktifkan, seluruh widget/quick link Wali hilang tanpa mengubah role.
+
+Pada Jadwal yang juga merupakan kelas Wali, fallback Wali setelah time-window berakhir dapat ditandai sebagai `Isi sebagai Wali` sesuai aturan Presensi.
 
 ---
 
-# 9. Dashboard Siswa
+# 10. Dashboard Siswa
 
-Sederhana.
+Sederhana dan seluruh data `DIRI_SENDIRI`.
 
-## 9.1 Presensi Diri
-
-Ringkasan:
+Ringkasan Presensi bulan ini:
 
 ```text
 Hadir
@@ -199,7 +289,7 @@ Izin
 Alpha
 ```
 
-Detail menampilkan:
+Detail terbaru fokus:
 
 ```text
 Sakit
@@ -207,41 +297,55 @@ Izin
 Alpha
 ```
 
-Query:
+Tambahan:
 
 ```text
-id_siswa = session('id_siswa')
+Prestasi milik sendiri
+Kartu Pelajar milik sendiri
+Profile sendiri
+Catatan Kasus milik sendiri
 ```
 
-Tidak menerima target siswa bebas dari query string.
+**Keputusan final:** Catatan Kasus Siswa tetap ditampilkan dengan `bk_kasus.view = DIRI_SENDIRI`.
 
-## 9.2 Prestasi
-
-Hanya milik sendiri.
-
-## 9.3 Kartu
-
-Hanya milik sendiri.
+Query tidak boleh menerima target siswa bebas.
 
 ---
 
-# 10. Kelas Belum Presensi
+# 11. Kelas Belum Presensi
 
-Untuk tanggal hari ini, widget memeriksa kelas yang seharusnya memiliki kewajiban Presensi Sesi Awal berdasarkan Jadwal aktif.
+Jangan menghitung:
 
-Jangan sekadar membandingkan seluruh kelas master dengan tabel Presensi.
+```text
+seluruh kelas master - kelas yang sudah presensi
+```
 
-Kelas yang tidak mempunyai kewajiban Sesi Awal pada hari itu tidak boleh otomatis dianggap belum Presensi.
+Canonical:
+
+```text
+jadwal_guru Aktif
+WHERE hari = hari ini
+AND sesi = Sesi Awal
+GROUP BY id_kelas
+```
+
+Hanya kelas tersebut yang mempunyai kewajiban Presensi Sesi Awal hari ini.
+
+Bandingkan terhadap business key Presensi hari ini.
 
 ---
 
-# 11. Guru Belum Jurnal
+# 12. Jadwal Belum Jurnal
+
+Hitung **per id_jadwal**, bukan Guru unik.
 
 Sumber:
 
 ```text
-jadwal_guru Aktif pada hari ini
-LEFT JOIN presensi_mengajar tanggal hari ini
+jadwal_guru Aktif hari ini
+LEFT JOIN presensi_mengajar
+  ON id_jadwal
+ AND tanggal = hari ini
 ```
 
 Termasuk:
@@ -252,27 +356,83 @@ Sesi Akhir
 Non Sesi
 ```
 
-Karena semua Jadwal aktif wajib Jurnal.
+Jika Guru mempunyai 4 jadwal dan baru mengisi 1 Jurnal, masih ada 3 Jadwal Belum Jurnal.
 
 ---
 
-# 12. Tren Presensi
+# 13. EWS
 
-Gunakan:
+EWS Presensi:
+
+```text
+Alpha
+Sesi Awal
+>= 3 Alpha
+14 hari inklusif
+```
+
+Periode tepat:
+
+```text
+hari ini + 13 hari sebelumnya
+```
+
+Bukan `-14 days` yang menghasilkan 15 tanggal bila kedua ujung inklusif.
+
+---
+
+# 14. Tren Presensi
+
+Hanya:
 
 ```text
 Sesi Awal
 ```
 
-Sesi Akhir tidak masuk tren resmi.
+Gunakan satu query agregasi periode:
+
+```sql
+SELECT tanggal,
+       COUNT(*) total,
+       SUM(status='Hadir') hadir
+FROM presensi
+WHERE id_tahun = ?
+  AND sesi = 'Sesi Awal'
+  AND tanggal BETWEEN ? AND ?
+GROUP BY tanggal;
+```
+
+PHP hanya mengisi tanggal kosong. Jangan menjalankan dua query per hari.
+
+---
+
+# 15. Performance Dashboard
+
+Gunakan:
+
+```text
+COUNT
+SUM
+GROUP BY
+HAVING
+ORDER BY
+LIMIT
+WHERE periode
+```
+
+Top list maksimal 20 row.
+
+Dilarang mengambil seluruh tabel lalu sort/count di PHP.
+
+Schedule Guru hari ini boleh dihitung statusnya di PHP setelah query sudah dibatasi satu Guru + satu hari.
 
 ---
 
 # BAGIAN B — SETTINGS
 
-# 13. Hak Akses
+# 16. Hak Akses Settings
 
-Settings utama hanya:
+Default:
 
 ```text
 Admin
@@ -286,282 +446,102 @@ settings_menu.manage
 settings_sistem.manage
 ```
 
-Role lain tidak memperoleh menu Settings kecuali kebijakan permission diubah secara eksplisit.
+Role lain tidak memperoleh Settings kecuali permission eksplisit diberikan.
 
 ---
 
-# 14. Manajemen User
+# 17. User Management
 
-Fungsi:
+Mencakup:
 
 ```text
-Create User administratif
-Update User
-Aktif/Nonaktif
-Reset Password
-Set Primary Role
-Tambah/Hapus Secondary Role
-Relasi Guru/Pegawai/Siswa
-Naikkan auth_version bila diperlukan
+create/update user
+aktif/nonaktif
+reset password
+primary role
+secondary roles
+relasi Guru/Pegawai/Siswa
+auth_version
 ```
 
----
+Wali tidak boleh dibuat role.
 
-# 15. Identitas User
+Role NULL valid untuk Pegawai.
 
-User normal:
-
-- Guru → `id_guru`;
-- Siswa → `id_siswa`;
-- Pegawai administratif → `id_pegawai` atau identitas valid;
-- multi-role tetap mempertahankan satu account.
-
-Admin bootstrap boleh tanpa identity relation.
-
-Jangan membuat duplicate account hanya untuk menambah role.
-
----
-
-# 16. Reset Password
-
-Reset password:
-
-- hanya melalui permission Settings;
-- menggunakan password hash;
-- tidak menampilkan hash;
-- dapat menaikkan `auth_version`;
-- sebaiknya memaksa session lama invalid.
-
-Default reset mengikuti kebijakan identitas:
-
-```text
-Guru/Pegawai → NIP
-Siswa        → NISN
-```
-
-atau password manual yang aman bila UI mendukung.
-
----
-
-# 17. Role dan Multi-Role
-
-Admin dapat mengelola:
-
-```text
-users.role
-user_roles
-```
-
-Aturan:
-
-- role resmi hanya 6;
-- Wali tidak boleh dibuat sebagai role;
-- role NULL valid untuk Pegawai;
-- duplicate role user ditolak oleh unique index.
+Reset password wajib hash dan tidak menampilkan hash/token.
 
 ---
 
 # 18. Menu & Role
 
-Admin mengelola:
+Admin mengelola `role_menus`, tetapi konfigurasi dianggap tidak konsisten bila menu diberikan ke role tanpa permission yang membuat route tujuan usable.
 
-```text
-role_menus
-```
-
-Tetapi menu tidak boleh menjadi authorization boundary.
-
-Menu harus usable:
-
-```text
-role_menus
-+
-permission
-+
-scope
-+
-contextual Wali
-```
-
-Jika menu diberi ke role tetapi role tidak memiliki permission yang membuatnya usable, konfigurasi dianggap tidak konsisten.
+Menu bukan authorization boundary.
 
 ---
 
 # 19. Setting Sistem
 
-Tabel:
-
-```text
-setting_sistem
-```
-
 Key minimum:
 
-| Key | Tipe | Fungsi |
-|---|---|---|
-| `latitude_sekolah` | float/string | Latitude |
-| `longitude_sekolah` | float/string | Longitude |
-| `radius_geofencing` | integer | Radius meter |
-| `geofencing_aktif` | boolean | ON/OFF |
-| `nama_sekolah` | string | Nama |
-| `alamat_sekolah` | string/text | Alamat |
-| `logo_sekolah` | string | File logo |
-| `icon_sekolah` | string | Icon |
-| `background_kta_depan` | string | Kartu depan |
-| `background_kta_belakang` | string | Kartu belakang |
-| `maintenance_mode` | boolean | Maintenance |
-| `maintenance_message` | text | Pesan |
-
-Gunakan nama key ini secara konsisten lintas docs/Service. Jangan memiliki dua key berbeda untuk koordinat yang sama.
-
----
-
-# 20. Validasi Setting
-
-### Latitude
-
 ```text
--90..90
+latitude_sekolah
+longitude_sekolah
+radius_geofencing
+geofencing_aktif
+nama_sekolah
+alamat_sekolah
+logo_sekolah
+icon_sekolah
+background_kta_depan
+background_kta_belakang
+maintenance_mode
+maintenance_message
 ```
 
-### Longitude
+Validasi:
 
 ```text
--180..180
+latitude  -90..90
+longitude -180..180
+radius    >0
 ```
 
-### Radius
+Asset branding harus image valid, path aman dan tidak executable.
 
-```text
-> 0
-```
-
-### Asset branding
-
-- image valid;
-- re-encode bila di-upload;
-- path aman;
-- tidak executable.
-
----
-
-# 21. Caching Setting
-
-Setting yang sering dibaca boleh di-cache.
-
-Perubahan Settings harus:
-- update DB;
-- clear cache relevan;
-- log activity.
-
-Cache tidak boleh membuat Maintenance/Geofence tetap memakai nilai lama terlalu lama.
+Perubahan setting harus clear cache relevan dan log activity.
 
 ---
 
 # BAGIAN C — MAINTENANCE
 
-# 22. Behavior
+# 20. Behavior
 
-Saat:
-
-```text
-maintenance_mode = ON
-```
-
-Admin:
+Saat Maintenance ON:
 
 ```text
-tetap dapat login dan masuk
+Admin → tetap dapat login/masuk
+Role lain → maintenance page / API 503
 ```
 
-Role lain:
-
-```text
-halaman maintenance
-```
-
-API Mobile dapat mengembalikan status:
-
-```text
-503 Service Unavailable
-```
-
-dengan pesan aman.
-
----
-
-# 23. MaintenanceFilter
-
-Filter memeriksa setting sebelum Controller bisnis.
-
-Pengecualian:
-- login Admin;
-- logout;
-- asset statis;
-- endpoint yang memang perlu agar Admin mematikan maintenance.
-
-Jangan membuat pengecualian wildcard terlalu luas.
+MaintenanceFilter tidak boleh mempunyai wildcard pengecualian terlalu luas.
 
 ---
 
 # BAGIAN D — BACKUP
 
-# 24. Hak Akses
+# 21. Hak Akses
 
-Backup hanya:
+Default:
 
 ```text
 Admin
-```
-
-Permission:
-
-```text
 backup.manage
 ```
 
-Operator tidak memperoleh Backup secara default.
+Operator tidak otomatis mendapat Backup.
 
----
-
-# 25. Metode
-
-Backup menggunakan PHP murni.
-
-Tidak bergantung:
-
-```text
-exec()
-shell_exec()
-system()
-passthru()
-```
-
-karena hosting dapat menonaktifkannya.
-
----
-
-# 26. Isi Backup
-
-Backup SQL harus mencakup:
-
-- CREATE TABLE;
-- data tabel;
-- index;
-- foreign key;
-- generated column;
-- AUTO_INCREMENT;
-- charset/collation seperlunya.
-
-Untuk restore penuh, urutan FK harus aman.
-
----
-
-# 27. Nama File
-
-```text
-backup_YYYYMMDD_HHMMSS.sql
-```
+Backup menggunakan PHP murni, tidak bergantung `exec/shell_exec/system/passthru`.
 
 Lokasi:
 
@@ -569,63 +549,23 @@ Lokasi:
 writable/backups/
 ```
 
-Tidak public.
-
----
-
-# 28. Download Backup
-
-Download harus melalui Controller yang:
-
-- Auth;
-- `backup.manage`;
-- validasi filename whitelist;
-- tidak menerima arbitrary path.
-
-Dilarang:
+Nama:
 
 ```text
-/download?file=../../.env
+backup_YYYYMMDD_HHMMSS.sql
 ```
 
----
+Download/delete wajib auth + permission + filename whitelist dan tidak boleh menerima arbitrary path.
 
-# 29. Retention
-
-Dapat diterapkan:
-
-```text
-maksimum jumlah file
-atau
-maksimum umur
-```
-
-Jika retention aktif, penghapusan file lama harus dicatat log.
-
----
-
-# 30. Restore
-
-Restore otomatis dari UI adalah aksi berisiko tinggi.
-
-Jika disediakan:
-
-- Admin only;
-- konfirmasi eksplisit;
-- backup sebelum restore disarankan;
-- validasi file;
-- transaction bila engine/statement memungkinkan;
-- maintenance mode selama restore disarankan.
-
-Jika belum diimplementasikan, modul Backup v0.5 cukup menjamin create/list/download/delete file backup secara aman.
+Restore UI bila dibuat harus Admin-only, validasi kuat, konfirmasi eksplisit dan disarankan maintenance mode.
 
 ---
 
 # BAGIAN E — LOG ACTIVITY
 
-# 31. Schema
+# 22. Schema
 
-Gunakan schema canonical:
+Canonical:
 
 ```text
 id
@@ -636,29 +576,11 @@ keterangan
 waktu
 ```
 
-Jangan menggunakan schema alternatif:
-
-```text
-role
-ip_address
-activity
-details
-created_at
-```
-
-kecuali database resmi diperbarui lebih dulu.
+Jangan memakai schema alternatif tanpa perubahan database resmi.
 
 ---
 
-# 32. Hak Akses Log
-
-Permission:
-
-```text
-log_activity.view
-```
-
-Kebijakan:
+# 23. Hak Akses Log
 
 ```text
 Admin    → Ya
@@ -670,206 +592,60 @@ Wali     → Tidak
 Siswa    → Tidak
 ```
 
+Permission:
+
+```text
+log_activity.view
+```
+
+Dashboard Operator boleh menampilkan aktivitas terakhir hanya bila permission ini benar-benar tersedia.
+
 ---
 
-# 33. Event yang Dicatat
-
-Minimal:
+# 24. Event Audit Minimum
 
 ```text
 Login/Logout
-Perubahan User
-Reset Password
-Perubahan Role
-Perubahan Menu
-Perubahan Master Data
+User/Role/Menu
+Master Data
 Mutasi/Kenaikan/Kelulusan
-Perubahan Presensi
-Revisi Jurnal
+Presensi/Revisi
+Jurnal/Revisi
 Export
 BK/Prestasi
-Generate/Reissue/Cetak Kartu
-Perubahan Settings
+Kartu
+Settings
 Backup
 Maintenance
 ```
 
+Log tidak boleh berisi password/hash/token/cookie atau koordinat pribadi tanpa kebutuhan audit.
+
 ---
 
-# 34. Isi Keterangan
+# 25. Checkpoint Dashboard
 
-Tidak boleh memasukkan:
-
-- password;
-- hash;
-- token;
-- cookie;
-- koordinat pribadi pengguna bila tidak diperlukan.
-
-Contoh:
+Wajib diuji:
 
 ```text
-aksi       = UPDATE
-modul      = Master Tahun Ajaran
-keterangan = Mengaktifkan 2026/2027 - Ganjil
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Wali
+Siswa
+multi-role Guru+Operator
 ```
 
----
+Pastikan:
 
-# 35. Retention Log
-
-Retention dapat ditentukan kemudian berdasarkan kapasitas database.
-
-Jangan hard delete log penting tanpa kebijakan.
-
----
-
-# BAGIAN F — SERVICE
-
-# 36. Service yang Disarankan
-
-```text
-DashboardService
-SettingsService
-UserManagementService
-BackupService
-LogActivityService
-```
-
-`DashboardService` hanya agregasi; permission/scope tetap berasal dari AuthService.
-
----
-
-# BAGIAN G — PERFORMANCE
-
-# 37. Dashboard
-
-Filtering dan agregasi widget dilakukan di database.
-
-Gunakan:
-
-```text
-COUNT
-SUM
-GROUP BY
-WHERE periode
-ORDER BY
-LIMIT
-```
-
-Contoh Top 20 Alpha/Pelanggaran:
-
-```text
-database menghitung + mengurutkan + LIMIT 20
-PHP menerima maksimal 20 row
-```
-
-Dilarang:
-
-```text
-ambil seluruh Presensi/Kasus
-↓
-foreach PHP
-↓
-sort/count di memory
-```
-
-Widget berat dapat:
-
-- cache pendek;
-- query agregat;
-- batasi Top 20;
-- hindari N+1.
-
-Data near-real-time seperti Presensi hari ini dapat refresh berkala.
-
-Jangan polling lebih cepat dari kebutuhan.
-
----
-
-# BAGIAN H — SECURITY
-
-# 38. Settings
-
-- CSRF mutation;
-- Admin only;
-- validate key;
-- jangan menerima arbitrary setting key bila Service memakai whitelist.
-
-## 39. Backup
-
-- path traversal protection;
-- file extension `.sql`;
-- directory di luar public;
-- no shell;
-- permission check setiap download/delete.
-
-## 40. Log
-
-- readonly;
-- filter server-side;
-- escape keterangan;
-- jangan render HTML dari log.
-
----
-
-# BAGIAN I — CHECKPOINT
-
-# 41. Dashboard
-
-- Admin;
-- Operator;
-- Pimpinan;
-- BK;
-- Guru;
-- Wali;
-- Siswa;
+- effective dashboard benar;
 - Wali contextual berubah otomatis;
-- widget permission;
-- no leak.
-
-# 42. Settings
-
-- user;
-- role;
-- multi-role;
-- role NULL;
-- menu;
-- geofence;
-- branding;
-- maintenance;
-- cache clear;
-- log.
-
-# 43. Backup
-
-- create;
-- file valid;
-- download protected;
-- delete protected;
-- no public access;
-- no shell dependency.
-
-# 44. Log
-
-- schema benar;
-- Admin/Operator only;
-- event penting tercatat;
-- filter bekerja;
-- no sensitive secrets.
-
----
-
-# 45. Kriteria Selesai
-
-Modul selesai bila:
-
-1. Dashboard setiap actor hanya menerima widget sesuai scope;
-2. Settings hanya Admin;
-3. menu tidak menggantikan permission;
-4. Maintenance tetap memungkinkan Admin memulihkan sistem;
-5. Backup aman dan tidak public;
-6. Log memakai schema canonical;
-7. tidak ada path traversal;
-8. perubahan penting tercatat;
-9. seluruh mutation memakai CSRF.
+- widget tunduk permission;
+- shortcut tidak menuju route terlarang;
+- kelas belum Presensi hanya kelas wajib;
+- Jadwal belum Jurnal dihitung per jadwal;
+- EWS tepat 14 hari;
+- Siswa hanya data diri termasuk Catatan Kasus diri;
+- query agregasi database-first.

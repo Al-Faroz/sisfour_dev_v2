@@ -1,62 +1,47 @@
 # 📋 BK, Prestasi & Kartu Pelajar — SisisFour
 
 **Versi Acuan: v0.5**  
-**Tanggal:** 08 September 2026
+**Tanggal:** 08 September 2026  
+**Status:** FINAL setelah koreksi akses Catatan Kasus Siswa
 
-Dokumen ini menetapkan seluruh aturan bisnis, akses, scope, histori, keamanan, dan output untuk:
-
-1. Bimbingan Konseling;
-2. Master Pelanggaran;
-3. Catatan Kasus;
-4. Prestasi Siswa;
-5. Top 20 Poin Pelanggaran;
-6. Kartu Pelajar Digital;
-7. Verifikasi QR.
+Dokumen ini menetapkan aturan BK, Pelanggaran, Catatan Kasus, Prestasi, Top Poin, Kartu Pelajar dan QR Verification.
 
 ---
 
-# BAGIAN A — PRINSIP UMUM
+# 1. Prinsip Identitas dan Scope
 
-## 1. Sumber Identitas Siswa
-
-Seluruh modul siswa menggunakan:
+Identitas siswa canonical:
 
 ```text
 siswa.id
 ```
 
-Kelas aktif/historis harus di-resolve dari:
+Kelas aktif/historis di-resolve dari:
 
 ```text
 anggota_kelas
 riwayat_siswa
 ```
 
-Wali hanya boleh melihat siswa kelas mapping aktif.
-
----
-
-## 2. Wali Bukan Role
-
-Wali menggunakan role:
-
-```text
-guru
-```
-
-dengan scope contextual:
+Wali bukan role. Scope Wali:
 
 ```text
 KELAS_DIAMPU
 ```
 
-Tidak boleh ada cabang authorization yang mengandalkan string role `wali_kelas`.
+Siswa menggunakan:
+
+```text
+DIRI_SENDIRI
+```
+
+dan target siswa wajib berasal dari `session('id_siswa')`, bukan query bebas.
 
 ---
 
-# BAGIAN B — MASTER PELANGGARAN
+# 2. Master Pelanggaran
 
-## 3. Tabel
+Tabel:
 
 ```text
 ref_pelanggaran
@@ -79,53 +64,42 @@ Sedang
 Berat
 ```
 
----
-
-## 4. Hak Akses Master Pelanggaran
+Hak manage:
 
 | Role | Akses |
-|---|---|
+| --- | --- |
 | Admin | Full |
 | Operator | Full |
-| Pimpinan | Readonly bila diberi view melalui modul BK |
+| Pimpinan | Readonly melalui modul BK bila diberi view |
 | BK | Full |
 | Guru | Tidak |
 | Wali | Tidak manage |
 | Siswa | Tidak |
 
-Permission manage:
+Permission:
 
 ```text
 bk_pelanggaran_master.manage
 ```
 
-Tidak ada permission khusus view master yang terpisah; kebutuhan readonly Pimpinan dapat diberikan melalui halaman BK yang sudah ber-scope readonly.
+Pelanggaran yang sudah dipakai Catatan Kasus tidak boleh dihapus bila FK RESTRICT.
+
+Schema v0.5 menghitung poin histori dari `ref_pelanggaran.poin`; perubahan nilai referensi dapat mengubah agregat historis. Bila sekolah membutuhkan snapshot poin, schema harus diubah sebelum implementasi.
 
 ---
 
-## 5. Aturan Pelanggaran
+# 3. Catatan Kasus
 
-- nama wajib;
-- kategori wajib;
-- poin integer >= 0;
-- item yang telah dipakai Catatan Kasus tidak boleh dihapus bila FK RESTRICT;
-- perubahan poin setelah kasus lama tercatat harus dipertimbangkan.
-
-Untuk menjaga histori poin, implementasi disarankan menyimpan nilai poin snapshot pada Catatan Kasus bila kebutuhan audit sekolah mengharuskannya. Namun schema v0.5 saat ini menghitung dari `ref_pelanggaran.poin`, sehingga perubahan poin referensi akan memengaruhi agregat historis. Jika behavior tersebut tidak diinginkan, schema harus diperluas sebelum implementasi.
-
----
-
-# BAGIAN C — CATATAN KASUS
-
-## 6. Tabel
+Tabel:
 
 ```text
 catatan_kasus
 ```
 
-Field:
+Field canonical:
 
 ```text
+id
 id_siswa
 id_pelanggaran
 tanggal
@@ -136,20 +110,6 @@ updated_at
 updated_by
 ```
 
----
-
-## 7. Hak Akses Catatan Kasus
-
-| Role | Manage | View |
-|---|---|---|
-| Admin | Semua | Semua |
-| Operator | Semua | Semua |
-| Pimpinan | Tidak | Semua readonly |
-| BK | Semua | Semua |
-| Guru biasa | Tidak | Tidak |
-| Wali | Tidak | Siswa kelas Wali |
-| Siswa | Tidak | Tidak |
-
 Permission:
 
 ```text
@@ -157,7 +117,7 @@ bk_kasus.manage
 bk_kasus.view
 ```
 
-Scope view:
+Scope view canonical:
 
 ```text
 SEMUA
@@ -165,11 +125,31 @@ KELAS_DIAMPU
 DIRI_SENDIRI
 ```
 
-Untuk v0.5, Siswa tidak diberikan UI Catatan Kasus meskipun permission schema mendukung `DIRI_SENDIRI`; role mapping final tidak boleh memberi permission tersebut kepada Siswa kecuali kebijakan sekolah berubah.
+## 3.1 Hak Akses Catatan Kasus
+
+| Role | Manage | View |
+| --- | --- | --- |
+| Admin | Semua | Semua |
+| Operator | Semua | Semua |
+| Pimpinan | Tidak | Semua readonly |
+| BK | Semua | Semua |
+| Guru biasa | Tidak | Tidak |
+| Wali | Tidak | Siswa kelas Wali |
+| Siswa | Tidak | **Diri sendiri** |
+
+**Keputusan final v0.5:** Siswa tetap dapat melihat Catatan Kasus miliknya sendiri.
+
+Role mapping Siswa:
+
+```text
+bk_kasus.view = DIRI_SENDIRI
+```
+
+Siswa tidak boleh create/edit/delete kasus, tidak boleh memilih `id_siswa` lain, dan tidak boleh membuka Top 20 global.
 
 ---
 
-## 8. Input Kasus
+# 4. Input Kasus
 
 Input minimum:
 
@@ -180,39 +160,61 @@ Tanggal
 Keterangan
 ```
 
-`id_guru_input`/actor tidak dipercaya dari browser.
+Actor tidak dipercaya dari browser.
 
-Admin/Operator/BK:
+Admin/Operator/BK memakai user login sebagai actor audit.
 
-```text
-actor = user login
-```
-
-Jika user mempunyai `id_guru`, simpan sebagai `id_guru_input`.
-
-Jika actor tidak memiliki `id_guru`, implementasi harus menentukan apakah kolom perlu nullable atau memakai actor administratif lain. Karena schema v0.5 `catatan_kasus.id_guru_input` saat ini NOT NULL, sebelum implementasi modul BK wajib memastikan Admin/Operator yang dapat manage mempunyai identitas Guru yang valid, atau schema diperbarui secara eksplisit. Jangan mengisi ID palsu.
+`id_guru_input` hanya boleh diisi identitas Guru yang benar. Jangan mengisi ID palsu. Bila actor administratif tanpa `id_guru` harus dapat manage, schema `id_guru_input` perlu dibuat nullable sebelum implementasi final BK.
 
 ---
 
-## 9. View Wali
+# 5. View Wali
 
-Wali dapat melihat detail lengkap kasus siswa kelas Wali.
+Wali dapat melihat detail kasus siswa kelas Wali, readonly.
 
 Wali tidak boleh:
 
-- create;
-- edit;
-- delete;
-- mengubah master pelanggaran;
-- melihat siswa kelas lain.
+```text
+create
+edit
+delete
+manage master pelanggaran
+melihat kelas lain
+```
 
-Jika mapping Wali dinonaktifkan, akses tersebut hilang.
+Jika mapping Wali nonaktif, akses hilang segera.
 
 ---
 
-## 10. Historis
+# 6. View Siswa
 
-Kasus siswa tidak boleh hilang jika siswa:
+Query wajib:
+
+```text
+WHERE catatan_kasus.id_siswa = session('id_siswa')
+```
+
+Tidak menerima parameter target siswa bebas.
+
+Dashboard Siswa boleh menampilkan Catatan Kasus terbaru miliknya sendiri. Halaman detail `bk/kasus` untuk Siswa harus otomatis scoped `DIRI_SENDIRI` dan readonly.
+
+Data yang boleh ditampilkan kepada siswa:
+
+```text
+tanggal
+nama pelanggaran
+kategori
+poin
+keterangan
+```
+
+Data actor internal tidak wajib ditampilkan.
+
+---
+
+# 7. Histori Kasus
+
+Kasus tidak hilang saat siswa:
 
 ```text
 Pindah
@@ -220,64 +222,26 @@ Keluar
 Lulus
 ```
 
-Laporan/detail histori tetap dapat diakses oleh role `SEMUA`.
+Role scope `SEMUA` tetap dapat melihat histori.
 
-Scope Wali aktif hanya untuk kelas Wali saat ini, kecuali kebijakan histori kelas lama ditambahkan kemudian.
+Wali aktif hanya melihat kelas Wali saat ini kecuali kebijakan histori lintas kelas ditetapkan kemudian.
+
+Siswa tetap dapat melihat histori kasus miliknya sendiri selama account/identity masih diizinkan mengakses sistem.
 
 ---
 
-# BAGIAN D — POIN DAN TOP 20
-
-## 11. Perhitungan Poin
+# 8. Poin dan Top 20
 
 Total poin:
 
 ```text
 SUM(ref_pelanggaran.poin)
-berdasarkan catatan_kasus siswa
 ```
-
-Filter dapat dibatasi:
-
-```text
-Tahun
-Bulan
-Periode
-Kelas
-```
-
-bila UI membutuhkannya.
-
----
-
-## 12. EWS Tidak Menggunakan Poin BK
-
-EWS Radar Presensi murni:
-
-```text
-Alpha
-Sesi Awal
-14 hari terakhir
-```
-
-Poin pelanggaran tidak boleh digabung menjadi trigger EWS Presensi.
-
----
-
-## 13. Top 20
 
 Top 20 adalah widget analitik, bukan menu utama.
 
-Isi:
-
-```text
-20 siswa dengan akumulasi poin tertinggi
-```
-
-Akses:
-
-| Role | Akses |
-|---|---|
+| Role | Top 20 |
+| --- | --- |
 | Admin | Semua |
 | Operator | Semua |
 | Pimpinan | Semua readonly |
@@ -288,46 +252,17 @@ Akses:
 
 Wali tidak boleh menerima Top 20 global lalu difilter frontend.
 
-Query harus sudah scoped di server.
+EWS Presensi tidak menggunakan poin BK.
 
 ---
 
-# BAGIAN E — PRESTASI
+# 9. Prestasi
 
-## 14. Tabel
+Tabel:
 
 ```text
 catatan_prestasi
 ```
-
-Field:
-
-```text
-id_siswa
-nama_prestasi
-tingkat
-tanggal
-penyelenggara
-keterangan
-id_guru_input
-created_at
-```
-
-Schema v0.5 saat ini tidak mempunyai `updated_at`/`updated_by`. Jika fitur edit Prestasi memerlukan audit penuh, perubahan schema harus dilakukan sebelum implementasi, bukan hanya ditambah di Controller.
-
----
-
-## 15. Hak Akses Prestasi
-
-| Role | Manage | View |
-|---|---|---|
-| Admin | Semua | Semua |
-| Operator | Semua | Semua |
-| Pimpinan | Tidak | Semua |
-| BK | Semua | Semua |
-| Guru | Tidak | Tidak |
-| Wali | Tidak | Siswa kelas Wali |
-| Siswa | Tidak | Diri |
 
 Permission:
 
@@ -335,6 +270,16 @@ Permission:
 prestasi.manage
 prestasi.view
 ```
+
+| Role | Manage | View |
+| --- | --- | --- |
+| Admin | Semua | Semua |
+| Operator | Semua | Semua |
+| Pimpinan | Tidak | Semua readonly |
+| BK | Semua | Semua |
+| Guru | Tidak | Tidak |
+| Wali | Tidak | Kelas Wali |
+| Siswa | Tidak | Diri sendiri |
 
 Scope:
 
@@ -344,43 +289,15 @@ KELAS_DIAMPU
 DIRI_SENDIRI
 ```
 
----
+Tingkat Prestasi dapat berupa Madrasah/Kecamatan/Kabupaten/Provinsi/Nasional/Internasional dan tetap divalidasi Service/UI.
 
-## 16. Tingkat Prestasi
-
-Nilai `tingkat` dapat berupa:
-
-```text
-Madrasah
-Kecamatan
-Kabupaten
-Provinsi
-Nasional
-Internasional
-```
-
-atau istilah lain sesuai kebijakan madrasah.
-
-Karena schema menggunakan VARCHAR, validasi pilihan dapat dikelola di UI/Service tanpa mengubah tabel.
+Upload bukti tidak diwajibkan v0.5.
 
 ---
 
-## 17. Bukti Prestasi
+# 10. Kartu Pelajar
 
-Upload bukti tidak diwajibkan pada v0.5.
-
-Jika di masa depan ditambahkan:
-
-- storage harus terpisah;
-- file type dibatasi;
-- tidak boleh executable;
-- authorization download wajib.
-
----
-
-# BAGIAN F — KARTU PELAJAR DIGITAL
-
-## 18. Tabel
+Tabel:
 
 ```text
 kartu_pelajar
@@ -404,91 +321,32 @@ Aktif
 Nonaktif
 ```
 
----
-
-## 19. Fungsi
-
-Modul Kartu meliputi:
-
-- daftar kartu;
-- generate;
-- preview;
-- cetak;
-- download;
-- cetak massal;
-- reissue output;
-- verifikasi QR;
-- status aktif/nonaktif.
-
----
-
-# BAGIAN G — HAK AKSES KARTU
-
-## 20. View
-
-| Role | Scope |
-|---|---|
-| Admin | Semua |
-| Operator | Semua |
-| Pimpinan | Semua |
-| BK | Tidak |
-| Guru biasa | Tidak |
-| Wali | Kelas Wali |
-| Siswa | Diri |
-
 Permission:
 
 ```text
 kartu_pelajar.view
-```
-
-Scope:
-
-```text
-SEMUA
-KELAS_DIAMPU
-DIRI_SENDIRI
-```
-
----
-
-## 21. Manage
-
-| Role | Scope |
-|---|---|
-| Admin | Semua |
-| Operator | Semua |
-| Pimpinan | Semua |
-| BK | Tidak |
-| Guru | Tidak |
-| Wali | Tidak |
-| Siswa | Tidak |
-
-Permission:
-
-```text
 kartu_pelajar.manage
 ```
 
-Scope didukung:
+View:
 
-```text
-SEMUA
-KELAS_DIAMPU
-```
+| Role | Scope |
+| --- | --- |
+| Admin | SEMUA |
+| Operator | SEMUA |
+| Pimpinan | SEMUA |
+| BK | Tidak |
+| Guru biasa | Tidak |
+| Wali | KELAS_DIAMPU |
+| Siswa | DIRI_SENDIRI |
 
-Pada kebijakan v0.5:
-- Admin, Operator, dan Pimpinan memiliki `kartu_pelajar.manage` dengan scope `SEMUA`;
-- Wali tidak diberikan manage;
-- Wali hanya menggunakan hak view/cetak untuk kelas Wali.
+Manage v0.5 mengikuti role_permissions final database. Wali dan Siswa tidak manage.
 
 ---
 
-# BAGIAN H — GENERATE
+# 11. Generate / Reissue
 
-## 22. Generate Kartu
-
-Generate dilakukan bila siswa belum mempunyai kartu.
+Generate hanya bila siswa belum mempunyai kartu sesuai kebijakan idempotensi.
 
 Server membuat:
 
@@ -499,111 +357,31 @@ tanggal_terbit
 status_aktif = Aktif
 ```
 
-Nomor dan kode harus unik.
+`kode_verifikasi` harus random dan sulit ditebak.
 
-Jangan menggunakan nilai berurutan mudah ditebak untuk `kode_verifikasi`.
-
-Gunakan random token yang cukup kuat.
+Reissue visual tidak mengubah identitas kartu secara diam-diam.
 
 ---
 
-## 23. Idempotensi
+# 12. Cetak
 
-Jika kartu sudah ada:
+Cetak individual harus scoped server-side.
 
-```text
-Generate
-```
+Wali hanya kelas Wali. Siswa hanya kartu diri.
 
-tidak boleh membuat duplicate baru secara diam-diam.
-
-UI harus menawarkan:
-
-```text
-Preview
-Cetak
-Reissue
-```
+Cetak massal wajib memvalidasi seluruh ID siswa di server dan tidak mempercayai checkbox client sebagai authorization.
 
 ---
 
-# BAGIAN I — REISSUE
+# 13. Format Kartu
 
-## 24. Definisi
-
-Reissue adalah membuat ulang hasil visual/cetak, bukan membuat identitas kartu baru.
-
-Tetap:
-
-```text
-nomor_kartu
-kode_verifikasi
-id_siswa
-tanggal_terbit
-```
-
-Tidak berubah kecuali ada proses administratif penerbitan ulang yang secara eksplisit didefinisikan kemudian.
-
----
-
-# BAGIAN J — CETAK
-
-## 25. Cetak Individual
-
-Admin/Operator/Pimpinan:
-
-```text
-semua sesuai scope
-```
-
-Wali:
-
-```text
-kelas Wali
-```
-
-Siswa:
-
-```text
-download/preview diri
-```
-
----
-
-## 26. Cetak Massal
-
-Boleh:
-
-```text
-Admin
-Operator
-Pimpinan
-Wali
-```
-
-Scope Wali:
-
-```text
-hanya kelas Wali
-```
-
-Request massal wajib memvalidasi seluruh ID siswa di server.
-
-Jangan mempercayai checkbox client sebagai authorization.
-
----
-
-# BAGIAN K — FORMAT KARTU
-
-## 27. Kanvas
-
-Ukuran:
+Kanvas canonical:
 
 ```text
 1011 × 638 px
 ```
 
-Field:
+Field dapat mencakup:
 
 ```text
 Nama
@@ -615,121 +393,51 @@ Tempat/Tanggal Lahir
 Alamat
 Foto
 QR
-Kode/Nomor Kartu
+Nomor/Kode Kartu
 ```
 
-NIK pada kartu fisik boleh tercetak penuh untuk kebutuhan administrasi sekolah.
+Foto mengikuti aturan Master Siswa. Bila foto tidak ada, gunakan placeholder; jangan menggagalkan seluruh generate.
 
 ---
 
-## 28. Background
+# 14. QR Verification Publik
 
-Setting:
-
-```text
-background_kta_depan
-background_kta_belakang
-```
-
-Asset harus berada pada storage yang diizinkan Settings.
-
----
-
-## 29. Foto
-
-Sumber:
-
-```text
-siswa.foto
-```
-
-Aturan foto mengikuti Master Siswa:
-
-- PNG;
-- max 2 MB;
-- crop 3:4;
-- re-encode.
-
-Jika tidak ada foto:
-
-```text
-placeholder / area kosong
-```
-
-Tidak gagal generate seluruh kartu.
-
----
-
-# BAGIAN L — QR VERIFICATION
-
-## 30. Endpoint Publik
+Endpoint:
 
 ```text
 /kartu/verify/{kode_verifikasi}
 ```
 
-Tidak membutuhkan login.
+Tanpa login, read minimum saja.
 
-Endpoint ini hanya melakukan read minimum.
-
----
-
-## 31. Data Publik
-
-Boleh menampilkan:
+Boleh:
 
 ```text
 Nama
 Kelas
 Status kartu
 Nama madrasah
-Nomor/kode kartu seperlunya
-Foto bila kebijakan sekolah mengizinkan
+Nomor/kode seperlunya
+Foto bila kebijakan mengizinkan
 ```
 
-NIK wajib masking.
-
-Contoh:
+Tidak boleh:
 
 ```text
-351012xxxxxx1234
+NIK penuh
+alamat lengkap
+orang tua
+telepon
+data BK
+riwayat Presensi
+credential/token
 ```
 
-Tidak boleh menampilkan:
-
-- NIK penuh;
-- alamat lengkap;
-- nama orang tua;
-- nomor telepon;
-- data BK;
-- riwayat Presensi;
-- password/token.
+NIK pada halaman publik wajib masking.
 
 ---
 
-## 32. Kartu Tidak Valid
-
-Jika:
-
-```text
-kode tidak ada
-status Nonaktif
-siswa deleted
-```
-
-halaman harus memberi status yang aman seperti:
-
-```text
-Kartu tidak aktif / tidak valid
-```
-
-Jangan menjelaskan alasan internal terlalu detail.
-
----
-
-# BAGIAN M — NONAKTIF OTOMATIS
-
-## 33. Trigger
+# 15. Nonaktif Otomatis
 
 Saat siswa menjadi:
 
@@ -739,19 +447,13 @@ Pindah
 Keluar
 ```
 
-semua kartu aktif siswa:
-
-```text
-status_aktif = Nonaktif
-```
-
-Aksi dilakukan dalam transaction yang sama dengan perubahan status siswa bila memungkinkan.
+kartu aktif menjadi `Nonaktif`, idealnya dalam transaction perubahan status siswa.
 
 ---
 
-# BAGIAN N — SERVICE
+# 16. Service dan Security
 
-## 34. Service yang Disarankan
+Service yang disarankan:
 
 ```text
 BkService
@@ -760,157 +462,26 @@ KartuPelajarService
 KartuRenderService
 ```
 
-### `BkService`
-- master pelanggaran;
-- catatan kasus;
-- scope Wali;
-- total poin;
-- Top 20.
+Semua Service wajib:
 
-### `PrestasiService`
-- manage;
-- view scope;
-- histori.
-
-### `KartuPelajarService`
-- generate;
-- status;
-- scope;
-- verify token.
-
-### `KartuRenderService`
-- template;
-- foto;
-- QR;
-- render output;
-- mass print.
+- resolve permission + scope server-side;
+- tidak percaya target/actor dari browser;
+- database-first untuk filter/agregasi;
+- escape output;
+- audit mutation;
+- Siswa `DIRI_SENDIRI` selalu dari session/token identity.
 
 ---
 
-# BAGIAN O — AUDIT
+# 17. Checkpoint
 
-## 35. Log
+Uji minimal:
 
-Aksi penting dicatat di:
-
-```text
-log_activity
-```
-
-Contoh:
-
-```text
-CREATE BK
-UPDATE BK
-DELETE BK
-CREATE PRESTASI
-GENERATE KARTU
-REISSUE KARTU
-CETAK KARTU
-CETAK MASSAL
-NONAKTIF KARTU
-```
-
-Schema log tetap:
-
-```text
-id_user
-aksi
-modul
-keterangan
-waktu
-```
-
----
-
-# BAGIAN P — SECURITY
-
-## 36. IDOR
-
-Dilarang:
-
-```text
-/kartu/view?id_siswa=123
-```
-
-tanpa verifikasi scope.
-
-Siswa selalu menggunakan:
-
-```text
-session('id_siswa')
-```
-
-Wali selalu diverifikasi terhadap mapping kelas aktif.
-
----
-
-## 37. QR Token
-
-`kode_verifikasi`:
-
-- random;
-- unique;
-- tidak berasal dari NISN/NIK;
-- tidak boleh dapat ditebak dengan increment sederhana.
-
----
-
-## 38. Output Escape
-
-Nama/keterangan/penyelenggara harus di-escape pada HTML.
-
-Rendering kartu juga harus memperlakukan teks sebagai data, bukan markup.
-
----
-
-# BAGIAN Q — CHECKPOINT
-
-## 39. BK
-
-- CRUD master;
-- FK delete;
-- kasus;
-- scope Wali;
+- Admin/Operator/BK manage Catatan Kasus;
 - Pimpinan readonly;
-- Top 20;
-- EWS tidak memakai poin.
-
-## 40. Prestasi
-
-- manage Admin/Operator/BK;
-- view Pimpinan;
-- view Wali kelas;
-- view Siswa diri;
-- no upload wajib.
-
-## 41. Kartu
-
-- generate idempotent;
-- nomor unique;
-- token random unique;
-- preview;
-- cetak;
-- mass print;
-- Wali kelas only;
-- Siswa diri;
-- Pimpinan sesuai permission;
-- status siswa menonaktifkan kartu;
-- QR public masking;
-- audit.
-
----
-
-# 42. Kriteria Selesai
-
-Modul dinyatakan selesai bila:
-
-1. tidak ada role Wali khusus;
-2. scope Wali selalu server-side;
-3. BK dan Prestasi tidak bocor antar siswa;
-4. EWS tetap terpisah dari poin BK;
-5. Kartu tidak duplicate;
-6. QR publik tidak membocorkan data sensitif;
-7. status siswa sinkron dengan kartu;
-8. audit tercatat;
-9. seluruh direct route terlindungi permission/scope.
+- Guru biasa tidak dapat akses kasus;
+- Wali hanya siswa kelas Wali;
+- Siswa dapat melihat kasus diri dan tidak dapat mengganti target siswa;
+- Siswa tidak dapat membuka Top 20;
+- Prestasi dan Kartu Siswa hanya diri;
+- menu dan direct URL menghasilkan scope yang sama.

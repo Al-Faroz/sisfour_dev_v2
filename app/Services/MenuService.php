@@ -8,16 +8,13 @@ use Config\Database;
 /**
  * MenuService
  *
- * SATU-SATUNYA sumber kebenaran untuk sidebar.
+ * Sumber sidebar:
+ * - menus;
+ * - role_menus;
+ * - permission effective user;
+ * - contextual Wali Kelas.
  *
- * Menu dasar berasal dari:
- * - menus
- * - role_menus
- *
- * Menu contextual Wali Kelas ditentukan melalui permission scope
- * yang di-resolve oleh AuthService.
- *
- * Wali Kelas bukan role.
+ * Menu bukan security boundary. PermissionFilter + Service tetap authoritative.
  */
 class MenuService
 {
@@ -38,7 +35,7 @@ class MenuService
 
         $roles = $this->authService->getUserRoles($userId);
 
-        if (empty($roles)) {
+        if ($roles === []) {
             return [];
         }
 
@@ -53,14 +50,11 @@ class MenuService
 
         $idMenus = array_values(
             array_unique(
-                array_map(
-                    'intval',
-                    array_column($menuRows, 'id_menu')
-                )
+                array_map('intval', array_column($menuRows, 'id_menu'))
             )
         );
 
-        if (empty($idMenus)) {
+        if ($idMenus === []) {
             return [];
         }
 
@@ -68,64 +62,33 @@ class MenuService
             ->table('menus')
             ->whereIn('id', $idMenus)
             ->orderBy('urutan', 'ASC')
+            ->orderBy('id', 'ASC')
             ->get()
             ->getResultArray();
 
-        if (empty($menus)) {
-            return [];
-        }
+        $menus = $this->filterContextualMenus($menus, $userId);
 
-        $menus = $this->filterContextualMenus(
-            $menus,
-            $userId,
-            $roles
-        );
-
-        if (empty($menus)) {
-            return [];
-        }
-
-        return $this->buildTree($menus);
+        return $menus === [] ? [] : $this->buildTree($menus);
     }
 
-    protected function filterContextualMenus(
-        array $menus,
-        int $userId,
-        array $roles
-    ): array {
-        $isGuru = in_array('guru', $roles, true);
-        $isSiswa = in_array('siswa', $roles, true);
-
+    protected function filterContextualMenus(array $menus, int $userId): array
+    {
         $filtered = [];
 
         foreach ($menus as $menu) {
-            $idMenu = (int) $menu['id'];
+            $requiredPermissions = $this->menuPermissionMap((int) $menu['id']);
 
-            if (
-                $idMenu === 31
-                && ($isGuru || $isSiswa)
-            ) {
-                continue;
-            }
-
-            $requiredPermissions = $this->menuPermissionMap($idMenu);
-
-            if (!empty($requiredPermissions)) {
+            if ($requiredPermissions !== []) {
                 $hasAccess = false;
 
                 foreach ($requiredPermissions as $permissionKey) {
-                    $scope = $this->authService->resolveScope(
-                        $permissionKey,
-                        $userId
-                    );
-
-                    if ($scope !== 'TIDAK_ADA') {
+                    if ($this->authService->hasPermission($permissionKey, $userId)) {
                         $hasAccess = true;
                         break;
                     }
                 }
 
-                if (!$hasAccess) {
+                if (! $hasAccess) {
                     continue;
                 }
             }
@@ -136,55 +99,66 @@ class MenuService
         return $filtered;
     }
 
+    /**
+     * Mapping permission harus mengikuti route tujuan menu.
+     * Parent group tidak perlu permission karena BaseController akan prune group kosong.
+     *
+     * @return string[]
+     */
     protected function menuPermissionMap(int $idMenu): array
     {
         return match ($idMenu) {
-            21 => [
-                'presensi_siswa.input',
-                'presensi_siswa.view',
-            ],
+            1 => ['dashboard.view'],
 
-            33 => [
-                'master_siswa.view',
-                'master_siswa.manage',
-                'master_siswa.edit_biodata',
-            ],
+            // Presensi
+            21 => ['presensi_siswa.input'],
+            22 => ['presensi_mengajar.input'],
+            23 => ['presensi_siswa.view'],
+            24 => ['ews_radar.view'],
 
-            41 => [
-                'laporan_matrix.view',
-            ],
+            // Master Data
+            31 => ['master_guru.manage', 'master_guru.view'],
+            32 => ['master_pegawai.manage', 'master_pegawai.view'],
+            33 => ['master_siswa.view', 'master_siswa.manage', 'master_siswa.edit_biodata'],
+            34 => ['master_kelas.manage'],
+            35 => ['master_tahun_ajaran.manage'],
+            36 => ['master_mapel.manage'],
+            37 => ['mapping_wali.manage', 'mapping_wali.view', 'mapping_wali.view_all'],
+            38 => ['jadwal_guru.manage', 'jadwal_guru.view', 'jadwal_guru.view_all'],
 
-            42 => [
-                'laporan_export.generate',
-            ],
+            // Laporan
+            41 => ['laporan_matrix.view'],
+            42 => ['laporan_export.generate'],
+            43 => ['laporan_jurnal.view'],
 
-            43 => [
-                'laporan_jurnal.view',
-            ],
+            // BK & Prestasi
+            51 => ['bk_kasus.view', 'bk_kasus.manage'],
+            52 => ['bk_pelanggaran_master.manage'],
+            53 => ['prestasi.view', 'prestasi.manage'],
 
-            51 => [
-                'bk_kasus.view',
-                'bk_kasus.manage',
-            ],
+            // Kartu
+            61 => ['kartu_pelajar.view', 'kartu_pelajar.manage'],
+            62 => ['kartu_pelajar.manage'],
 
-            53 => [
-                'prestasi.view',
-                'prestasi.manage',
-            ],
+            // Settings
+            71 => ['settings_user.manage'],
+            72 => ['settings_menu.manage'],
+            73 => ['settings_sistem.manage'],
 
-            61 => [
-                'kartu_pelajar.view',
-                'kartu_pelajar.manage',
-            ],
+            // Backup & Log
+            81 => ['backup.manage'],
+            82 => ['log_activity.view'],
+
+            // Profile
+            9 => ['profile_guru.view'],
+            10 => ['profile_siswa.view'],
 
             default => [],
         };
     }
 
-    protected function buildTree(
-        array $menus,
-        ?int $parentId = null
-    ): array {
+    protected function buildTree(array $menus, ?int $parentId = null): array
+    {
         $branch = [];
 
         foreach ($menus as $menu) {
@@ -196,50 +170,29 @@ class MenuService
                 continue;
             }
 
-            $children = $this->buildTree(
-                $menus,
-                (int) $menu['id']
-            );
-
-            $menu['children'] = $children;
+            $menu['children'] = $this->buildTree($menus, (int) $menu['id']);
             $branch[] = $menu;
         }
 
         return $branch;
     }
 
-    public function markActive(
-        array $tree,
-        string $currentPath
-    ): array {
+    public function markActive(array $tree, string $currentPath): array
+    {
         foreach ($tree as &$item) {
             $itemActive = false;
 
-            if (
-                !empty($item['link'])
-                && $item['link'] !== '#'
-            ) {
-                $link = ltrim(
-                    (string) $item['link'],
-                    '/'
-                );
-
-                $itemActive = strpos(
-                    $currentPath,
-                    $link
-                ) === 0;
+            if (! empty($item['link']) && $item['link'] !== '#') {
+                $link = ltrim((string) $item['link'], '/');
+                $itemActive = strpos($currentPath, $link) === 0;
             }
 
-            if (!empty($item['children'])) {
-                $item['children'] = $this->markActive(
-                    $item['children'],
-                    $currentPath
-                );
-
+            if (! empty($item['children'])) {
+                $item['children'] = $this->markActive($item['children'], $currentPath);
                 $childActive = false;
 
                 foreach ($item['children'] as $child) {
-                    if (!empty($child['active'])) {
+                    if (! empty($child['active'])) {
                         $childActive = true;
                         break;
                     }
