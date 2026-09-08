@@ -22,6 +22,9 @@
 /writable/backups/*
 !/writable/backups/index.html
 
+/writable/debugbar/*
+!/writable/debugbar/index.html
+
 # --- Uploads Dinamis (data siswa/guru, tidak ikut Git) ---
 /uploads/foto_siswa/*
 /uploads/foto_guru/*

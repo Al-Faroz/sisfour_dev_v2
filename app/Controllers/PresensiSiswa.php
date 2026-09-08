@@ -109,7 +109,8 @@ class PresensiSiswa extends BaseController
         return $this->respondService(
             $this->presensiService->saveBulk(
                 (int) session()->get('user_id'),
-                $payload
+                $payload,
+                false
             ),
             201
         );
@@ -163,7 +164,8 @@ class PresensiSiswa extends BaseController
         return $this->respondService(
             $this->presensiService->saveBulk(
                 (int) session()->get('user_id'),
-                $this->getPayload()
+                $this->getPayload(),
+                true
             )
         );
     }
@@ -335,7 +337,9 @@ class PresensiSiswa extends BaseController
             'NO_GURU_IDENTITY',
             'OUTSIDE_SCHEDULE_DATE' => 403,
             'ALREADY_SUBMITTED',
-            'AMBIGUOUS_SCHEDULE' => 409,
+            'AMBIGUOUS_SCHEDULE',
+            'REVISION_ENDPOINT_REQUIRED',
+            'NO_EXISTING_PRESENSI' => 409,
             default => 422,
         };
     }

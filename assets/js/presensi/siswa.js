@@ -287,7 +287,11 @@
         btnSimpan.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan';
 
         try {
-            const response = await requestJson(endpoint('presensi/siswa/save'), {
+            const saveEndpoint = state.submitted
+                ? 'presensi/siswa/revisi/save'
+                : 'presensi/siswa/save';
+
+            const response = await requestJson(endpoint(saveEndpoint), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

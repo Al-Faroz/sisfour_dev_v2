@@ -85,7 +85,9 @@ class PresensiMengajarService
         $hari = $this->hariIndonesia($tanggal);
 
         if (in_array('SEMUA', $scopes, true)) {
-            return $this->db
+            $guruMap = [];
+
+            $activeRows = $this->db
                 ->table('jadwal_guru jg')
                 ->select('g.id, g.nama, g.nip')
                 ->join('guru g', 'g.id = jg.id_guru')
@@ -94,9 +96,37 @@ class PresensiMengajarService
                 ->where('jg.status_jadwal', 'Aktif')
                 ->where('g.deleted_at', null)
                 ->groupBy('g.id, g.nama, g.nip')
-                ->orderBy('g.nama', 'ASC')
                 ->get()
                 ->getResultArray();
+
+            foreach ($activeRows as $row) {
+                $guruMap[(int) $row['id']] = $row;
+            }
+
+            // Jurnal historis harus tetap dapat direvisi meskipun jadwalnya
+            // sudah menjadi Nonaktif setelah reimport.
+            $historyRows = $this->db
+                ->table('presensi_mengajar pm')
+                ->select('g.id, g.nama, g.nip')
+                ->join('guru g', 'g.id = pm.id_guru')
+                ->where('pm.id_tahun', (int) $tahun['id'])
+                ->where('pm.tanggal', $tanggal)
+                ->where('g.deleted_at', null)
+                ->groupBy('g.id, g.nama, g.nip')
+                ->get()
+                ->getResultArray();
+
+            foreach ($historyRows as $row) {
+                $guruMap[(int) $row['id']] = $row;
+            }
+
+            $rows = array_values($guruMap);
+
+            usort($rows, static fn (array $a, array $b): int =>
+                strcasecmp((string) $a['nama'], (string) $b['nama'])
+            );
+
+            return $rows;
         }
 
         if (! $this->hasSelfInputScope($scopes)) {
@@ -168,10 +198,32 @@ class PresensiMengajarService
             if ((int) ($user['id_guru'] ?? 0) !== $idGuru) {
                 return [];
             }
+
+            return $this->queryJadwalGuruTanggal(
+                $idGuru,
+                (int) $tahun['id'],
+                $tanggal,
+                true
+            );
         }
 
-        return $this->db
-            ->table('jadwal_guru jg')
+        $jadwalMap = [];
+
+        foreach (
+            $this->queryJadwalGuruTanggal(
+                $idGuru,
+                (int) $tahun['id'],
+                $tanggal,
+                true
+            ) as $row
+        ) {
+            $jadwalMap[(int) $row['id']] = $row;
+        }
+
+        // Tambahkan jadwal historis yang sudah mempunyai Jurnal pada tanggal
+        // target, walaupun status_jadwal sekarang Nonaktif.
+        $historyRows = $this->db
+            ->table('presensi_mengajar pm')
             ->select([
                 'jg.id',
                 'jg.id_guru',
@@ -182,25 +234,42 @@ class PresensiMengajarService
                 'jg.jam_mulai',
                 'jg.jam_selesai',
                 'jg.sesi',
+                'jg.status_jadwal',
                 'g.nama AS nama_guru',
                 'g.nip',
                 'k.nama_kelas',
                 'mp.nama_mapel',
                 'mp.kode_mapel',
             ])
+            ->join('jadwal_guru jg', 'jg.id = pm.id_jadwal')
             ->join('guru g', 'g.id = jg.id_guru')
             ->join('kelas k', 'k.id = jg.id_kelas')
             ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
-            ->where('jg.id_guru', $idGuru)
-            ->where('jg.id_tahun', (int) $tahun['id'])
-            ->where('jg.hari', $this->hariIndonesia($tanggal))
-            ->where('jg.status_jadwal', 'Aktif')
+            ->where('pm.id_tahun', (int) $tahun['id'])
+            ->where('pm.id_guru', $idGuru)
+            ->where('pm.tanggal', $tanggal)
             ->where('g.deleted_at', null)
             ->where('k.deleted_at', null)
-            ->orderBy('jg.jam_mulai', 'ASC')
-            ->orderBy('k.nama_kelas', 'ASC')
             ->get()
             ->getResultArray();
+
+        foreach ($historyRows as $row) {
+            $jadwalMap[(int) $row['id']] = $row;
+        }
+
+        $rows = array_values($jadwalMap);
+
+        usort($rows, static function (array $a, array $b): int {
+            $jam = strcmp((string) $a['jam_mulai'], (string) $b['jam_mulai']);
+
+            if ($jam !== 0) {
+                return $jam;
+            }
+
+            return strcasecmp((string) $a['nama_kelas'], (string) $b['nama_kelas']);
+        });
+
+        return $rows;
     }
 
     public function loadInput(int $userId, int $idJadwal, string $tanggal): array
@@ -211,22 +280,34 @@ class PresensiMengajarService
             return $this->fail('INVALID_REQUEST', 'Jadwal atau tanggal tidak valid.');
         }
 
+        $existing = $this->model->findByJadwalTanggal($idJadwal, $tanggal);
+
+        if ($existing !== null) {
+            $context = $this->resolveExistingRevisionContext(
+                $userId,
+                $existing
+            );
+
+            if (! $context['success']) {
+                return $context;
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Jurnal historis siap direvisi.',
+                'tanggal' => $tanggal,
+                'capability' => 'SEMUA',
+                'can_revise' => true,
+                'submitted' => true,
+                'jadwal' => $context['jadwal'],
+                'existing' => $existing,
+            ];
+        }
+
         $context = $this->resolveScheduleContext($userId, $idJadwal, $tanggal);
 
         if (! $context['success']) {
             return $context;
-        }
-
-        $existing = $this->model->findByJadwalTanggal($idJadwal, $tanggal);
-        $canRevise = $context['capability'] === 'SEMUA';
-
-        if ($existing !== null && ! $canRevise) {
-            return [
-                'success' => false,
-                'code' => 'ALREADY_SUBMITTED',
-                'message' => 'Jurnal untuk Jadwal dan tanggal ini sudah tersimpan. Guru tidak dapat merevisi Jurnal.',
-                'submitted' => true,
-            ];
         }
 
         return [
@@ -234,10 +315,10 @@ class PresensiMengajarService
             'message' => 'Form Jurnal siap digunakan.',
             'tanggal' => $tanggal,
             'capability' => $context['capability'],
-            'can_revise' => $canRevise,
-            'submitted' => $existing !== null,
+            'can_revise' => false,
+            'submitted' => false,
             'jadwal' => $context['jadwal'],
-            'existing' => $existing,
+            'existing' => null,
         ];
     }
 
@@ -260,20 +341,81 @@ class PresensiMengajarService
             return $this->fail('EMPTY_MATERI', 'Materi/keterangan Jurnal wajib diisi.');
         }
 
+        $existing = $this->model->findByJadwalTanggal($idJadwal, $tanggal);
+        $isRevision = $existing !== null;
+
+        if ($isRevision) {
+            $context = $this->resolveExistingRevisionContext(
+                $userId,
+                $existing
+            );
+
+            if (! $context['success']) {
+                return $context;
+            }
+
+            $now = Time::now(self::TZ)->format('Y-m-d H:i:s');
+
+            $this->db->transBegin();
+
+            try {
+                $ok = $this->db
+                    ->table('presensi_mengajar')
+                    ->where('id', (int) $existing['id'])
+                    ->update([
+                        'status' => $status,
+                        'materi' => $materi,
+                        'updated_at' => $now,
+                        'updated_by' => $userId,
+                    ]);
+
+                if ($ok === false) {
+                    throw new \RuntimeException('Revisi Jurnal gagal.');
+                }
+
+                $jadwal = $context['jadwal'];
+
+                $this->writeActivityLog(
+                    $userId,
+                    'REVISI',
+                    'Presensi Mengajar',
+                    sprintf(
+                        'Revisi Jurnal %s - %s tanggal %s (%s).',
+                        (string) $jadwal['nama_guru'],
+                        (string) $jadwal['nama_kelas'],
+                        $tanggal,
+                        $status
+                    )
+                );
+
+                if ($this->db->transStatus() === false) {
+                    throw new \RuntimeException('Transaction revisi Jurnal gagal.');
+                }
+
+                $this->db->transCommit();
+            } catch (Throwable $e) {
+                $this->db->transRollback();
+
+                return [
+                    'success' => false,
+                    'code' => 'SAVE_FAILED',
+                    'message' => 'Revisi Jurnal gagal disimpan.',
+                    'error' => ENVIRONMENT === 'development' ? $e->getMessage() : null,
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Revisi Jurnal berhasil disimpan.',
+                'revision' => true,
+                'capability' => 'SEMUA',
+            ];
+        }
+
         $context = $this->resolveScheduleContext($userId, $idJadwal, $tanggal);
 
         if (! $context['success']) {
             return $context;
-        }
-
-        $existing = $this->model->findByJadwalTanggal($idJadwal, $tanggal);
-        $isRevision = $existing !== null;
-
-        if ($isRevision && $context['capability'] !== 'SEMUA') {
-            return $this->fail(
-                'FORBIDDEN_REVISE',
-                'Jurnal yang sudah tersimpan hanya dapat direvisi Admin/Operator.'
-            );
         }
 
         if ($context['capability'] !== 'SEMUA' && $status === 'Hadir') {
@@ -304,28 +446,17 @@ class PresensiMengajarService
             'tanggal' => $tanggal,
             'status' => $status,
             'materi' => $materi,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'updated_by' => null,
         ];
 
         $this->db->transBegin();
 
         try {
-            if ($isRevision) {
-                $payload['updated_at'] = $now;
-                $payload['updated_by'] = $userId;
-
-                $ok = $this->db
-                    ->table('presensi_mengajar')
-                    ->where('id', (int) $existing['id'])
-                    ->update($payload);
-            } else {
-                $payload['created_at'] = $now;
-                $payload['updated_at'] = $now;
-                $payload['updated_by'] = null;
-
-                $ok = $this->db
-                    ->table('presensi_mengajar')
-                    ->insert($payload);
-            }
+            $ok = $this->db
+                ->table('presensi_mengajar')
+                ->insert($payload);
 
             if ($ok === false) {
                 throw new \RuntimeException('Penyimpanan Jurnal gagal.');
@@ -333,11 +464,10 @@ class PresensiMengajarService
 
             $this->writeActivityLog(
                 $userId,
-                $isRevision ? 'REVISI' : 'INPUT',
+                'INPUT',
                 'Presensi Mengajar',
                 sprintf(
-                    '%s Jurnal %s - %s tanggal %s (%s).',
-                    $isRevision ? 'Revisi' : 'Input',
+                    'Input Jurnal %s - %s tanggal %s (%s).',
                     (string) $jadwal['nama_guru'],
                     (string) $jadwal['nama_kelas'],
                     $tanggal,
@@ -363,10 +493,8 @@ class PresensiMengajarService
 
         return [
             'success' => true,
-            'message' => $isRevision
-                ? 'Revisi Jurnal berhasil disimpan.'
-                : 'Jurnal berhasil disimpan.',
-            'revision' => $isRevision,
+            'message' => 'Jurnal berhasil disimpan.',
+            'revision' => false,
             'capability' => $context['capability'],
         ];
     }
@@ -446,6 +574,143 @@ class PresensiMengajarService
             'limit' => max(1, min(500, $limit)),
             'offset' => max(0, $offset),
         ];
+    }
+
+    /**
+     * Resolve revisi existing Jurnal.
+     *
+     * Jadwal boleh sudah Nonaktif karena histori harus tetap dapat dikoreksi
+     * Admin/Operator tanpa memindahkan foreign key ke Jadwal baru.
+     */
+    private function resolveExistingRevisionContext(
+        int $userId,
+        array $existing
+    ): array {
+        if ($userId <= 0) {
+            return $this->fail('UNAUTHENTICATED', 'Session user tidak valid.');
+        }
+
+        $tahun = $this->getTahunAktif();
+
+        if ($tahun === null) {
+            return $this->fail('NO_ACTIVE_YEAR', 'Tidak ada Tahun Ajaran aktif.');
+        }
+
+        if ((int) ($existing['id_tahun'] ?? 0) !== (int) $tahun['id']) {
+            return $this->fail(
+                'OUTSIDE_ACTIVE_YEAR',
+                'Revisi Jurnal v0.5 hanya untuk Tahun Ajaran aktif.'
+            );
+        }
+
+        $scopes = $this->getPermissionScopes('presensi_mengajar.input', $userId);
+
+        if (! in_array('SEMUA', $scopes, true)) {
+            return $this->fail(
+                'FORBIDDEN_REVISE',
+                'Jurnal yang sudah tersimpan hanya dapat direvisi Admin/Operator.'
+            );
+        }
+
+        $jadwal = $this->getJadwalAnyStatus(
+            (int) ($existing['id_jadwal'] ?? 0),
+            (int) $tahun['id']
+        );
+
+        if ($jadwal === null) {
+            return $this->fail(
+                'INVALID_SCHEDULE_HISTORY',
+                'Referensi Jadwal historis Jurnal tidak ditemukan.'
+            );
+        }
+
+        return [
+            'success' => true,
+            'capability' => 'SEMUA',
+            'jadwal' => $jadwal,
+        ];
+    }
+
+    /**
+     * Query Jadwal Guru untuk tanggal target.
+     *
+     * Jika $activeOnly=true, hanya Jadwal Aktif yang boleh menjadi sumber input baru.
+     */
+    private function queryJadwalGuruTanggal(
+        int $idGuru,
+        int $idTahun,
+        string $tanggal,
+        bool $activeOnly
+    ): array {
+        $builder = $this->db
+            ->table('jadwal_guru jg')
+            ->select([
+                'jg.id',
+                'jg.id_guru',
+                'jg.id_kelas',
+                'jg.id_mapel',
+                'jg.id_tahun',
+                'jg.hari',
+                'jg.jam_mulai',
+                'jg.jam_selesai',
+                'jg.sesi',
+                'jg.status_jadwal',
+                'g.nama AS nama_guru',
+                'g.nip',
+                'k.nama_kelas',
+                'mp.nama_mapel',
+                'mp.kode_mapel',
+            ])
+            ->join('guru g', 'g.id = jg.id_guru')
+            ->join('kelas k', 'k.id = jg.id_kelas')
+            ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
+            ->where('jg.id_guru', $idGuru)
+            ->where('jg.id_tahun', $idTahun)
+            ->where('jg.hari', $this->hariIndonesia($tanggal))
+            ->where('g.deleted_at', null)
+            ->where('k.deleted_at', null);
+
+        if ($activeOnly) {
+            $builder->where('jg.status_jadwal', 'Aktif');
+        }
+
+        return $builder
+            ->orderBy('jg.jam_mulai', 'ASC')
+            ->orderBy('k.nama_kelas', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    private function getJadwalAnyStatus(int $idJadwal, int $idTahun): ?array
+    {
+        $row = $this->db
+            ->table('jadwal_guru jg')
+            ->select([
+                'jg.id',
+                'jg.id_guru',
+                'jg.id_kelas',
+                'jg.id_mapel',
+                'jg.id_tahun',
+                'jg.hari',
+                'jg.jam_mulai',
+                'jg.jam_selesai',
+                'jg.sesi',
+                'jg.status_jadwal',
+                'g.nama AS nama_guru',
+                'g.nip',
+                'k.nama_kelas',
+                'mp.nama_mapel',
+                'mp.kode_mapel',
+            ])
+            ->join('guru g', 'g.id = jg.id_guru')
+            ->join('kelas k', 'k.id = jg.id_kelas')
+            ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
+            ->where('jg.id', $idJadwal)
+            ->where('jg.id_tahun', $idTahun)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
     }
 
     private function resolveScheduleContext(

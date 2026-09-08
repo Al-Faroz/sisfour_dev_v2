@@ -313,7 +313,8 @@ class PresensiService
             'tanggal' => $tanggal,
             'sesi' => $sesi,
             'capability' => $capability['capability'],
-            'geofence_required' => $capability['capability'] === 'GURU_TERJADWAL',
+            'geofence_required' => $capability['capability'] === 'GURU_TERJADWAL'
+                && (bool) ($this->geofencingService->getConfig()['aktif'] ?? false),
             'submitted' => $existing !== [],
             'can_revise' => $canRevise,
             'items' => $items,
@@ -323,8 +324,12 @@ class PresensiService
     /**
      * Bulk save satu kelas secara atomic.
      */
-    public function saveBulk(int $userId, array $data): array
-    {
+    public function saveBulk(
+        int $userId,
+        array $data,
+        bool $revisionRequested = false
+    ): array {
+
         $idKelas = (int) ($data['id_kelas'] ?? 0);
         $tanggal = $this->normalizeTanggal((string) ($data['tanggal'] ?? ''));
         $sesi = $this->normalizeSesi((string) ($data['sesi'] ?? ''));
@@ -408,7 +413,25 @@ class PresensiService
             $sesi
         );
 
-        if ($existing !== []) {
+        $isRevision = $existing !== [];
+
+        if ($isRevision && ! $revisionRequested) {
+            return [
+                'success' => false,
+                'code' => 'REVISION_ENDPOINT_REQUIRED',
+                'message' => 'Presensi sudah tersimpan. Gunakan endpoint revisi untuk mengubah data.',
+            ];
+        }
+
+        if (! $isRevision && $revisionRequested) {
+            return [
+                'success' => false,
+                'code' => 'NO_EXISTING_PRESENSI',
+                'message' => 'Data Presensi belum ada. Gunakan endpoint input baru.',
+            ];
+        }
+
+        if ($isRevision) {
             if ($capability['capability'] === 'GURU_TERJADWAL') {
                 return [
                     'success' => false,
@@ -488,8 +511,6 @@ class PresensiService
                 'updated_by' => $existing === [] ? null : $userId,
             ];
         }
-
-        $isRevision = $existing !== [];
 
         $this->db->transBegin();
 

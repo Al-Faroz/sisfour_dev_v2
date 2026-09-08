@@ -92,7 +92,7 @@ http://localhost/sisfour_dev_v2/
      *
      * The Locale roughly represents the language and location that your visitor
      * is viewing the site from. It affects the language strings and other
-     * strings (like currency markers, numbers, etc), that your program
+     * strings (like currency markers, numbers, etc) that your program
      * should run under for this request.
      */
     public string $defaultLocale = 'en';
@@ -129,13 +129,14 @@ http://localhost/sisfour_dev_v2/
      * Application Timezone
      * --------------------------------------------------------------------------
      *
-     * The default timezone that will be used in your application to display
-     * dates with the date helper, and can be retrieved through app_timezone()
+     * SisisFour menggunakan WIB sebagai timezone canonical aplikasi.
+     * Seluruh keputusan waktu Presensi/Jurnal harus konsisten dengan
+     * docs/05_PRESENSI dan server time Asia/Jakarta.
      *
      * @see https://www.php.net/manual/en/timezones.php for list of timezones
      *      supported by PHP.
      */
-    public string $appTimezone = 'UTC';
+    public string $appTimezone = 'Asia/Jakarta';
 
     /**
      * --------------------------------------------------------------------------
@@ -145,7 +146,7 @@ http://localhost/sisfour_dev_v2/
      * This determines which character set is used by default in various methods
      * that require a character set to be provided.
      *
-     * @see http://php.net/htmlspecialchars for a list of supported charsets.
+     * @see http://php.net/htmlspecialchars for a list of charsets supported.
      */
     public string $charset = 'UTF-8';
 
