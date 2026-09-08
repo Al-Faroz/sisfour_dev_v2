@@ -1,88 +1,104 @@
-# 🚦 Routes Final — SisisFour
+# Routes Final — SisisFour
 
-**Versi:** 4.0 Final · **Tanggal:** 05 September 2026
+**Versi Acuan Utama:** v0.5 FINAL BASELINE  
+**Tanggal Acuan:** 08 September 2026  
+**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
+**Baseline Database:** `sisfour_dev_v2 (15).sql`
 
-Dokumen ini adalah referensi route final SisisFour berdasarkan arsitektur repository saat ini.
-
-> **Catatan penting:** Wali Kelas bukan role. Route tidak boleh menggunakan `role:wali`. Status Wali ditentukan dinamis melalui `AuthService::isWaliKelas()` dan scope permission.
-
----
-
-# 1. Prinsip Routing
-
-- AutoRoute dinonaktifkan.
-- Semua route ditulis eksplisit.
-- Route protected menggunakan filter `auth` dan/atau `permission`.
-- Permission didefinisikan di `Routes.php`.
-- Scope ditentukan oleh `AuthService::resolveScope()`.
-- Semua endpoint JSON wajib menggunakan authorization yang sama dengan endpoint HTML.
-- Endpoint yang tidak memiliki permission harus mengembalikan HTTP **403 — Akses Ditolak**.
-- Tidak boleh ada menu yang normalnya menghasilkan 403 ketika dibuka oleh user yang diberi menu.
+Dokumen ini adalah **acuan utama** dan menggambarkan baseline aplikasi yang berlaku. Bagian yang belum tersedia di repo dinyatakan sebagai gap/blocker, bukan diasumsikan sudah selesai.
 
 ---
 
-# 2. Auth Web
+# 1. Prinsip
 
-| Method | Route | Controller | Filter |
-| --- | --- | --- | --- |
-| GET | `/` | `Auth::login` | public |
-| GET | `/auth/login` | `Auth::login` | public |
-| POST | `/auth/login` | `Auth::login` | public |
-| POST | `/auth/logout` | `Auth::logout` | auth |
+Source of truth route:
 
-**Logout web wajib menggunakan POST.**
+```text
+app/Config/Routes.php
+```
 
-Tidak ada lagi route logout GET.
+AutoRoute tidak digunakan sebagai kontrak aplikasi. Route bisnis ditulis eksplisit.
 
----
+Wali Kelas bukan role.
 
-# 3. Dashboard
+Filter:
+
+```text
+auth
+auth:api
+permission:...
+```
+
+Scope tetap divalidasi Service.
+
+# 2. Public & Auth Web
+
+| Method | Route | Target | Filter |
+|---|---|---|---|
+| GET | `/` | `Auth::login` | Public |
+| GET | `/auth/login` | `Auth::login` | Public |
+| POST | `/auth/login` | `Auth::login` | Public |
+| POST | `/auth/logout` | `Auth::logout` | `auth` |
+| GET | `/kartu/verify/(:segment)` | `KartuPelajar::verify/$1` | Public |
+
+# 3. Auth/API Public
+
+| Method | Route | Target | Filter |
+|---|---|---|---|
+| POST | `/api/auth/login` | `Auth::apiLogin` | Public |
+| POST | `/api/auth/refresh` | `Auth::apiRefresh` | Public |
+| POST | `/api/auth/logout` | `Auth::apiLogout` | `auth:api` |
+| GET | `/api/auth/me` | `Auth::apiMe` | `auth:api` |
+| GET | `/api/version` | `Api::version` | Public |
+
+**Baseline blocker:** `app/Controllers/Api.php` tidak ditemukan.
+
+# 4. Dashboard Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/dashboard` | `dashboard.view` |
 | GET | `/dashboard/data` | `dashboard.view` |
 
-Dashboard memilih widget berdasarkan role + konteks Wali + permission.
-
----
-
-# 4. Master Guru
+# 5. Master Guru
 
 | Method | Route | Permission |
-| --- | --- | --- |
-| GET | `/master/guru` | `master_guru.view` / `master_guru.manage` |
-| GET | `/master/guru/json` | `master_guru.view` / `master_guru.manage` |
+|---|---|---|
+| GET | `/master/guru` | `master_guru.manage OR master_guru.view` |
+| GET | `/master/guru/json` | sama |
 | GET | `/master/guru/template` | `master_guru.manage` |
 | POST | `/master/guru/create` | `master_guru.manage` |
 | POST | `/master/guru/import` | `master_guru.manage` |
 | GET | `/master/guru/export` | `master_guru.manage` |
 | PUT | `/master/guru/update/(:segment)` | `master_guru.manage` |
 | DELETE | `/master/guru/delete/(:segment)` | `master_guru.manage` |
+| POST | `/master/guru/upload-foto/(:segment)` | `master_guru.manage` |
+| GET | `/master/guru/recycle` | `master_guru.manage` |
+| GET | `/master/guru/recycle/json` | `master_guru.manage` |
+| POST | `/master/guru/restore/(:segment)` | `master_guru.manage` |
+| DELETE | `/master/guru/force-delete/(:segment)` | `master_guru.manage` |
 
-Pimpinan hanya menggunakan permission view.
-
----
-
-# 5. Master Pegawai
+# 6. Master Pegawai
 
 | Method | Route | Permission |
-| --- | --- | --- |
-| GET | `/master/pegawai` | `master_pegawai.view` / `master_pegawai.manage` |
-| GET | `/master/pegawai/json` | `master_pegawai.view` / `master_pegawai.manage` |
+|---|---|---|
+| GET | `/master/pegawai` | `master_pegawai.manage OR master_pegawai.view` |
+| GET | `/master/pegawai/json` | sama |
 | GET | `/master/pegawai/template` | `master_pegawai.manage` |
 | POST | `/master/pegawai/create` | `master_pegawai.manage` |
 | POST | `/master/pegawai/import` | `master_pegawai.manage` |
 | GET | `/master/pegawai/export` | `master_pegawai.manage` |
 | PUT | `/master/pegawai/update/(:segment)` | `master_pegawai.manage` |
 | DELETE | `/master/pegawai/delete/(:segment)` | `master_pegawai.manage` |
+| GET | `/master/pegawai/recycle` | `master_pegawai.manage` |
+| GET | `/master/pegawai/recycle/json` | `master_pegawai.manage` |
+| POST | `/master/pegawai/restore/(:segment)` | `master_pegawai.manage` |
+| DELETE | `/master/pegawai/force-delete/(:segment)` | `master_pegawai.manage` |
 
----
-
-# 6. Master Siswa
+# 7. Master Siswa
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/master/siswa` | `master_siswa.view` |
 | GET | `/master/siswa/json` | `master_siswa.view` |
 | GET | `/master/siswa/template` | `master_siswa.import_export` |
@@ -91,519 +107,316 @@ Pimpinan hanya menggunakan permission view.
 | GET | `/master/siswa/export` | `master_siswa.import_export` |
 | PUT | `/master/siswa/update/(:segment)` | `master_siswa.edit_biodata` |
 | DELETE | `/master/siswa/delete/(:segment)` | `master_siswa.manage` |
+| GET | `/master/siswa/recycle` | `master_siswa.manage` |
+| GET | `/master/siswa/recycle/json` | `master_siswa.manage` |
+| POST | `/master/siswa/restore/(:segment)` | `master_siswa.manage` |
+| DELETE | `/master/siswa/force-delete/(:segment)` | `master_siswa.manage` |
 | POST | `/master/siswa/mutasi/(:segment)` | `master_siswa.manage` |
+| POST | `/master/siswa/upload-foto/(:segment)` | `master_siswa.edit_biodata` |
 
-Untuk Wali Kelas:
-
-```text
-master_siswa.view
-master_siswa.edit_biodata
-```
-
-hanya berlaku untuk kelas walinya.
-
-NISN tidak boleh diubah oleh Wali.
-
----
-
-# 7. Master Kelas
+# 8. Master Kelas
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/master/kelas` | `master_kelas.manage` |
 | GET | `/master/kelas/json` | `master_kelas.manage` |
 | POST | `/master/kelas/create` | `master_kelas.manage` |
 | PUT | `/master/kelas/update/(:segment)` | `master_kelas.manage` |
 | DELETE | `/master/kelas/delete/(:segment)` | `master_kelas.manage` |
+| GET | `/master/kelas/recycle` | `master_kelas.manage` |
+| GET | `/master/kelas/recycle/json` | `master_kelas.manage` |
+| POST | `/master/kelas/restore/(:segment)` | `master_kelas.manage` |
+| DELETE | `/master/kelas/force-delete/(:segment)` | `master_kelas.manage` |
+| GET | `/master/kelas/anggota/(:segment)` | `master_kelas.manage` |
+| POST | `/master/kelas/anggota/add/(:segment)` | `master_kelas.manage` |
+| DELETE | `/master/kelas/anggota/remove/(:segment)/(:segment)` | `master_kelas.manage` |
+| GET | `/master/kelas/process-data/(:segment)` | `master_kelas.manage` |
+| POST | `/master/kelas/naik/(:segment)` | `master_kelas.manage` |
+| POST | `/master/kelas/lulus/(:segment)` | `master_kelas.manage` |
 
----
-
-# 8. Tahun Ajaran
+# 9. Tahun Ajaran
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/master/tahun` | `master_tahun_ajaran.manage` |
-| GET | `/master/tahun/json` | `master_tahun_ajaran.manage` |
-| POST | `/master/tahun/create` | `master_tahun_ajaran.manage` |
-| PUT | `/master/tahun/update/(:segment)` | `master_tahun_ajaran.manage` |
-| DELETE | `/master/tahun/delete/(:segment)` | `master_tahun_ajaran.manage` |
+| GET | `/master/tahun/json` | sama |
+| POST | `/master/tahun/create` | sama |
+| PUT | `/master/tahun/update/(:segment)` | sama |
+| POST | `/master/tahun/aktifkan/(:segment)` | sama |
+| DELETE | `/master/tahun/delete/(:segment)` | sama |
+| GET | `/master/tahun/recycle` | sama |
+| GET | `/master/tahun/recycle/json` | sama |
+| POST | `/master/tahun/restore/(:segment)` | sama |
+| DELETE | `/master/tahun/force-delete/(:segment)` | sama |
 
----
-
-# 9. Mata Pelajaran
+# 10. Mata Pelajaran
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/master/mapel` | `master_mapel.manage` |
-| GET | `/master/mapel/json` | `master_mapel.manage` |
-| POST | `/master/mapel/create` | `master_mapel.manage` |
-| PUT | `/master/mapel/update/(:segment)` | `master_mapel.manage` |
-| DELETE | `/master/mapel/delete/(:segment)` | `master_mapel.manage` |
+| GET | `/master/mapel/json` | sama |
+| POST | `/master/mapel/create` | sama |
+| PUT | `/master/mapel/update/(:segment)` | sama |
+| DELETE | `/master/mapel/delete/(:segment)` | sama |
 
----
-
-# 10. Mapping Wali Kelas
+# 11. Mapping Wali
 
 | Method | Route | Permission |
-| --- | --- | --- |
-| GET | `/master/wali-kelas` | `mapping_wali.view` / `mapping_wali.manage` / `mapping_wali.view_all` |
+|---|---|---|
+| GET | `/master/wali-kelas` | `mapping_wali.view OR mapping_wali.manage OR mapping_wali.view_all` |
 | GET | `/master/wali-kelas/json` | sama |
 | POST | `/master/wali-kelas/assign` | `mapping_wali.manage` |
 | DELETE | `/master/wali-kelas/delete/(:segment)` | `mapping_wali.manage` |
+| GET | `/master/wali-kelas/options` | `mapping_wali.manage` |
+| GET | `/master/wali-kelas/recycle` | `mapping_wali.manage` |
+| GET | `/master/wali-kelas/recycle/json` | `mapping_wali.manage` |
+| POST | `/master/wali-kelas/restore/(:segment)` | `mapping_wali.manage` |
+| DELETE | `/master/wali-kelas/force-delete/(:segment)` | `mapping_wali.manage` |
 
-`isWaliKelas()` harus dihitung dari mapping aktif.
-
----
-
-# 11. Jadwal Guru
+# 12. Jadwal Guru
 
 | Method | Route | Permission |
-| --- | --- | --- |
-| GET | `/master/jadwal` | `jadwal_guru.view` / `jadwal_guru.view_all` / `jadwal_guru.manage` |
+|---|---|---|
+| GET | `/master/jadwal` | `jadwal_guru.view OR jadwal_guru.view_all OR jadwal_guru.manage` |
 | GET | `/master/jadwal/json` | sama |
+| GET | `/master/jadwal/options` | sama |
 | GET | `/master/jadwal/template` | `jadwal_guru.manage` |
 | POST | `/master/jadwal/import` | `jadwal_guru.manage` |
+| GET | `/master/jadwal/export` | `jadwal_guru.manage` |
 | DELETE | `/master/jadwal/delete/(:segment)` | `jadwal_guru.manage` |
 
----
-
-# 12. Presensi Siswa
+# 13. Presensi Siswa Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/presensi/siswa` | `presensi_siswa.input` |
 | GET | `/presensi/siswa/input/(:segment)` | `presensi_siswa.input` |
+| GET | `/presensi/siswa/input/(:segment)/json` | `presensi_siswa.input` |
 | POST | `/presensi/siswa/save` | `presensi_siswa.input` |
 | GET | `/presensi/siswa/revisi/(:segment)` | `presensi_siswa.revisi` |
 | POST | `/presensi/siswa/revisi/save` | `presensi_siswa.revisi` |
 | GET | `/presensi/siswa/rekap` | `presensi_siswa.view` |
+| GET | `/presensi/siswa/rekap/json` | `presensi_siswa.view` |
 | GET | `/presensi/siswa/ews` | `ews_radar.view` |
+| GET | `/presensi/siswa/ews/json` | `ews_radar.view` |
 
-### Aturan penting
-
-Guru Biasa:
-
-```text
-input saja
-```
-
-Tidak boleh membuka hasil tersimpan.
-
-Wali:
-
-```text
-input + view + revisi
-```
-
-tetapi hanya kelas walinya.
-
----
-
-# 13. Presensi Mengajar / Jurnal
+# 14. Presensi Mengajar Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/presensi/mengajar` | `presensi_mengajar.input` |
 | GET | `/presensi/mengajar/input/(:segment)` | `presensi_mengajar.input` |
+| GET | `/presensi/mengajar/input/(:segment)/json` | `presensi_mengajar.input` |
 | POST | `/presensi/mengajar/save` | `presensi_mengajar.input` |
 | GET | `/presensi/mengajar/laporan` | `presensi_mengajar.view` |
+| GET | `/presensi/mengajar/laporan/json` | `presensi_mengajar.view` |
 
-Revisi jurnal:
-
-```text
-Admin/Operator
-```
-
-harus dilakukan melalui permission/route administratif yang secara eksplisit disediakan aplikasi.
-
-Guru/Wali tidak dapat merevisi jurnalnya sendiri.
-
----
-
-# 14. Laporan Matrix
+# 15. Laporan Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/laporan/presensi/matrix` | `laporan_matrix.view` |
 | GET | `/laporan/presensi/matrix/json` | `laporan_matrix.view` |
-
-Scope:
-
-```text
-SEMUA
-KELAS_DIAMPU
-```
-
-Guru Biasa tidak mempunyai permission ini.
-
----
-
-# 15. Export Presensi
-
-| Method | Route | Permission |
-| --- | --- | --- |
 | GET | `/laporan/presensi/export` | `laporan_export.generate` |
 | GET | `/laporan/presensi/export/bulan` | `laporan_export.generate` |
 | GET | `/laporan/presensi/export/semester` | `laporan_export.generate` |
-
-Wali dibatasi ke kelas walinya.
-
-Export wajib memvalidasi view permission terkait.
-
----
-
-# 16. Laporan Jurnal
-
-| Method | Route | Permission |
-| --- | --- | --- |
 | GET | `/laporan/jurnal` | `laporan_jurnal.view` |
 | GET | `/laporan/jurnal/json` | `laporan_jurnal.view` |
 | GET | `/laporan/jurnal/export` | `laporan_jurnal.export` |
 
-Scope:
-
-```text
-SEMUA
-DIRI_SENDIRI
-```
-
----
-
-# 17. BK Kasus
+# 16. BK Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/bk/kasus` | `bk_kasus.view` |
 | GET | `/bk/kasus/json` | `bk_kasus.view` |
 | GET | `/bk/kasus/top` | `bk_kasus.view` |
+| GET | `/bk/kasus/top/json` | `bk_kasus.view` |
 | POST | `/bk/kasus/create` | `bk_kasus.manage` |
+| PUT | `/bk/kasus/update/(:segment)` | `bk_kasus.manage` |
+| DELETE | `/bk/kasus/delete/(:segment)` | `bk_kasus.manage` |
 | GET | `/bk/kasus/export` | `bk_kasus.manage` |
-
-Guru Biasa tidak mempunyai permission BK.
-
-Wali menggunakan:
-
-```text
-bk_kasus.view + KELAS_DIAMPU
-```
-
-dan readonly.
-
----
-
-# 18. Master Pelanggaran
-
-| Method | Route | Permission |
-| --- | --- | --- |
 | GET | `/bk/pelanggaran` | `bk_pelanggaran_master.manage` |
-| GET | `/bk/pelanggaran/json` | `bk_pelanggaran_master.manage` |
-| POST | `/bk/pelanggaran/create` | `bk_pelanggaran_master.manage` |
-| PUT | `/bk/pelanggaran/update/(:segment)` | `bk_pelanggaran_master.manage` |
-| DELETE | `/bk/pelanggaran/delete/(:segment)` | `bk_pelanggaran_master.manage` |
-
----
-
-# 19. Prestasi
-
-| Method | Route | Permission |
-| --- | --- | --- |
+| GET | `/bk/pelanggaran/json` | sama |
+| POST | `/bk/pelanggaran/create` | sama |
+| PUT | `/bk/pelanggaran/update/(:segment)` | sama |
+| DELETE | `/bk/pelanggaran/delete/(:segment)` | sama |
 | GET | `/bk/prestasi` | `prestasi.view` |
 | GET | `/bk/prestasi/json` | `prestasi.view` |
 | POST | `/bk/prestasi/create` | `prestasi.manage` |
 | PUT | `/bk/prestasi/update/(:segment)` | `prestasi.manage` |
 | DELETE | `/bk/prestasi/delete/(:segment)` | `prestasi.manage` |
-| GET | `/bk/prestasi/export` | `prestasi.view` / `prestasi.manage` |
+| GET | `/bk/prestasi/export` | `prestasi.view OR prestasi.manage` |
 
-Scope:
-
-```text
-SEMUA
-KELAS_DIAMPU
-DIRI_SENDIRI
-```
-
-sesuai role.
-
----
-
-# 20. Kartu Pelajar
+# 17. Kartu Pelajar Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/kartu/daftar` | `kartu_pelajar.view` |
 | GET | `/kartu/daftar/json` | `kartu_pelajar.view` |
 | POST | `/kartu/generate` | `kartu_pelajar.manage` |
-| GET | `/kartu/cetak/(:segment)` | `kartu_pelajar.manage` atau mekanisme cetak Wali yang sah |
+| GET | `/kartu/cetak/(:segment)` | `kartu_pelajar.manage OR kartu_pelajar.view` |
 | GET | `/kartu/preview/(:segment)` | `kartu_pelajar.view` |
 | GET | `/kartu/preview/(:segment)/json` | `kartu_pelajar.view` |
 | GET | `/kartu/download/(:segment)` | `kartu_pelajar.view` |
 | POST | `/kartu/reissue/(:segment)` | `kartu_pelajar.manage` |
 
-Wali:
-
-```text
-view + cetak
-```
-
-tetapi tidak:
-
-```text
-generate
-reissue
-manage
-```
-
-Pimpinan:
-
-```text
-view + manage
-```
-
-sesuai business rule final.
-
----
-
-# 21. Verifikasi Kartu Publik
-
-| Method | Route | Filter |
-|---|---|---|
-| GET | `/kartu/verify/(:segment)` | Public |
-
-Data publik harus menggunakan NIK masking.
-
----
-
-# 22. Profile Guru
+# 18. Profile Web
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/profile/guru` | `profile_guru.view` |
 | GET | `/profile/guru/json` | `profile_guru.view` |
 | PUT | `/profile/guru/update` | `profile_guru.edit` |
 | POST | `/profile/guru/upload-foto` | `profile_guru.edit` |
-
-Scope:
-
-```text
-DIRI_SENDIRI
-```
-
----
-
-# 23. Profile Siswa
-
-| Method | Route | Permission |
-| --- | --- | --- |
 | GET | `/profile/siswa` | `profile_siswa.view` |
 | GET | `/profile/siswa/json` | `profile_siswa.view` |
 
-Tidak ada route update profile siswa.
+**Baseline blocker:** `ProfileGuru.php` dan `ProfileSiswa.php` tidak ditemukan.
 
----
-
-# 24. Settings
+# 19. Settings
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/settings/user` | `settings_user.manage` |
-| GET | `/settings/user/json` | `settings_user.manage` |
-| POST | `/settings/user/create` | `settings_user.manage` |
-| PUT | `/settings/user/update/(:segment)` | `settings_user.manage` |
-| DELETE | `/settings/user/delete/(:segment)` | `settings_user.manage` |
+| GET | `/settings/user/json` | sama |
+| POST | `/settings/user/create` | sama |
+| PUT | `/settings/user/update/(:segment)` | sama |
+| POST | `/settings/user/reset/(:segment)` | sama |
+| DELETE | `/settings/user/delete/(:segment)` | sama |
 | GET | `/settings/menu` | `settings_menu.manage` |
-| GET | `/settings/menu/json` | `settings_menu.manage` |
-| PUT | `/settings/menu/update/(:segment)` | `settings_menu.manage` |
+| GET | `/settings/menu/json` | sama |
+| PUT | `/settings/menu/update/(:segment)` | sama |
 | GET | `/settings/sistem` | `settings_sistem.manage` |
-| GET | `/settings/sistem/json` | `settings_sistem.manage` |
-| PUT | `/settings/sistem/update` | `settings_sistem.manage` |
+| GET | `/settings/sistem/json` | sama |
+| PUT | `/settings/sistem/update` | sama |
+| POST | `/settings/sistem/maintenance` | sama |
+| POST | `/settings/sistem/upload-branding` | sama |
+| POST | `/settings/sistem/upload-background-kta` | sama |
 
----
-
-# 25. Backup
+# 20. Backup & Log
 
 | Method | Route | Permission |
-| --- | --- | --- |
+|---|---|---|
 | GET | `/backup` | `backup.manage` |
 | POST | `/backup/create` | `backup.manage` |
 | GET | `/backup/download/(:segment)` | `backup.manage` |
-
----
-
-# 26. Log Activity
-
-| Method | Route | Permission |
-| --- | --- | --- |
+| DELETE | `/backup/delete/(:segment)` | `backup.manage` |
 | GET | `/log/activity` | `log_activity.view` |
 | GET | `/log/activity/json` | `log_activity.view` |
+| GET | `/log/activity/export` | `log_activity.view` |
 
-Permission hanya untuk:
+# 21. API Protected
 
-```text
-Admin
-Operator
-```
-
----
-
-# 27. API Mobile
-
-Semua endpoint API menggunakan:
+Semua route berikut memakai group:
 
 ```text
 auth:api
 ```
 
-dan permission yang sama dengan modul web.
-
-Contoh utama:
+## Dashboard
 
 ```text
-POST /api/auth/login
-POST /api/auth/logout
-GET  /api/auth/me
-POST /api/auth/refresh
+GET /api/dashboard
+GET /api/dashboard/data
+```
 
+## Presensi Siswa
+
+```text
+GET  /api/presensi/siswa
+GET  /api/presensi/siswa/input/(:segment)
+POST /api/presensi/siswa/save
+GET  /api/presensi/siswa/revisi/(:segment)
+POST /api/presensi/siswa/revisi/save
+GET  /api/presensi/siswa/rekap
+GET  /api/presensi/siswa/ews
+```
+
+## Presensi Mengajar
+
+```text
+GET  /api/presensi/mengajar
+GET  /api/presensi/mengajar/input/(:segment)
+POST /api/presensi/mengajar/save
+GET  /api/presensi/mengajar/laporan
+```
+
+## Laporan
+
+```text
+GET /api/laporan/presensi/matrix
+GET /api/laporan/jurnal
+```
+
+## BK
+
+```text
+GET    /api/bk/kasus
+GET    /api/bk/kasus/top
+POST   /api/bk/kasus/create
+PUT    /api/bk/kasus/update/(:segment)
+DELETE /api/bk/kasus/delete/(:segment)
+GET    /api/bk/prestasi
+POST   /api/bk/prestasi/create
+```
+
+## Kartu
+
+```text
+GET /api/kartu/preview/(:segment)
+GET /api/kartu/download/(:segment)
+```
+
+## Profile
+
+```text
 GET  /api/profile/guru
 PUT  /api/profile/guru
 POST /api/profile/guru/foto
-
 GET  /api/profile/siswa
-
-GET  /api/dashboard
-GET  /api/presensi/siswa
-POST /api/presensi/siswa/save
-GET  /api/presensi/mengajar
-POST /api/presensi/mengajar/save
 ```
 
-API tidak boleh memiliki aturan akses yang lebih longgar daripada web.
+# 22. Route Gap Baseline
 
----
-
-# 28. HTTP 403
-
-Jika permission tidak terpenuhi:
+Route terdaftar tetapi target Controller tidak ditemukan:
 
 ```text
-HTTP 403
+GET /api/version
+→ Api::version
+→ app/Controllers/Api.php tidak ada
+
+/profile/guru...
+→ ProfileGuru
+→ app/Controllers/ProfileGuru.php tidak ada
+
+/profile/siswa...
+→ ProfileSiswa
+→ app/Controllers/ProfileSiswa.php tidak ada
 ```
 
-Halaman:
+Ini adalah release blocker.
 
-```text
-Akses Ditolak
-```
+# 23. Maintenance Interaction
 
-Untuk API:
+`MaintenanceFilter` adalah filter global.
 
-```json
-{
-  "status": "error",
-  "message": "Akses Ditolak",
-  "code": 403
-}
-```
+Saat ON:
 
----
+- Admin effective boleh;
+- non-Admin 503;
+- API 503 JSON;
+- exact login/logout exception sesuai dokumen 08.
 
-# 29. Duplikasi Route
+# 24. Route Final Rule
 
-Tidak boleh ada dua deklarasi route yang sama untuk:
+Dokumen ini harus selalu identik dengan `Routes.php`.
 
-```text
-/dashboard
-/dashboard/data
-```
+Perubahan route pada masa depan harus:
 
-Setiap route hanya didefinisikan satu kali.
-
----
-
-# 30. Logout
-
-Route final:
-
-```text
-POST /auth/logout
-```
-
-Tidak menggunakan:
-
-```text
-GET /auth/logout
-```
-
-Frontend harus melakukan submit POST, termasuk CSRF token apabila CSRF global sudah diaktifkan.
-
----
-
-# 31. Permission Registry
-
-Permission yang digunakan seluruh route:
-
-```text
-1  dashboard.view
-2  presensi_siswa.input
-3  presensi_siswa.revisi
-4  presensi_siswa.view
-5  presensi_mengajar.input
-6  presensi_mengajar.view
-7  master_guru.manage
-8  master_guru.view
-9  master_pegawai.manage
-10 master_pegawai.view
-11 master_siswa.view
-12 master_siswa.edit_biodata
-13 master_siswa.manage
-14 master_siswa.import_export
-15 master_kelas.manage
-16 master_tahun_ajaran.manage
-17 master_mapel.manage
-18 mapping_wali.manage
-19 mapping_wali.view
-20 mapping_wali.view_all
-21 jadwal_guru.manage
-22 jadwal_guru.view
-23 jadwal_guru.view_all
-24 laporan_matrix.view
-25 laporan_export.generate
-26 laporan_jurnal.view
-27 laporan_jurnal.export
-28 ews_radar.view
-29 bk_kasus.manage
-30 bk_kasus.view
-31 bk_pelanggaran_master.manage
-32 prestasi.manage
-33 prestasi.view
-34 kartu_pelajar.manage
-35 kartu_pelajar.view
-36 settings_user.manage
-37 settings_menu.manage
-38 settings_sistem.manage
-39 backup.manage
-40 log_activity.view
-41 profile_guru.view
-42 profile_guru.edit
-43 profile_siswa.view
-```
-
----
-
-# 32. Catatan Developer Final
-
-1. Jangan membuat route khusus `wali` hanya untuk membedakan Wali Kelas.
-2. Wali adalah konteks dinamis.
-3. PermissionFilter memeriksa permission.
-4. Service/Model wajib menerapkan scope.
-5. MenuService wajib menghasilkan menu yang usable.
-6. Guru Biasa tidak boleh mendapatkan endpoint laporan presensi.
-7. Guru Biasa tidak boleh membaca hasil presensi siswa yang sudah tersimpan.
-8. Wali dapat mengakses fungsi Wali hanya saat mapping wali aktif.
-9. Pimpinan readonly kecuali kewenangan Kartu Pelajar yang memang diberikan.
-10. Admin/Operator mempunyai akses administratif sesuai permission.
-11. Semua API mengikuti aturan yang sama dengan web.
-12. Semua perubahan route harus memperbarui dokumen ini.
-
----
-
-© 2026 SisisFour · MTsN 4 Jombang · Routes Final
+1. update full `Routes.php`;
+2. update dokumen ini;
+3. verify Controller method;
+4. verify permission exists;
+5. verify menu bila route navigasional;
+6. verify API JSON bila prefix `/api`.

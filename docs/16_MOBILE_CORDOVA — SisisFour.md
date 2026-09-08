@@ -1,193 +1,415 @@
-# 📱 Mobile App (Cordova) — SisisFour
+# 16 Mobile Cordova — SisisFour
 
-**Versi:** 3.0 Final · **Tanggal:** 27 Agustus 2026
+**Versi Acuan Utama:** v0.5 FINAL BASELINE  
+**Tanggal Acuan:** 08 September 2026  
+**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
+**Baseline Database:** `sisfour_dev_v2 (15).sql`
 
-Dokumen ini mengatur seluruh spesifikasi untuk aplikasi **mobile** berbasis **Cordova**. Aplikasi ini diperuntukkan bagi pengguna yang membutuhkan akses cepat dan praktis di lapangan (Pimpinan, Guru, BK, Siswa), sementara tugas administratif berat tetap dikerjakan melalui **web** oleh Admin dan Operator.
+Dokumen ini adalah **acuan utama** dan menggambarkan baseline aplikasi yang berlaku. Bagian yang belum tersedia di repo dinyatakan sebagai gap/blocker, bukan diasumsikan sudah selesai.
 
-**Status Eksekusi:** Fase mobile (Cordova) dikerjakan SETELAH Tahap 1–15 (web) selesai dan stabil.
+---
 
-* * *
+# 1. Kedudukan Tahap Mobile
 
-## 1. Pendahuluan
+Aplikasi mobile SisisFour direncanakan menggunakan **Apache Cordova** dengan WebView Android dan bersifat **online-only**.
 
-- **Teknologi:** Apache Cordova (WebView) — bukan PWA. Tujuannya untuk **mengunci** cara akses (tanpa address bar) dan memberikan kesan aplikasi resmi.
-- **Arsitektur:** Aplikasi mobile **online-only** (tidak ada mode offline). Semua data diambil dan disimpan langsung dari server melalui API.
-- **Dual-Output:** Mengandalkan endpoint API `/api/...` yang sudah dibangun di sisi server (lihat `Routes Final`).
-- **Frontend APK:** Menggunakan HTML + CSS + JavaScript (jQuery) yang sama dengan web, tetapi dijalankan dalam WebView Cordova.
+Tahap mobile dikerjakan setelah Web SisisFour melewati Testing & Polish.
 
-* * *
+Baseline repo ini belum memuat project Cordova (`config.xml`, `www/`, `platforms/`, atau struktur client Cordova). Karena itu dokumen ini adalah kontrak implementasi mobile yang harus memakai API server yang benar-benar tersedia.
 
-## 2. Siapa yang Pakai APK?
+# 2. Prinsip Client
 
-| Platform | Role                                      | Keterangan                                                          |
-|----------|-------------------------------------------|---------------------------------------------------------------------|
-| APK      | **Pimpinan, Guru, Wali Kelas, BK, Siswa** | Akses mobile untuk tugas lapangan (presensi, dashboard, BK, kartu)  |
-| Web-Only | **Admin &amp; Operator**                  | Kerjaan berat (master data, import, settings, backup) tetap via web |
+Frontend APK:
 
-* * *
+```text
+HTML
+CSS
+Vanilla JavaScript
+Fetch API
+Cordova WebView
+```
 
-## 3. Cakupan Modul per Role di APK
+Business JavaScript tidak menggunakan jQuery.
 
-### 3.1 Guru &amp; Wali Kelas
+Client mobile tidak menjalankan business rule authorization. Permission dan scope tetap authoritative di server.
 
-- **Dashboard:** Jadwal hari ini (dengan status presensi), riwayat jurnal terakhir, ringkasan kelas diampu (jika wali).
-- **Presensi Siswa:** Input presensi (AW/AK) dengan tombol solid default Hadir.
-- **Presensi Mengajar (Jurnal):** Input jurnal untuk semua sesi (termasuk Non Sesi), dengan status Hadir/Izin/Sakit dan materi wajib.
-- **Laporan Jurnal Mengajar:** Melihat jurnal milik sendiri (filter dinamis Guru→Kelas).
-- **Profile Guru:** Melihat dan mengedit data diri (NIP readonly, sisanya editable).
+# 3. Role Mobile
 
-### 3.2 Pimpinan
+Target utama:
 
-- **Dashboard:** 6 widget supervisi (kelas belum presensi, EWS Radar, kasus BK, tren presensi, guru belum input, Top 20).
-- **Laporan Matrix:** Melihat matrix presensi (Total H|S|I|A) untuk semua kelas.
-- **Laporan Jurnal Mengajar:** Melihat jurnal semua guru (filter Guru→Kelas).
-- **BK (View-Only):** Melihat catatan kasus dan prestasi siswa (readonly).
-- **Profile Guru:** Melihat dan mengedit data diri sendiri (NIP readonly, sisanya editable).
+| Role | Mobile |
+|---|---|
+| Admin | bukan target utama |
+| Operator | bukan target utama |
+| Pimpinan | ya |
+| BK | ya |
+| Guru | ya |
+| Wali | ya sebagai konteks Guru |
+| Siswa | ya |
 
-### 3.3 BK
+Admin/Operator tetap menggunakan Web untuk pekerjaan administratif berat seperti Master Data, Settings, Backup, dan pengelolaan user.
 
-- **Dashboard:** Kasus bulan ini, Top 20 poin pelanggaran, EWS Radar, prestasi terbaru.
-- **Catatan Kasus:** Input dan melihat catatan kasus (dengan audit updated\_at/updated\_by).
-- **Prestasi:** Input dan melihat prestasi siswa.
-- **Profile Guru:** Melihat dan mengedit data diri sendiri (NIP readonly, sisanya editable).
+# 4. Authentication API
 
-### 3.4 Siswa
+Endpoint public authentication:
 
-- **Dashboard:** Rekap presensi diri sendiri (bulan berjalan) dan riwayat prestasi/pelanggaran diri sendiri.
-- **Kartu Pelajar:** Preview dan download kartu sendiri (depan &amp; belakang).
-- **Profile Siswa:** Melihat data diri sendiri (readonly, termasuk NIK penuh).
+| Method | Endpoint | Controller |
+|---|---|---|
+| POST | `/api/auth/login` | `Auth::apiLogin` |
+| POST | `/api/auth/refresh` | `Auth::apiRefresh` |
+| GET | `/api/version` | `Api::version` |
 
-### 3.5 Modul yang TETAP Web-Only (Tidak di APK)
+Endpoint protected:
 
-- **Master Data:** CRUD Guru/Pegawai/Siswa/Kelas, Import/Export Excel, Kenaikan Kelas, Mutasi.
-- **Settings:** Manajemen User, Menu &amp; Role, Setting Sistem, Maintenance.
-- **Backup &amp; Log:** Backup SQL, Log Activity.
+| Method | Endpoint | Filter |
+|---|---|---|
+| POST | `/api/auth/logout` | `auth:api` |
+| GET | `/api/auth/me` | `auth:api` |
 
-* * *
+# 5. Token
 
-## 4. Autentikasi API — JWT
+Server memakai `api_tokens`.
 
-### 4.1 Spesifikasi Teknis (B4)
+Access dan refresh token diterbitkan oleh `JwtService`.
 
-- **Access Token:** Berlaku **1 jam** setelah login.
-- **Refresh Token:** Berlaku **30 hari**.
-- **Penyimpanan:** Token disimpan di tabel `api_tokens` (MySQL) dengan hashing untuk refresh token (SHA-256).
-- **Header Request:** `Authorization: Bearer {access_token}`.
-- **Refresh Mechanism:** Jika access token expired, APK wajib melakukan refresh otomatis menggunakan refresh token tanpa meminta user login ulang.
+Mobile wajib:
 
-### 4.2 Single Active Session (B5)
+1. menyimpan token secara aman;
+2. mengirim `Authorization: Bearer ...`;
+3. melakukan refresh saat access token expired;
+4. logout bila refresh gagal/revoked;
+5. tidak menyimpan password setelah login.
 
-- **Mekanisme:** Menggunakan kolom `auth_version` di tabel `users`.
-- **Alur:** Setiap kali user login (web maupun APK), `auth_version` di-increment. Token/session lama otomatis menjadi **invalid** karena versinya lebih rendah.
-- **Dampak:** Login di device baru akan mengeluarkan user dari device lama.
-- **Server Check:** Di setiap request API, server mengecek `auth_version` di token vs di database. Jika tidak match, tolak request dengan status 401 dan pesan "Session expired, please login again".
+`auth_version` digunakan untuk invalidasi session/token lama.
 
-### 4.3 Endpoint Autentikasi
+# 6. API Bisnis yang Terdaftar
 
-| Method | Endpoint            | Deskripsi                                      | Auth                        |
-|--------|---------------------|------------------------------------------------|-----------------------------|
-| POST   | `/api/auth/login`   | Login (return access\_token + refresh\_token)  | None                        |
-| POST   | `/api/auth/logout`  | Logout (revoke token, set revoked\_at)         | JWT                         |
-| GET    | `/api/auth/me`      | Ambil data user dari token                     | JWT                         |
-| POST   | `/api/auth/refresh` | Refresh access token menggunakan refresh token | None (dengan refresh token) |
+Semua endpoint berikut berada dalam group `auth:api`.
 
-* * *
+## Dashboard
 
-## 5. Endpoint API untuk Mobile
+```text
+GET /api/dashboard
+GET /api/dashboard/data
+```
 
-Berikut adalah daftar endpoint yang digunakan oleh aplikasi mobile. Semua endpoint **wajib** mengembalikan format JSON.
+Permission:
 
-| Modul                 | Method | Endpoint                                  | Deskripsi                                           |
-|-----------------------|--------|-------------------------------------------|-----------------------------------------------------|
-| **Dashboard**         | GET    | `/api/dashboard/data`                     | Data widget dashboard sesuai role                   |
-| **Presensi Siswa**    | GET    | `/api/presensi/siswa/input/(:segment)`    | Form input presensi (data kelas + siswa)            |
-|                       | POST   | `/api/presensi/siswa/save`                | Simpan presensi (dengan geofencing jika diperlukan) |
-|                       | GET    | `/api/presensi/siswa/rekap/(:segment)`    | Rekap presensi siswa (diri sendiri)                 |
-| **Presensi Mengajar** | GET    | `/api/presensi/mengajar/input/(:segment)` | Form input jurnal (data jadwal)                     |
-|                       | POST   | `/api/presensi/mengajar/save`             | Simpan jurnal (validasi id\_guru sendiri)           |
-| **Laporan**           | GET    | `/api/laporan/presensi/matrix`            | Data matrix presensi (Total H\|S\|I\|A)             |
-|                       | GET    | `/api/laporan/jurnal`                     | Data laporan jurnal (filter Guru→Kelas)             |
-| **BK**                | GET    | `/api/bk/kasus`                           | Daftar catatan kasus                                |
-|                       | POST   | `/api/bk/kasus/create`                    | Tambah catatan kasus                                |
-| **Prestasi**          | GET    | `/api/bk/prestasi`                        | Daftar prestasi                                     |
-|                       | POST   | `/api/bk/prestasi/create`                 | Tambah prestasi                                     |
-| **Kartu Pelajar**     | GET    | `/api/kartu/preview/(:segment)`           | Preview kartu (depan &amp; belakang)                |
-|                       | GET    | `/api/kartu/download/(:segment)`          | Download PDF kartu                                  |
-| **Profile**           | GET    | `/api/profile/guru`                       | Ambil data profile guru                             |
-|                       | PUT    | `/api/profile/guru`                       | Update profile guru (field terbatas, NIP readonly)  |
-|                       | POST   | `/api/profile/guru/foto`                  | Upload foto profile (PNG, re-encode)                |
-| **Profile Siswa**     | GET    | `/api/profile/siswa`                      | Ambil data profile siswa (readonly)                 |
-| **Utility**           | GET    | `/api/version`                            | Cek versi APK (untuk mekanisme update)              |
+```text
+dashboard.view
+```
 
-**Catatan:** Semua endpoint di atas sudah tercantum di `Routes Final` dan dilindungi oleh filter `auth:api` (JWT).
+## Presensi Siswa
 
-* * *
+```text
+GET  /api/presensi/siswa
+GET  /api/presensi/siswa/input/(:segment)
+POST /api/presensi/siswa/save
+GET  /api/presensi/siswa/revisi/(:segment)
+POST /api/presensi/siswa/revisi/save
+GET  /api/presensi/siswa/rekap
+GET  /api/presensi/siswa/ews
+```
 
-## 6. Prasyarat Teknis Wajib
+Permission sesuai route:
 
-- **HTTPS/SSL di Hosting Produksi:** Geolocation API (untuk geofencing) tidak berfungsi di halaman non-HTTPS pada WebView modern.
-- **Environment Build:** Untuk membangun APK, dibutuhkan **Android Studio** + Java SDK terpasang di laptop developer (environment terpisah dari XAMPP).
-- **Konfigurasi Cordova:**
-  
-  - WebView dikonfigurasi **terkunci** (tanpa address bar, tanpa external navigation).
-  - Izinkan akses ke domain server (whitelist).
-  - Plugin yang diperlukan: `cordova-plugin-geolocation`, `cordova-plugin-file`, `cordova-plugin-file-transfer`.
+```text
+presensi_siswa.input
+presensi_siswa.revisi
+presensi_siswa.view
+ews_radar.view
+```
 
-* * *
+## Presensi Mengajar
 
-## 7. Distribusi &amp; Update APK
+```text
+GET  /api/presensi/mengajar
+GET  /api/presensi/mengajar/input/(:segment)
+POST /api/presensi/mengajar/save
+GET  /api/presensi/mengajar/laporan
+```
 
-- **Fase Testing (Development):** Install manual di beberapa device (sideload APK langsung, mode developer testing).
-- **Fase Final (Rilis Resmi):** Publikasi melalui **Google Play Store** (memerlukan akun developer Google dan proses review).
-- **Mekanisme Update:**
-  
-  1. APK melakukan pengecekan ke endpoint `/api/version` secara berkala (atau saat dibuka).
-  2. Jika versi di server **lebih baru** dari versi APK, tampilkan notifikasi "Ada update tersedia".
-  3. User diarahkan ke **Google Play Store** untuk melakukan update.
+## Laporan
 
-**Catatan:** Tidak ada mekanisme update otomatis dalam APK (forced update). Semua update melalui Play Store.
+```text
+GET /api/laporan/presensi/matrix
+GET /api/laporan/jurnal
+```
 
-* * *
+## BK
 
-## 8. Push Notification &amp; Mode Offline — LOCKED
+```text
+GET    /api/bk/kasus
+GET    /api/bk/kasus/top
+POST   /api/bk/kasus/create
+PUT    /api/bk/kasus/update/(:segment)
+DELETE /api/bk/kasus/delete/(:segment)
 
-### 8.1 Push Notification
+GET  /api/bk/prestasi
+POST /api/bk/prestasi/create
+```
 
-- TIDAK ADA push notification.
-- Pengguna membuka aplikasi sendiri saat membutuhkan (cek jadwal, input presensi).
+## Kartu Pelajar
 
-### 8.2 Mode Offline
+```text
+GET /api/kartu/preview/(:segment)
+GET /api/kartu/download/(:segment)
+```
 
-- ONLINE-ONLY — tidak ada penyimpanan lokal/queue sync untuk input presensi saat offline.
-- Jika tidak ada koneksi internet, input akan gagal dengan pesan error jelas.
+## Profile
 
-* * *
+```text
+GET  /api/profile/guru
+PUT  /api/profile/guru
+POST /api/profile/guru/foto
+GET  /api/profile/siswa
+```
 
-## 9. Checklist Selesai Tahap 16
+# 7. Gap API Baseline
 
-- \[ ] Tahap 1–15 (web) sudah selesai &amp; stabil.
-- \[ ] Seluruh endpoint API JSON untuk modul APK telah dibangun dan teruji dengan Postman.
-- \[ ] JWT auth + tabel `api_tokens` berfungsi, single-session ter-enforce via `auth_version`.
-- \[ ] Endpoint `/api/auth/refresh` berfungsi untuk refresh token otomatis.
-- \[ ] SSL aktif di hosting produksi, geofencing teruji jalan dari HTTPS.
-- \[ ] Project Cordova diinisialisasi, WebView dikonfigurasi terkunci (no address bar, no external navigation).
-- \[ ] APK berhasil di-build dan diuji sideload di beberapa device Android nyata (fase testing).
-- \[ ] Mekanisme cek-versi (`/api/version`) + banner "Ada update tersedia" berfungsi.
-- \[ ] Publikasi ke Google Play Store (fase final/rilis).
+## BLOCKER-MOBILE-API-01 — Version
 
-* * *
+Route:
 
-## 10. Catatan Penting untuk Developer
+```text
+GET /api/version → Api::version
+```
 
-- **Dual-Output sudah siap:** Controller di sisi server sudah mendukung `?format=json` dan endpoint API dengan prefix `/api`.
-- **JWT Lifecycle (B4):** Access token 1 jam, refresh token 30 hari. Jika access token expired, APK wajib melakukan refresh otomatis tanpa meminta user login ulang.
-- **Single Active Session (B5):** Pastikan di setiap request API, server mengecek `auth_version` di token vs di database. Jika tidak match, tolak request dengan status 401 dan pesan "Session expired, please login again".
-- **Geofencing:** Untuk fitur presensi, APK wajib meminta izin lokasi dan mengirimkan koordinat device ke server. Server akan memvalidasi menggunakan Haversine.
-- **File Download:** Download PDF Kartu Pelajar di APK menggunakan `cordova-plugin-file` untuk menyimpan file ke storage device.
-- **NIK Masking:** Di verifikasi publik (jika diakses dari APK), NIK tetap dimasking (format: 351012xxxxxx1234).
-- **Refresh Token Security:** Refresh token disimpan di database dalam bentuk hash (SHA-256) untuk keamanan tambahan.
-- **Error Handling:** Jika API response 401 (unauthorized), APK wajib redirect ke halaman login (token expired/invalid).
+terdaftar di `Routes.php`, tetapi file:
 
-* * *
+```text
+app/Controllers/Api.php
+```
 
-© 2026 SisisFour · MTsN 4 Jombang · Mobile App Final
+tidak ditemukan pada baseline repo.
+
+Endpoint version belum boleh dianggap runtime-ready sampai Controller tersebut tersedia atau route disesuaikan.
+
+## BLOCKER-MOBILE-PROFILE-01 — Profile
+
+Route API Profile terdaftar, tetapi:
+
+```text
+app/Controllers/ProfileGuru.php
+app/Controllers/ProfileSiswa.php
+```
+
+tidak ditemukan.
+
+Fitur Profile mobile belum runtime-ready.
+
+# 8. JSON Contract
+
+Endpoint API mobile harus menghasilkan JSON konsisten.
+
+Success minimum:
+
+```json
+{
+  "success": true,
+  "message": "Berhasil.",
+  "data": {}
+}
+```
+
+Error minimum:
+
+```json
+{
+  "success": false,
+  "message": "..."
+}
+```
+
+Untuk endpoint Controller yang juga melayani Web, request API tidak boleh menghasilkan halaman HTML sebagai response normal.
+
+# 9. Maintenance
+
+Saat Maintenance ON:
+
+- effective Admin dapat tetap akses;
+- user mobile non-Admin mendapat HTTP 503 JSON;
+- login non-Admin diblokir;
+- API response memakai code `MAINTENANCE`.
+
+Client harus menampilkan pesan maintenance dan tidak melakukan retry tanpa batas.
+
+# 10. Geolocation
+
+Presensi mobile yang memerlukan geofence harus:
+
+1. meminta izin lokasi perangkat;
+2. membaca latitude/longitude terkini;
+3. mengirim koordinat ke server;
+4. server menghitung validitas radius.
+
+Client tidak boleh menentukan sendiri hasil `inside/outside`.
+
+Pesan login Web:
+
+```text
+Aktifkan lokasi di perangkat saat menggunakan aplikasi
+```
+
+juga relevan sebagai edukasi user mobile/Web.
+
+# 11. HTTPS
+
+Produksi wajib HTTPS.
+
+Tujuan:
+
+- melindungi token;
+- mendukung geolocation;
+- mencegah mixed content;
+- menjaga request API.
+
+# 12. Online Only
+
+Tidak ada queue offline untuk:
+
+```text
+Presensi
+Jurnal
+Kasus
+Prestasi
+```
+
+Jika jaringan gagal, client harus memberi error jelas dan tidak mengklaim data tersimpan.
+
+# 13. Kartu Pelajar
+
+APK dapat:
+
+```text
+preview kartu
+download PDF kartu
+```
+
+sesuai scope actor.
+
+QR/public verification tetap mengarah pada endpoint public Web:
+
+```text
+/kartu/verify/{kode_verifikasi}
+```
+
+# 14. Profile Mobile
+
+Setelah blocker Profile selesai:
+
+Guru:
+
+```text
+view diri
+edit field yang diizinkan
+upload foto
+NIP readonly
+```
+
+Siswa:
+
+```text
+view diri
+readonly
+```
+
+# 15. Security Client
+
+Dilarang menyimpan atau menampilkan:
+
+- password;
+- password hash;
+- refresh token di log console;
+- access token di UI;
+- cookie Web;
+- data role/scope buatan client.
+
+Token storage harus memakai storage yang sesuai untuk aplikasi Android, bukan hardcoded source.
+
+# 16. Cordova Configuration
+
+Project Cordova ketika dibuat minimal mempunyai:
+
+```text
+config.xml
+www/
+platforms/android/
+plugins/
+```
+
+Whitelist/network access hanya untuk domain API resmi.
+
+External navigation tidak boleh dibuka bebas.
+
+# 17. Plugin/Capability Minimum
+
+Capability yang dibutuhkan:
+
+```text
+Geolocation
+File/Download
+Network status
+Browser/external link terkontrol bila diperlukan
+```
+
+Pemilihan plugin Cordova harus mengikuti versi Cordova/Android target pada saat build, bukan dikunci pada package yang sudah obsolete.
+
+# 18. Distribusi
+
+Fase pengujian:
+
+```text
+APK sideload pada device Android nyata
+```
+
+Fase produksi:
+
+```text
+Google Play / kanal distribusi resmi yang diputuskan sekolah
+```
+
+# 19. Mekanisme Versi
+
+Setelah `Api::version` tersedia, client dapat membandingkan:
+
+```text
+versi aplikasi lokal
+vs
+versi server
+```
+
+Jika update tersedia, user diarahkan ke kanal update resmi.
+
+Tidak ada silent APK update dari server aplikasi.
+
+# 20. Checklist Tahap 16
+
+- [ ] Testing & Polish Web selesai.
+- [ ] `Api::version` tersedia dan diuji.
+- [ ] Profile API sinkron atau dikeluarkan dari scope mobile.
+- [ ] Auth JWT login/me/refresh/logout lulus.
+- [ ] auth_version invalidation lulus.
+- [ ] seluruh API mobile mengembalikan JSON.
+- [ ] RBAC mobile seluruh role lulus.
+- [ ] geolocation Android nyata lulus.
+- [ ] Maintenance JSON lulus.
+- [ ] project Cordova dibuat.
+- [ ] responsive mobile UI selesai.
+- [ ] token storage aman.
+- [ ] build APK berhasil.
+- [ ] sideload test beberapa device.
+- [ ] production HTTPS.
+- [ ] distribusi/update diputuskan.
+
+# 21. Status Baseline
+
+```text
+Server API core      → tersedia
+JWT infrastructure   → tersedia
+Cordova client       → belum ada di repo
+/api/version         → route ada, Controller Api tidak ditemukan
+Profile API          → route ada, Controller Profile tidak ditemukan
+```
+
+Tahap Mobile belum boleh dinyatakan FINAL sebelum blocker di atas selesai.

@@ -1,22 +1,23 @@
-# 🔐 Authentication, RBAC & Menu — SisisFour
+# Authentication, RBAC & Menu — SisisFour
 
-**Versi Acuan: v0.5**  
-**Tanggal:** 08 September 2026  
-**Status:** FINAL RBAC + Presensi + Dashboard
+**Versi Acuan Utama:** v0.5 FINAL BASELINE  
+**Tanggal Acuan:** 08 September 2026  
+**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
+**Baseline Database:** `sisfour_dev_v2 (15).sql`
 
-Dokumen ini adalah sumber aturan Authentication, Authorization, role, permission, multi-scope, menu, contextual Wali Kelas, dan route gate SisisFour.
+Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
 
 ---
 
-# 1. Prinsip Authentication
+# 1. Web Authentication
 
-Web menggunakan session database. Mobile menggunakan JWT pada modul API/Mobile.
+Session Web disimpan di database.
 
-Session web minimum:
+Session minimum:
 
 ```text
 user_id
-role              = primary role, boleh NULL untuk Pegawai tanpa role operasional
+role
 username
 id_guru
 id_pegawai
@@ -25,13 +26,40 @@ auth_version
 logged_in
 ```
 
-Authorization **tidak boleh** hanya memakai `session('role')`.
+`session.role` hanya primary role dan boleh NULL.
 
----
+# 2. Login
 
-# 2. Role Resmi
+Syarat:
 
-Role database hanya:
+- username tidak kosong;
+- password tidak kosong;
+- user aktif;
+- password valid.
+
+Setiap login berhasil:
+
+- mencatat login attempt berhasil;
+- menaikkan `auth_version`;
+- meregenerasi session;
+- menyimpan session actor;
+- mencatat event LOGIN.
+
+Lima kegagalan login berturut-turut menyebabkan lock 5 menit.
+
+# 3. API Authentication
+
+```text
+POST /api/auth/login
+POST /api/auth/logout
+GET  /api/auth/me
+POST /api/auth/refresh
+GET  /api/version
+```
+
+Token disimpan di `api_tokens`. Logout merevoke access token.
+
+# 4. Role
 
 ```text
 admin
@@ -42,298 +70,79 @@ guru
 siswa
 ```
 
-`wali_kelas` **bukan role**.
+`wali_kelas` bukan role.
 
-Dilarang membuat:
-
-```text
-users.role = wali_kelas
-user_roles.role = wali_kelas
-```
-
----
-
-# 3. Multi-Role
-
-Effective roles:
+# 5. Multi-Role
 
 ```text
+effective_roles =
 users.role
 UNION
 user_roles.role
 ```
 
-Sumber canonical:
-
-```php
-AuthService::getUserRoles($userId)
-```
-
 Permission user adalah union seluruh effective role.
 
-Contoh:
+# 6. Scope
 
 ```text
-Primary : guru
-Secondary: operator
-
-Untuk aksi yang Operator mempunyai SEMUA:
-→ capability Operator menang
-→ tidak terkena pembatas Guru seperti geofence/time-window pada aksi tersebut.
+SEMUA
+KELAS_DIAMPU
+KELAS_TERJADWAL
+DIRI_SENDIRI
+TIDAK_ADA
 ```
 
----
+Scalar priority:
 
-## 3.1 Contoh Guru + Pimpinan
+1. SEMUA;
+2. KELAS_DIAMPU bila benar-benar Wali aktif;
+3. KELAS_TERJADWAL;
+4. DIRI_SENDIRI;
+5. TIDAK_ADA.
 
-Kombinasi `guru + pimpinan` valid melalui union `users.role + user_roles.role`. Permission adalah union keduanya. Dashboard priority memilih `Pimpinan`, tetapi identitas `users.id_guru` dan capability Guru yang memang diberikan tetap tersedia. Pimpinan tidak memperoleh mutation yang role Pimpinan sendiri tidak punya; mutation Guru hanya berlaku bila permission/scope Guru valid.
+Service Presensi dapat membaca seluruh scope mentah untuk dual-context.
 
-# 4. Prioritas Kewenangan Bisnis
+# 7. Wali
 
-Jika beberapa role/konteks valid bertemu:
-
-```text
-Admin
->
-Operator
->
-Pimpinan
->
-Wali Kelas
->
-Guru biasa
->
-BK
->
-Siswa
-```
-
-Urutan ini bukan pengganti permission table.
-
-Pimpinan tetap readonly pada modul yang hanya memberinya permission view walaupun berada di atas Guru/Wali pada hierarchy.
-
----
-
-# 5. Wali Kelas
-
-Wali adalah konteks dinamis bagi user Guru.
-
-Validasi:
+Wali aktif di-resolve dari:
 
 ```text
 users.id_guru
 → mapping_wali_kelas
-→ id_tahun = tahun aktif
+→ tahun aktif
 → deleted_at IS NULL
 ```
 
-Jika mapping dinonaktifkan, seluruh hak `KELAS_DIAMPU` hilang segera.
+Saat mapping nonaktif, scope `KELAS_DIAMPU` hilang.
 
-Hak histori Presensi mengikuti **Wali aktif saat ini**, bukan actor input awal.
+# 8. Karakter Role
 
-Wali baru dapat merevisi histori Presensi kelas pada tahun aktif bila permission revisi valid. Wali lama kehilangan akses setelah mapping nonaktif.
+| Role | Karakter |
+|---|---|
+| Admin | seluruh permission baseline |
+| Operator | administrasi operasional + laporan + BK + kartu + Log |
+| Pimpinan | supervisi readonly, Jurnal diri bila valid |
+| BK | EWS + BK + Prestasi |
+| Guru | Jadwal/Jurnal/Presensi + contextual Wali |
+| Siswa | data diri |
 
----
+# 9. Permission
 
-# 6. Multi-Scope role_permissions
+Database memiliki 43 permission. Matrix lengkap ada di `02_DATABASE`.
 
-Satu role dapat mempunyai lebih dari satu scope pada permission yang sama.
+# 10. PermissionFilter
 
-Unique canonical:
-
-```text
-UNIQUE(role, id_permission, scope)
-```
-
-Bukan:
-
-```text
-UNIQUE(role, id_permission)
-```
-
-Contoh wajib:
+Route protected memakai:
 
 ```text
-guru | presensi_siswa.input | KELAS_TERJADWAL
-guru | presensi_siswa.input | KELAS_DIAMPU
+auth
+permission:permission_key
 ```
 
-`AuthService::resolveScope()` digunakan sebagai scalar gate untuk route/menu dan harus:
+Beberapa route memakai OR permission.
 
-1. pilih `SEMUA` bila tersedia;
-2. pilih `KELAS_DIAMPU` hanya bila user benar-benar Wali aktif;
-3. bila bukan Wali tetapi ada `KELAS_TERJADWAL`, pilih `KELAS_TERJADWAL`;
-4. berikutnya `DIRI_SENDIRI`;
-5. selain itu `TIDAK_ADA`.
-
-Service Presensi yang membutuhkan dual-context harus membaca seluruh scope, bukan hanya scalar scope.
-
----
-
-# 7. Scope Canonical
-
-## 7.1 SEMUA
-
-Akses seluruh data modul sesuai permission.
-
-## 7.2 KELAS_DIAMPU
-
-Hanya kelas Wali aktif.
-
-Sumber:
-
-```text
-mapping_wali_kelas
-```
-
-## 7.3 KELAS_TERJADWAL
-
-Hanya kelas dari `jadwal_guru` aktif milik Guru. Service dapat mempersempit dengan hari, sesi, tanggal dan time-window.
-
-## 7.4 DIRI_SENDIRI
-
-Hanya identitas user sendiri (`id_guru` atau `id_siswa` sesuai modul).
-
-## 7.5 TIDAK_ADA
-
-Tidak ada akses. Service tidak boleh meneruskan query tanpa scope.
-
----
-
-# 8. Permission Canonical
-
-| ID | Permission | Scope didukung |
-|---:|---|---|
-| 1 | `dashboard.view` | Otomatis |
-| 2 | `presensi_siswa.input` | SEMUA,KELAS_DIAMPU,KELAS_TERJADWAL |
-| 3 | `presensi_siswa.revisi` | SEMUA,KELAS_DIAMPU |
-| 4 | `presensi_siswa.view` | SEMUA,KELAS_DIAMPU,KELAS_TERJADWAL,DIRI_SENDIRI |
-| 5 | `presensi_mengajar.input` | SEMUA,KELAS_TERJADWAL,DIRI_SENDIRI |
-| 6 | `presensi_mengajar.view` | SEMUA,DIRI_SENDIRI |
-| 7 | `master_guru.manage` | SEMUA |
-| 8 | `master_guru.view` | SEMUA |
-| 9 | `master_pegawai.manage` | SEMUA |
-| 10 | `master_pegawai.view` | SEMUA |
-| 11 | `master_siswa.view` | SEMUA,KELAS_DIAMPU,DIRI_SENDIRI |
-| 12 | `master_siswa.edit_biodata` | SEMUA,KELAS_DIAMPU |
-| 13 | `master_siswa.manage` | SEMUA |
-| 14 | `master_siswa.import_export` | SEMUA |
-| 15 | `master_kelas.manage` | SEMUA |
-| 16 | `master_tahun_ajaran.manage` | SEMUA |
-| 17 | `master_mapel.manage` | SEMUA |
-| 18 | `mapping_wali.manage` | SEMUA |
-| 19 | `mapping_wali.view` | DIRI_SENDIRI |
-| 20 | `mapping_wali.view_all` | SEMUA |
-| 21 | `jadwal_guru.manage` | SEMUA |
-| 22 | `jadwal_guru.view` | DIRI_SENDIRI |
-| 23 | `jadwal_guru.view_all` | SEMUA |
-| 24 | `laporan_matrix.view` | SEMUA,KELAS_DIAMPU |
-| 25 | `laporan_export.generate` | SEMUA,KELAS_DIAMPU |
-| 26 | `laporan_jurnal.view` | SEMUA,DIRI_SENDIRI |
-| 27 | `laporan_jurnal.export` | SEMUA,DIRI_SENDIRI |
-| 28 | `ews_radar.view` | SEMUA,KELAS_DIAMPU |
-| 29 | `bk_kasus.manage` | SEMUA |
-| 30 | `bk_kasus.view` | SEMUA,KELAS_DIAMPU,DIRI_SENDIRI |
-| 31 | `bk_pelanggaran_master.manage` | SEMUA |
-| 32 | `prestasi.manage` | SEMUA |
-| 33 | `prestasi.view` | SEMUA,KELAS_DIAMPU,DIRI_SENDIRI |
-| 34 | `kartu_pelajar.manage` | SEMUA,KELAS_DIAMPU |
-| 35 | `kartu_pelajar.view` | SEMUA,KELAS_DIAMPU,DIRI_SENDIRI |
-| 36 | `settings_user.manage` | SEMUA |
-| 37 | `settings_menu.manage` | SEMUA |
-| 38 | `settings_sistem.manage` | SEMUA |
-| 39 | `backup.manage` | SEMUA |
-| 40 | `log_activity.view` | SEMUA |
-| 41 | `profile_guru.view` | DIRI_SENDIRI |
-| 42 | `profile_guru.edit` | DIRI_SENDIRI |
-| 43 | `profile_siswa.view` | DIRI_SENDIRI |
-
----
-
-# 9. Hak Presensi per Context
-
-## Admin
-
-```text
-Presensi Siswa input/view/revisi = SEMUA
-Jurnal input/view/revisi = SEMUA
-Geofence/time-window tidak membatasi aksi administratif.
-```
-
-## Operator
-
-Sama seperti Admin untuk modul Presensi yang diberikan permission.
-
-## Pimpinan
-
-```text
-Presensi Siswa view = SEMUA readonly
-EWS/Matrix/Laporan = SEMUA readonly
-Jurnal view = SEMUA readonly
-Jurnal input = DIRI_SENDIRI hanya bila mempunyai identitas Guru + jadwal valid
-```
-
-Pimpinan tidak mendapat input/revisi Presensi Siswa.
-
-## BK
-
-```text
-EWS = SEMUA
-Presensi Siswa mutation = tidak
-```
-
-## Guru biasa
-
-```text
-presensi_siswa.input = KELAS_TERJADWAL
-presensi_mengajar.input/view = DIRI_SENDIRI
-```
-
-## Wali
-
-Tambahan contextual:
-
-```text
-presensi_siswa.input   = KELAS_DIAMPU
-presensi_siswa.view    = KELAS_DIAMPU
-presensi_siswa.revisi  = KELAS_DIAMPU
-laporan_matrix.view    = KELAS_DIAMPU
-laporan_export.generate= KELAS_DIAMPU
-ews_radar.view        = KELAS_DIAMPU
-master_siswa.view      = KELAS_DIAMPU
-master_siswa.edit_biodata = KELAS_DIAMPU
-bk_kasus.view          = KELAS_DIAMPU
-prestasi.view          = KELAS_DIAMPU
-kartu_pelajar.view     = KELAS_DIAMPU
-```
-
-## Siswa
-
-```text
-presensi_siswa.view = DIRI_SENDIRI
-bk_kasus.view       = DIRI_SENDIRI
-prestasi.view       = DIRI_SENDIRI
-kartu_pelajar.view  = DIRI_SENDIRI
-profile_siswa.view  = DIRI_SENDIRI
-```
-
-Siswa tidak mempunyai permission mutation untuk modul tersebut.
-
----
-
-# 10. Dual-Context Guru + Wali pada Presensi Siswa
-
-Untuk target kelas yang dia wali sekaligus dia ajar:
-
-1. bila Jadwal aktif target sesi ada dan waktu masih valid → `GURU_TERJADWAL`, time-window/geofence berlaku;
-2. bila waktu Jadwal telah selesai → boleh fallback `WALI` tanpa time-window/geofence;
-3. sebelum Jadwal mulai → tidak boleh memakai Wali untuk bypass kewajiban terjadwal;
-4. kelas lain yang hanya dia ajar → tidak mendapat fallback Wali;
-5. tanggal lampau → Wali aktif dapat memakai konteks Wali pada tahun aktif.
-
-Service Presensi adalah authoritative data-level authorization.
-
----
+PermissionFilter hanya gate route. Service tetap memvalidasi target.
 
 # 11. Menu
 
@@ -341,125 +150,81 @@ Menu berasal dari:
 
 ```text
 menus
-+
 role_menus
-+
 permission
-+
 contextual Wali
 ```
 
-Menu tidak boleh menjadi security boundary.
+Sidebar adalah renderer.
 
-`MenuService` wajib memfilter child menu berdasarkan permission route tujuan. Parent group kosong harus dipangkas.
+Menu bukan security boundary.
 
-Menu Presensi dipisahkan:
+# 12. Contextual Wali
 
-```text
-Presensi Siswa      → input, permission presensi_siswa.input
-Presensi Mengajar   → input Jurnal, permission presensi_mengajar.input
-Rekap Presensi      → readonly/view, permission presensi_siswa.view
-EWS Radar           → readonly/view, permission ews_radar.view
-```
+Menu yang hanya berguna untuk Wali dapat diberikan statis kepada role Guru tetapi hanya tampil/usable ketika scope Wali valid.
 
-Dengan pemisahan ini Pimpinan/BK/Siswa tidak diarahkan ke endpoint mutation hanya untuk melihat data.
+Contoh:
 
----
+- Data Siswa;
+- Matrix;
+- Export;
+- EWS;
+- Kasus readonly;
+- Prestasi;
+- Kartu.
 
-# 12. Menu Contextual Wali
+# 13. Operator dan Log Activity
 
-Role `guru` boleh diberi mapping menu statis untuk:
-
-```text
-Data Siswa
-Rekap Presensi
-EWS
-Matrix
-Export
-Catatan Kasus
-Prestasi
-Kartu Pelajar
-```
-
-Tetapi menu tersebut hanya muncul bila `AuthService::resolveScope()` menghasilkan akses valid. Guru biasa tanpa mapping Wali tidak boleh melihat menu contextual tersebut.
-
----
-
-# 13. Route Gate
-
-Route protected memakai:
+Baseline:
 
 ```text
-auth
-permission:<permission_key>
+Operator mempunyai log_activity.view = SEMUA
 ```
 
-PermissionFilter hanya route gate.
+tetapi tidak memiliki `role_menus` Log Activity. Direct URL tetap authorized. Keputusan sidebar diselesaikan pada Testing & Polish.
 
-Data-level authorization tetap wajib di Service.
+# 14. Login Branding
 
-Dilarang:
+GET login membaca:
 
 ```text
-if role == admin then bypass all
+nama_sekolah
+logo_sekolah
+icon_sekolah
 ```
 
-Gunakan permission/scope.
+Login menampilkan `SisFour Dev` dan logo upload Setting Sistem.
 
----
+# 15. Maintenance
 
-# 14. Dashboard Multi-Role
+Saat Maintenance ON:
 
-Dashboard tidak boleh menentukan konteks hanya dari `session('role')`.
+- login page tetap terbuka;
+- effective Admin dapat login;
+- non-Admin diblokir 503;
+- API mendapatkan JSON 503;
+- logout tetap dapat dipakai.
 
-Gunakan effective roles dengan priority:
+# 16. Security
 
-```text
-admin > operator > pimpinan > guru > bk > siswa
-```
+- browser tidak menentukan effective role;
+- browser tidak menentukan effective scope;
+- actor dari session/token;
+- target diverifikasi Service;
+- direct URL tetap diperiksa;
+- mutation Web CSRF protected;
+- credential tidak dicatat ke Log Activity.
 
-Jika effective dashboard role `guru`, status Wali dihitung dinamis. Dashboard Wali = Dashboard Guru + contextual widget.
-
-Setiap widget tambahan tetap tunduk pada permission sumber.
-
----
-
-# 15. Security
-
-- server tidak percaya role/scope/id_guru/id_siswa dari browser;
-- seluruh mutation CSRF protected;
-- user identity berasal dari session/token;
-- data target divalidasi ulang di Service;
-- query scoped di database;
-- menu tersembunyi bukan pengganti authorization;
-- user multi-role tidak boleh kehilangan permission dari role lain;
-- role NULL untuk Pegawai valid.
-
----
-
-# 16. Checkpoint Final
-
-Wajib diuji:
+# 17. Uji Role Minimum
 
 ```text
 Admin
 Operator
 Pimpinan
 BK
-Guru biasa
+Guru
 Guru + Wali
 Siswa
-Guru + Operator (multi-role)
-Guru + Pimpinan (multi-role)
+Guru + Operator
+Guru + Pimpinan
 ```
-
-Checklist:
-
-- effective roles benar;
-- ordinary Guru tetap lolos `KELAS_TERJADWAL` walau role Guru juga memiliki `KELAS_DIAMPU`;
-- Wali hanya memperoleh `KELAS_DIAMPU` saat mapping aktif;
-- Pimpinan tidak mendapat mutation Presensi Siswa;
-- Siswa hanya melihat data diri;
-- Siswa dapat melihat Catatan Kasus diri;
-- menu yang tampil mempunyai route/permission usable;
-- direct URL tetap ditolak bila scope tidak valid.

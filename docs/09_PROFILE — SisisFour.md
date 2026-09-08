@@ -1,590 +1,162 @@
-# 👤 Profile Guru & Profile Siswa — SisisFour
+# Profile Guru & Profile Siswa — SisisFour
 
-**Versi Acuan: v0.5**  
-**Tanggal:** 08 September 2026
+**Versi Acuan Utama:** v0.5 FINAL BASELINE  
+**Tanggal Acuan:** 08 September 2026  
+**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
+**Baseline Database:** `sisfour_dev_v2 (15).sql`
 
-Dokumen ini menetapkan Profile pribadi Guru dan Siswa, termasuk hak akses, field, update, foto, API, sinkronisasi dengan Master Data, dan perlindungan IDOR.
-
-Profile bukan pengganti Master Data.
+Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
 
 ---
 
-# BAGIAN A — PRINSIP
+# 1. Scope
 
-## 1. Scope
-
-Semua Profile:
+Profile selalu:
 
 ```text
 DIRI_SENDIRI
 ```
 
-Target data tidak boleh dipilih bebas dari URL.
+Profile bukan Master Data dan bukan User Management.
 
-Sumber identitas:
-
-```text
-Web → session
-API → JWT verified
-```
-
----
-
-## 2. Profile vs Master
-
-### Profile Guru
-
-Guru melihat/mengubah data diri yang diizinkan.
-
-### Master Guru
-
-Admin/Operator mengelola data administrasi seluruh Guru.
-
-### Profile Siswa
-
-Siswa melihat data diri readonly.
-
-### Master Siswa
-
-Admin/Operator mengelola seluruh siswa dan Wali mengelola biodata kelas Wali secara terbatas.
-
----
-
-# BAGIAN B — PROFILE GURU
-
-## 3. Permission
+# 2. Permission Database
 
 ```text
 profile_guru.view
 profile_guru.edit
-```
-
-Scope:
-
-```text
-DIRI_SENDIRI
-```
-
-Actor yang dapat memakai Profile Guru bila mempunyai `id_guru` + permission:
-
-- Guru;
-- Wali;
-- BK;
-- Pimpinan;
-- Operator/Admin bila account mereka memang mempunyai `id_guru` dan permission Profile.
-
-Admin bootstrap tanpa `id_guru` tidak mempunyai target Profile Guru pribadi.
-
----
-
-## 4. Field
-
-| Field | Profile Guru |
-|---|---|
-| NIP | Readonly |
-| Nama | Editable |
-| Jenis Kelamin | Editable |
-| Tempat Lahir | Editable |
-| Tanggal Lahir | Editable |
-| Alamat | Editable |
-| No Telepon | Editable |
-| Email | Editable |
-| Status Kepegawaian | Editable bila kebijakan mengizinkan |
-| Foto | Editable |
-
----
-
-## 5. NIP
-
-NIP tidak boleh diubah dari Profile.
-
-Alasan:
-- identifier login;
-- uniqueness lintas Guru/Pegawai;
-- relasi user;
-- dampak audit.
-
-Perubahan administratif NIP hanya lewat Master Guru oleh Admin/Operator.
-
----
-
-## 6. Nama dan Data Identitas
-
-Perubahan Profile Guru langsung memperbarui tabel:
-
-```text
-guru
-```
-
-Tidak membuat tabel profile terpisah.
-
-Dampak historis:
-
-- snapshot nama Guru di Jurnal/Presensi lama tidak berubah;
-- laporan historis dapat tetap menggunakan snapshot.
-
----
-
-## 7. Status Kepegawaian
-
-Walaupun field dapat ditampilkan editable, implementasi final harus memutuskan apakah Guru boleh mengubah status administratifnya sendiri.
-
-Kebijakan yang direkomendasikan untuk v0.5:
-
-```text
-Status Kepegawaian = readonly di Profile
-```
-
-karena bersifat administrasi.
-
-Jika ingin editable, harus dinyatakan eksplisit sebelum coding.
-
----
-
-# BAGIAN C — FOTO GURU
-
-## 8. Ketentuan
-
-```text
-PNG
-max 2 MB
-crop 3:4
-re-encode
-nama random
-metadata dibuang
-```
-
-Lokasi:
-
-```text
-uploads/foto_guru/
-```
-
----
-
-## 9. Upload
-
-Server:
-1. validasi permission;
-2. resolve `id_guru` dari session/JWT;
-3. validasi MIME/image;
-4. decode;
-5. crop/re-encode;
-6. simpan;
-7. update Guru;
-8. hapus file lama bila aman;
-9. log perubahan.
-
-Jangan menerima `id_guru` bebas sebagai target.
-
----
-
-# BAGIAN D — PROFILE SISWA
-
-## 10. Permission
-
-```text
 profile_siswa.view
 ```
 
-Scope:
+Role dengan Profile Guru self permission pada baseline mencakup Admin, Operator, Pimpinan, BK, dan Guru sesuai role_permissions. Target hanya valid jika account mempunyai `id_guru`.
 
-```text
-DIRI_SENDIRI
-```
+Siswa mempunyai `profile_siswa.view = DIRI_SENDIRI`.
 
----
-
-## 11. Field Siswa
-
-Readonly:
-
-| Field | Status |
-|---|---|
-| NIK | Readonly |
-| NISN | Readonly |
-| Nama | Readonly |
-| Jenis Kelamin | Readonly |
-| Tempat Lahir | Readonly |
-| Tanggal Lahir | Readonly |
-| Alamat | Readonly |
-| No Telepon | Readonly |
-| Kelas | Readonly |
-| Foto | Readonly |
-| Status | Readonly |
-
-Siswa tidak mempunyai endpoint update Profile.
-
----
-
-## 12. Kelas Siswa
-
-Kelas Profile tidak diambil dari field siswa.
-
-Gunakan:
-
-```text
-anggota_kelas
-+
-tahun_ajaran aktif
-+
-kelas
-```
-
-Jika tidak ada membership aktif:
-
-```text
-kelas = belum ditempatkan / tidak tersedia
-```
-
-Untuk siswa Lulus/Pindah/Keluar, UI dapat menampilkan kelas terakhir dari `riwayat_siswa` bila diperlukan.
-
----
-
-## 13. Data yang Tidak Perlu Ditampilkan
-
-Profile Siswa tidak harus menampilkan semua data keluarga.
-
-Default tidak menampilkan:
-
-- password;
-- account role;
-- auth_version;
-- data BK;
-- token;
-- log activity.
-
-Data orang tua/wali dapat ditampilkan hanya jika kebijakan UI membutuhkannya.
-
----
-
-# BAGIAN E — KOREKSI BIODATA SISWA
-
-## 14. Jalur Perubahan
-
-Siswa menemukan kesalahan:
-
-```text
-lapor ke Wali/Admin/Operator
-```
-
-Admin/Operator:
-- dapat memperbaiki Master Siswa.
-
-Wali:
-- dapat memperbaiki biodata siswa kelas Wali;
-- tidak dapat mengubah NISN;
-- tidak dapat melakukan mutasi/kelulusan/kenaikan.
-
-Siswa:
-- tidak update langsung.
-
----
-
-# BAGIAN F — WEB ROUTE
-
-## 15. Profile Guru
-
-Contoh kontrak:
+# 3. Route Web Terdaftar
 
 ```text
 GET  /profile/guru
-PUT  /profile/guru
-POST /profile/guru/foto
+GET  /profile/guru/json
+PUT  /profile/guru/update
+POST /profile/guru/upload-foto
+
+GET  /profile/siswa
+GET  /profile/siswa/json
 ```
 
-Target Guru tidak memakai `{id}` untuk workflow diri sendiri.
-
----
-
-## 16. Profile Siswa
-
-```text
-GET /profile/siswa
-```
-
-Tidak ada:
-
-```text
-PUT /profile/siswa
-POST /profile/siswa/foto
-```
-
-untuk role Siswa.
-
----
-
-# BAGIAN G — API MOBILE
-
-## 17. Guru
+# 4. Route API Terdaftar
 
 ```text
 GET  /api/profile/guru
 PUT  /api/profile/guru
 POST /api/profile/guru/foto
+GET  /api/profile/siswa
 ```
 
-JWT menentukan actor.
+# 5. Status Runtime Baseline
 
----
-
-## 18. Siswa
+Pada repo baseline `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`, route tersebut menunjuk:
 
 ```text
-GET /api/profile/siswa
+ProfileGuru
+ProfileSiswa
+```
+
+Namun file berikut tidak ditemukan di `app/Controllers/`:
+
+```text
+ProfileGuru.php
+ProfileSiswa.php
+```
+
+Pencarian class yang sama juga tidak menemukan implementasi.
+
+Dengan demikian **Profile belum runtime-ready** pada baseline ini.
+
+# 6. Kontrak Profile Guru
+
+Target:
+
+```text
+users.id_guru
+```
+
+NIP readonly.
+
+Field pribadi yang boleh diubah:
+
+```text
+nama
+jenis_kelamin
+tempat_lahir
+tanggal_lahir
+alamat
+no_telepon
+email
+foto
+```
+
+Status kepegawaian adalah data administratif dan tidak diubah sendiri melalui Profile.
+
+Foto:
+
+```text
+uploads/foto_guru/
+```
+
+# 7. Kontrak Profile Siswa
+
+Target:
+
+```text
+users.id_siswa
 ```
 
 Readonly.
 
----
+Kelas berasal dari membership aktif dan dapat memakai riwayat untuk histori.
 
-## 19. API Rule
+Siswa tidak mempunyai endpoint mutation Profile.
 
-Tidak menerima:
+# 8. IDOR
 
-```text
-?id_guru=
-?id_siswa=
-```
-
-untuk mengganti target.
-
-Jika API administratif kelak membutuhkan target ID, gunakan endpoint berbeda dengan permission admin yang eksplisit.
-
----
-
-# BAGIAN H — SECURITY
-
-## 20. IDOR
-
-Dilarang:
+Dilarang memilih target melalui parameter bebas:
 
 ```text
-/profile/siswa?id_siswa=123
+?id_guru=...
+?id_siswa=...
 ```
 
-lalu server menampilkan siswa 123.
+Actor Web dari session, actor API dari token.
 
-Web:
+# 9. Account Setting
 
-```text
-target = session('id_siswa')
-```
+Profile tidak mengubah:
 
-Guru:
+- username;
+- role;
+- secondary role;
+- password;
+- status account;
+- auth_version secara administratif.
 
-```text
-target = session('id_guru')
-```
+# 10. Release Blocker
 
-API:
+Sebelum rilis wajib memilih dan menyelesaikan salah satu:
 
-```text
-target = JWT identity
-```
+1. implementasikan Controller/Service/View/API Profile sesuai route dan permission yang sudah ada; atau
+2. keluarkan Profile dari scope dan hapus route/menu/permission secara konsisten.
 
----
+Route tidak boleh menunjuk Controller yang tidak ada.
 
-## 21. CSRF
+# 11. Checkpoint Setelah Sinkron
 
-Mutation Web Profile Guru:
-
-```text
-PUT
-POST foto
-```
-
-wajib CSRF melalui wrapper Fetch global.
-
-API JWT tidak memakai CSRF Web.
-
----
-
-## 22. XSS
-
-Output:
-
-```php
-esc(...)
-```
-
-untuk field teks.
-
-Alamat, nama, email, dll tidak boleh dirender raw.
-
----
-
-## 23. Upload Security
-
-Foto harus:
-- benar-benar image;
-- tidak hanya berdasarkan extension;
-- re-encode;
-- random filename;
-- tidak executable;
-- size limit.
-
----
-
-# BAGIAN I — USER ACCOUNT
-
-## 24. Profile Bukan Account Settings
-
-Profile tidak digunakan untuk:
-- mengganti role;
-- menambah multi-role;
-- reset password;
-- mengganti username;
-- mengaktifkan/nonaktifkan account.
-
-Itu domain Settings/User Management.
-
----
-
-## 25. Sinkron Username
-
-Karena NIP readonly di Profile Guru, update Profile tidak menyentuh username.
-
-Karena Profile Siswa readonly, Profile tidak menyentuh username NISN.
-
-Perubahan identifier dilakukan Master Data dengan sinkronisasi account.
-
----
-
-# BAGIAN J — LOG ACTIVITY
-
-## 26. Event
-
-Profile Guru:
-
-```text
-UPDATE PROFILE
-UPDATE FOTO PROFILE
-```
-
-dapat dicatat ke:
-
-```text
-log_activity
-```
-
-Keterangan tidak boleh menyimpan password/token.
-
-Profile Siswa readonly tidak menghasilkan mutation log.
-
----
-
-# BAGIAN K — SERVICE
-
-## 27. Service yang Disarankan
-
-```text
-ProfileGuruService
-ProfileSiswaService
-UploadService
-```
-
-### `ProfileGuruService`
-- resolve actor;
-- get diri;
-- update allowed fields;
-- reject NIP;
-- log.
-
-### `ProfileSiswaService`
-- resolve actor;
-- get diri;
-- resolve kelas aktif/terakhir.
-
-### `UploadService`
-- validasi;
-- crop;
-- re-encode;
-- filename;
-- cleanup.
-
----
-
-# BAGIAN L — RESPONSE
-
-## 28. HTML
-
-Halaman Web menggunakan layout utama.
-
-## 29. JSON
-
-Endpoint API:
-
-```json
-{
-  "status": "success",
-  "message": "Profile berhasil dimuat.",
-  "data": {}
-}
-```
-
-Tidak boleh mengirim field account sensitif.
-
----
-
-# BAGIAN M — ERROR RULE
-
-## 30. Server Menolak Bila
-
-- user tidak login;
-- permission Profile tidak ada;
-- `id_guru`/`id_siswa` identity tidak ada;
-- request mencoba mengubah NIP;
-- request Siswa mencoba update;
-- file foto invalid;
-- target ID dari request berbeda dengan identity actor;
-- user account nonaktif.
-
----
-
-# BAGIAN N — CHECKPOINT
-
-## 31. Profile Guru
-
-- view diri;
-- update field allowed;
+- Guru view/edit diri;
 - NIP readonly;
-- status administratif sesuai kebijakan;
 - foto;
-- CSRF;
+- Siswa readonly diri;
+- kelas resolve;
 - IDOR;
-- snapshot histori tidak berubah;
-- log.
-
-## 32. Profile Siswa
-
-- view diri;
-- kelas dari anggota kelas;
-- siswa lain tidak dapat diakses;
-- seluruh field readonly;
-- tidak ada endpoint update;
-- tidak bocor data BK/account.
-
-## 33. API
-
-- JWT;
-- diri sendiri;
-- token invalid → 401;
-- IDOR ditolak;
-- response minimum.
-
----
-
-# 34. Kriteria Selesai
-
-Profile dinyatakan selesai bila:
-
-1. scope selalu DIRI_SENDIRI;
-2. Profile Guru tidak dapat mengubah NIP;
-3. Profile Siswa readonly;
-4. kelas siswa berasal dari Master Data final;
-5. tidak ada IDOR;
-6. upload Guru aman;
-7. account settings terpisah;
-8. API dan Web konsisten;
-9. mutation terlindungi CSRF/JWT sesuai channel.
+- CSRF Web;
+- JWT API;
+- role tanpa identity ditangani;
+- tidak ada 404/500.
