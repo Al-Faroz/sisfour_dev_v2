@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\SettingSistemModel;
-use CodeIgniter\Files\File;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use CodeIgniter\I18n\Time;
 use Throwable;
@@ -71,7 +70,10 @@ class SettingsSistemService
         $this->clearCache();
         $this->log($userId, 'UPDATE', 'Memperbarui Setting Sistem.');
 
-        return ['success' => true, 'message' => 'Setting Sistem berhasil diperbarui.'];
+        return [
+            'success' => true,
+            'message' => 'Setting Sistem berhasil diperbarui.',
+        ];
     }
 
     public function maintenance(int $userId, array $input): array
@@ -122,32 +124,110 @@ class SettingsSistemService
             return $validated;
         }
 
+        $gd = $this->validateGdSupport();
+
+        if (!$gd['success']) {
+            return $gd;
+        }
+
         $dir = FCPATH . 'uploads/settings/branding';
 
-        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            return $this->fail('UPLOAD_FAILED', 'Folder branding tidak dapat dibuat.');
+        if (!$this->ensureDirectory($dir)) {
+            $this->logTechnicalError(
+                'branding',
+                'Folder branding tidak dapat dibuat/ditulis.',
+                [
+                    'target_dir' => $dir,
+                    'asset_type' => $assetType,
+                ]
+            );
+
+            return $this->fail('UPLOAD_FAILED', 'Folder branding tidak dapat digunakan.');
         }
 
         $filename = $assetType . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.png';
         $path = $dir . DIRECTORY_SEPARATOR . $filename;
 
         try {
-            $image = imagecreatefromstring(file_get_contents($file->getTempName()));
+            $binary = $this->readUploadedImage($file);
+
+            if ($binary === null) {
+                throw new \RuntimeException('File temporary upload gagal dibaca.');
+            }
+
+            $image = @imagecreatefromstring($binary);
 
             if ($image === false) {
-                return $this->fail('INVALID_IMAGE', 'File gambar tidak valid.');
+                throw new \RuntimeException('GD gagal mendekode isi gambar.');
             }
 
             imagealphablending($image, false);
             imagesavealpha($image, true);
-            imagepng($image, $path, 9);
+
+            $written = @imagepng($image, $path, 9);
             imagedestroy($image);
+
+            if ($written !== true || !is_file($path)) {
+                throw new \RuntimeException('GD gagal menulis file PNG hasil re-encode.');
+            }
+
+            if (!is_readable($path) || filesize($path) <= 0) {
+                @unlink($path);
+                throw new \RuntimeException('File PNG hasil re-encode kosong/tidak dapat dibaca.');
+            }
         } catch (Throwable $e) {
-            return $this->fail('UPLOAD_FAILED', 'Branding gagal diproses.');
+            if (isset($image) && is_object($image)) {
+                @imagedestroy($image);
+            }
+
+            @unlink($path);
+
+            $this->logTechnicalError(
+                'branding',
+                $e->getMessage(),
+                [
+                    'asset_type' => $assetType,
+                    'target_path' => $path,
+                    'upload_name' => $file?->getClientName(),
+                    'upload_size' => $file?->getSize(),
+                    'upload_mime' => $file?->getMimeType(),
+                    'temp_exists' => $file ? is_file($file->getTempName()) : false,
+                    'gd_loaded' => extension_loaded('gd'),
+                    'imagecreatefromstring' => function_exists('imagecreatefromstring'),
+                    'imagepng' => function_exists('imagepng'),
+                ],
+                $e
+            );
+
+            return $this->fail(
+                'UPLOAD_FAILED',
+                'Branding gagal diproses. Detail teknis telah dicatat pada log aplikasi.'
+            );
         }
 
         $relative = 'uploads/settings/branding/' . $filename;
-        $this->model->set($map[$assetType], $relative, 'string', $userId);
+
+        try {
+            $this->model->set($map[$assetType], $relative, 'string', $userId);
+        } catch (Throwable $e) {
+            @unlink($path);
+
+            $this->logTechnicalError(
+                'branding-setting',
+                $e->getMessage(),
+                [
+                    'setting_key' => $map[$assetType],
+                    'relative_path' => $relative,
+                ],
+                $e
+            );
+
+            return $this->fail(
+                'SETTING_FAILED',
+                'File berhasil diproses tetapi setting branding gagal disimpan.'
+            );
+        }
+
         $this->clearCache();
         $this->log($userId, 'UPLOAD', "Upload {$assetType} sekolah.");
 
@@ -173,10 +253,25 @@ class SettingsSistemService
             return $validated;
         }
 
+        $gd = $this->validateGdSupport();
+
+        if (!$gd['success']) {
+            return $gd;
+        }
+
         $dir = FCPATH . 'uploads/settings/kartu';
 
-        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            return $this->fail('UPLOAD_FAILED', 'Folder template kartu tidak dapat dibuat.');
+        if (!$this->ensureDirectory($dir)) {
+            $this->logTechnicalError(
+                'kta',
+                'Folder template kartu tidak dapat dibuat/ditulis.',
+                [
+                    'target_dir' => $dir,
+                    'side' => $side,
+                ]
+            );
+
+            return $this->fail('UPLOAD_FAILED', 'Folder template kartu tidak dapat digunakan.');
         }
 
         $filename = 'background_kta_' . $side . '_' . date('Ymd_His')
@@ -184,17 +279,29 @@ class SettingsSistemService
         $path = $dir . DIRECTORY_SEPARATOR . $filename;
 
         try {
-            $source = imagecreatefromstring(file_get_contents($file->getTempName()));
+            $binary = $this->readUploadedImage($file);
+
+            if ($binary === null) {
+                throw new \RuntimeException('File temporary upload gagal dibaca.');
+            }
+
+            $source = @imagecreatefromstring($binary);
 
             if ($source === false) {
-                return $this->fail('INVALID_IMAGE', 'File gambar tidak valid.');
+                throw new \RuntimeException('GD gagal mendekode isi gambar KTA.');
             }
 
             $target = imagecreatetruecolor(1011, 638);
+
+            if ($target === false) {
+                imagedestroy($source);
+                throw new \RuntimeException('GD gagal membuat canvas KTA 1011x638.');
+            }
+
             $white = imagecolorallocate($target, 255, 255, 255);
             imagefilledrectangle($target, 0, 0, 1011, 638, $white);
 
-            imagecopyresampled(
+            $resampled = imagecopyresampled(
                 $target,
                 $source,
                 0,
@@ -207,19 +314,83 @@ class SettingsSistemService
                 imagesy($source)
             );
 
-            imagejpeg($target, $path, 92);
+            if ($resampled !== true) {
+                imagedestroy($source);
+                imagedestroy($target);
+                throw new \RuntimeException('GD gagal resize template KTA.');
+            }
+
+            $written = @imagejpeg($target, $path, 92);
+
             imagedestroy($source);
             imagedestroy($target);
+
+            if ($written !== true || !is_file($path)) {
+                throw new \RuntimeException('GD gagal menulis JPEG template KTA.');
+            }
+
+            $size = @getimagesize($path);
+
+            if (!$size || (int) ($size[0] ?? 0) !== 1011 || (int) ($size[1] ?? 0) !== 638) {
+                @unlink($path);
+                throw new \RuntimeException('Hasil normalisasi KTA tidak berukuran 1011x638.');
+            }
         } catch (Throwable $e) {
-            return $this->fail('UPLOAD_FAILED', 'Template kartu gagal diproses.');
+            if (isset($source) && is_object($source)) {
+                @imagedestroy($source);
+            }
+
+            if (isset($target) && is_object($target)) {
+                @imagedestroy($target);
+            }
+
+            @unlink($path);
+
+            $this->logTechnicalError(
+                'kta',
+                $e->getMessage(),
+                [
+                    'side' => $side,
+                    'target_path' => $path,
+                    'upload_name' => $file?->getClientName(),
+                    'upload_size' => $file?->getSize(),
+                    'upload_mime' => $file?->getMimeType(),
+                    'temp_exists' => $file ? is_file($file->getTempName()) : false,
+                    'gd_loaded' => extension_loaded('gd'),
+                ],
+                $e
+            );
+
+            return $this->fail(
+                'UPLOAD_FAILED',
+                'Template kartu gagal diproses. Detail teknis telah dicatat pada log aplikasi.'
+            );
         }
 
         $relative = 'uploads/settings/kartu/' . $filename;
-        $key = $side === 'depan'
-            ? 'background_kta_depan'
-            : 'background_kta_belakang';
+        $key = $side === 'depan' ? 'background_kta_depan' : 'background_kta_belakang';
 
-        $this->model->set($key, $relative, 'string', $userId);
+        try {
+            $this->model->set($key, $relative, 'string', $userId);
+        } catch (Throwable $e) {
+            @unlink($path);
+
+            $this->logTechnicalError(
+                'kta-setting',
+                $e->getMessage(),
+                [
+                    'setting_key' => $key,
+                    'relative_path' => $relative,
+                ],
+                $e
+            );
+
+            return $this->fail(
+                'SETTING_FAILED',
+                'Template berhasil diproses tetapi setting KTA gagal disimpan.'
+            );
+        }
+
         $this->clearCache();
         $this->log($userId, 'UPLOAD', "Upload template KTA {$side} 1011x638.");
 
@@ -232,8 +403,29 @@ class SettingsSistemService
 
     private function validateImage(?UploadedFile $file): array
     {
-        if (!$file || !$file->isValid() || $file->hasMoved()) {
+        if (!$file) {
             return $this->fail('VALIDATION', 'File gambar wajib dipilih.');
+        }
+
+        if (!$file->isValid()) {
+            $this->logTechnicalError(
+                'upload-validation',
+                'UploadedFile tidak valid.',
+                [
+                    'upload_error' => $file->getError(),
+                    'upload_error_string' => $file->getErrorString(),
+                    'upload_name' => $file->getClientName(),
+                ]
+            );
+
+            return $this->fail(
+                'VALIDATION',
+                'Upload gambar tidak valid: ' . $file->getErrorString()
+            );
+        }
+
+        if ($file->hasMoved()) {
+            return $this->fail('VALIDATION', 'File upload sudah dipindahkan.');
         }
 
         if ($file->getSize() <= 0 || $file->getSize() > self::MAX_IMAGE_BYTES) {
@@ -241,17 +433,112 @@ class SettingsSistemService
         }
 
         $temp = $file->getTempName();
-        $info = @getimagesize($temp);
 
-        if (!$info || !in_array($info['mime'] ?? '', ['image/jpeg', 'image/png', 'image/webp'], true)) {
-            return $this->fail('INVALID_IMAGE', 'Hanya JPEG, PNG, atau WEBP valid yang diperbolehkan.');
+        if ($temp === '' || !is_file($temp) || !is_readable($temp)) {
+            $this->logTechnicalError(
+                'upload-validation',
+                'Temporary upload tidak tersedia/dapat dibaca.',
+                [
+                    'temp_path' => $temp,
+                    'upload_name' => $file->getClientName(),
+                ]
+            );
+
+            return $this->fail('INVALID_IMAGE', 'File temporary upload tidak dapat dibaca.');
         }
 
-        if (($info[0] ?? 0) < 100 || ($info[1] ?? 0) < 100) {
-            return $this->fail('INVALID_IMAGE', 'Resolusi gambar terlalu kecil.');
+        $info = @getimagesize($temp);
+
+        if (
+            !$info
+            || !in_array(
+                $info['mime'] ?? '',
+                ['image/jpeg', 'image/png', 'image/webp'],
+                true
+            )
+        ) {
+            return $this->fail(
+                'INVALID_IMAGE',
+                'Hanya JPEG, PNG, atau WEBP valid yang diperbolehkan.'
+            );
+        }
+
+        if ((int) ($info[0] ?? 0) < 100 || (int) ($info[1] ?? 0) < 100) {
+            return $this->fail('INVALID_IMAGE', 'Resolusi gambar minimal 100×100 px.');
+        }
+
+        return [
+            'success' => true,
+            'mime' => (string) $info['mime'],
+            'width' => (int) $info[0],
+            'height' => (int) $info[1],
+        ];
+    }
+
+    private function validateGdSupport(): array
+    {
+        $required = [
+            'imagecreatefromstring',
+            'imagepng',
+            'imagejpeg',
+            'imagecreatetruecolor',
+            'imagecopyresampled',
+        ];
+
+        $missing = [];
+
+        foreach ($required as $function) {
+            if (!function_exists($function)) {
+                $missing[] = $function;
+            }
+        }
+
+        if (!extension_loaded('gd') || $missing !== []) {
+            $this->logTechnicalError(
+                'gd',
+                'GD extension/function tidak lengkap.',
+                [
+                    'gd_loaded' => extension_loaded('gd'),
+                    'missing_functions' => $missing,
+                    'php_sapi' => PHP_SAPI,
+                    'php_version' => PHP_VERSION,
+                    'php_ini' => php_ini_loaded_file(),
+                ]
+            );
+
+            return $this->fail(
+                'GD_NOT_AVAILABLE',
+                'PHP GD pada web server belum aktif/lengkap. Periksa php.ini Apache/XAMPP.'
+            );
         }
 
         return ['success' => true];
+    }
+
+    private function readUploadedImage(UploadedFile $file): ?string
+    {
+        $temp = $file->getTempName();
+
+        if ($temp === '' || !is_file($temp) || !is_readable($temp)) {
+            return null;
+        }
+
+        $binary = @file_get_contents($temp);
+
+        if ($binary === false || $binary === '') {
+            return null;
+        }
+
+        return $binary;
+    }
+
+    private function ensureDirectory(string $dir): bool
+    {
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return false;
+        }
+
+        return is_writable($dir);
     }
 
     private function setMany(int $userId, array $pairs): void
@@ -275,7 +562,11 @@ class SettingsSistemService
         try {
             cache()->clean();
         } catch (Throwable $e) {
-            // Cache bukan source of truth; kegagalan clear tidak membatalkan setting.
+            log_message(
+                'warning',
+                'Settings cache clear gagal: {message}',
+                ['message' => $e->getMessage()]
+            );
         }
     }
 
@@ -290,8 +581,44 @@ class SettingsSistemService
         ]);
     }
 
+    private function logTechnicalError(
+        string $stage,
+        string $message,
+        array $context = [],
+        ?Throwable $exception = null
+    ): void {
+        $safeContext = array_merge(
+            [
+                'stage' => $stage,
+                'message' => $message,
+            ],
+            $context
+        );
+
+        if ($exception !== null) {
+            $safeContext['exception_class'] = $exception::class;
+            $safeContext['exception_file'] = $exception->getFile();
+            $safeContext['exception_line'] = $exception->getLine();
+        }
+
+        log_message(
+            'error',
+            'Settings image processing failed: {payload}',
+            [
+                'payload' => json_encode(
+                    $safeContext,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+            ]
+        );
+    }
+
     private function fail(string $code, string $message): array
     {
-        return ['success' => false, 'code' => $code, 'message' => $message];
+        return [
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ];
     }
 }
