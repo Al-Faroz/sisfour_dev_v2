@@ -183,6 +183,22 @@ class LaporanPresensiModel
             ->where('p.id_tahun', $idTahun)
             ->where('p.id_kelas', $idKelas)
             ->where('p.sesi', 'Sesi Awal')
+            ->where(
+                "EXISTS (
+                    SELECT 1
+                    FROM riwayat_siswa rs
+                    WHERE rs.id_siswa = p.id_siswa
+                      AND rs.id_tahun = p.id_tahun
+                      AND rs.id_kelas = p.id_kelas
+                      AND rs.tanggal_mulai <= p.tanggal
+                      AND (
+                          rs.tanggal_selesai IS NULL
+                          OR rs.tanggal_selesai >= p.tanggal
+                      )
+                )",
+                null,
+                false
+            )
             ->where('p.tanggal >=', $mulai)
             ->where('p.tanggal <=', $selesai)
             ->groupBy('p.id_siswa, MONTH(p.tanggal)')

@@ -122,6 +122,16 @@
         next.disabled = offset + limit >= total;
     }
 
+    tahun?.addEventListener('change', () => {
+        const p = new URLSearchParams({
+            id_tahun: tahun.value,
+            tanggal_mulai: mulai.value,
+            tanggal_selesai: selesai.value
+        });
+
+        window.location.href = endpoint(`laporan/jurnal?${p.toString()}`);
+    });
+
     btnCari?.addEventListener('click', () => {
         offset = 0;
         load();

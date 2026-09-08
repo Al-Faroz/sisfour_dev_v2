@@ -17,6 +17,7 @@ use CodeIgniter\I18n\Time;
 class LaporanJurnalService
 {
     private const TZ = 'Asia/Jakarta';
+    private const MAX_EXPORT_ROWS = 50000;
     private const HARI = [
         'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu',
     ];
@@ -46,6 +47,11 @@ class LaporanJurnalService
         }
 
         $selectedTahun = $idTahun ?: (int) $tahunAktif['id'];
+
+        if ($this->model->getTahun($selectedTahun) === null) {
+            return $this->fail('INVALID_YEAR', 'Tahun Ajaran tidak valid.');
+        }
+
         $idGuru = null;
 
         if ($scope === 'DIRI_SENDIRI') {
@@ -128,10 +134,20 @@ class LaporanJurnalService
             return $resolved;
         }
 
+        $total = $this->model->countFiltered($resolved['filter']);
+
+        if ($total > self::MAX_EXPORT_ROWS) {
+            return $this->fail(
+                'EXPORT_TOO_LARGE',
+                'Data Jurnal melebihi 50.000 baris. Persempit periode atau filter sebelum export.'
+            );
+        }
+
         return [
             'success' => true,
             'scope' => $resolved['scope'],
             'filter' => $resolved['filter'],
+            'total' => $total,
             'rows' => $this->model->getForExport($resolved['filter']),
         ];
     }
@@ -170,7 +186,7 @@ class LaporanJurnalService
             $idTahun = (int) ($aktif['id'] ?? 0);
         }
 
-        if ($idTahun <= 0) {
+        if ($idTahun <= 0 || $this->model->getTahun($idTahun) === null) {
             return $this->fail('INVALID_YEAR', 'Tahun Ajaran tidak valid.');
         }
 

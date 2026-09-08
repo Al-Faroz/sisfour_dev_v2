@@ -64,9 +64,25 @@ class LaporanJurnal extends BaseController
             return $this->respondService($file);
         }
 
+        return $this->downloadAndCleanup(
+            (string) $file['path'],
+            (string) $file['filename']
+        );
+    }
+
+    private function downloadAndCleanup(string $path, string $filename)
+    {
+        register_shutdown_function(
+            static function () use ($path): void {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
+            }
+        );
+
         return $this->response
-            ->download($file['path'], null)
-            ->setFileName($file['filename']);
+            ->download($path, null)
+            ->setFileName($filename);
     }
 
     private function wantsJson(): bool

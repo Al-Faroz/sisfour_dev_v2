@@ -121,7 +121,7 @@ class LaporanPresensiService
             'Sesi Awal'
         );
 
-        $rows = $this->buildMonthlyMatrix($members, $presensi, $period['days']);
+        $rows = $this->buildMonthlyMatrix($members, $presensi, $period);
 
         return [
             'success' => true,
@@ -181,7 +181,7 @@ class LaporanPresensiService
             'kelas' => $kelas,
             'bulan' => $bulan,
             'period' => $period,
-            'rows' => $this->buildMonthlyExport($members, $allSessions, $period['days']),
+            'rows' => $this->buildMonthlyExport($members, $allSessions, $period),
         ];
     }
 
@@ -366,9 +366,14 @@ class LaporanPresensiService
         ];
     }
 
-    private function buildMonthlyMatrix(array $members, array $presensi, int $days): array
-    {
+    private function buildMonthlyMatrix(
+        array $members,
+        array $presensi,
+        array $period
+    ): array {
+        $members = $this->mergeMemberships($members);
         $map = [];
+        $snapshot = [];
 
         foreach ($presensi as $row) {
             $id = (int) ($row['id_siswa'] ?? 0);
@@ -377,11 +382,21 @@ class LaporanPresensiService
                 continue;
             }
 
-            $day = (int) substr((string) $row['tanggal'], 8, 2);
+            $tanggal = (string) $row['tanggal'];
+            $day = (int) substr($tanggal, 8, 2);
             $map[$id][$day] = $this->statusCode((string) $row['status']);
+
+            if (
+                !isset($snapshot[$id])
+                && trim((string) ($row['nama_siswa_snapshot'] ?? '')) !== ''
+            ) {
+                $snapshot[$id] = (string) $row['nama_siswa_snapshot'];
+            }
         }
 
         $rows = [];
+        $monthPrefix = substr((string) $period['mulai'], 0, 8);
+        $days = (int) $period['days'];
 
         foreach ($members as $member) {
             $id = (int) $member['id_siswa'];
@@ -389,6 +404,15 @@ class LaporanPresensiService
             $totals = ['H' => 0, 'S' => 0, 'I' => 0, 'A' => 0];
 
             for ($d = 1; $d <= $days; $d++) {
+                $tanggal = $monthPrefix . str_pad((string) $d, 2, '0', STR_PAD_LEFT);
+
+                // Membership adalah authoritative. Record stale/anomali di luar
+                // periode keanggotaan tidak boleh ikut Matrix.
+                if (!$this->isMembershipDate($member['intervals'], $tanggal)) {
+                    $daysMap[$d] = '-';
+                    continue;
+                }
+
                 $value = $map[$id][$d] ?? '-';
                 $daysMap[$d] = $value;
 
@@ -400,9 +424,7 @@ class LaporanPresensiService
             $rows[] = [
                 'id_siswa' => $id,
                 'nisn' => (string) $member['nisn'],
-                'nama' => (string) $member['nama'],
-                'tanggal_mulai' => $member['tanggal_mulai'],
-                'tanggal_selesai' => $member['tanggal_selesai'],
+                'nama' => $snapshot[$id] ?? (string) $member['nama'],
                 'H' => $totals['H'],
                 'S' => $totals['S'],
                 'I' => $totals['I'],
@@ -414,8 +436,12 @@ class LaporanPresensiService
         return $rows;
     }
 
-    private function buildMonthlyExport(array $members, array $presensi, int $days): array
-    {
+    private function buildMonthlyExport(
+        array $members,
+        array $presensi,
+        array $period
+    ): array {
+        $members = $this->mergeMemberships($members);
         $map = [];
         $snapshot = [];
 
@@ -430,10 +456,18 @@ class LaporanPresensiService
             $sessionKey = (string) $row['sesi'] === 'Sesi Awal' ? 'AW' : 'AK';
 
             $map[$id][$day][$sessionKey] = $this->statusCode((string) $row['status']);
-            $snapshot[$id] = (string) $row['nama_siswa_snapshot'];
+
+            if (
+                !isset($snapshot[$id])
+                && trim((string) ($row['nama_siswa_snapshot'] ?? '')) !== ''
+            ) {
+                $snapshot[$id] = (string) $row['nama_siswa_snapshot'];
+            }
         }
 
         $rows = [];
+        $monthPrefix = substr((string) $period['mulai'], 0, 8);
+        $days = (int) $period['days'];
 
         foreach ($members as $member) {
             $id = (int) $member['id_siswa'];
@@ -441,6 +475,13 @@ class LaporanPresensiService
             $daysMap = [];
 
             for ($d = 1; $d <= $days; $d++) {
+                $tanggal = $monthPrefix . str_pad((string) $d, 2, '0', STR_PAD_LEFT);
+
+                if (!$this->isMembershipDate($member['intervals'], $tanggal)) {
+                    $daysMap[$d] = ['AW' => '-', 'AK' => '-'];
+                    continue;
+                }
+
                 $aw = $map[$id][$d]['AW'] ?? '-';
                 $ak = $map[$id][$d]['AK'] ?? '-';
 
@@ -471,6 +512,7 @@ class LaporanPresensiService
 
     private function buildSemesterRows(array $members, array $aggregate, array $months): array
     {
+        $members = $this->mergeMemberships($members);
         $agg = [];
         $snapshot = [];
 
@@ -520,6 +562,67 @@ class LaporanPresensiService
         }
 
         return $rows;
+    }
+
+    /**
+     * Gabungkan kemungkinan lebih dari satu interval membership siswa
+     * agar Matrix/Export hanya menghasilkan satu baris per siswa.
+     */
+    private function mergeMemberships(array $members): array
+    {
+        $merged = [];
+
+        foreach ($members as $member) {
+            $id = (int) ($member['id_siswa'] ?? 0);
+
+            if ($id <= 0) {
+                continue;
+            }
+
+            if (!isset($merged[$id])) {
+                $merged[$id] = [
+                    'id_siswa' => $id,
+                    'nisn' => (string) ($member['nisn'] ?? ''),
+                    'nama' => (string) ($member['nama'] ?? ''),
+                    'intervals' => [],
+                ];
+            }
+
+            $merged[$id]['intervals'][] = [
+                'mulai' => (string) ($member['tanggal_mulai'] ?? ''),
+                'selesai' => !empty($member['tanggal_selesai'])
+                    ? (string) $member['tanggal_selesai']
+                    : null,
+            ];
+        }
+
+        $rows = array_values($merged);
+
+        usort(
+            $rows,
+            static fn (array $a, array $b): int =>
+                strcasecmp((string) $a['nama'], (string) $b['nama'])
+        );
+
+        return $rows;
+    }
+
+    private function isMembershipDate(array $intervals, string $tanggal): bool
+    {
+        foreach ($intervals as $interval) {
+            $mulai = (string) ($interval['mulai'] ?? '');
+            $selesai = $interval['selesai'] ?? null;
+
+            if ($mulai === '' || $tanggal < $mulai) {
+                continue;
+            }
+
+            if ($selesai === null || $selesai === '' || $tanggal <= $selesai) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function statusCode(string $status): string

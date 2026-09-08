@@ -19,6 +19,19 @@ class LaporanJurnalModel
         $this->db = Database::connect();
     }
 
+    public function getTahun(int $idTahun): ?array
+    {
+        $row = $this->db
+            ->table('tahun_ajaran')
+            ->select('id, nama_tahun, semester, status_aktif')
+            ->where('id', $idTahun)
+            ->where('deleted_at', null)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
     public function getTahunOptions(): array
     {
         return $this->db
@@ -93,12 +106,11 @@ class LaporanJurnalModel
             ->countAllResults();
     }
 
-    public function getForExport(array $filter, int $maxRows = 20000): array
+    public function getForExport(array $filter): array
     {
         return $this->baseBuilder($filter)
             ->orderBy('pm.tanggal', 'ASC')
             ->orderBy('jg.jam_mulai', 'ASC')
-            ->limit($maxRows)
             ->get()
             ->getResultArray();
     }
