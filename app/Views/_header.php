@@ -24,9 +24,8 @@
 <link rel="stylesheet" href="<?= base_url('assets/css/demo.css') ?>" />
 
 <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/select2/select2.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/sweetalert2/sweetalert2.css') ?>" />
+<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables/datatables.min.css') ?>" />
+<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/select2/select2.min.css') ?>" />
 <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/apex-charts/apex-charts.css') ?>" />
 
 <?php if (isset($extraCss)): foreach ((array) $extraCss as $css): ?>
