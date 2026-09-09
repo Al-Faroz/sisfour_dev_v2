@@ -43,7 +43,12 @@ class Auth extends Controller
     public function login()
     {
         if (session()->get('logged_in') === true) {
-            return redirect()->to('/dashboard');
+            return redirect()->to($this->webLandingPath(
+                (int) session()->get('user_id'),
+                session()->get('id_pegawai') !== null
+                    ? (int) session()->get('id_pegawai')
+                    : null
+            ));
         }
 
         if (
@@ -77,7 +82,7 @@ class Auth extends Controller
             $password
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             session()->setFlashdata(
                 'error',
                 $result['message']
@@ -99,7 +104,14 @@ class Auth extends Controller
             'Login Web berhasil.'
         );
 
-        return redirect()->to('/dashboard');
+        return redirect()->to(
+            $this->webLandingPath(
+                (int) $result['user']['id'],
+                isset($result['user']['id_pegawai']) && $result['user']['id_pegawai'] !== null
+                    ? (int) $result['user']['id_pegawai']
+                    : null
+            )
+        );
     }
 
     /**
@@ -132,7 +144,7 @@ class Auth extends Controller
     {
         $data = $this->request->getJSON(true);
 
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             $data = $this->request->getPost();
         }
 
@@ -160,7 +172,7 @@ class Auth extends Controller
             $password
         );
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return $this->response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -226,7 +238,7 @@ class Auth extends Controller
         $token = $this->request->apiAccessToken ?? null;
         $user = $this->request->apiUser ?? null;
 
-        if (!$token) {
+        if (! $token) {
             return $this->response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -239,7 +251,7 @@ class Auth extends Controller
             (string) $token
         );
 
-        if (is_array($user) && !empty($user['id'])) {
+        if (is_array($user) && ! empty($user['id'])) {
             $this->activityLog->write(
                 (int) $user['id'],
                 'LOGOUT',
@@ -263,7 +275,7 @@ class Auth extends Controller
     {
         $user = $this->request->apiUser ?? null;
 
-        if (!$user) {
+        if (! $user) {
             return $this->response
                 ->setStatusCode(401)
                 ->setJSON([
@@ -289,7 +301,7 @@ class Auth extends Controller
     {
         $data = $this->request->getJSON(true);
 
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             $data = $this->request->getPost();
         }
 
@@ -341,7 +353,6 @@ class Auth extends Controller
 
     /**
      * Data user yang aman dikirim ke client.
-     *
      * Password dan field sensitif tidak pernah dikirim.
      */
     protected function publicUser(array $user): array
@@ -374,6 +385,23 @@ class Auth extends Controller
         ];
     }
 
+    /**
+     * Akun Pegawai boleh dibuat sebelum role operasional ditentukan Admin.
+     * Dalam kondisi tersebut landing page harus tetap dapat digunakan untuk
+     * self-service Profile Pegawai dan tidak diarahkan ke Dashboard yang
+     * membutuhkan permission dashboard.view.
+     */
+    private function webLandingPath(int $userId, ?int $idPegawai): string
+    {
+        if ($userId > 0 && $idPegawai !== null && $idPegawai > 0) {
+            if ($this->authService->getUserRoles($userId) === []) {
+                return '/profile/pegawai';
+            }
+        }
+
+        return '/dashboard';
+    }
+
     private function loginBranding(): array
     {
         $branding = [
@@ -386,7 +414,7 @@ class Auth extends Controller
             $rows = (new SettingSistemModel())->allAssoc();
 
             foreach ($branding as $key => $default) {
-                if (!isset($rows[$key])) {
+                if (! isset($rows[$key])) {
                     continue;
                 }
 

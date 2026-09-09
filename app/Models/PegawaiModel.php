@@ -5,19 +5,11 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * PegawaiModel
+ * Master Pegawai - Phase 2 Personalia.
  *
- * Master data Pegawai/Tenaga Kependidikan.
- *
- * Acuan:
- * - docs/02_DATABASE
- * - docs/04_MASTER_DATA §3.1
- *
- * Catatan:
- * - Menggunakan soft delete.
- * - NIP unik pada tabel pegawai.
- * - NIP tidak boleh sama dengan NIP Guru; validasi lintas tabel
- *   dilakukan kembali oleh Service.
+ * Struktur inti disamakan dengan Guru. Kolom `jabatan` lama tetap berada
+ * di database sebagai data legacy sampai desain riwayat penugasan/jabatan
+ * dikunci pada fase berikutnya, tetapi bukan lagi bagian form biodata inti.
  */
 class PegawaiModel extends Model
 {
@@ -35,39 +27,58 @@ class PegawaiModel extends Model
     protected $updatedField  = 'updated_at';
 
     protected $allowedFields = [
+        'nik',
         'nip',
         'nama',
         'jenis_kelamin',
         'tempat_lahir',
         'tanggal_lahir',
+        'agama',
         'alamat',
         'no_telepon',
         'email',
-        'jabatan',
+        'status_kepegawaian',
+        'nuptk',
+        'foto',
     ];
 
     protected $validationRules = [
-        'nip'           => 'required|max_length[30]|is_unique[pegawai.nip,id,{id}]',
-        'nama'          => 'required|max_length[150]',
-        'jenis_kelamin' => 'required|in_list[L,P]',
-        'tempat_lahir'  => 'permit_empty|max_length[100]',
-        'tanggal_lahir' => 'permit_empty|valid_date[Y-m-d]',
-        'no_telepon'    => 'permit_empty|max_length[20]',
-        'email'         => 'permit_empty|valid_email|max_length[100]',
-        'jabatan'       => 'permit_empty|max_length[100]',
+        'nik'                 => 'required|exact_length[16]|numeric|is_unique[pegawai.nik,id,{id}]',
+        'nip'                 => 'permit_empty|exact_length[18]|numeric|is_unique[pegawai.nip,id,{id}]',
+        'nama'                => 'required|max_length[150]',
+        'jenis_kelamin'       => 'required|in_list[L,P]',
+        'tempat_lahir'        => 'permit_empty|max_length[100]',
+        'tanggal_lahir'       => 'permit_empty|valid_date[Y-m-d]',
+        'agama'               => 'permit_empty|max_length[30]',
+        'no_telepon'          => 'permit_empty|max_length[20]',
+        'email'               => 'permit_empty|valid_email|max_length[100]',
+        'status_kepegawaian'  => 'required|in_list[PNS,PPPK,GTT,PTT,GTY,PTY,Honorer,Outsourcing]',
+        'nuptk'               => 'permit_empty|exact_length[16]|numeric',
+        'foto'                => 'permit_empty|max_length[255]',
     ];
 
     protected $validationMessages = [
+        'nik' => [
+            'required'     => 'NIK wajib diisi.',
+            'exact_length' => 'NIK harus 16 digit.',
+            'numeric'      => 'NIK hanya boleh berisi angka.',
+            'is_unique'    => 'NIK sudah terdaftar pada data Pegawai.',
+        ],
         'nip' => [
-            'required'  => 'NIP wajib diisi.',
-            'is_unique' => 'NIP sudah terdaftar pada data Pegawai.',
+            'exact_length' => 'NIP harus 18 digit.',
+            'numeric'      => 'NIP hanya boleh berisi angka.',
+            'is_unique'    => 'NIP sudah terdaftar pada data Pegawai.',
         ],
         'nama' => [
-            'required' => 'Nama pegawai wajib diisi.',
+            'required' => 'Nama Pegawai wajib diisi.',
         ],
         'jenis_kelamin' => [
             'required' => 'Jenis kelamin wajib diisi.',
             'in_list'  => 'Jenis kelamin harus L atau P.',
+        ],
+        'status_kepegawaian' => [
+            'required' => 'Status kepegawaian wajib dipilih.',
+            'in_list'  => 'Status kepegawaian tidak valid.',
         ],
         'tanggal_lahir' => [
             'valid_date' => 'Tanggal lahir harus menggunakan format YYYY-MM-DD.',
@@ -75,28 +86,42 @@ class PegawaiModel extends Model
         'email' => [
             'valid_email' => 'Format email tidak valid.',
         ],
+        'nuptk' => [
+            'exact_length' => 'NUPTK harus 16 digit.',
+            'numeric'      => 'NUPTK hanya boleh berisi angka.',
+        ],
     ];
 
-    protected $skipValidation = false;
+    protected $skipValidation       = false;
     protected $cleanValidationRules = true;
+
+    public function findByNik(string $nik, bool $withDeleted = false): ?array
+    {
+        $model = $withDeleted ? $this->withDeleted() : $this;
+
+        return $model->where('nik', trim($nik))->first();
+    }
 
     public function findByNip(string $nip, bool $withDeleted = false): ?array
     {
         $model = $withDeleted ? $this->withDeleted() : $this;
 
-        return $model
-            ->where('nip', trim($nip))
-            ->first();
+        return $model->where('nip', trim($nip))->first();
     }
 
-    /**
-     * Data soft-deleted ikut dihitung agar NIP tidak dipakai ulang.
-     */
+    public function nikDipakaiGuru(string $nik): bool
+    {
+        $nik = trim($nik);
+
+        return $nik !== ''
+            && $this->db->table('guru')->where('nik', $nik)->countAllResults() > 0;
+    }
+
     public function nipDipakaiGuru(string $nip): bool
     {
-        return $this->db
-            ->table('guru')
-            ->where('nip', trim($nip))
-            ->countAllResults() > 0;
+        $nip = trim($nip);
+
+        return $nip !== ''
+            && $this->db->table('guru')->where('nip', $nip)->countAllResults() > 0;
     }
 }

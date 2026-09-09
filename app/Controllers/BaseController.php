@@ -51,6 +51,7 @@ abstract class BaseController extends Controller
                 'username' => session()->get('username'),
                 'role' => $role,
                 'id_guru' => $idGuru,
+                'id_pegawai' => session()->get('id_pegawai'),
                 'id_siswa' => session()->get('id_siswa'),
                 'is_wali' => $idGuru
                     ? $this->authService->isWaliKelas((int) $idGuru)
@@ -98,7 +99,7 @@ abstract class BaseController extends Controller
             $rows = (new SettingSistemModel())->allAssoc();
 
             foreach ($defaults as $key => $default) {
-                if (!isset($rows[$key])) {
+                if (! isset($rows[$key])) {
                     continue;
                 }
 

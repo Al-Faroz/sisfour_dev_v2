@@ -11,32 +11,38 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Throwable;
 
 /**
- * PegawaiService
+ * Business logic Master Pegawai - Phase 2 Personalia.
  *
- * Business logic Master Pegawai.
- *
- * Acuan:
- * - docs/04_MASTER_DATA §3.1, §6, §8
- *
- * Aturan utama:
- * - NIP tidak boleh sama dengan Guru.
- * - Saat Pegawai dibuat, akun users otomatis dibuat:
- *   username = NIP, password = hash(NIP), role = NULL.
- * - Admin menentukan role Pegawai kemudian melalui Manajemen User.
- * - Import bersifat atomic + stop-on-error.
- * - Pegawai menggunakan soft delete + recycle bin.
+ * Akun Pegawai dibuat tanpa role otomatis. Admin tetap menetapkan role
+ * operasional melalui Manajemen User. Identitas login mengikuti NIP bila
+ * tersedia, selain itu NIK.
  */
 class PegawaiService
 {
+    public const STATUS_KEPEGAWAIAN = [
+        'PNS',
+        'PPPK',
+        'GTT',
+        'PTT',
+        'GTY',
+        'PTY',
+        'Honorer',
+        'Outsourcing',
+    ];
+
     protected BaseConnection $db;
     protected PegawaiModel $pegawaiModel;
     protected UserModel $userModel;
+    protected UploadService $uploadService;
+    protected ActivityLogService $activityLog;
 
     public function __construct()
     {
-        $this->db           = Database::connect();
-        $this->pegawaiModel = new PegawaiModel();
-        $this->userModel    = new UserModel();
+        $this->db            = Database::connect();
+        $this->pegawaiModel  = new PegawaiModel();
+        $this->userModel     = new UserModel();
+        $this->uploadService = new UploadService();
+        $this->activityLog   = new ActivityLogService();
     }
 
     public function getList(array $filter = [], bool $deletedOnly = false): array
@@ -44,10 +50,11 @@ class PegawaiService
         $builder = $this->db
             ->table('pegawai p')
             ->select(
-                'p.id, p.nip, p.nama, p.jenis_kelamin, p.tempat_lahir, ' .
-                'p.tanggal_lahir, p.alamat, p.no_telepon, p.email, p.jabatan, ' .
-                'p.deleted_at, p.created_at, p.updated_at, ' .
-                'u.id AS id_user, u.role AS role_user, u.status_aktif AS status_user'
+                'p.id, p.nik, p.nip, p.nama, p.jenis_kelamin, p.tempat_lahir, ' .
+                'p.tanggal_lahir, p.agama, p.alamat, p.no_telepon, p.email, ' .
+                'p.status_kepegawaian, p.nuptk, p.foto, p.jabatan AS jabatan_legacy, ' .
+                'p.deleted_at, p.created_at, p.updated_at, u.id AS id_user, ' .
+                'u.username, u.role AS role_user, u.status_aktif AS status_user'
             )
             ->join('users u', 'u.id_pegawai = p.id', 'left');
 
@@ -62,25 +69,38 @@ class PegawaiService
             $builder->like('p.nama', $nama);
         }
 
+        $nik = trim((string) ($filter['nik'] ?? ''));
+        if ($nik !== '') {
+            $builder->like('p.nik', $nik);
+        }
+
         $nip = trim((string) ($filter['nip'] ?? ''));
         if ($nip !== '') {
             $builder->like('p.nip', $nip);
         }
 
-        $jk = trim((string) ($filter['jenis_kelamin'] ?? ''));
+        $jk = strtoupper(trim((string) ($filter['jenis_kelamin'] ?? '')));
         if (in_array($jk, ['L', 'P'], true)) {
             $builder->where('p.jenis_kelamin', $jk);
         }
 
-        $jabatan = trim((string) ($filter['jabatan'] ?? ''));
-        if ($jabatan !== '') {
-            $builder->like('p.jabatan', $jabatan);
+        $status = $this->canonicalStatus($filter['status_kepegawaian'] ?? null);
+        if ($status !== null) {
+            $builder->where('p.status_kepegawaian', $status);
         }
 
-        return $builder
+        $rows = $builder
             ->orderBy('p.nama', 'ASC')
             ->get()
             ->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['login_identifier'] = $this->loginIdentifier($row);
+            $row['identity_complete'] = $this->validNik((string) ($row['nik'] ?? ''));
+        }
+        unset($row);
+
+        return $rows;
     }
 
     public function find(int $id): ?array
@@ -90,174 +110,195 @@ class PegawaiService
 
     public function findWithDeleted(int $id): ?array
     {
-        return $this->pegawaiModel
-            ->withDeleted()
-            ->find($id);
+        return $this->pegawaiModel->withDeleted()->find($id);
     }
 
-    /**
-     * @return array{success:bool,message:string,id?:int}
-     */
-    public function create(array $data): array
+    public function create(array $data, ?UploadedFile $foto = null): array
     {
         $payload = $this->normalizePayload($data);
-
         $precheck = $this->validateBusiness($payload);
+
         if ($precheck !== null) {
             return $precheck;
         }
 
+        $newFoto = null;
         $this->db->transBegin();
 
         try {
-            $idPegawai = $this->pegawaiModel->insert($payload, true);
-
-            if ($idPegawai === false) {
-                throw new \RuntimeException(
-                    implode(' ', $this->pegawaiModel->errors())
-                    ?: 'Data Pegawai gagal disimpan.'
-                );
+            if ($foto !== null && $foto->getError() !== UPLOAD_ERR_NO_FILE) {
+                $newFoto = $this->processFoto($foto, $this->loginIdentifier($payload));
+                $payload['foto'] = $newFoto;
             }
 
-            $idPegawai = (int) $idPegawai;
-
-            $idUser = $this->userModel->insert([
-                'username'     => $payload['nip'],
-                'password'     => password_hash($payload['nip'], PASSWORD_DEFAULT),
-                'role'         => null,
-                'id_guru'      => null,
-                'id_pegawai'   => $idPegawai,
-                'id_siswa'     => null,
-                'status_aktif' => 1,
-                'auth_version' => 1,
-            ], true);
-
-            if ($idUser === false) {
-                throw new \RuntimeException(
-                    implode(' ', $this->userModel->errors())
-                    ?: 'Akun Pegawai gagal dibuat.'
-                );
-            }
-
-            /*
-             * Tidak membuat user_roles di sini.
-             * Dokumen menetapkan Admin harus menentukan role Pegawai
-             * secara manual setelah akun dibuat.
-             */
-
-            $this->logActivity(
-                'CREATE',
-                'Master Pegawai',
-                sprintf(
-                    'Menambahkan Pegawai NIP %s - %s. Akun dibuat tanpa role.',
-                    $payload['nip'],
-                    $payload['nama']
-                )
-            );
+            $idPegawai = $this->insertPegawaiAndUser($payload);
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
 
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'CREATE',
+                'Master Pegawai',
+                sprintf('Menambahkan Pegawai ID %d - %s.', $idPegawai, $payload['nama'])
+            );
+
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => 'Data Pegawai berhasil ditambahkan. Akun otomatis dibuat tanpa role; Admin dapat menentukan role melalui Manajemen User.',
-                'id'      => $idPegawai,
+                'message' => 'Data Pegawai berhasil ditambahkan. Akun otomatis dibuat tanpa role; Admin menentukan role melalui Manajemen User.',
+                'id' => $idPegawai,
+                'login_identifier' => $this->loginIdentifier($payload),
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            if ($newFoto !== null) {
+                $this->deleteFotoFile($newFoto);
+            }
+
+            return $this->fail($e->getMessage());
         }
     }
 
-    /**
-     * @return array{success:bool,message:string}
-     */
     public function update(int $id, array $data): array
     {
         $pegawai = $this->pegawaiModel->find($id);
 
         if ($pegawai === null) {
-            return ['success' => false, 'message' => 'Data Pegawai tidak ditemukan.'];
+            return $this->fail('Data Pegawai tidak ditemukan.');
         }
 
-        $payload = $this->normalizePayload($data);
+        $linkedUser = $this->db
+            ->table('users')
+            ->where('id_pegawai', $id)
+            ->get()
+            ->getRowArray();
 
-        $precheck = $this->validateBusiness($payload, $id);
+        $payload = $this->normalizePayload($data);
+        $precheck = $this->validateBusiness(
+            $payload,
+            $id,
+            $linkedUser !== null ? (int) $linkedUser['id'] : null
+        );
+
         if ($precheck !== null) {
             return $precheck;
         }
 
+        $oldLogin = $this->loginIdentifier($pegawai);
+        $newLogin = $this->loginIdentifier($payload);
+        $credentialReset = false;
+
         $this->db->transBegin();
 
         try {
-            if (!$this->pegawaiModel->update($id, $payload)) {
+            if (! $this->pegawaiModel->update($id, $payload)) {
                 throw new \RuntimeException(
-                    implode(' ', $this->pegawaiModel->errors())
-                    ?: 'Data Pegawai gagal diperbarui.'
+                    implode(' ', $this->pegawaiModel->errors()) ?: 'Data Pegawai gagal diperbarui.'
                 );
             }
 
-            if ($pegawai['nip'] !== $payload['nip']) {
-                $linkedUser = $this->db
-                    ->table('users')
-                    ->where('id_pegawai', $id)
-                    ->get()
-                    ->getRowArray();
+            if ($linkedUser === null) {
+                $this->createPegawaiUser($id, $newLogin);
+                $credentialReset = true;
+            } else {
+                $credentialReset = $oldLogin !== $newLogin
+                    || (string) $linkedUser['username'] !== $newLogin;
 
-                if ($linkedUser !== null) {
-                    $usernameDipakai = $this->db
-                        ->table('users')
-                        ->where('username', $payload['nip'])
-                        ->where('id !=', (int) $linkedUser['id'])
-                        ->countAllResults() > 0;
+                $userUpdate = [
+                    'username' => $newLogin,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
 
-                    if ($usernameDipakai) {
-                        throw new \RuntimeException(
-                            'NIP baru tidak dapat digunakan karena username yang sama sudah dipakai akun lain.'
-                        );
-                    }
+                if ($credentialReset) {
+                    $userUpdate['password'] = password_hash($newLogin, PASSWORD_DEFAULT);
+                    $userUpdate['auth_version'] = ((int) $linkedUser['auth_version']) + 1;
+                }
 
-                    $this->db
-                        ->table('users')
-                        ->where('id', (int) $linkedUser['id'])
-                        ->update([
-                            'username'     => $payload['nip'],
-                            'auth_version' => ((int) $linkedUser['auth_version']) + 1,
-                            'updated_at'   => date('Y-m-d H:i:s'),
-                        ]);
+                if (! $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate)) {
+                    throw new \RuntimeException('Akun Pegawai gagal disinkronkan.');
                 }
             }
-
-            $this->logActivity(
-                'UPDATE',
-                'Master Pegawai',
-                sprintf('Memperbarui Pegawai ID %d - %s.', $id, $payload['nama'])
-            );
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
 
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'UPDATE',
+                'Master Pegawai',
+                sprintf(
+                    'Memperbarui Pegawai ID %d - %s%s',
+                    $id,
+                    $payload['nama'],
+                    $credentialReset ? ' dan mereset kredensial login.' : '.'
+                )
+            );
+
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => 'Data Pegawai berhasil diperbarui.',
+                'message' => $credentialReset
+                    ? 'Data Pegawai berhasil diperbarui. Username dan password disinkronkan ke identitas login baru.'
+                    : 'Data Pegawai berhasil diperbarui.',
+                'credential_reset' => $credentialReset,
+                'login_identifier' => $newLogin,
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    public function uploadFoto(int $id, UploadedFile $foto): array
+    {
+        $pegawai = $this->pegawaiModel->find($id);
+
+        if ($pegawai === null) {
+            return $this->fail('Data Pegawai tidak ditemukan.');
+        }
+
+        $newFoto = null;
+
+        try {
+            $newFoto = $this->processFoto(
+                $foto,
+                $this->loginIdentifier($pegawai) ?: 'pegawai_' . $id
+            );
+
+            if (! $this->pegawaiModel->update($id, ['foto' => $newFoto])) {
+                throw new \RuntimeException(
+                    implode(' ', $this->pegawaiModel->errors()) ?: 'Foto Pegawai gagal disimpan.'
+                );
+            }
+
+            if (! empty($pegawai['foto'])) {
+                $this->deleteFotoFile((string) $pegawai['foto']);
+            }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'UPDATE_FOTO',
+                'Master Pegawai',
+                sprintf('Mengganti foto Pegawai ID %d - %s.', $id, $pegawai['nama'])
+            );
 
             return [
-                'success' => false,
-                'message' => $e->getMessage(),
+                'success' => true,
+                'message' => 'Foto Pegawai berhasil diperbarui.',
+                'foto' => $newFoto,
             ];
+        } catch (Throwable $e) {
+            if ($newFoto !== null) {
+                $this->deleteFotoFile($newFoto);
+            }
+
+            return $this->fail($e->getMessage());
         }
     }
 
@@ -266,23 +307,17 @@ class PegawaiService
         $pegawai = $this->pegawaiModel->find($id);
 
         if ($pegawai === null) {
-            return ['success' => false, 'message' => 'Data Pegawai tidak ditemukan.'];
+            return $this->fail('Data Pegawai tidak ditemukan.');
         }
 
         $this->db->transBegin();
 
         try {
-            if (!$this->pegawaiModel->delete($id)) {
-                throw new \RuntimeException(
-                    'Data Pegawai gagal dipindahkan ke Recycle Bin.'
-                );
+            if (! $this->pegawaiModel->delete($id)) {
+                throw new \RuntimeException('Data Pegawai gagal dipindahkan ke Recycle Bin.');
             }
 
-            $linkedUser = $this->db
-                ->table('users')
-                ->where('id_pegawai', $id)
-                ->get()
-                ->getRowArray();
+            $linkedUser = $this->db->table('users')->where('id_pegawai', $id)->get()->getRowArray();
 
             if ($linkedUser !== null) {
                 $this->db
@@ -291,34 +326,27 @@ class PegawaiService
                     ->update([
                         'status_aktif' => 0,
                         'auth_version' => ((int) $linkedUser['auth_version']) + 1,
-                        'updated_at'   => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
                     ]);
             }
-
-            $this->logActivity(
-                'DELETE',
-                'Master Pegawai',
-                sprintf(
-                    'Memindahkan Pegawai ID %d - %s ke Recycle Bin.',
-                    $id,
-                    $pegawai['nama']
-                )
-            );
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
 
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'DELETE',
+                'Master Pegawai',
+                sprintf('Memindahkan Pegawai ID %d - %s ke Recycle Bin.', $id, $pegawai['nama'])
+            );
+
             $this->db->transCommit();
 
-            return [
-                'success' => true,
-                'message' => 'Data Pegawai dipindahkan ke Recycle Bin.',
-            ];
+            return ['success' => true, 'message' => 'Data Pegawai dipindahkan ke Recycle Bin.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return ['success' => false, 'message' => $e->getMessage()];
+            return $this->fail($e->getMessage());
         }
     }
 
@@ -327,92 +355,68 @@ class PegawaiService
         $pegawai = $this->findWithDeleted($id);
 
         if ($pegawai === null || empty($pegawai['deleted_at'])) {
-            return [
-                'success' => false,
-                'message' => 'Data Pegawai pada Recycle Bin tidak ditemukan.',
-            ];
+            return $this->fail('Data Pegawai pada Recycle Bin tidak ditemukan.');
+        }
+
+        $login = $this->loginIdentifier($pegawai);
+        if ($login === '') {
+            return $this->fail('Restore gagal: identitas login Pegawai belum tersedia.');
+        }
+
+        $linkedUser = $this->db->table('users')->where('id_pegawai', $id)->get()->getRowArray();
+        $available = $this->usernameAvailable(
+            $login,
+            $linkedUser !== null ? (int) $linkedUser['id'] : null
+        );
+
+        if (! $available) {
+            return $this->fail('Restore gagal: identitas login sudah digunakan akun lain.');
         }
 
         $this->db->transBegin();
 
         try {
-            $this->db
-                ->table('pegawai')
-                ->where('id', $id)
-                ->update([
-                    'deleted_at' => null,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            $linkedUser = $this->db
-                ->table('users')
-                ->where('id_pegawai', $id)
-                ->get()
-                ->getRowArray();
-
-            if ($linkedUser !== null) {
-                $this->db
-                    ->table('users')
-                    ->where('id', (int) $linkedUser['id'])
-                    ->update([
-                        'status_aktif' => 1,
-                        'auth_version' => ((int) $linkedUser['auth_version']) + 1,
-                        'updated_at'   => date('Y-m-d H:i:s'),
-                    ]);
-            } else {
-                if (
-                    $this->db
-                        ->table('users')
-                        ->where('username', $pegawai['nip'])
-                        ->countAllResults() > 0
-                ) {
-                    throw new \RuntimeException(
-                        'Restore gagal: username NIP Pegawai sudah digunakan akun lain.'
-                    );
-                }
-
-                $idUser = $this->userModel->insert([
-                    'username'     => $pegawai['nip'],
-                    'password'     => password_hash($pegawai['nip'], PASSWORD_DEFAULT),
-                    'role'         => null,
-                    'id_guru'      => null,
-                    'id_pegawai'   => $id,
-                    'id_siswa'     => null,
-                    'status_aktif' => 1,
-                    'auth_version' => 1,
-                ], true);
-
-                if ($idUser === false) {
-                    throw new \RuntimeException(
-                        'Akun Pegawai gagal dibuat kembali saat restore.'
-                    );
-                }
+            if (! $this->db->table('pegawai')->where('id', $id)->update([
+                'deleted_at' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ])) {
+                throw new \RuntimeException('Data Pegawai gagal dipulihkan.');
             }
 
-            $this->logActivity(
-                'RESTORE',
-                'Master Pegawai',
-                sprintf(
-                    'Memulihkan Pegawai ID %d - %s dari Recycle Bin.',
-                    $id,
-                    $pegawai['nama']
-                )
-            );
+            if ($linkedUser === null) {
+                $this->createPegawaiUser($id, $login);
+            } else {
+                $userUpdate = [
+                    'username' => $login,
+                    'status_aktif' => 1,
+                    'auth_version' => ((int) $linkedUser['auth_version']) + 1,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+
+                if ((string) $linkedUser['username'] !== $login) {
+                    $userUpdate['password'] = password_hash($login, PASSWORD_DEFAULT);
+                }
+
+                $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate);
+            }
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
 
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'RESTORE',
+                'Master Pegawai',
+                sprintf('Memulihkan Pegawai ID %d - %s.', $id, $pegawai['nama'])
+            );
+
             $this->db->transCommit();
 
-            return [
-                'success' => true,
-                'message' => 'Data Pegawai berhasil dipulihkan.',
-            ];
+            return ['success' => true, 'message' => 'Data Pegawai berhasil dipulihkan.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return ['success' => false, 'message' => $e->getMessage()];
+            return $this->fail($e->getMessage());
         }
     }
 
@@ -421,358 +425,429 @@ class PegawaiService
         $pegawai = $this->findWithDeleted($id);
 
         if ($pegawai === null || empty($pegawai['deleted_at'])) {
-            return [
-                'success' => false,
-                'message' => 'Data Pegawai pada Recycle Bin tidak ditemukan.',
-            ];
+            return $this->fail('Data Pegawai pada Recycle Bin tidak ditemukan.');
         }
 
         $this->db->transBegin();
 
         try {
-            $this->db
-                ->table('users')
-                ->where('id_pegawai', $id)
-                ->delete();
-
-            $this->db
-                ->table('pegawai')
-                ->where('id', $id)
-                ->delete();
+            $this->db->table('users')->where('id_pegawai', $id)->delete();
+            $this->db->table('pegawai')->where('id', $id)->delete();
 
             if ($this->db->transStatus() === false) {
-                throw new \RuntimeException(
-                    'Pegawai tidak dapat dihapus permanen karena masih digunakan data lain.'
-                );
+                throw new \RuntimeException('Pegawai masih direferensikan data lain.');
             }
 
-            $this->logActivity(
+            $this->activityLog->write(
+                $this->actorUserId(),
                 'FORCE_DELETE',
                 'Master Pegawai',
-                sprintf(
-                    'Menghapus permanen Pegawai ID %d - %s.',
-                    $id,
-                    $pegawai['nama']
-                )
+                sprintf('Menghapus permanen Pegawai ID %d - %s.', $id, $pegawai['nama'])
             );
 
             $this->db->transCommit();
 
-            return [
-                'success' => true,
-                'message' => 'Data Pegawai berhasil dihapus permanen.',
-            ];
+            if (! empty($pegawai['foto'])) {
+                $this->deleteFotoFile((string) $pegawai['foto']);
+            }
+
+            return ['success' => true, 'message' => 'Data Pegawai berhasil dihapus permanen.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return [
-                'success' => false,
-                'message' => 'Hapus permanen gagal. Data Pegawai kemungkinan masih direferensikan akun atau data terkait lainnya.',
-            ];
+            return $this->fail(
+                'Hapus permanen gagal. Data Pegawai kemungkinan masih digunakan akun atau data terkait lainnya.'
+            );
         }
     }
 
-    /**
-     * Template:
-     * NIP | NAMA LENGKAP | JENIS KELAMIN (L/P) | JABATAN
-     */
     public function importExcel(UploadedFile $file): array
     {
-        if (!$file->isValid()) {
-            return ['success' => false, 'message' => 'File import tidak valid.'];
+        if (! $file->isValid()) {
+            return $this->fail('File import tidak valid.');
         }
 
         $extension = strtolower((string) $file->getClientExtension());
-        if (!in_array($extension, ['xlsx', 'xls'], true)) {
-            return [
-                'success' => false,
-                'message' => 'File import harus berformat XLSX atau XLS.',
-            ];
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return $this->fail('File import harus berformat XLSX atau XLS.');
         }
 
         try {
-            $spreadsheet = IOFactory::load($file->getTempName());
-            $rows = $spreadsheet
-                ->getActiveSheet()
-                ->toArray(null, true, true, false);
+            $sheet = IOFactory::load($file->getTempName())->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
         } catch (Throwable $e) {
-            return [
-                'success' => false,
-                'message' => 'File Excel tidak dapat dibaca.',
-            ];
+            return $this->fail('File Excel tidak dapat dibaca: ' . $e->getMessage());
         }
 
-        if (count($rows) < 2) {
-            return [
-                'success' => false,
-                'message' => 'File import tidak memiliki data Pegawai.',
-            ];
+        if ($rows === []) {
+            return $this->fail('File import kosong.');
         }
 
         $header = array_map(
             static fn ($value): string => strtoupper(trim((string) $value)),
-            $rows[0]
+            $rows[array_key_first($rows)]
         );
 
-        $expected = [
-            'NIP',
-            'NAMA LENGKAP',
-            'JENIS KELAMIN (L/P)',
-            'JABATAN',
-        ];
-
-        if (array_slice($header, 0, 4) !== $expected) {
-            return [
-                'success' => false,
-                'message' => 'Header template tidak sesuai. Gunakan template resmi Master Pegawai.',
-            ];
+        $columns = $this->resolveImportColumns($header);
+        if ($columns === null) {
+            return $this->fail(
+                'Header import harus memuat: NIK, NIP, NAMA LENGKAP & GELAR, JENIS KELAMIN (L/P), STATUS KEPEGAWAIAN.'
+            );
         }
 
         $prepared = [];
+        $seenNik = [];
         $seenNip = [];
+        $lineNo = 1;
 
-        for ($i = 1, $count = count($rows); $i < $count; $i++) {
-            $excelRow = $i + 1;
+        foreach (array_slice($rows, 1, null, true) as $row) {
+            $lineNo++;
 
-            $nip     = trim((string) ($rows[$i][0] ?? ''));
-            $nama    = trim((string) ($rows[$i][1] ?? ''));
-            $jk      = strtoupper(trim((string) ($rows[$i][2] ?? '')));
-            $jabatan = trim((string) ($rows[$i][3] ?? ''));
+            $rawValues = array_map(
+                static fn ($value): string => trim((string) $value),
+                $row
+            );
 
-            if ($nip === '' && $nama === '' && $jk === '' && $jabatan === '') {
+            if (implode('', $rawValues) === '') {
                 continue;
             }
 
-            if (
-                $nip === ''
-                || $nama === ''
-                || !in_array($jk, ['L', 'P'], true)
-            ) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP, nama, dan jenis kelamin L/P wajib valid.",
-                ];
+            $payload = $this->normalizePayload([
+                'nik' => $row[$columns['nik']] ?? '',
+                'nip' => $row[$columns['nip']] ?? '',
+                'nama' => $row[$columns['nama']] ?? '',
+                'jenis_kelamin' => $row[$columns['jk']] ?? '',
+                'status_kepegawaian' => $row[$columns['status']] ?? '',
+            ]);
+
+            $validation = $this->validateBusiness($payload);
+            if ($validation !== null) {
+                return $this->fail('Baris ' . $lineNo . ': ' . $validation['message']);
             }
 
-            if (isset($seenNip[$nip])) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP {$nip} duplikat di dalam file.",
-                ];
+            if (isset($seenNik[$payload['nik']])) {
+                return $this->fail('Baris ' . $lineNo . ': NIK duplikat di dalam file import.');
+            }
+            $seenNik[$payload['nik']] = true;
+
+            if ($payload['nip'] !== null) {
+                if (isset($seenNip[$payload['nip']])) {
+                    return $this->fail('Baris ' . $lineNo . ': NIP duplikat di dalam file import.');
+                }
+                $seenNip[$payload['nip']] = true;
             }
 
-            $seenNip[$nip] = true;
-
-            if ($this->nipExistsAnywhere($nip)) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP {$nip} sudah dipakai pada Guru/Pegawai.",
-                ];
-            }
-
-            if (
-                $this->db
-                    ->table('users')
-                    ->where('username', $nip)
-                    ->countAllResults() > 0
-            ) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: username {$nip} sudah digunakan.",
-                ];
-            }
-
-            $prepared[] = [
-                'nip'           => $nip,
-                'nama'          => $nama,
-                'jenis_kelamin' => $jk,
-                'tempat_lahir'  => null,
-                'tanggal_lahir' => null,
-                'alamat'        => null,
-                'no_telepon'    => null,
-                'email'         => null,
-                'jabatan'       => $jabatan !== '' ? $jabatan : null,
-            ];
+            $prepared[] = $payload;
         }
 
         if ($prepared === []) {
-            return [
-                'success' => false,
-                'message' => 'Tidak ada baris data Pegawai yang dapat diimport.',
-            ];
+            return $this->fail('Tidak ada baris data Pegawai yang dapat diimport.');
         }
 
         $this->db->transBegin();
 
         try {
-            foreach ($prepared as $row) {
-                $idPegawai = $this->pegawaiModel->insert($row, true);
-
-                if ($idPegawai === false) {
-                    throw new \RuntimeException(
-                        implode(' ', $this->pegawaiModel->errors())
-                        ?: 'Insert Pegawai gagal.'
-                    );
-                }
-
-                $idUser = $this->userModel->insert([
-                    'username'     => $row['nip'],
-                    'password'     => password_hash($row['nip'], PASSWORD_DEFAULT),
-                    'role'         => null,
-                    'id_guru'      => null,
-                    'id_pegawai'   => (int) $idPegawai,
-                    'id_siswa'     => null,
-                    'status_aktif' => 1,
-                    'auth_version' => 1,
-                ], true);
-
-                if ($idUser === false) {
-                    throw new \RuntimeException(
-                        'Pembuatan akun Pegawai gagal.'
-                    );
-                }
+            foreach ($prepared as $payload) {
+                $this->insertPegawaiAndUser($payload);
             }
-
-            $this->logActivity(
-                'IMPORT',
-                'Master Pegawai',
-                sprintf('Import %d Pegawai dari Excel.', count($prepared))
-            );
 
             if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Transaksi database gagal.');
+                throw new \RuntimeException('Transaksi import gagal.');
             }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'IMPORT',
+                'Master Pegawai',
+                sprintf('Import %d data Pegawai berhasil.', count($prepared))
+            );
 
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => sprintf(
-                    '%d data Pegawai berhasil diimport. Akun dibuat tanpa role.',
-                    count($prepared)
-                ),
+                'message' => sprintf('%d data Pegawai berhasil diimport.', count($prepared)),
+                'total' => count($prepared),
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return [
-                'success' => false,
-                'message' => 'Import dibatalkan seluruhnya: ' . $e->getMessage(),
-            ];
+            return $this->fail('Import dibatalkan: ' . $e->getMessage());
         }
     }
 
-    protected function normalizePayload(array $data): array
+    private function insertPegawaiAndUser(array $payload): int
     {
-        $nullable = static function ($value): ?string {
-            $value = trim((string) $value);
-            return $value === '' ? null : $value;
-        };
+        $idPegawai = $this->pegawaiModel->insert($payload, true);
 
+        if ($idPegawai === false) {
+            throw new \RuntimeException(
+                implode(' ', $this->pegawaiModel->errors()) ?: 'Data Pegawai gagal disimpan.'
+            );
+        }
+
+        $idPegawai = (int) $idPegawai;
+        $this->createPegawaiUser($idPegawai, $this->loginIdentifier($payload));
+
+        return $idPegawai;
+    }
+
+    private function createPegawaiUser(int $idPegawai, string $login): int
+    {
+        if ($login === '') {
+            throw new \RuntimeException('Identitas login Pegawai tidak tersedia.');
+        }
+
+        if (! $this->usernameAvailable($login)) {
+            throw new \RuntimeException('Identitas login sudah digunakan akun lain.');
+        }
+
+        $idUser = $this->userModel->insert([
+            'username' => $login,
+            'password' => password_hash($login, PASSWORD_DEFAULT),
+            'role' => null,
+            'id_guru' => null,
+            'id_pegawai' => $idPegawai,
+            'id_siswa' => null,
+            'status_aktif' => 1,
+            'auth_version' => 1,
+        ], true);
+
+        if ($idUser === false) {
+            throw new \RuntimeException(
+                implode(' ', $this->userModel->errors()) ?: 'Akun Pegawai gagal dibuat.'
+            );
+        }
+
+        return (int) $idUser;
+    }
+
+    private function normalizePayload(array $data): array
+    {
         return [
-            'nip'           => trim((string) ($data['nip'] ?? '')),
-            'nama'          => trim((string) ($data['nama'] ?? '')),
-            'jenis_kelamin' => strtoupper(
-                trim((string) ($data['jenis_kelamin'] ?? ''))
-            ),
-            'tempat_lahir'  => $nullable($data['tempat_lahir'] ?? null),
-            'tanggal_lahir' => $nullable($data['tanggal_lahir'] ?? null),
-            'alamat'        => $nullable($data['alamat'] ?? null),
-            'no_telepon'    => $nullable($data['no_telepon'] ?? null),
-            'email'         => $nullable($data['email'] ?? null),
-            'jabatan'       => $nullable($data['jabatan'] ?? null),
+            'nik' => $this->identifier($data['nik'] ?? null),
+            'nip' => $this->nullableIdentifier($data['nip'] ?? null),
+            'nama' => trim((string) ($data['nama'] ?? '')),
+            'jenis_kelamin' => strtoupper(trim((string) ($data['jenis_kelamin'] ?? ''))),
+            'tempat_lahir' => $this->nullableText($data['tempat_lahir'] ?? null, 100),
+            'tanggal_lahir' => $this->nullableText($data['tanggal_lahir'] ?? null, 10),
+            'agama' => $this->nullableText($data['agama'] ?? null, 30),
+            'alamat' => $this->nullableText($data['alamat'] ?? null, 5000),
+            'no_telepon' => $this->nullableText($data['no_telepon'] ?? null, 20),
+            'email' => $this->nullableText($data['email'] ?? null, 100),
+            'status_kepegawaian' => $this->canonicalStatus($data['status_kepegawaian'] ?? null),
+            'nuptk' => $this->nullableIdentifier($data['nuptk'] ?? null),
         ];
     }
 
-    protected function validateBusiness(
+    private function validateBusiness(
         array $payload,
-        ?int $exceptPegawaiId = null
+        ?int $currentId = null,
+        ?int $linkedUserId = null
     ): ?array {
-        if ($payload['nip'] === '') {
-            return ['success' => false, 'message' => 'NIP wajib diisi.'];
+        if (! $this->validNik((string) $payload['nik'])) {
+            return $this->fail('NIK wajib berupa tepat 16 digit angka.');
         }
 
-        $pegawaiBuilder = $this->db
-            ->table('pegawai')
-            ->where('nip', $payload['nip']);
-
-        if ($exceptPegawaiId !== null) {
-            $pegawaiBuilder->where('id !=', $exceptPegawaiId);
+        if ($payload['nip'] !== null && ! preg_match('/^[0-9]{18}$/', $payload['nip'])) {
+            return $this->fail('NIP harus kosong atau berupa tepat 18 digit angka.');
         }
 
-        if ($pegawaiBuilder->countAllResults() > 0) {
-            return [
-                'success' => false,
-                'message' => 'NIP sudah digunakan pada data Pegawai.',
-            ];
+        if ($payload['nama'] === '' || mb_strlen($payload['nama']) > 150) {
+            return $this->fail('Nama lengkap wajib diisi maksimal 150 karakter.');
         }
 
-        if (
-            $this->db
-                ->table('guru')
-                ->where('nip', $payload['nip'])
-                ->countAllResults() > 0
-        ) {
-            return [
-                'success' => false,
-                'message' => 'NIP sudah digunakan pada data Guru.',
-            ];
+        if (! in_array($payload['jenis_kelamin'], ['L', 'P'], true)) {
+            return $this->fail('Jenis kelamin harus L atau P.');
         }
 
-        $userBuilder = $this->db
-            ->table('users')
-            ->where('username', $payload['nip']);
+        if ($payload['status_kepegawaian'] === null) {
+            return $this->fail('Status kepegawaian wajib dipilih.');
+        }
 
-        if ($exceptPegawaiId !== null) {
-            $linked = $this->db
-                ->table('users')
-                ->select('id')
-                ->where('id_pegawai', $exceptPegawaiId)
-                ->get()
-                ->getRowArray();
+        if ($payload['nuptk'] !== null && ! preg_match('/^[0-9]{16}$/', $payload['nuptk'])) {
+            return $this->fail('NUPTK harus kosong atau berupa tepat 16 digit angka.');
+        }
 
-            if ($linked !== null) {
-                $userBuilder->where('id !=', (int) $linked['id']);
+        if ($payload['email'] !== null && ! filter_var($payload['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->fail('Format email tidak valid.');
+        }
+
+        if ($payload['tanggal_lahir'] !== null && ! $this->validDate($payload['tanggal_lahir'])) {
+            return $this->fail('Tanggal lahir harus menggunakan format YYYY-MM-DD.');
+        }
+
+        if ($this->identifierExists('pegawai', 'nik', $payload['nik'], $currentId)) {
+            return $this->fail('NIK sudah terdaftar pada data Pegawai.');
+        }
+
+        if ($this->pegawaiModel->nikDipakaiGuru($payload['nik'])) {
+            return $this->fail('NIK sudah digunakan pada data Guru.');
+        }
+
+        if ($payload['nip'] !== null) {
+            if ($this->identifierExists('pegawai', 'nip', $payload['nip'], $currentId)) {
+                return $this->fail('NIP sudah terdaftar pada data Pegawai.');
+            }
+
+            if ($this->pegawaiModel->nipDipakaiGuru($payload['nip'])) {
+                return $this->fail('NIP sudah digunakan pada data Guru.');
             }
         }
 
-        if ($userBuilder->countAllResults() > 0) {
-            return [
-                'success' => false,
-                'message' => 'NIP tidak dapat digunakan karena username yang sama sudah dipakai akun lain.',
-            ];
+        $login = $this->loginIdentifier($payload);
+        if (! $this->usernameAvailable($login, $linkedUserId)) {
+            return $this->fail('Identitas login tidak dapat digunakan karena username yang sama sudah dipakai akun lain.');
         }
 
         return null;
     }
 
-    protected function nipExistsAnywhere(string $nip): bool
-    {
-        return $this->db
-                ->table('guru')
-                ->where('nip', $nip)
-                ->countAllResults() > 0
-            || $this->db
-                ->table('pegawai')
-                ->where('nip', $nip)
-                ->countAllResults() > 0;
+    private function identifierExists(
+        string $table,
+        string $field,
+        string $value,
+        ?int $currentId
+    ): bool {
+        $builder = $this->db->table($table)->where($field, $value);
+
+        if ($currentId !== null) {
+            $builder->where('id !=', $currentId);
+        }
+
+        return $builder->countAllResults() > 0;
     }
 
-    protected function logActivity(
-        string $aksi,
-        string $modul,
-        string $keterangan
-    ): void {
-        $idUser = session()->get('user_id');
+    private function usernameAvailable(string $username, ?int $ignoreUserId = null): bool
+    {
+        if ($username === '') {
+            return false;
+        }
 
-        $this->db
-            ->table('log_activity')
-            ->insert([
-                'id_user'    => $idUser ? (int) $idUser : null,
-                'aksi'       => $aksi,
-                'modul'      => $modul,
-                'keterangan' => $keterangan,
-                'waktu'      => date('Y-m-d H:i:s'),
-            ]);
+        $builder = $this->db->table('users')->where('username', $username);
+
+        if ($ignoreUserId !== null) {
+            $builder->where('id !=', $ignoreUserId);
+        }
+
+        return $builder->countAllResults() === 0;
+    }
+
+    private function loginIdentifier(array $data): string
+    {
+        $nip = trim((string) ($data['nip'] ?? ''));
+        if ($nip !== '') {
+            return $nip;
+        }
+
+        return trim((string) ($data['nik'] ?? ''));
+    }
+
+    private function validNik(string $nik): bool
+    {
+        return (bool) preg_match('/^[0-9]{16}$/', trim($nik));
+    }
+
+    private function canonicalStatus(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (self::STATUS_KEPEGAWAIAN as $status) {
+            if (strcasecmp($status, $value) === 0) {
+                return $status;
+            }
+        }
+
+        return null;
+    }
+
+    private function identifier(mixed $value): string
+    {
+        return preg_replace('/\s+/u', '', trim((string) $value)) ?? '';
+    }
+
+    private function nullableIdentifier(mixed $value): ?string
+    {
+        $value = $this->identifier($value);
+        return $value !== '' ? $value : null;
+    }
+
+    private function nullableText(mixed $value, int $maxLength): ?string
+    {
+        $value = trim((string) $value);
+        return $value !== '' ? mb_substr($value, 0, $maxLength) : null;
+    }
+
+    private function validDate(string $date): bool
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        return $parsed !== false
+            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
+            && $parsed->format('Y-m-d') === $date;
+    }
+
+    private function processFoto(UploadedFile $foto, string $identity): string
+    {
+        $safe = preg_replace('/[^A-Za-z0-9_-]/', '_', $identity) ?: 'pegawai';
+
+        return $this->uploadService->processFotoPortrait(
+            $foto,
+            rtrim(FCPATH . 'uploads/foto_pegawai', DIRECTORY_SEPARATOR),
+            'pegawai_' . $safe
+        );
+    }
+
+    private function deleteFotoFile(string $filename): void
+    {
+        $filename = basename(trim($filename));
+        if ($filename === '') {
+            return;
+        }
+
+        $path = rtrim(FCPATH . 'uploads/foto_pegawai', DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR
+            . $filename;
+
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    private function resolveImportColumns(array $header): ?array
+    {
+        $aliases = [
+            'nik' => ['NIK'],
+            'nip' => ['NIP'],
+            'nama' => ['NAMA LENGKAP & GELAR', 'NAMA LENGKAP', 'NAMA'],
+            'jk' => ['JENIS KELAMIN (L/P)', 'JENIS KELAMIN', 'JK'],
+            'status' => ['STATUS KEPEGAWAIAN', 'STATUS PEGAWAI', 'STATUS'],
+        ];
+
+        $resolved = [];
+
+        foreach ($aliases as $key => $names) {
+            foreach ($header as $column => $title) {
+                if (in_array($title, $names, true)) {
+                    $resolved[$key] = $column;
+                    break;
+                }
+            }
+        }
+
+        return count($resolved) === count($aliases) ? $resolved : null;
+    }
+
+    private function actorUserId(): ?int
+    {
+        $id = (int) session()->get('user_id');
+        return $id > 0 ? $id : null;
+    }
+
+    private function fail(string $message): array
+    {
+        return ['success' => false, 'message' => $message];
     }
 }

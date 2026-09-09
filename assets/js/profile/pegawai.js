@@ -1,12 +1,12 @@
 (() => {
   'use strict';
 
-  const app = document.getElementById('profileGuruApp');
+  const app = document.getElementById('profilePegawaiApp');
   if (!app) return;
 
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
-  const form = document.getElementById('formProfileGuru');
-  const fotoForm = document.getElementById('formFotoProfileGuru');
+  const form = document.getElementById('formProfilePegawai');
+  const fotoForm = document.getElementById('formFotoProfilePegawai');
 
   const notify = async (text, error = false) => {
     if (window.Swal) {
@@ -29,7 +29,7 @@
 
     try {
       const fd = new FormData(form);
-      const response = await fetch(`${base}/profile/guru/update`, {
+      const response = await fetch(`${base}/profile/pegawai/update`, {
         method: 'PUT',
         body: new URLSearchParams(fd),
         headers: {
@@ -57,7 +57,7 @@
     setBusy(fotoForm, true);
 
     try {
-      const response = await fetch(`${base}/profile/guru/upload-foto`, {
+      const response = await fetch(`${base}/profile/pegawai/upload-foto`, {
         method: 'POST',
         body: new FormData(fotoForm),
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },

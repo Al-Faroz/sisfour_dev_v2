@@ -3,29 +3,10 @@
 namespace App\Controllers;
 
 use App\Services\GuruService;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-/**
- * MasterGuru
- *
- * Controller Master Guru.
- *
- * Routes:
- * GET    /master/guru
- * GET    /master/guru/json
- * GET    /master/guru/template
- * POST   /master/guru/create
- * POST   /master/guru/import
- * GET    /master/guru/export
- * PUT    /master/guru/update/{id}
- * POST   /master/guru/upload-foto/{id}
- * DELETE /master/guru/delete/{id}
- * GET    /master/guru/recycle
- * GET    /master/guru/recycle/json
- * POST   /master/guru/restore/{id}
- * DELETE /master/guru/force-delete/{id}
- */
 class MasterGuru extends BaseController
 {
     protected GuruService $guruService;
@@ -38,21 +19,21 @@ class MasterGuru extends BaseController
     public function index()
     {
         $filter = $this->filters();
-        $isJson = $this->isJsonRequest();
 
-        if ($isJson) {
+        if ($this->isJsonRequest()) {
             return $this->response->setJSON([
                 'status' => 'success',
-                'data'   => $this->guruService->getList($filter),
+                'data' => $this->guruService->getList($filter),
             ]);
         }
 
         return $this->response->setBody(
             $this->renderWithLayout('master/guru', [
-                'title'     => 'Master Guru',
+                'title' => 'Master Guru',
                 'canManage' => $this->canManage(),
-                'filters'   => $filter,
-                'extraJs'   => ['assets/js/master/guru.js'],
+                'filters' => $filter,
+                'statusOptions' => GuruService::STATUS_KEPEGAWAIAN,
+                'extraJs' => ['assets/js/master/guru.js'],
             ])
         );
     }
@@ -62,13 +43,13 @@ class MasterGuru extends BaseController
         if ($this->isJsonRequest()) {
             return $this->response->setJSON([
                 'status' => 'success',
-                'data'   => $this->guruService->getList($this->filters(), true),
+                'data' => $this->guruService->getList($this->filters(), true),
             ]);
         }
 
         return $this->response->setBody(
             $this->renderWithLayout('master/guru_recycle', [
-                'title'   => 'Recycle Bin Guru',
+                'title' => 'Recycle Bin Guru',
                 'filters' => $this->filters(),
                 'extraJs' => ['assets/js/master/guru-recycle.js'],
             ])
@@ -77,20 +58,17 @@ class MasterGuru extends BaseController
 
     public function create()
     {
-        $foto = $this->request->getFile('foto');
-
-        $result = $this->guruService->create(
-            $this->request->getPost(),
-            $foto
+        return $this->respondResult(
+            $this->guruService->create(
+                $this->request->getPost(),
+                $this->request->getFile('foto')
+            ),
+            201
         );
-
-        return $this->respondResult($result, 201);
     }
 
     public function update($id)
     {
-        $id = (int) $id;
-
         $payload = $this->request->getRawInput();
 
         if ($payload === []) {
@@ -98,9 +76,9 @@ class MasterGuru extends BaseController
             $payload = is_array($json) ? $json : [];
         }
 
-        $result = $this->guruService->update($id, $payload);
-
-        return $this->respondResult($result);
+        return $this->respondResult(
+            $this->guruService->update((int) $id, $payload)
+        );
     }
 
     public function uploadFoto($id)
@@ -108,12 +86,10 @@ class MasterGuru extends BaseController
         $foto = $this->request->getFile('foto');
 
         if ($foto === null) {
-            return $this->response
-                ->setStatusCode(422)
-                ->setJSON([
-                    'status'  => 'error',
-                    'message' => 'File foto wajib dipilih.',
-                ]);
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'File foto wajib dipilih.',
+            ]);
         }
 
         return $this->respondResult(
@@ -123,23 +99,17 @@ class MasterGuru extends BaseController
 
     public function delete($id)
     {
-        return $this->respondResult(
-            $this->guruService->delete((int) $id)
-        );
+        return $this->respondResult($this->guruService->delete((int) $id));
     }
 
     public function restore($id)
     {
-        return $this->respondResult(
-            $this->guruService->restore((int) $id)
-        );
+        return $this->respondResult($this->guruService->restore((int) $id));
     }
 
     public function forceDelete($id)
     {
-        return $this->respondResult(
-            $this->guruService->forceDelete((int) $id)
-        );
+        return $this->respondResult($this->guruService->forceDelete((int) $id));
     }
 
     public function import()
@@ -147,17 +117,13 @@ class MasterGuru extends BaseController
         $file = $this->request->getFile('file');
 
         if ($file === null) {
-            return $this->response
-                ->setStatusCode(422)
-                ->setJSON([
-                    'status'  => 'error',
-                    'message' => 'File Excel wajib dipilih.',
-                ]);
+            return $this->response->setStatusCode(422)->setJSON([
+                'status' => 'error',
+                'message' => 'File Excel wajib dipilih.',
+            ]);
         }
 
-        return $this->respondResult(
-            $this->guruService->importExcel($file)
-        );
+        return $this->respondResult($this->guruService->importExcel($file));
     }
 
     public function downloadTemplate()
@@ -167,112 +133,97 @@ class MasterGuru extends BaseController
         $sheet->setTitle('Template Guru');
 
         $sheet->fromArray([
-            ['NIP', 'NAMA LENGKAP & GELAR', 'JENIS KELAMIN (L/P)'],
-            ['198501012011011001', 'Ahmad Fauzi, S.Pd.I', 'L'],
+            ['NIK', 'NIP', 'NAMA LENGKAP & GELAR', 'JENIS KELAMIN (L/P)', 'STATUS KEPEGAWAIAN'],
+            ['3517012345670001', '198005152005011004', 'Dr. Ahmad Fauzi, S.Pd., M.Kom.', 'L', 'PNS'],
+            ['3517094803900002', '', 'Zufa Al Husna', 'P', 'GTT'],
         ], null, 'A1');
 
-        foreach (['A', 'B', 'C'] as $column) {
+        $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+        foreach (['A', 'B'] as $column) {
+            $sheet->getStyle($column . ':' . $column)->getNumberFormat()->setFormatCode('@');
+        }
+        foreach (range('A', 'E') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        $sheet->getStyle('A1:C1')->getFont()->setBold(true);
-        $sheet->getStyle('A:A')->getNumberFormat()->setFormatCode('@');
-
-        $filename = 'template_import_guru.xlsx';
-        $tempFile = tempnam(sys_get_temp_dir(), 'sisfour_guru_');
-
-        (new Xlsx($spreadsheet))->save($tempFile);
-
-        return $this->response
-            ->download($tempFile, null)
-            ->setFileName($filename);
+        return $this->downloadSpreadsheet($spreadsheet, 'template_import_guru.xlsx', 'sisfour_guru_template_');
     }
 
     public function export()
     {
         $data = $this->guruService->getList($this->filters());
-
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Data Guru');
 
-        $sheet->setCellValue('A1', 'DATA GURU SISISFOUR');
-        $sheet->mergeCells('A1:J1');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $headers = [
+            'NIK', 'NIP', 'NAMA LENGKAP & GELAR', 'JK', 'TEMPAT LAHIR',
+            'TANGGAL LAHIR', 'AGAMA', 'ALAMAT', 'NO. TELEPON', 'EMAIL',
+            'STATUS KEPEGAWAIAN', 'NUPTK', 'USERNAME LOGIN',
+        ];
 
-        $sheet->fromArray([
-            [
-                'NIP',
-                'NAMA',
-                'JK',
-                'TEMPAT LAHIR',
-                'TANGGAL LAHIR',
-                'ALAMAT',
-                'NO. TELEPON',
-                'EMAIL',
-                'STATUS KEPEGAWAIAN',
-                'FOTO',
-            ],
-        ], null, 'A3');
+        $sheet->setCellValue('A1', 'DATA GURU SISISFOUR');
+        $sheet->mergeCells('A1:M1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->fromArray([$headers], null, 'A3');
+        $sheet->getStyle('A3:M3')->getFont()->setBold(true);
 
         $row = 4;
         foreach ($data as $guru) {
             $sheet->fromArray([[
+                $guru['nik'],
                 $guru['nip'],
                 $guru['nama'],
                 $guru['jenis_kelamin'],
                 $guru['tempat_lahir'],
                 $guru['tanggal_lahir'],
+                $guru['agama'],
                 $guru['alamat'],
                 $guru['no_telepon'],
                 $guru['email'],
                 $guru['status_kepegawaian'],
-                $guru['foto'],
+                $guru['nuptk'],
+                $guru['username'],
             ]], null, 'A' . $row);
 
-            $sheet->setCellValueExplicit(
-                'A' . $row,
-                (string) $guru['nip'],
-                \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING
-            );
-
+            foreach (['A', 'B', 'L', 'M'] as $column) {
+                $sheet->setCellValueExplicit(
+                    $column . $row,
+                    (string) ($sheet->getCell($column . $row)->getValue() ?? ''),
+                    DataType::TYPE_STRING
+                );
+            }
             $row++;
         }
 
-        foreach (range('A', 'J') as $column) {
+        foreach (range('A', 'M') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        $sheet->getStyle('A3:J3')->getFont()->setBold(true);
-
-        $filename = 'data_guru_' . date('Ymd_His') . '.xlsx';
-        $tempFile = tempnam(sys_get_temp_dir(), 'sisfour_export_guru_');
-
-        (new Xlsx($spreadsheet))->save($tempFile);
-
-        return $this->response
-            ->download($tempFile, null)
-            ->setFileName($filename);
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'data_guru_' . date('Ymd_His') . '.xlsx',
+            'sisfour_guru_export_'
+        );
     }
 
     protected function filters(): array
     {
         return [
-            'nama'                => trim((string) $this->request->getGet('nama')),
-            'nip'                 => trim((string) $this->request->getGet('nip')),
-            'jenis_kelamin'       => trim((string) $this->request->getGet('jenis_kelamin')),
-            'status_kepegawaian'  => trim((string) $this->request->getGet('status_kepegawaian')),
+            'nama' => trim((string) $this->request->getGet('nama')),
+            'nik' => trim((string) $this->request->getGet('nik')),
+            'nip' => trim((string) $this->request->getGet('nip')),
+            'jenis_kelamin' => trim((string) $this->request->getGet('jenis_kelamin')),
+            'status_kepegawaian' => trim((string) $this->request->getGet('status_kepegawaian')),
         ];
     }
 
     protected function canManage(): bool
     {
-        $scope = $this->authService->resolveScope(
+        return $this->authService->resolveScope(
             'master_guru.manage',
             (int) session()->get('user_id')
-        );
-
-        return $scope !== 'TIDAK_ADA';
+        ) === 'SEMUA';
     }
 
     protected function isJsonRequest(): bool
@@ -291,9 +242,23 @@ class MasterGuru extends BaseController
         return $this->response
             ->setStatusCode($success ? $successCode : 422)
             ->setJSON([
-                'status'  => $success ? 'success' : 'error',
+                'status' => $success ? 'success' : 'error',
                 'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
-                'data'    => $result,
+                'data' => $result,
             ]);
+    }
+
+    private function downloadSpreadsheet(Spreadsheet $spreadsheet, string $filename, string $prefix)
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), $prefix);
+        (new Xlsx($spreadsheet))->save($tempFile);
+
+        register_shutdown_function(static function () use ($tempFile): void {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        return $this->response->download($tempFile, null)->setFileName($filename);
     }
 }

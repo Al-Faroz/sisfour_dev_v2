@@ -53,6 +53,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('pegawai/export', 'MasterPegawai::export', ['filter' => 'permission:master_pegawai.manage']);
         $routes->put('pegawai/update/(:segment)', 'MasterPegawai::update/$1', ['filter' => 'permission:master_pegawai.manage']);
         $routes->delete('pegawai/delete/(:segment)', 'MasterPegawai::delete/$1', ['filter' => 'permission:master_pegawai.manage']);
+        $routes->post('pegawai/upload-foto/(:segment)', 'MasterPegawai::uploadFoto/$1', ['filter' => 'permission:master_pegawai.manage']);
         $routes->get('pegawai/recycle', 'MasterPegawai::recycle', ['filter' => 'permission:master_pegawai.manage']);
         $routes->get('pegawai/recycle/json', 'MasterPegawai::recycle', ['filter' => 'permission:master_pegawai.manage']);
         $routes->post('pegawai/restore/(:segment)', 'MasterPegawai::restore/$1', ['filter' => 'permission:master_pegawai.manage']);
@@ -205,6 +206,14 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('guru/json', 'ProfileGuru::index', ['filter' => 'permission:profile_guru.view']);
         $routes->put('guru/update', 'ProfileGuru::update', ['filter' => 'permission:profile_guru.edit']);
         $routes->post('guru/upload-foto', 'ProfileGuru::uploadFoto', ['filter' => 'permission:profile_guru.edit']);
+
+        // Profile Pegawai berbasis users.id_pegawai, bukan role Pegawai.
+        // AuthFilter adalah gate; ProfileService memastikan self-identity.
+        $routes->get('pegawai', 'ProfilePegawai::index');
+        $routes->get('pegawai/json', 'ProfilePegawai::index');
+        $routes->put('pegawai/update', 'ProfilePegawai::update');
+        $routes->post('pegawai/upload-foto', 'ProfilePegawai::uploadFoto');
+
         $routes->get('siswa', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
         $routes->get('siswa/json', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
     });
@@ -267,5 +276,8 @@ $routes->group('api', ['filter' => 'auth:api'], static function ($routes) {
     $routes->get('profile/guru', 'ProfileGuru::index', ['filter' => 'permission:profile_guru.view']);
     $routes->put('profile/guru', 'ProfileGuru::update', ['filter' => 'permission:profile_guru.edit']);
     $routes->post('profile/guru/foto', 'ProfileGuru::uploadFoto', ['filter' => 'permission:profile_guru.edit']);
+    $routes->get('profile/pegawai', 'ProfilePegawai::index');
+    $routes->put('profile/pegawai', 'ProfilePegawai::update');
+    $routes->post('profile/pegawai/foto', 'ProfilePegawai::uploadFoto');
     $routes->get('profile/siswa', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
 });

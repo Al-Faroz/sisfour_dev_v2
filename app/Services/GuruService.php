@@ -12,30 +12,32 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Throwable;
 
 /**
- * GuruService
+ * Business logic Master Guru - Phase 2 Personalia.
  *
- * Business logic Master Guru.
- *
- * Acuan:
- * - docs/04_MASTER_DATA §3.1, §6, §8
- *
- * Tanggung jawab:
- * - CRUD Guru.
- * - Validasi NIP lintas guru/pegawai.
- * - Auto-create akun user Guru.
- * - Sinkron username ketika NIP berubah.
- * - Upload foto PNG 2 MB, crop 3:4, re-encode via UploadService.
- * - Import Excel atomic stop-on-error.
- * - Soft delete, recycle bin, restore, force delete.
- * - Activity log.
+ * Aturan login:
+ * - bila NIP tersedia, username/password identifier = NIP;
+ * - bila NIP kosong, username/password identifier = NIK;
+ * - perubahan identifier login mereset password dan menaikkan auth_version.
  */
 class GuruService
 {
+    public const STATUS_KEPEGAWAIAN = [
+        'PNS',
+        'PPPK',
+        'GTT',
+        'PTT',
+        'GTY',
+        'PTY',
+        'Honorer',
+        'Outsourcing',
+    ];
+
     protected BaseConnection $db;
     protected GuruModel $guruModel;
     protected UserModel $userModel;
     protected UserRolesModel $userRolesModel;
     protected UploadService $uploadService;
+    protected ActivityLogService $activityLog;
 
     public function __construct()
     {
@@ -44,19 +46,21 @@ class GuruService
         $this->userModel      = new UserModel();
         $this->userRolesModel = new UserRolesModel();
         $this->uploadService  = new UploadService();
+        $this->activityLog    = new ActivityLogService();
     }
 
-    /**
-     * Ambil daftar Guru dengan filter aktif.
-     */
     public function getList(array $filter = [], bool $deletedOnly = false): array
     {
-        $builder = $this->db->table('guru g')
+        $builder = $this->db
+            ->table('guru g')
             ->select(
-                'g.id, g.nip, g.nama, g.jenis_kelamin, g.tempat_lahir, ' .
-                'g.tanggal_lahir, g.alamat, g.no_telepon, g.email, ' .
-                'g.status_kepegawaian, g.foto, g.deleted_at, g.created_at, g.updated_at'
-            );
+                'g.id, g.nik, g.nip, g.nama, g.jenis_kelamin, g.tempat_lahir, ' .
+                'g.tanggal_lahir, g.agama, g.alamat, g.no_telepon, g.email, ' .
+                'g.status_kepegawaian, g.nuptk, g.foto, g.deleted_at, ' .
+                'g.created_at, g.updated_at, u.id AS id_user, u.username, ' .
+                'u.role AS role_user, u.status_aktif AS status_user'
+            )
+            ->join('users u', 'u.id_guru = g.id', 'left');
 
         if ($deletedOnly) {
             $builder->where('g.deleted_at IS NOT NULL', null, false);
@@ -69,117 +73,88 @@ class GuruService
             $builder->like('g.nama', $nama);
         }
 
+        $nik = trim((string) ($filter['nik'] ?? ''));
+        if ($nik !== '') {
+            $builder->like('g.nik', $nik);
+        }
+
         $nip = trim((string) ($filter['nip'] ?? ''));
         if ($nip !== '') {
             $builder->like('g.nip', $nip);
         }
 
-        $jk = trim((string) ($filter['jenis_kelamin'] ?? ''));
+        $jk = strtoupper(trim((string) ($filter['jenis_kelamin'] ?? '')));
         if (in_array($jk, ['L', 'P'], true)) {
             $builder->where('g.jenis_kelamin', $jk);
         }
 
-        $status = trim((string) ($filter['status_kepegawaian'] ?? ''));
-        if (in_array($status, ['PNS', 'PPPK', 'NON ASN', 'Yayasan', 'Outsourcing'], true)) {
+        $status = $this->canonicalStatus($filter['status_kepegawaian'] ?? null);
+        if ($status !== null) {
             $builder->where('g.status_kepegawaian', $status);
         }
 
-        return $builder
+        $rows = $builder
             ->orderBy('g.nama', 'ASC')
             ->get()
             ->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['login_identifier'] = $this->loginIdentifier($row);
+            $row['identity_complete'] = $this->validNik((string) ($row['nik'] ?? ''));
+        }
+        unset($row);
+
+        return $rows;
     }
 
-    /**
-     * Detail Guru aktif.
-     */
     public function find(int $id): ?array
     {
         return $this->guruModel->find($id);
     }
 
-    /**
-     * Detail Guru termasuk recycle-bin.
-     */
     public function findWithDeleted(int $id): ?array
     {
         return $this->guruModel->withDeleted()->find($id);
     }
 
-    /**
-     * Create Guru + User + user_roles dalam satu transaction.
-     *
-     * @return array{success:bool,message:string,id?:int,errors?:array}
-     */
     public function create(array $data, ?UploadedFile $foto = null): array
     {
         $payload = $this->normalizePayload($data);
-
         $precheck = $this->validateBusiness($payload);
+
         if ($precheck !== null) {
             return $precheck;
         }
 
         $newFoto = null;
-
         $this->db->transBegin();
 
         try {
             if ($foto !== null && $foto->getError() !== UPLOAD_ERR_NO_FILE) {
-                $newFoto = $this->processFoto($foto, $payload['nip']);
+                $newFoto = $this->processFoto($foto, $this->loginIdentifier($payload));
                 $payload['foto'] = $newFoto;
             }
 
-            $idGuru = $this->guruModel->insert($payload, true);
-
-            if ($idGuru === false) {
-                throw new \RuntimeException(
-                    implode(' ', $this->guruModel->errors()) ?: 'Data Guru gagal disimpan.'
-                );
-            }
-
-            $idGuru = (int) $idGuru;
-
-            $idUser = $this->userModel->insert([
-                'username'     => $payload['nip'],
-                'password'     => password_hash($payload['nip'], PASSWORD_DEFAULT),
-                'role'         => 'guru',
-                'id_guru'      => $idGuru,
-                'id_pegawai'   => null,
-                'id_siswa'     => null,
-                'status_aktif' => 1,
-                'auth_version' => 1,
-            ], true);
-
-            if ($idUser === false) {
-                throw new \RuntimeException(
-                    implode(' ', $this->userModel->errors()) ?: 'Akun Guru gagal dibuat.'
-                );
-            }
-
-            if ($this->userRolesModel->insert([
-                'id_user' => (int) $idUser,
-                'role'    => 'guru',
-            ]) === false) {
-                throw new \RuntimeException('Role akun Guru gagal dibuat.');
-            }
-
-            $this->logActivity(
-                'CREATE',
-                'Master Guru',
-                sprintf('Menambahkan Guru NIP %s - %s.', $payload['nip'], $payload['nama'])
-            );
+            $idGuru = $this->insertGuruAndUser($payload);
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'CREATE',
+                'Master Guru',
+                sprintf('Menambahkan Guru ID %d - %s.', $idGuru, $payload['nama'])
+            );
 
             $this->db->transCommit();
 
             return [
                 'success' => true,
                 'message' => 'Data Guru berhasil ditambahkan dan akun Guru otomatis dibuat.',
-                'id'      => $idGuru,
+                'id' => $idGuru,
+                'login_identifier' => $this->loginIdentifier($payload),
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
@@ -188,130 +163,129 @@ class GuruService
                 $this->deleteFotoFile($newFoto);
             }
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            return $this->fail($e->getMessage());
         }
     }
 
-    /**
-     * Update biodata Guru.
-     *
-     * Foto tidak diproses di PUT; foto memiliki endpoint POST terpisah.
-     *
-     * @return array{success:bool,message:string,errors?:array}
-     */
     public function update(int $id, array $data): array
     {
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
-            return ['success' => false, 'message' => 'Data Guru tidak ditemukan.'];
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
-        $payload = $this->normalizePayload($data);
+        $linkedUser = $this->db
+            ->table('users')
+            ->where('id_guru', $id)
+            ->get()
+            ->getRowArray();
 
-        $precheck = $this->validateBusiness($payload, $id);
+        $payload = $this->normalizePayload($data);
+        $precheck = $this->validateBusiness(
+            $payload,
+            $id,
+            $linkedUser !== null ? (int) $linkedUser['id'] : null
+        );
+
         if ($precheck !== null) {
             return $precheck;
         }
 
+        $oldLogin = $this->loginIdentifier($guru);
+        $newLogin = $this->loginIdentifier($payload);
+        $credentialReset = false;
+
         $this->db->transBegin();
 
         try {
-            if (!$this->guruModel->update($id, $payload)) {
+            if (! $this->guruModel->update($id, $payload)) {
                 throw new \RuntimeException(
                     implode(' ', $this->guruModel->errors()) ?: 'Data Guru gagal diperbarui.'
                 );
             }
 
-            if ($guru['nip'] !== $payload['nip']) {
-                $linkedUser = $this->db
-                    ->table('users')
-                    ->where('id_guru', $id)
-                    ->get()
-                    ->getRowArray();
+            if ($linkedUser === null) {
+                $this->createGuruUser($id, $newLogin);
+                $credentialReset = true;
+            } else {
+                $credentialReset = $oldLogin !== $newLogin
+                    || (string) $linkedUser['username'] !== $newLogin;
 
-                if ($linkedUser !== null) {
-                    $usernameDipakai = $this->db
-                        ->table('users')
-                        ->where('username', $payload['nip'])
-                        ->where('id !=', (int) $linkedUser['id'])
-                        ->countAllResults() > 0;
+                $userUpdate = [
+                    'username' => $newLogin,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
 
-                    if ($usernameDipakai) {
-                        throw new \RuntimeException(
-                            'NIP baru tidak dapat digunakan karena username yang sama sudah dipakai akun lain.'
-                        );
-                    }
-
-                    $this->db
-                        ->table('users')
-                        ->where('id', (int) $linkedUser['id'])
-                        ->update([
-                            'username'     => $payload['nip'],
-                            'auth_version' => ((int) $linkedUser['auth_version']) + 1,
-                            'updated_at'   => date('Y-m-d H:i:s'),
-                        ]);
+                if ($credentialReset) {
+                    $userUpdate['password'] = password_hash($newLogin, PASSWORD_DEFAULT);
+                    $userUpdate['auth_version'] = ((int) $linkedUser['auth_version']) + 1;
                 }
-            }
 
-            $this->logActivity(
-                'UPDATE',
-                'Master Guru',
-                sprintf('Memperbarui Guru ID %d - %s.', $id, $payload['nama'])
-            );
+                if (! $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate)) {
+                    throw new \RuntimeException('Akun Guru gagal disinkronkan.');
+                }
+
+                $this->ensureGuruRole((int) $linkedUser['id']);
+            }
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
 
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'UPDATE',
+                'Master Guru',
+                sprintf(
+                    'Memperbarui Guru ID %d - %s%s',
+                    $id,
+                    $payload['nama'],
+                    $credentialReset ? ' dan mereset kredensial login.' : '.'
+                )
+            );
+
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => 'Data Guru berhasil diperbarui.',
+                'message' => $credentialReset
+                    ? 'Data Guru berhasil diperbarui. Username dan password disinkronkan ke identitas login baru.'
+                    : 'Data Guru berhasil diperbarui.',
+                'credential_reset' => $credentialReset,
+                'login_identifier' => $newLogin,
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            return $this->fail($e->getMessage());
         }
     }
 
-    /**
-     * Upload/ganti foto Guru.
-     *
-     * @return array{success:bool,message:string,foto?:string}
-     */
     public function uploadFoto(int $id, UploadedFile $foto): array
     {
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
-            return ['success' => false, 'message' => 'Data Guru tidak ditemukan.'];
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
         $newFoto = null;
 
         try {
-            $newFoto = $this->processFoto($foto, $guru['nip']);
+            $newFoto = $this->processFoto($foto, $this->loginIdentifier($guru) ?: 'guru_' . $id);
 
-            if (!$this->guruModel->update($id, ['foto' => $newFoto])) {
+            if (! $this->guruModel->update($id, ['foto' => $newFoto])) {
                 throw new \RuntimeException(
                     implode(' ', $this->guruModel->errors()) ?: 'Foto Guru gagal disimpan.'
                 );
             }
 
-            if (!empty($guru['foto'])) {
+            if (! empty($guru['foto'])) {
                 $this->deleteFotoFile((string) $guru['foto']);
             }
 
-            $this->logActivity(
+            $this->activityLog->write(
+                $this->actorUserId(),
                 'UPDATE_FOTO',
                 'Master Guru',
                 sprintf('Mengganti foto Guru ID %d - %s.', $id, $guru['nama'])
@@ -320,197 +294,158 @@ class GuruService
             return [
                 'success' => true,
                 'message' => 'Foto Guru berhasil diperbarui.',
-                'foto'    => $newFoto,
+                'foto' => $newFoto,
             ];
         } catch (Throwable $e) {
             if ($newFoto !== null) {
                 $this->deleteFotoFile($newFoto);
             }
 
-            return [
-                'success' => false,
-                'message' => $e->getMessage(),
-            ];
+            return $this->fail($e->getMessage());
         }
     }
 
-    /**
-     * Soft delete Guru dan nonaktifkan akun terkait.
-     */
     public function delete(int $id): array
     {
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
-            return ['success' => false, 'message' => 'Data Guru tidak ditemukan.'];
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
         $this->db->transBegin();
 
         try {
-            if (!$this->guruModel->delete($id)) {
+            if (! $this->guruModel->delete($id)) {
                 throw new \RuntimeException('Data Guru gagal dipindahkan ke Recycle Bin.');
             }
 
-            $this->db
-                ->table('users')
-                ->where('id_guru', $id)
-                ->update([
-                    'status_aktif' => 0,
-                    'auth_version' => $this->db->raw('auth_version + 1'),
-                    'updated_at'   => date('Y-m-d H:i:s'),
-                ]);
-
-            $this->logActivity(
-                'DELETE',
-                'Master Guru',
-                sprintf('Memindahkan Guru ID %d - %s ke Recycle Bin.', $id, $guru['nama'])
-            );
-
-            if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Transaksi database gagal.');
-            }
-
-            $this->db->transCommit();
-
-            return [
-                'success' => true,
-                'message' => 'Data Guru dipindahkan ke Recycle Bin.',
-            ];
-        } catch (Throwable $e) {
-            $this->db->transRollback();
-
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
-    }
-
-    /**
-     * Restore Guru dari Recycle Bin dan aktifkan kembali akun terkait.
-     */
-    public function restore(int $id): array
-    {
-        $guru = $this->findWithDeleted($id);
-
-        if ($guru === null || empty($guru['deleted_at'])) {
-            return ['success' => false, 'message' => 'Data Guru pada Recycle Bin tidak ditemukan.'];
-        }
-
-        $this->db->transBegin();
-
-        try {
-            $this->db
-                ->table('guru')
-                ->where('id', $id)
-                ->update([
-                    'deleted_at' => null,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ]);
-
-            $linkedUser = $this->db
-                ->table('users')
-                ->where('id_guru', $id)
-                ->get()
-                ->getRowArray();
+            $linkedUser = $this->db->table('users')->where('id_guru', $id)->get()->getRowArray();
 
             if ($linkedUser !== null) {
                 $this->db
                     ->table('users')
                     ->where('id', (int) $linkedUser['id'])
                     ->update([
-                        'status_aktif' => 1,
+                        'status_aktif' => 0,
                         'auth_version' => ((int) $linkedUser['auth_version']) + 1,
-                        'updated_at'   => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
                     ]);
-            } else {
-                $usernameDipakai = $this->db
-                    ->table('users')
-                    ->where('username', $guru['nip'])
-                    ->countAllResults() > 0;
-
-                if ($usernameDipakai) {
-                    throw new \RuntimeException(
-                        'Restore gagal: username NIP Guru sudah digunakan akun lain.'
-                    );
-                }
-
-                $idUser = $this->userModel->insert([
-                    'username'     => $guru['nip'],
-                    'password'     => password_hash($guru['nip'], PASSWORD_DEFAULT),
-                    'role'         => 'guru',
-                    'id_guru'      => $id,
-                    'id_pegawai'   => null,
-                    'id_siswa'     => null,
-                    'status_aktif' => 1,
-                    'auth_version' => 1,
-                ], true);
-
-                if ($idUser === false) {
-                    throw new \RuntimeException('Akun Guru gagal dibuat kembali saat restore.');
-                }
-
-                if ($this->userRolesModel->insert([
-                    'id_user' => (int) $idUser,
-                    'role'    => 'guru',
-                ]) === false) {
-                    throw new \RuntimeException('Role akun Guru gagal dibuat kembali.');
-                }
             }
-
-            $this->logActivity(
-                'RESTORE',
-                'Master Guru',
-                sprintf('Memulihkan Guru ID %d - %s dari Recycle Bin.', $id, $guru['nama'])
-            );
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
             }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'DELETE',
+                'Master Guru',
+                sprintf('Memindahkan Guru ID %d - %s ke Recycle Bin.', $id, $guru['nama'])
+            );
+
+            $this->db->transCommit();
+
+            return ['success' => true, 'message' => 'Data Guru dipindahkan ke Recycle Bin.'];
+        } catch (Throwable $e) {
+            $this->db->transRollback();
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    public function restore(int $id): array
+    {
+        $guru = $this->findWithDeleted($id);
+
+        if ($guru === null || empty($guru['deleted_at'])) {
+            return $this->fail('Data Guru pada Recycle Bin tidak ditemukan.');
+        }
+
+        $login = $this->loginIdentifier($guru);
+        if ($login === '') {
+            return $this->fail('Restore gagal: identitas login Guru belum tersedia.');
+        }
+
+        $linkedUser = $this->db->table('users')->where('id_guru', $id)->get()->getRowArray();
+        $available = $this->usernameAvailable(
+            $login,
+            $linkedUser !== null ? (int) $linkedUser['id'] : null
+        );
+
+        if (! $available) {
+            return $this->fail('Restore gagal: identitas login sudah digunakan akun lain.');
+        }
+
+        $this->db->transBegin();
+
+        try {
+            if (! $this->db->table('guru')->where('id', $id)->update([
+                'deleted_at' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ])) {
+                throw new \RuntimeException('Data Guru gagal dipulihkan.');
+            }
+
+            if ($linkedUser === null) {
+                $this->createGuruUser($id, $login);
+            } else {
+                $userUpdate = [
+                    'username' => $login,
+                    'status_aktif' => 1,
+                    'auth_version' => ((int) $linkedUser['auth_version']) + 1,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ];
+
+                if ((string) $linkedUser['username'] !== $login) {
+                    $userUpdate['password'] = password_hash($login, PASSWORD_DEFAULT);
+                }
+
+                $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate);
+                $this->ensureGuruRole((int) $linkedUser['id']);
+            }
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi database gagal.');
+            }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'RESTORE',
+                'Master Guru',
+                sprintf('Memulihkan Guru ID %d - %s.', $id, $guru['nama'])
+            );
 
             $this->db->transCommit();
 
             return ['success' => true, 'message' => 'Data Guru berhasil dipulihkan.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return ['success' => false, 'message' => $e->getMessage()];
+            return $this->fail($e->getMessage());
         }
     }
 
-    /**
-     * Hapus permanen Guru.
-     *
-     * Foreign key database menjadi perlindungan terakhir. Jika Guru sudah
-     * direferensikan jadwal/presensi/BK/dll., transaksi akan gagal dan data
-     * tetap utuh.
-     */
     public function forceDelete(int $id): array
     {
         $guru = $this->findWithDeleted($id);
 
         if ($guru === null || empty($guru['deleted_at'])) {
-            return ['success' => false, 'message' => 'Data Guru pada Recycle Bin tidak ditemukan.'];
+            return $this->fail('Data Guru pada Recycle Bin tidak ditemukan.');
         }
 
         $this->db->transBegin();
 
         try {
-            $this->db
-                ->table('users')
-                ->where('id_guru', $id)
-                ->delete();
-
-            $this->db
-                ->table('guru')
-                ->where('id', $id)
-                ->delete();
+            $this->db->table('users')->where('id_guru', $id)->delete();
+            $this->db->table('guru')->where('id', $id)->delete();
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException(
-                    'Guru tidak dapat dihapus permanen karena masih digunakan oleh data lain.'
+                    'Guru tidak dapat dihapus permanen karena masih direferensikan data lain.'
                 );
             }
 
-            $this->logActivity(
+            $this->activityLog->write(
+                $this->actorUserId(),
                 'FORCE_DELETE',
                 'Master Guru',
                 sprintf('Menghapus permanen Guru ID %d - %s.', $id, $guru['nama'])
@@ -518,300 +453,429 @@ class GuruService
 
             $this->db->transCommit();
 
-            if (!empty($guru['foto'])) {
+            if (! empty($guru['foto'])) {
                 $this->deleteFotoFile((string) $guru['foto']);
             }
 
             return ['success' => true, 'message' => 'Data Guru berhasil dihapus permanen.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return [
-                'success' => false,
-                'message' => 'Hapus permanen gagal. Data Guru kemungkinan masih dipakai oleh jadwal, presensi, BK, wali kelas, atau data terkait lainnya.',
-            ];
+            return $this->fail(
+                'Hapus permanen gagal. Data Guru masih digunakan oleh jadwal, wali kelas, presensi, BK, atau data terkait lainnya.'
+            );
         }
     }
 
-    /**
-     * Import Excel Guru — atomic + stop-on-error.
-     *
-     * Header wajib:
-     * NIP | NAMA LENGKAP & GELAR | JENIS KELAMIN (L/P)
-     */
     public function importExcel(UploadedFile $file): array
     {
-        if (!$file->isValid()) {
-            return ['success' => false, 'message' => 'File import tidak valid.'];
+        if (! $file->isValid()) {
+            return $this->fail('File import tidak valid.');
         }
 
         $extension = strtolower((string) $file->getClientExtension());
-        if (!in_array($extension, ['xlsx', 'xls'], true)) {
-            return ['success' => false, 'message' => 'File import harus berformat XLSX atau XLS.'];
+        if (! in_array($extension, ['xlsx', 'xls'], true)) {
+            return $this->fail('File import harus berformat XLSX atau XLS.');
         }
 
         try {
-            $spreadsheet = IOFactory::load($file->getTempName());
-            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+            $sheet = IOFactory::load($file->getTempName())->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
         } catch (Throwable $e) {
-            return ['success' => false, 'message' => 'File Excel tidak dapat dibaca.'];
+            return $this->fail('File Excel tidak dapat dibaca: ' . $e->getMessage());
         }
 
-        if (count($rows) < 2) {
-            return ['success' => false, 'message' => 'File import tidak memiliki data Guru.'];
+        if ($rows === []) {
+            return $this->fail('File import kosong.');
         }
 
         $header = array_map(
             static fn ($value): string => strtoupper(trim((string) $value)),
-            $rows[0]
+            $rows[array_key_first($rows)]
         );
 
-        $expected = [
-            'NIP',
-            'NAMA LENGKAP & GELAR',
-            'JENIS KELAMIN (L/P)',
-        ];
-
-        if (array_slice($header, 0, 3) !== $expected) {
-            return [
-                'success' => false,
-                'message' => 'Header template tidak sesuai. Gunakan template resmi Master Guru.',
-            ];
+        $columns = $this->resolveImportColumns($header);
+        if ($columns === null) {
+            return $this->fail(
+                'Header import harus memuat: NIK, NIP, NAMA LENGKAP & GELAR, JENIS KELAMIN (L/P), STATUS KEPEGAWAIAN.'
+            );
         }
 
         $prepared = [];
+        $seenNik = [];
         $seenNip = [];
+        $lineNo = 1;
 
-        for ($i = 1, $count = count($rows); $i < $count; $i++) {
-            $excelRow = $i + 1;
-            $nip      = trim((string) ($rows[$i][0] ?? ''));
-            $nama     = trim((string) ($rows[$i][1] ?? ''));
-            $jk       = strtoupper(trim((string) ($rows[$i][2] ?? '')));
+        foreach (array_slice($rows, 1, null, true) as $row) {
+            $lineNo++;
 
-            if ($nip === '' && $nama === '' && $jk === '') {
+            $rawValues = array_map(
+                static fn ($value): string => trim((string) $value),
+                $row
+            );
+
+            if (implode('', $rawValues) === '') {
                 continue;
             }
 
-            if ($nip === '' || $nama === '' || !in_array($jk, ['L', 'P'], true)) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP, nama, dan jenis kelamin L/P wajib valid.",
-                ];
+            $payload = $this->normalizePayload([
+                'nik' => $row[$columns['nik']] ?? '',
+                'nip' => $row[$columns['nip']] ?? '',
+                'nama' => $row[$columns['nama']] ?? '',
+                'jenis_kelamin' => $row[$columns['jk']] ?? '',
+                'status_kepegawaian' => $row[$columns['status']] ?? '',
+            ]);
+
+            $validation = $this->validateBusiness($payload);
+            if ($validation !== null) {
+                return $this->fail('Baris ' . $lineNo . ': ' . $validation['message']);
             }
 
-            if (isset($seenNip[$nip])) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP {$nip} duplikat di dalam file.",
-                ];
+            if (isset($seenNik[$payload['nik']])) {
+                return $this->fail('Baris ' . $lineNo . ': NIK duplikat di dalam file import.');
             }
-            $seenNip[$nip] = true;
+            $seenNik[$payload['nik']] = true;
 
-            if ($this->nipExistsAnywhere($nip)) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: NIP {$nip} sudah dipakai pada Guru/Pegawai.",
-                ];
+            if ($payload['nip'] !== null) {
+                if (isset($seenNip[$payload['nip']])) {
+                    return $this->fail('Baris ' . $lineNo . ': NIP duplikat di dalam file import.');
+                }
+                $seenNip[$payload['nip']] = true;
             }
 
-            if ($this->db->table('users')->where('username', $nip)->countAllResults() > 0) {
-                return [
-                    'success' => false,
-                    'message' => "Import dihentikan pada baris {$excelRow}: username {$nip} sudah digunakan.",
-                ];
-            }
-
-            $prepared[] = [
-                'nip'                  => $nip,
-                'nama'                 => $nama,
-                'jenis_kelamin'        => $jk,
-                'tempat_lahir'         => null,
-                'tanggal_lahir'        => null,
-                'alamat'               => null,
-                'no_telepon'           => null,
-                'email'                => null,
-                'status_kepegawaian'   => null,
-                'foto'                 => null,
-            ];
+            $prepared[] = $payload;
         }
 
         if ($prepared === []) {
-            return ['success' => false, 'message' => 'Tidak ada baris data Guru yang dapat diimport.'];
+            return $this->fail('Tidak ada baris data Guru yang dapat diimport.');
         }
 
         $this->db->transBegin();
 
         try {
-            foreach ($prepared as $row) {
-                $idGuru = $this->guruModel->insert($row, true);
-
-                if ($idGuru === false) {
-                    throw new \RuntimeException(
-                        implode(' ', $this->guruModel->errors()) ?: 'Insert Guru gagal.'
-                    );
-                }
-
-                $idUser = $this->userModel->insert([
-                    'username'     => $row['nip'],
-                    'password'     => password_hash($row['nip'], PASSWORD_DEFAULT),
-                    'role'         => 'guru',
-                    'id_guru'      => (int) $idGuru,
-                    'id_pegawai'   => null,
-                    'id_siswa'     => null,
-                    'status_aktif' => 1,
-                    'auth_version' => 1,
-                ], true);
-
-                if ($idUser === false) {
-                    throw new \RuntimeException('Pembuatan akun Guru gagal.');
-                }
-
-                if ($this->userRolesModel->insert([
-                    'id_user' => (int) $idUser,
-                    'role'    => 'guru',
-                ]) === false) {
-                    throw new \RuntimeException('Pembuatan role Guru gagal.');
-                }
+            foreach ($prepared as $payload) {
+                $this->insertGuruAndUser($payload);
             }
-
-            $this->logActivity(
-                'IMPORT',
-                'Master Guru',
-                sprintf('Import %d Guru dari Excel.', count($prepared))
-            );
 
             if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Transaksi database gagal.');
+                throw new \RuntimeException('Transaksi import gagal.');
             }
+
+            $this->activityLog->write(
+                $this->actorUserId(),
+                'IMPORT',
+                'Master Guru',
+                sprintf('Import %d data Guru berhasil.', count($prepared))
+            );
 
             $this->db->transCommit();
 
             return [
                 'success' => true,
                 'message' => sprintf('%d data Guru berhasil diimport.', count($prepared)),
+                'total' => count($prepared),
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
-
-            return [
-                'success' => false,
-                'message' => 'Import dibatalkan seluruhnya: ' . $e->getMessage(),
-            ];
+            return $this->fail('Import dibatalkan: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Normalisasi payload form Guru.
-     */
-    protected function normalizePayload(array $data): array
+    private function insertGuruAndUser(array $payload): int
     {
-        $nullable = static function ($value): ?string {
-            $value = trim((string) $value);
-            return $value === '' ? null : $value;
-        };
+        $idGuru = $this->guruModel->insert($payload, true);
 
+        if ($idGuru === false) {
+            throw new \RuntimeException(
+                implode(' ', $this->guruModel->errors()) ?: 'Data Guru gagal disimpan.'
+            );
+        }
+
+        $idGuru = (int) $idGuru;
+        $this->createGuruUser($idGuru, $this->loginIdentifier($payload));
+
+        return $idGuru;
+    }
+
+    private function createGuruUser(int $idGuru, string $login): int
+    {
+        if ($login === '') {
+            throw new \RuntimeException('Identitas login Guru tidak tersedia.');
+        }
+
+        if (! $this->usernameAvailable($login)) {
+            throw new \RuntimeException('Identitas login sudah digunakan akun lain.');
+        }
+
+        $idUser = $this->userModel->insert([
+            'username' => $login,
+            'password' => password_hash($login, PASSWORD_DEFAULT),
+            'role' => 'guru',
+            'id_guru' => $idGuru,
+            'id_pegawai' => null,
+            'id_siswa' => null,
+            'status_aktif' => 1,
+            'auth_version' => 1,
+        ], true);
+
+        if ($idUser === false) {
+            throw new \RuntimeException(
+                implode(' ', $this->userModel->errors()) ?: 'Akun Guru gagal dibuat.'
+            );
+        }
+
+        $this->ensureGuruRole((int) $idUser);
+
+        return (int) $idUser;
+    }
+
+    private function ensureGuruRole(int $idUser): void
+    {
+        $exists = $this->db
+            ->table('user_roles')
+            ->where('id_user', $idUser)
+            ->where('role', 'guru')
+            ->countAllResults() > 0;
+
+        if ($exists) {
+            return;
+        }
+
+        if ($this->userRolesModel->insert([
+            'id_user' => $idUser,
+            'role' => 'guru',
+        ]) === false) {
+            throw new \RuntimeException('Role akun Guru gagal dibuat.');
+        }
+    }
+
+    private function normalizePayload(array $data): array
+    {
         return [
-            'nip'                  => trim((string) ($data['nip'] ?? '')),
-            'nama'                 => trim((string) ($data['nama'] ?? '')),
-            'jenis_kelamin'        => strtoupper(trim((string) ($data['jenis_kelamin'] ?? ''))),
-            'tempat_lahir'         => $nullable($data['tempat_lahir'] ?? null),
-            'tanggal_lahir'        => $nullable($data['tanggal_lahir'] ?? null),
-            'alamat'               => $nullable($data['alamat'] ?? null),
-            'no_telepon'           => $nullable($data['no_telepon'] ?? null),
-            'email'                => $nullable($data['email'] ?? null),
-            'status_kepegawaian'   => $nullable($data['status_kepegawaian'] ?? null),
+            'nik' => $this->identifier($data['nik'] ?? null),
+            'nip' => $this->nullableIdentifier($data['nip'] ?? null),
+            'nama' => trim((string) ($data['nama'] ?? '')),
+            'jenis_kelamin' => strtoupper(trim((string) ($data['jenis_kelamin'] ?? ''))),
+            'tempat_lahir' => $this->nullableText($data['tempat_lahir'] ?? null, 100),
+            'tanggal_lahir' => $this->nullableText($data['tanggal_lahir'] ?? null, 10),
+            'agama' => $this->nullableText($data['agama'] ?? null, 30),
+            'alamat' => $this->nullableText($data['alamat'] ?? null, 5000),
+            'no_telepon' => $this->nullableText($data['no_telepon'] ?? null, 20),
+            'email' => $this->nullableText($data['email'] ?? null, 100),
+            'status_kepegawaian' => $this->canonicalStatus($data['status_kepegawaian'] ?? null),
+            'nuptk' => $this->nullableIdentifier($data['nuptk'] ?? null),
         ];
     }
 
-    /**
-     * Validasi lintas tabel dan username.
-     */
-    protected function validateBusiness(array $payload, ?int $exceptGuruId = null): ?array
-    {
-        if ($payload['nip'] === '') {
-            return ['success' => false, 'message' => 'NIP wajib diisi.'];
+    private function validateBusiness(
+        array $payload,
+        ?int $currentId = null,
+        ?int $linkedUserId = null
+    ): ?array {
+        if (! $this->validNik((string) $payload['nik'])) {
+            return $this->fail('NIK wajib berupa tepat 16 digit angka.');
         }
 
-        $guruBuilder = $this->db
-            ->table('guru')
-            ->where('nip', $payload['nip']);
-
-        if ($exceptGuruId !== null) {
-            $guruBuilder->where('id !=', $exceptGuruId);
+        if ($payload['nip'] !== null && ! preg_match('/^[0-9]{18}$/', $payload['nip'])) {
+            return $this->fail('NIP harus kosong atau berupa tepat 18 digit angka.');
         }
 
-        if ($guruBuilder->countAllResults() > 0) {
-            return ['success' => false, 'message' => 'NIP sudah digunakan pada data Guru.'];
+        if ($payload['nama'] === '' || mb_strlen($payload['nama']) > 150) {
+            return $this->fail('Nama lengkap wajib diisi maksimal 150 karakter.');
         }
 
-        if ($this->db->table('pegawai')->where('nip', $payload['nip'])->countAllResults() > 0) {
-            return ['success' => false, 'message' => 'NIP sudah digunakan pada data Pegawai.'];
+        if (! in_array($payload['jenis_kelamin'], ['L', 'P'], true)) {
+            return $this->fail('Jenis kelamin harus L atau P.');
         }
 
-        $userBuilder = $this->db
-            ->table('users')
-            ->where('username', $payload['nip']);
+        if ($payload['status_kepegawaian'] === null) {
+            return $this->fail('Status kepegawaian wajib dipilih.');
+        }
 
-        if ($exceptGuruId !== null) {
-            $linked = $this->db
-                ->table('users')
-                ->select('id')
-                ->where('id_guru', $exceptGuruId)
-                ->get()
-                ->getRowArray();
+        if ($payload['nuptk'] !== null && ! preg_match('/^[0-9]{16}$/', $payload['nuptk'])) {
+            return $this->fail('NUPTK harus kosong atau berupa tepat 16 digit angka.');
+        }
 
-            if ($linked !== null) {
-                $userBuilder->where('id !=', (int) $linked['id']);
+        if ($payload['email'] !== null && ! filter_var($payload['email'], FILTER_VALIDATE_EMAIL)) {
+            return $this->fail('Format email tidak valid.');
+        }
+
+        if ($payload['tanggal_lahir'] !== null && ! $this->validDate($payload['tanggal_lahir'])) {
+            return $this->fail('Tanggal lahir harus menggunakan format YYYY-MM-DD.');
+        }
+
+        if ($this->identifierExists('guru', 'nik', $payload['nik'], $currentId)) {
+            return $this->fail('NIK sudah terdaftar pada data Guru.');
+        }
+
+        if ($this->guruModel->nikDipakaiPegawai($payload['nik'])) {
+            return $this->fail('NIK sudah digunakan pada data Pegawai.');
+        }
+
+        if ($payload['nip'] !== null) {
+            if ($this->identifierExists('guru', 'nip', $payload['nip'], $currentId)) {
+                return $this->fail('NIP sudah terdaftar pada data Guru.');
+            }
+
+            if ($this->guruModel->nipDipakaiPegawai($payload['nip'])) {
+                return $this->fail('NIP sudah digunakan pada data Pegawai.');
             }
         }
 
-        if ($userBuilder->countAllResults() > 0) {
-            return [
-                'success' => false,
-                'message' => 'NIP tidak dapat digunakan karena username yang sama sudah dipakai akun lain.',
-            ];
+        $login = $this->loginIdentifier($payload);
+        if (! $this->usernameAvailable($login, $linkedUserId)) {
+            return $this->fail('Identitas login tidak dapat digunakan karena username yang sama sudah dipakai akun lain.');
         }
 
         return null;
     }
 
-    protected function nipExistsAnywhere(string $nip): bool
-    {
-        return $this->db->table('guru')->where('nip', $nip)->countAllResults() > 0
-            || $this->db->table('pegawai')->where('nip', $nip)->countAllResults() > 0;
+    private function identifierExists(
+        string $table,
+        string $field,
+        string $value,
+        ?int $currentId
+    ): bool {
+        $builder = $this->db->table($table)->where($field, $value);
+
+        if ($currentId !== null) {
+            $builder->where('id !=', $currentId);
+        }
+
+        return $builder->countAllResults() > 0;
     }
 
-    protected function processFoto(UploadedFile $foto, string $nip): string
+    private function usernameAvailable(string $username, ?int $ignoreUserId = null): bool
     {
-        $safeNip = preg_replace('/[^0-9A-Za-z_-]/', '', $nip) ?: 'guru';
+        if ($username === '') {
+            return false;
+        }
+
+        $builder = $this->db->table('users')->where('username', $username);
+
+        if ($ignoreUserId !== null) {
+            $builder->where('id !=', $ignoreUserId);
+        }
+
+        return $builder->countAllResults() === 0;
+    }
+
+    private function loginIdentifier(array $data): string
+    {
+        $nip = trim((string) ($data['nip'] ?? ''));
+        if ($nip !== '') {
+            return $nip;
+        }
+
+        return trim((string) ($data['nik'] ?? ''));
+    }
+
+    private function validNik(string $nik): bool
+    {
+        return (bool) preg_match('/^[0-9]{16}$/', trim($nik));
+    }
+
+    private function canonicalStatus(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (self::STATUS_KEPEGAWAIAN as $status) {
+            if (strcasecmp($status, $value) === 0) {
+                return $status;
+            }
+        }
+
+        return null;
+    }
+
+    private function identifier(mixed $value): string
+    {
+        return preg_replace('/\s+/u', '', trim((string) $value)) ?? '';
+    }
+
+    private function nullableIdentifier(mixed $value): ?string
+    {
+        $value = $this->identifier($value);
+        return $value !== '' ? $value : null;
+    }
+
+    private function nullableText(mixed $value, int $maxLength): ?string
+    {
+        $value = trim((string) $value);
+        return $value !== '' ? mb_substr($value, 0, $maxLength) : null;
+    }
+
+    private function validDate(string $date): bool
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        return $parsed !== false
+            && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
+            && $parsed->format('Y-m-d') === $date;
+    }
+
+    private function processFoto(UploadedFile $foto, string $identity): string
+    {
+        $safe = preg_replace('/[^A-Za-z0-9_-]/', '_', $identity) ?: 'guru';
 
         return $this->uploadService->processFotoPortrait(
             $foto,
-            ROOTPATH . 'uploads/foto_guru',
-            'guru_' . $safeNip
+            rtrim(FCPATH . 'uploads/foto_guru', DIRECTORY_SEPARATOR),
+            'guru_' . $safe
         );
     }
 
-    protected function deleteFotoFile(string $filename): void
+    private function deleteFotoFile(string $filename): void
     {
-        $filename = basename($filename);
-        $path = ROOTPATH . 'uploads/foto_guru/' . $filename;
+        $filename = basename(trim($filename));
+        if ($filename === '') {
+            return;
+        }
+
+        $path = rtrim(FCPATH . 'uploads/foto_guru', DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR
+            . $filename;
 
         if (is_file($path)) {
             @unlink($path);
         }
     }
 
-    protected function logActivity(string $aksi, string $modul, string $keterangan): void
+    private function resolveImportColumns(array $header): ?array
     {
-        $idUser = session()->get('user_id');
+        $aliases = [
+            'nik' => ['NIK'],
+            'nip' => ['NIP'],
+            'nama' => ['NAMA LENGKAP & GELAR', 'NAMA LENGKAP', 'NAMA'],
+            'jk' => ['JENIS KELAMIN (L/P)', 'JENIS KELAMIN', 'JK'],
+            'status' => ['STATUS KEPEGAWAIAN', 'STATUS PEGAWAI', 'STATUS'],
+        ];
 
-        $this->db->table('log_activity')->insert([
-            'id_user'    => $idUser ? (int) $idUser : null,
-            'aksi'       => $aksi,
-            'modul'      => $modul,
-            'keterangan' => $keterangan,
-            'waktu'      => date('Y-m-d H:i:s'),
-        ]);
+        $resolved = [];
+
+        foreach ($aliases as $key => $names) {
+            foreach ($header as $column => $title) {
+                if (in_array($title, $names, true)) {
+                    $resolved[$key] = $column;
+                    break;
+                }
+            }
+        }
+
+        return count($resolved) === count($aliases) ? $resolved : null;
+    }
+
+    private function actorUserId(): ?int
+    {
+        $id = (int) session()->get('user_id');
+        return $id > 0 ? $id : null;
+    }
+
+    private function fail(string $message): array
+    {
+        return ['success' => false, 'message' => $message];
     }
 }

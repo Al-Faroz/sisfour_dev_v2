@@ -2,21 +2,28 @@
 
 <?= $this->section('content') ?>
 
-<div id="profileGuruApp" data-base-url="<?= esc(base_url()) ?>">
+<div id="profilePegawaiApp" data-base-url="<?= esc(base_url()) ?>">
     <div class="mb-4">
-        <h4 class="fw-bold mb-1">Profile Guru</h4>
+        <h4 class="fw-bold mb-1">Profile Pegawai</h4>
         <p class="text-muted mb-0">
-            Lengkapi biodata pribadi. NIK, NIP, dan status kepegawaian dikelola secara administratif melalui Master Guru.
+            Lengkapi biodata pribadi. NIK, NIP, dan status kepegawaian dikelola secara administratif melalui Master Pegawai.
         </p>
     </div>
 
     <?php if (! empty($profileError)): ?>
         <div class="alert alert-warning"><i class="bx bx-error-circle me-1"></i><?= esc($profileError) ?></div>
     <?php elseif (! empty($profile)): ?>
+        <?php if (! empty($profile['jabatan_legacy'])): ?>
+            <div class="alert alert-secondary">
+                <i class="bx bx-briefcase me-1"></i>
+                Jabatan legacy tersimpan: <strong><?= esc($profile['jabatan_legacy']) ?></strong>. Data ini dipertahankan sampai modul riwayat penugasan/jabatan dieksekusi pada fase berikutnya.
+            </div>
+        <?php endif; ?>
+
         <?php if (empty($profile['identity_complete'])): ?>
             <div class="alert alert-warning">
                 <i class="bx bx-info-circle me-1"></i>
-                NIK pada data Guru Anda belum lengkap. Hubungi Admin/Operator untuk melengkapi identitas administratif.
+                NIK pada data Pegawai Anda belum lengkap. Hubungi Admin/Operator untuk melengkapi identitas administratif.
             </div>
         <?php endif; ?>
 
@@ -26,7 +33,7 @@
                     <div class="card-body text-center">
                         <?php
                         $foto = trim((string) ($profile['foto'] ?? ''));
-                        $fotoUrl = $foto !== '' ? base_url('uploads/foto_guru/' . rawurlencode(basename($foto))) : '';
+                        $fotoUrl = $foto !== '' ? base_url('uploads/foto_pegawai/' . rawurlencode(basename($foto))) : '';
                         ?>
                         <img
                             src="<?= esc($fotoUrl) ?>"
@@ -34,12 +41,12 @@
                             class="rounded object-fit-cover mb-3 <?= $fotoUrl === '' ? 'd-none' : '' ?>"
                             width="180"
                             height="240"
-                            id="profileGuruFoto"
+                            id="profilePegawaiFoto"
                         >
                         <div
                             class="d-inline-flex align-items-center justify-content-center rounded bg-label-secondary mb-3 <?= $fotoUrl !== '' ? 'd-none' : '' ?>"
                             style="width:180px;height:240px;font-size:64px;"
-                            id="profileGuruFotoFallback"
+                            id="profilePegawaiFotoFallback"
                         ><i class="bx bx-user"></i></div>
 
                         <h5 class="mb-1"><?= esc($profile['nama']) ?></h5>
@@ -52,10 +59,10 @@
 
                         <hr class="my-4">
 
-                        <form id="formFotoProfileGuru">
+                        <form id="formFotoProfilePegawai">
                             <?= csrf_field() ?>
-                            <label for="fotoProfileGuru" class="form-label text-start d-block">Ganti Foto</label>
-                            <input type="file" class="form-control" id="fotoProfileGuru" name="foto" accept="image/png" required>
+                            <label for="fotoProfilePegawai" class="form-label text-start d-block">Ganti Foto</label>
+                            <input type="file" class="form-control" id="fotoProfilePegawai" name="foto" accept="image/png" required>
                             <div class="form-text text-start">PNG maksimal 2 MB. Crop otomatis rasio 3:4.</div>
                             <button type="submit" class="btn btn-outline-primary w-100 mt-3">
                                 <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
@@ -70,7 +77,7 @@
                 <div class="card">
                     <div class="card-header"><h5 class="mb-0">Biodata</h5></div>
                     <div class="card-body">
-                        <form id="formProfileGuru">
+                        <form id="formProfilePegawai">
                             <?= csrf_field() ?>
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -126,7 +133,7 @@
                                 </div>
                             </div>
                             <div class="d-flex justify-content-end mt-4">
-                                <button type="submit" class="btn btn-primary" id="btnSimpanProfileGuru">
+                                <button type="submit" class="btn btn-primary" id="btnSimpanProfilePegawai">
                                     <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                     Simpan Perubahan
                                 </button>
