@@ -143,6 +143,9 @@ class SettingsUserService
 
         $data = $validated['data'];
         $secondary = $validated['secondary_roles'];
+        $managed = (bool) ($validated['credential_managed'] ?? false);
+        $credentialIdentifier = $validated['credential_identifier'] ?? null;
+        $credentialSynchronized = false;
 
         if ($id === $actorUserId && (int) $data['status_aktif'] !== 1) {
             return $this->fail('SELF_LOCKOUT', 'Akun yang sedang digunakan tidak dapat dinonaktifkan.');
@@ -157,6 +160,21 @@ class SettingsUserService
             return $this->fail('LAST_ADMIN', 'Minimal satu Admin aktif harus dipertahankan.');
         }
 
+        if (
+            $managed
+            && is_string($credentialIdentifier)
+            && $credentialIdentifier !== ''
+            && (string) ($existing['username'] ?? '') !== $credentialIdentifier
+        ) {
+            // Akun Guru/Pegawai harus selalu memakai identifier Master sebagai
+            // username sekaligus password default. Bila username legacy/rusak
+            // ditemukan saat Admin mengubah user, sinkronkan keduanya secara
+            // atomik agar invariant kredensial tidak terpecah.
+            $data['username'] = $credentialIdentifier;
+            $data['password'] = password_hash($credentialIdentifier, PASSWORD_DEFAULT);
+            $credentialSynchronized = true;
+        }
+
         $data['auth_version'] = ((int) $existing['auth_version']) + 1;
         $data['updated_at'] = Time::now(self::TZ)->format('Y-m-d H:i:s');
 
@@ -169,9 +187,22 @@ class SettingsUserService
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi gagal.');
             }
-            $this->log($actorUserId, 'UPDATE', "Memperbarui user #{$id}");
+            $this->log(
+                $actorUserId,
+                'UPDATE',
+                $credentialSynchronized
+                    ? "Memperbarui user #{$id} dan menyinkronkan kredensial managed"
+                    : "Memperbarui user #{$id}"
+            );
             $this->db->transCommit();
-            return ['success' => true, 'message' => 'User berhasil diperbarui.'];
+
+            return [
+                'success' => true,
+                'message' => $credentialSynchronized
+                    ? 'User berhasil diperbarui. Username dan password disinkronkan ke identitas login NIP/NIK.'
+                    : 'User berhasil diperbarui.',
+                'credential_synchronized' => $credentialSynchronized,
+            ];
         } catch (Throwable $e) {
             $this->db->transRollback();
             return $this->fail('UPDATE_FAILED', 'User gagal diperbarui.');

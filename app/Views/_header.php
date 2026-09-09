@@ -7,7 +7,7 @@ if ($namaSekolah === '') {
     $namaSekolah = 'MTsN 4 Jombang';
 }
 
-$iconUrl = base_url('assets/img/favicon/favicon.ico');
+$iconUrl = sisfour_asset_url('assets/img/favicon/favicon.ico');
 
 if (
     $iconSekolah !== ''
@@ -36,20 +36,18 @@ if (
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet" />
 
-<link rel="stylesheet" href="<?= base_url('assets/vendor/fonts/iconify-icons.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/fonts/iconify-icons.css') ?>" />
 
-<link rel="stylesheet" href="<?= base_url('assets/vendor/css/core.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/css/demo.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/css/searchable-select.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/css/core.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/demo.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/searchable-select.css') ?>" />
 
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables/datatables.min.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/select2/select2.min.css') ?>" />
-<link rel="stylesheet" href="<?= base_url('assets/vendor/libs/apex-charts/apex-charts.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/apex-charts/apex-charts.css') ?>" />
 
 <?php if (isset($extraCss)): foreach ((array) $extraCss as $css): ?>
-<link rel="stylesheet" href="<?= base_url($css) ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url((string) $css) ?>" />
 <?php endforeach; endif; ?>
 
-<script src="<?= base_url('assets/vendor/js/helpers.js') ?>"></script>
-<script src="<?= base_url('assets/js/config.js') ?>"></script>
+<script src="<?= sisfour_asset_url('assets/vendor/js/helpers.js') ?>"></script>
+<script src="<?= sisfour_asset_url('assets/js/config.js') ?>"></script>

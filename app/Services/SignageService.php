@@ -140,6 +140,12 @@ class SignageService
             )
             ->where('k.id_tahun', $idTahun)
             ->where('k.deleted_at', null)
+            ->where(
+                'EXISTS (SELECT 1 FROM anggota_kelas ak ' .
+                'WHERE ak.id_kelas = k.id AND ak.id_tahun = ' . $idTahun . ')',
+                null,
+                false
+            )
             ->where('pr.id IS NULL', null, false)
             ->groupBy('k.id, k.nama_kelas, g.nama')
             ->orderBy('k.tingkat', 'ASC')

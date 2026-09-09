@@ -14,7 +14,7 @@ if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>EWS Digital Signage - <?= esc($namaSekolah) ?></title>
-    <link rel="stylesheet" href="<?= base_url('assets/css/signage.css') ?>">
+    <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/signage.css') ?>">
 </head>
 <body>
     <main
@@ -128,6 +128,6 @@ if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
         </footer>
     </main>
 
-    <script src="<?= base_url('assets/js/signage.js') ?>"></script>
+    <script src="<?= sisfour_asset_url('assets/js/signage.js') ?>"></script>
 </body>
 </html>
