@@ -58,6 +58,34 @@ class BKKasusModel
         return $row ?: null;
     }
 
+    public function getDetailById(int $id): ?array
+    {
+        $row = $this->db
+            ->table('catatan_kasus ck')
+            ->select([
+                'ck.id',
+                'ck.id_siswa',
+                'ck.id_pelanggaran',
+                'ck.tanggal',
+                'ck.keterangan',
+                'ck.id_guru_input',
+                'ck.created_at',
+                'ck.updated_at',
+                's.nisn',
+                's.nama AS nama_siswa',
+                'rp.nama_pelanggaran',
+                'rp.kategori',
+                'rp.poin',
+            ])
+            ->join('siswa s', 's.id = ck.id_siswa')
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->where('ck.id', $id)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
     public function getTop20(?array $allowedStudentIds): array
     {
         $builder = $this->db
@@ -152,19 +180,23 @@ class BKKasusModel
             }
         }
 
-        if (!empty($filter['id_pelanggaran'])) {
+        if (! empty($filter['id_pelanggaran'])) {
             $builder->where('ck.id_pelanggaran', (int) $filter['id_pelanggaran']);
         }
-        if (!empty($filter['kategori'])) {
+
+        if (! empty($filter['kategori'])) {
             $builder->where('rp.kategori', (string) $filter['kategori']);
         }
-        if (!empty($filter['tanggal_mulai'])) {
+
+        if (! empty($filter['tanggal_mulai'])) {
             $builder->where('ck.tanggal >=', (string) $filter['tanggal_mulai']);
         }
-        if (!empty($filter['tanggal_selesai'])) {
+
+        if (! empty($filter['tanggal_selesai'])) {
             $builder->where('ck.tanggal <=', (string) $filter['tanggal_selesai']);
         }
-        if (!empty($filter['search'])) {
+
+        if (! empty($filter['search'])) {
             $search = trim((string) $filter['search']);
             $builder->groupStart()
                 ->like('s.nama', $search)

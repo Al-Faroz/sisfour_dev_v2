@@ -40,6 +40,7 @@ if (
 
 <link rel="stylesheet" href="<?= base_url('assets/vendor/css/core.css') ?>" />
 <link rel="stylesheet" href="<?= base_url('assets/css/demo.css') ?>" />
+<link rel="stylesheet" href="<?= base_url('assets/css/searchable-select.css') ?>" />
 
 <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
 <link rel="stylesheet" href="<?= base_url('assets/vendor/libs/datatables/datatables.min.css') ?>" />

@@ -11,8 +11,9 @@ use Config\Database;
  * Sumber sidebar:
  * - menus;
  * - role_menus;
+ * - effective roles user;
  * - permission effective user;
- * - contextual Wali Kelas.
+ * - context identity/Wali Kelas.
  *
  * Menu bukan security boundary. PermissionFilter + Service tetap authoritative.
  */
@@ -73,10 +74,20 @@ class MenuService
 
     protected function filterContextualMenus(array $menus, int $userId): array
     {
+        $identity = $this->getUserIdentity($userId);
+        $idGuru = (int) ($identity['id_guru'] ?? 0);
+        $isWali = $idGuru > 0 && $this->authService->isWaliKelas($idGuru);
+
         $filtered = [];
 
         foreach ($menus as $menu) {
-            $requiredPermissions = $this->menuPermissionMap((int) $menu['id']);
+            $idMenu = (int) ($menu['id'] ?? 0);
+
+            if (! $this->identityContextAllowed($idMenu, $identity, $isWali, $userId)) {
+                continue;
+            }
+
+            $requiredPermissions = $this->menuPermissionMap($idMenu);
 
             if ($requiredPermissions !== []) {
                 $hasAccess = false;
@@ -100,7 +111,41 @@ class MenuService
     }
 
     /**
-     * Mapping permission harus mengikuti route tujuan menu.
+     * Context yang tidak dapat direpresentasikan hanya dengan existence permission.
+     */
+    protected function identityContextAllowed(
+        int $idMenu,
+        array $identity,
+        bool $isWali,
+        int $userId
+    ): bool {
+        if ($idMenu === 9) {
+            return (int) ($identity['id_guru'] ?? 0) > 0;
+        }
+
+        if ($idMenu === 10) {
+            return (int) ($identity['id_siswa'] ?? 0) > 0;
+        }
+
+        // Mapping Wali Kelas untuk Guru biasa tidak bermakna bila user bukan
+        // Wali aktif. Actor dengan manage/view_all tetap boleh melihatnya.
+        if ($idMenu === 37) {
+            if (
+                $this->authService->hasPermission('mapping_wali.manage', $userId)
+                || $this->authService->hasPermission('mapping_wali.view_all', $userId)
+            ) {
+                return true;
+            }
+
+            return $isWali
+                && $this->authService->hasPermission('mapping_wali.view', $userId);
+        }
+
+        return true;
+    }
+
+    /**
+     * Mapping permission mengikuti route tujuan menu.
      * Parent group tidak perlu permission karena BaseController akan prune group kosong.
      *
      * @return string[]
@@ -126,6 +171,9 @@ class MenuService
             37 => ['mapping_wali.manage', 'mapping_wali.view', 'mapping_wali.view_all'],
             38 => ['jadwal_guru.manage', 'jadwal_guru.view', 'jadwal_guru.view_all'],
 
+            // Manajemen Siswa
+            111, 112, 113, 114 => ['master_siswa.manage'],
+
             // Laporan
             41 => ['laporan_matrix.view'],
             42 => ['laporan_export.generate'],
@@ -136,9 +184,8 @@ class MenuService
             52 => ['bk_pelanggaran_master.manage'],
             53 => ['prestasi.view', 'prestasi.manage'],
 
-            // Kartu
+            // KT-P
             61 => ['kartu_pelajar.view', 'kartu_pelajar.manage'],
-            62 => ['kartu_pelajar.manage'],
 
             // Settings
             71 => ['settings_user.manage'],
@@ -155,6 +202,17 @@ class MenuService
 
             default => [],
         };
+    }
+
+    protected function getUserIdentity(int $userId): array
+    {
+        return $this->db
+            ->table('users')
+            ->select('id_guru, id_pegawai, id_siswa')
+            ->where('id', $userId)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray() ?? [];
     }
 
     protected function buildTree(array $menus, ?int $parentId = null): array

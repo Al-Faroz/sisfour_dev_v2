@@ -15,6 +15,12 @@
 -->
 <script src="<?= base_url('assets/js/csrf-fetch.js') ?>"></script>
 
+<!--
+  Komponen searchable-select SisisFour menggunakan Vanilla JS.
+  Tidak bergantung pada jQuery/Select2 walaupun vendor template tetap dimuat.
+-->
+<script src="<?= base_url('assets/js/components/searchable-select.js') ?>"></script>
+
 <script src="<?= base_url('assets/js/main.js') ?>"></script>
 
 <?php if (isset($extraJs)): foreach ((array) $extraJs as $js): ?>

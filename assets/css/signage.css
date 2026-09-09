@@ -1,0 +1,115 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #0d1020;
+  color: #f6f7fb;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0d1020;
+}
+
+body { min-width: 1024px; }
+
+.signage-shell {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(105, 108, 255, .18), transparent 30%),
+    #0d1020;
+}
+
+.signage-header,
+.signage-panel,
+.signage-footer {
+  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(20, 25, 48, .94);
+  border-radius: 16px;
+}
+
+.signage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+}
+
+.signage-brand { display: flex; align-items: center; gap: 16px; }
+.signage-logo { width: 72px; height: 72px; object-fit: contain; }
+.signage-kicker { font-size: .9rem; letter-spacing: .12em; color: #aeb8d6; font-weight: 700; }
+.signage-header h1 { margin: 4px 0 2px; font-size: clamp(1.5rem, 2.3vw, 2.7rem); line-height: 1.05; }
+.signage-year { color: #bac4df; font-size: 1rem; }
+.signage-clock-wrap { text-align: right; }
+.signage-date { color: #bdc6df; font-size: 1rem; }
+.signage-clock { font-size: clamp(2rem, 3vw, 3.5rem); font-weight: 800; letter-spacing: .04em; }
+.signage-update { color: #aab5d2; font-size: .9rem; }
+
+.signage-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1.15fr 1fr;
+  gap: 14px;
+}
+
+.signage-grid__bottom {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: .85fr 1.15fr;
+  gap: 14px;
+}
+
+.signage-panel {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.signage-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.signage-panel__header h2 { margin: 0; font-size: clamp(1.05rem, 1.5vw, 1.55rem); }
+.signage-panel__header p { margin: 3px 0 0; color: #9faaca; font-size: .84rem; }
+.signage-badge { min-width: 44px; text-align: center; padding: 7px 10px; border-radius: 999px; background: rgba(105, 108, 255, .20); font-weight: 800; }
+
+.signage-scroll { min-height: 0; overflow: hidden; }
+.signage-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.signage-table thead { position: sticky; top: 0; z-index: 2; background: #171d38; }
+.signage-table th, .signage-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255, 255, 255, .07); text-align: left; font-size: clamp(.82rem, 1.05vw, 1.1rem); }
+.signage-table th { color: #aeb9da; font-weight: 700; }
+.signage-table td { color: #f7f8fc; font-weight: 600; }
+.signage-table .col-no { width: 60px; }
+.signage-table .col-center { width: 130px; text-align: center; }
+.signage-table .empty { text-align: center; color: #9faaca; padding: 28px 12px; font-weight: 500; }
+.signage-table .ok { color: #7de0a7; }
+
+.signage-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+  color: #9ea9c8;
+  font-size: .86rem;
+}
+
+@media (max-aspect-ratio: 4/3) {
+  body { min-width: 0; overflow: auto; }
+  .signage-shell { min-height: 100vh; height: auto; }
+  .signage-grid, .signage-grid__bottom { grid-template-columns: 1fr; grid-template-rows: auto; }
+  .signage-panel { min-height: 360px; }
+}

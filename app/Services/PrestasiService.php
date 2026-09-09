@@ -33,13 +33,13 @@ class PrestasiService
     {
         $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
 
-        if (!$scope['success']) {
+        if (! $scope['success']) {
             return $scope;
         }
 
         $filter = $this->filter($input);
 
-        if (!$filter['success']) {
+        if (! $filter['success']) {
             return $filter;
         }
 
@@ -52,9 +52,6 @@ class PrestasiService
             'scope' => $scope['scope'],
             'can_manage' => $this->authService->resolveScope('prestasi.manage', $userId) === 'SEMUA',
             'tingkat_options' => self::TINGKAT,
-            'student_options' => $this->authService->resolveScope('prestasi.manage', $userId) === 'SEMUA'
-                ? $this->getActiveStudentOptions()
-                : [],
             'rows' => $this->model->getPaged($filter['filter'], $ids, $limit, $offset),
             'total' => $this->model->countFiltered($filter['filter'], $ids),
             'limit' => $limit,
@@ -66,13 +63,13 @@ class PrestasiService
     {
         $auth = $this->requireManage($userId);
 
-        if (!$auth['success']) {
+        if (! $auth['success']) {
             return $auth;
         }
 
-        $validated = $this->validate($input);
+        $validated = $this->validate($input, null);
 
-        if (!$validated['success']) {
+        if (! $validated['success']) {
             return $validated;
         }
 
@@ -84,62 +81,73 @@ class PrestasiService
         $id = $this->model->insert($data);
         $this->log($userId, 'CREATE', "Membuat Prestasi #{$id} siswa #{$data['id_siswa']}");
 
-        return ['success' => true, 'message' => 'Prestasi berhasil disimpan.', 'id' => $id];
+        return [
+            'success' => true,
+            'message' => 'Prestasi berhasil disimpan.',
+            'id' => $id,
+        ];
     }
 
     public function update(int $userId, int $id, array $input): array
     {
         $auth = $this->requireManage($userId);
 
-        if (!$auth['success']) {
+        if (! $auth['success']) {
             return $auth;
         }
 
-        if (!$this->model->getById($id)) {
+        $existing = $this->model->getById($id);
+        if (! $existing) {
             return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
         }
 
-        $validated = $this->validate($input);
+        $validated = $this->validate($input, $existing);
 
-        if (!$validated['success']) {
+        if (! $validated['success']) {
             return $validated;
         }
 
         $this->model->update($id, $validated['data']);
         $this->log($userId, 'UPDATE', "Memperbarui Prestasi #{$id}");
 
-        return ['success' => true, 'message' => 'Prestasi berhasil diperbarui.'];
+        return [
+            'success' => true,
+            'message' => 'Prestasi berhasil diperbarui.',
+        ];
     }
 
     public function delete(int $userId, int $id): array
     {
         $auth = $this->requireManage($userId);
 
-        if (!$auth['success']) {
+        if (! $auth['success']) {
             return $auth;
         }
 
-        if (!$this->model->getById($id)) {
+        if (! $this->model->getById($id)) {
             return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
         }
 
         $this->model->delete($id);
         $this->log($userId, 'DELETE', "Menghapus Prestasi #{$id}");
 
-        return ['success' => true, 'message' => 'Prestasi berhasil dihapus.'];
+        return [
+            'success' => true,
+            'message' => 'Prestasi berhasil dihapus.',
+        ];
     }
 
     public function getExport(int $userId, array $input): array
     {
         $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
 
-        if (!$scope['success']) {
+        if (! $scope['success']) {
             return $scope;
         }
 
         $filter = $this->filter($input);
 
-        if (!$filter['success']) {
+        if (! $filter['success']) {
             return $filter;
         }
 
@@ -161,20 +169,7 @@ class PrestasiService
         ];
     }
 
-
-    private function getActiveStudentOptions(): array
-    {
-        return db_connect()
-            ->table('siswa')
-            ->select('id, nisn, nama')
-            ->where('status_aktif', 'Aktif')
-            ->where('deleted_at', null)
-            ->orderBy('nama', 'ASC')
-            ->get()
-            ->getResultArray();
-    }
-
-    private function validate(array $input): array
+    private function validate(array $input, ?array $existing): array
     {
         $idSiswa = (int) ($input['id_siswa'] ?? 0);
         $nama = trim((string) ($input['nama_prestasi'] ?? ''));
@@ -183,19 +178,33 @@ class PrestasiService
         $penyelenggara = trim((string) ($input['penyelenggara'] ?? ''));
         $keterangan = trim((string) ($input['keterangan'] ?? ''));
 
-        if ($idSiswa <= 0 || db_connect()->table('siswa')->where('id', $idSiswa)->countAllResults() === 0) {
+        $siswa = db_connect()
+            ->table('siswa')
+            ->select('id, status_aktif, deleted_at')
+            ->where('id', $idSiswa)
+            ->get()
+            ->getRowArray();
+
+        if ($idSiswa <= 0 || ! $siswa || ! empty($siswa['deleted_at'])) {
             return $this->fail('VALIDATION', 'Siswa tidak valid.');
+        }
+
+        $sameHistoricalStudent = $existing !== null
+            && (int) ($existing['id_siswa'] ?? 0) === $idSiswa;
+
+        if (! $sameHistoricalStudent && (string) $siswa['status_aktif'] !== 'Aktif') {
+            return $this->fail('VALIDATION', 'Prestasi baru hanya dapat diberikan kepada siswa aktif.');
         }
 
         if ($nama === '' || mb_strlen($nama) > 200) {
             return $this->fail('VALIDATION', 'Nama prestasi wajib diisi maksimal 200 karakter.');
         }
 
-        if (!in_array($tingkat, self::TINGKAT, true)) {
+        if (! in_array($tingkat, self::TINGKAT, true)) {
             return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
         }
 
-        if (!$this->validDate($tanggal)) {
+        if (! $this->validDate($tanggal)) {
             return $this->fail('VALIDATION', 'Tanggal prestasi tidak valid.');
         }
 
@@ -218,15 +227,15 @@ class PrestasiService
         $tanggalMulai = trim((string) ($input['tanggal_mulai'] ?? ''));
         $tanggalSelesai = trim((string) ($input['tanggal_selesai'] ?? ''));
 
-        if ($tingkat !== '' && !in_array($tingkat, self::TINGKAT, true)) {
+        if ($tingkat !== '' && ! in_array($tingkat, self::TINGKAT, true)) {
             return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
         }
 
-        if ($tanggalMulai !== '' && !$this->validDate($tanggalMulai)) {
+        if ($tanggalMulai !== '' && ! $this->validDate($tanggalMulai)) {
             return $this->fail('VALIDATION', 'Tanggal awal tidak valid.');
         }
 
-        if ($tanggalSelesai !== '' && !$this->validDate($tanggalSelesai)) {
+        if ($tanggalSelesai !== '' && ! $this->validDate($tanggalSelesai)) {
             return $this->fail('VALIDATION', 'Tanggal akhir tidak valid.');
         }
 
@@ -277,6 +286,10 @@ class PrestasiService
 
     private function fail(string $code, string $message): array
     {
-        return ['success' => false, 'code' => $code, 'message' => $message];
+        return [
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ];
     }
 }

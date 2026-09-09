@@ -19,9 +19,16 @@ $routes->group('api', static function ($routes) {
 
 $routes->get('kartu/verify/(:segment)', 'KartuPelajar::verify/$1');
 
+// Digital Signage EWS Global - OPEN/PUBLIC, read-only.
+$routes->get('signage', 'Signage::index');
+$routes->get('signage/data', 'Signage::data');
+
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('dashboard', 'Dashboard::index', ['filter' => 'permission:dashboard.view']);
     $routes->get('dashboard/data', 'Dashboard::data', ['filter' => 'permission:dashboard.view']);
+
+    // Searchable entity remote. Authorization data tetap diputuskan Service.
+    $routes->get('ui/search/siswa', 'SearchableEntity::siswa');
 
     $routes->group('master', static function ($routes) {
         $routes->get('guru', 'MasterGuru::index', ['filter' => 'permission:master_guru.manage,master_guru.view']);
@@ -158,11 +165,14 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('bk', static function ($routes) {
         $routes->get('kasus', 'BKKasus::index', ['filter' => 'permission:bk_kasus.view']);
         $routes->get('kasus/json', 'BKKasus::index', ['filter' => 'permission:bk_kasus.view']);
+        $routes->get('kasus/detail/(:segment)', 'BKKasus::detail/$1', ['filter' => 'permission:bk_kasus.view']);
         $routes->get('kasus/top', 'BKKasus::top', ['filter' => 'permission:bk_kasus.view']);
         $routes->get('kasus/top/json', 'BKKasus::top', ['filter' => 'permission:bk_kasus.view']);
         $routes->post('kasus/create', 'BKKasus::create', ['filter' => 'permission:bk_kasus.manage']);
         $routes->put('kasus/update/(:segment)', 'BKKasus::update/$1', ['filter' => 'permission:bk_kasus.manage']);
         $routes->delete('kasus/delete/(:segment)', 'BKKasus::delete/$1', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->post('kasus/(:segment)/tindak-lanjut', 'BKKasus::createTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->put('kasus/tindak-lanjut/(:segment)', 'BKKasus::updateTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
         $routes->get('kasus/export', 'BKKasus::export', ['filter' => 'permission:bk_kasus.manage']);
         $routes->get('pelanggaran', 'BKPelanggaran::index', ['filter' => 'permission:bk_pelanggaran_master.manage']);
         $routes->get('pelanggaran/json', 'BKPelanggaran::index', ['filter' => 'permission:bk_pelanggaran_master.manage']);
@@ -243,10 +253,13 @@ $routes->group('api', ['filter' => 'auth:api'], static function ($routes) {
     $routes->get('laporan/presensi/matrix', 'LaporanPresensi::matrix', ['filter' => 'permission:laporan_matrix.view']);
     $routes->get('laporan/jurnal', 'LaporanJurnal::index', ['filter' => 'permission:laporan_jurnal.view']);
     $routes->get('bk/kasus', 'BKKasus::index', ['filter' => 'permission:bk_kasus.view']);
+    $routes->get('bk/kasus/detail/(:segment)', 'BKKasus::detail/$1', ['filter' => 'permission:bk_kasus.view']);
     $routes->get('bk/kasus/top', 'BKKasus::top', ['filter' => 'permission:bk_kasus.view']);
     $routes->post('bk/kasus/create', 'BKKasus::create', ['filter' => 'permission:bk_kasus.manage']);
     $routes->put('bk/kasus/update/(:segment)', 'BKKasus::update/$1', ['filter' => 'permission:bk_kasus.manage']);
     $routes->delete('bk/kasus/delete/(:segment)', 'BKKasus::delete/$1', ['filter' => 'permission:bk_kasus.manage']);
+    $routes->post('bk/kasus/(:segment)/tindak-lanjut', 'BKKasus::createTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
+    $routes->put('bk/kasus/tindak-lanjut/(:segment)', 'BKKasus::updateTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
     $routes->get('bk/prestasi', 'BKPrestasi::index', ['filter' => 'permission:prestasi.view']);
     $routes->post('bk/prestasi/create', 'BKPrestasi::create', ['filter' => 'permission:prestasi.manage']);
     $routes->get('kartu/preview/(:segment)', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);
