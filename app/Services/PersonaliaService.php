@@ -28,6 +28,8 @@ class PersonaliaService
     public const CATEGORY_PANGKAT = 'pangkat';
     public const CATEGORY_DOKUMEN = 'dokumen';
 
+    public const STORAGE_ROOT = 'uploads/personalia/';
+
     public const DOCUMENT_TYPES = [
         'KTP / KK',
         'SK Pengangkatan Awal',
@@ -112,6 +114,7 @@ class PersonaliaService
             'owner' => $owner,
             'is_self' => $access['is_self'],
             'can_edit' => $access['can_edit'],
+            'can_delete' => $access['can_delete'],
             'can_view_documents' => $access['can_view_documents'],
             'pendidikan' => $this->listOwner($this->pendidikanModel, $ownerType, $ownerId, 'tahun_lulus DESC, id DESC'),
             'penugasan' => $this->listOwner($this->penugasanModel, $ownerType, $ownerId, 'tanggal_mulai DESC, id DESC'),
@@ -171,7 +174,7 @@ class PersonaliaService
         if (! $access['success']) {
             return $access;
         }
-        if (! $access['can_edit']) {
+        if (! $access['can_delete']) {
             return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak untuk menghapus data personalia ini.');
         }
 
@@ -262,25 +265,30 @@ class PersonaliaService
             return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak untuk membuka dokumen personalia mentah.');
         }
 
-        $relative = trim((string) ($record[$field] ?? ''));
-        if ($relative === '' || str_contains($relative, '..') || str_contains($relative, "\0")) {
-            return $this->fail('NOT_FOUND', 'File dokumen belum tersedia.');
+        $relative = self::normalizeStoredPath(
+            $record[$field] ?? null,
+            $owner['type'],
+            $owner['id']
+        );
+        if ($relative === null) {
+            return $this->fail('NOT_FOUND', 'File dokumen belum tersedia atau path penyimpanan tidak valid.');
         }
 
-        $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, ltrim($relative, '/'));
+        $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, $relative);
         if (! is_file($path)) {
             return $this->fail('NOT_FOUND', 'File dokumen tidak ditemukan pada penyimpanan.');
         }
 
+        // Jangan mempercayai mime_type yang tersimpan di database untuk
+        // header response. MIME selalu diturunkan dari ekstensi storage
+        // yang sudah dibatasi oleh normalizeStoredPath().
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        $mime = $category === self::CATEGORY_DOKUMEN && ! empty($record['mime_type'])
-            ? (string) $record['mime_type']
-            : match ($extension) {
-                'pdf' => 'application/pdf',
-                'png' => 'image/png',
-                'jpg', 'jpeg' => 'image/jpeg',
-                default => 'application/octet-stream',
-            };
+        $mime = match ($extension) {
+            'pdf' => 'application/pdf',
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            default => 'application/octet-stream',
+        };
 
         $filename = $category === self::CATEGORY_DOKUMEN && ! empty($record['nama_file_asli'])
             ? basename((string) $record['nama_file_asli'])
@@ -481,6 +489,9 @@ class PersonaliaService
         if ($jenis === '' || $nama === '') {
             return $this->fail('VALIDATION', 'Jenis dan nama dokumen wajib diisi.');
         }
+        if (! self::isAllowedDocumentType($jenis)) {
+            return $this->fail('VALIDATION', 'Jenis dokumen tidak termasuk daftar yang diizinkan.');
+        }
 
         $payload = $this->ownerPayload($ownerType, $ownerId) + [
             'jenis_dokumen' => $jenis,
@@ -645,7 +656,7 @@ class PersonaliaService
         int $ownerId,
         string $prefix
     ): array {
-        $relativeDir = 'uploads/personalia/' . $ownerType . '/' . $ownerId;
+        $relativeDir = self::STORAGE_ROOT . $ownerType . '/' . $ownerId;
         $destDir = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, $relativeDir);
         $stored = $this->uploadService->processPersonaliaDocument($file, $destDir, $prefix);
 
@@ -694,10 +705,16 @@ class PersonaliaService
             || $this->authService->hasPermission('profile_guru.edit', $actorUserId)
         );
 
+        $canEdit = $canManage || $canEditSelf;
+
         return [
             'success' => true,
             'is_self' => $isSelf,
-            'can_edit' => $canManage || $canEditSelf,
+            'can_edit' => $canEdit,
+            // Kebijakan Phase 3.1 dikunci: self-service yang boleh edit juga
+            // boleh menghapus record miliknya sendiri. Admin/Operator manage
+            // tetap boleh menghapus. Tidak ada workflow approval.
+            'can_delete' => $canEdit,
             // Dokumen mentah (KTP/KK, ijazah, SK, dst.) lebih sensitif dari
             // ringkasan Portofolio. Akses dibatasi ke pemilik sendiri dan
             // actor dengan permission manage Master.
@@ -831,16 +848,69 @@ class PersonaliaService
     private function deleteFiles(array $relativePaths): void
     {
         foreach (array_unique(array_filter($relativePaths)) as $relative) {
-            $relative = str_replace('\\', '/', trim((string) $relative));
-            if ($relative === '' || str_contains($relative, '..') || str_contains($relative, "\0")) {
+            $relative = self::normalizeStoredPath($relative);
+            if ($relative === null) {
                 continue;
             }
 
-            $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, ltrim($relative, '/'));
+            $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, $relative);
             if (is_file($path)) {
                 @unlink($path);
             }
         }
+    }
+
+    public static function isAllowedDocumentType(string $value): bool
+    {
+        return in_array(trim($value), self::DOCUMENT_TYPES, true);
+    }
+
+    /**
+     * Validasi path storage Personalia non-public.
+     *
+     * Bentuk yang diterima hanya:
+     * uploads/personalia/{guru|pegawai}/{id}/{nama_file}.{pdf|png|jpg|jpeg}
+     *
+     * Bila expected owner diberikan, path juga wajib berada pada folder
+     * identity yang sama. Method dibuat public-static agar policy keamanan
+     * dapat diuji tanpa koneksi database.
+     */
+    public static function normalizeStoredPath(
+        mixed $value,
+        ?string $expectedOwnerType = null,
+        ?int $expectedOwnerId = null
+    ): ?string {
+        $relative = str_replace('\\', '/', trim((string) $value));
+        if ($relative === '' || str_contains($relative, "\0")) {
+            return null;
+        }
+
+        if (str_starts_with($relative, '/') || preg_match('/^[A-Za-z]:\//', $relative)) {
+            return null;
+        }
+
+        if (str_contains($relative, '..') || str_contains($relative, '//')) {
+            return null;
+        }
+
+        $pattern = '#^uploads/personalia/(guru|pegawai)/([1-9][0-9]*)/'
+            . '([A-Za-z0-9][A-Za-z0-9_.-]{0,254}\.(?:pdf|png|jpe?g))$#i';
+
+        if (! preg_match($pattern, $relative, $matches)) {
+            return null;
+        }
+
+        $ownerType = strtolower($matches[1]);
+        $ownerId = (int) $matches[2];
+
+        if ($expectedOwnerType !== null && strtolower($expectedOwnerType) !== $ownerType) {
+            return null;
+        }
+        if ($expectedOwnerId !== null && $expectedOwnerId > 0 && $expectedOwnerId !== $ownerId) {
+            return null;
+        }
+
+        return self::STORAGE_ROOT . $ownerType . '/' . $ownerId . '/' . $matches[3];
     }
 
     private function hasUpload(mixed $file): bool

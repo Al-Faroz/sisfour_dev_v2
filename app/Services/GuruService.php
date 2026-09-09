@@ -922,12 +922,12 @@ class GuruService
     private function deletePersonaliaFiles(array $relativePaths): void
     {
         foreach ($relativePaths as $relative) {
-            $relative = str_replace('\\', '/', trim((string) $relative));
-            if ($relative === '' || str_contains($relative, '..') || str_contains($relative, "\0")) {
+            $relative = PersonaliaService::normalizeStoredPath($relative);
+            if ($relative === null) {
                 continue;
             }
 
-            $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, ltrim($relative, '/'));
+            $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, $relative);
             if (is_file($path)) {
                 @unlink($path);
             }

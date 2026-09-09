@@ -1,0 +1,8 @@
+Personalia Hardening (Tests\Unit\PersonaliaHardening)
+ [x] Known document types are accepted
+ [x] Unknown document type is rejected
+ [x] Valid stored path is normalized
+ [x] Wrong owner path is rejected
+ [x] Traversal and absolute paths are rejected
+ [x] Pegawai image path is accepted
+
