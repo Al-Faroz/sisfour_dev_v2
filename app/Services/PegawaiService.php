@@ -428,6 +428,8 @@ class PegawaiService
             return $this->fail('Data Pegawai pada Recycle Bin tidak ditemukan.');
         }
 
+        $personaliaFiles = $this->collectPersonaliaFiles('id_pegawai', $id);
+
         $this->db->transBegin();
 
         try {
@@ -450,6 +452,7 @@ class PegawaiService
             if (! empty($pegawai['foto'])) {
                 $this->deleteFotoFile((string) $pegawai['foto']);
             }
+            $this->deletePersonaliaFiles($personaliaFiles);
 
             return ['success' => true, 'message' => 'Data Pegawai berhasil dihapus permanen.'];
         } catch (Throwable $e) {
@@ -844,6 +847,63 @@ class PegawaiService
     {
         $id = (int) session()->get('user_id');
         return $id > 0 ? $id : null;
+    }
+
+    /**
+     * Ambil path file Phase 3 sebelum owner dihapus permanen. DB rows akan
+     * terhapus lewat ON DELETE CASCADE; file fisik baru dihapus setelah commit.
+     */
+    private function collectPersonaliaFiles(string $ownerColumn, int $ownerId): array
+    {
+        if ($ownerId <= 0 || ! in_array($ownerColumn, ['id_guru', 'id_pegawai'], true)) {
+            return [];
+        }
+
+        $paths = [];
+        $sources = [
+            'riwayat_pendidikan' => ['file_ijazah', 'file_transkrip'],
+            'riwayat_penugasan' => ['file_sk_penugasan'],
+            'riwayat_pangkat' => ['file_sk_pangkat'],
+            'dokumen_personalia' => ['file_path'],
+        ];
+
+        foreach ($sources as $table => $fields) {
+            if (! $this->db->tableExists($table)) {
+                continue;
+            }
+
+            $rows = $this->db
+                ->table($table)
+                ->select(implode(', ', $fields))
+                ->where($ownerColumn, $ownerId)
+                ->get()
+                ->getResultArray();
+
+            foreach ($rows as $row) {
+                foreach ($fields as $field) {
+                    if (! empty($row[$field])) {
+                        $paths[] = (string) $row[$field];
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($paths));
+    }
+
+    private function deletePersonaliaFiles(array $relativePaths): void
+    {
+        foreach ($relativePaths as $relative) {
+            $relative = str_replace('\\', '/', trim((string) $relative));
+            if ($relative === '' || str_contains($relative, '..') || str_contains($relative, "\0")) {
+                continue;
+            }
+
+            $path = WRITEPATH . str_replace('/', DIRECTORY_SEPARATOR, ltrim($relative, '/'));
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
     }
 
     private function fail(string $message): array

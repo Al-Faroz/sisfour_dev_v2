@@ -91,7 +91,8 @@
         <td>${account}</td>
         <td>${contact}</td>
         <td class="text-nowrap">
-          <button type="button" class="btn btn-sm btn-outline-info btn-detail" title="Detail"><i class="bx bx-show"></i></button>${manageActions}
+          <button type="button" class="btn btn-sm btn-outline-info btn-detail" title="Detail"><i class="bx bx-show"></i></button>
+          <a href="${base}/master/pegawai/personalia/${row.id}" class="btn btn-sm btn-outline-dark" title="Riwayat & Portofolio Pegawai"><i class="bx bx-folder-open"></i></a>${manageActions}
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada data Pegawai.</td></tr>';

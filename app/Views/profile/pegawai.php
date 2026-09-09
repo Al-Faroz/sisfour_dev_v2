@@ -57,6 +57,12 @@
                             <?= esc($profile['status_kepegawaian'] ?: 'Status belum diisi') ?>
                         </span>
 
+                        <div class="d-grid mt-3">
+                            <a href="<?= base_url('profile/pegawai/personalia') ?>" class="btn btn-outline-primary">
+                                <i class="bx bx-folder-open me-1"></i> Riwayat &amp; Portofolio
+                            </a>
+                        </div>
+
                         <hr class="my-4">
 
                         <form id="formFotoProfilePegawai">

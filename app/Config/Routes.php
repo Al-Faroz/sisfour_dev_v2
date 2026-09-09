@@ -45,6 +45,12 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('guru/restore/(:segment)', 'MasterGuru::restore/$1', ['filter' => 'permission:master_guru.manage']);
         $routes->delete('guru/force-delete/(:segment)', 'MasterGuru::forceDelete/$1', ['filter' => 'permission:master_guru.manage']);
 
+        // Phase 3: Riwayat Personalia & Portofolio Guru.
+        $routes->get('guru/personalia/(:num)', 'Personalia::masterGuru/$1', ['filter' => 'permission:master_guru.manage,master_guru.view']);
+        $routes->post('guru/personalia/(:num)/save/(:segment)', 'Personalia::saveMasterGuru/$1/$2', ['filter' => 'permission:master_guru.manage']);
+        $routes->delete('guru/personalia/(:num)/delete/(:segment)/(:num)', 'Personalia::deleteMasterGuru/$1/$2/$3', ['filter' => 'permission:master_guru.manage']);
+        $routes->get('guru/portofolio/(:num)', 'Personalia::portfolioMasterGuru/$1', ['filter' => 'permission:master_guru.manage,master_guru.view']);
+
         $routes->get('pegawai', 'MasterPegawai::index', ['filter' => 'permission:master_pegawai.manage,master_pegawai.view']);
         $routes->get('pegawai/json', 'MasterPegawai::index', ['filter' => 'permission:master_pegawai.manage,master_pegawai.view']);
         $routes->get('pegawai/template', 'MasterPegawai::downloadTemplate', ['filter' => 'permission:master_pegawai.manage']);
@@ -58,6 +64,12 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('pegawai/recycle/json', 'MasterPegawai::recycle', ['filter' => 'permission:master_pegawai.manage']);
         $routes->post('pegawai/restore/(:segment)', 'MasterPegawai::restore/$1', ['filter' => 'permission:master_pegawai.manage']);
         $routes->delete('pegawai/force-delete/(:segment)', 'MasterPegawai::forceDelete/$1', ['filter' => 'permission:master_pegawai.manage']);
+
+        // Phase 3: Riwayat Personalia & Portofolio Pegawai.
+        $routes->get('pegawai/personalia/(:num)', 'Personalia::masterPegawai/$1', ['filter' => 'permission:master_pegawai.manage,master_pegawai.view']);
+        $routes->post('pegawai/personalia/(:num)/save/(:segment)', 'Personalia::saveMasterPegawai/$1/$2', ['filter' => 'permission:master_pegawai.manage']);
+        $routes->delete('pegawai/personalia/(:num)/delete/(:segment)/(:num)', 'Personalia::deleteMasterPegawai/$1/$2/$3', ['filter' => 'permission:master_pegawai.manage']);
+        $routes->get('pegawai/portofolio/(:num)', 'Personalia::portfolioMasterPegawai/$1', ['filter' => 'permission:master_pegawai.manage,master_pegawai.view']);
 
         $routes->get('siswa', 'MasterSiswa::index', ['filter' => 'permission:master_siswa.view']);
         $routes->get('siswa/json', 'MasterSiswa::index', ['filter' => 'permission:master_siswa.view']);
@@ -206,6 +218,10 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('guru/json', 'ProfileGuru::index', ['filter' => 'permission:profile_guru.view']);
         $routes->put('guru/update', 'ProfileGuru::update', ['filter' => 'permission:profile_guru.edit']);
         $routes->post('guru/upload-foto', 'ProfileGuru::uploadFoto', ['filter' => 'permission:profile_guru.edit']);
+        $routes->get('guru/personalia', 'Personalia::selfGuru', ['filter' => 'permission:profile_guru.view']);
+        $routes->post('guru/personalia/save/(:segment)', 'Personalia::saveSelfGuru/$1', ['filter' => 'permission:profile_guru.edit']);
+        $routes->delete('guru/personalia/delete/(:segment)/(:num)', 'Personalia::deleteSelfGuru/$1/$2', ['filter' => 'permission:profile_guru.edit']);
+        $routes->get('guru/portofolio', 'Personalia::portfolioSelfGuru', ['filter' => 'permission:profile_guru.view']);
 
         // Profile Pegawai berbasis users.id_pegawai, bukan role Pegawai.
         // AuthFilter adalah gate; ProfileService memastikan self-identity.
@@ -213,10 +229,18 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('pegawai/json', 'ProfilePegawai::index');
         $routes->put('pegawai/update', 'ProfilePegawai::update');
         $routes->post('pegawai/upload-foto', 'ProfilePegawai::uploadFoto');
+        $routes->get('pegawai/personalia', 'Personalia::selfPegawai');
+        $routes->post('pegawai/personalia/save/(:segment)', 'Personalia::saveSelfPegawai/$1');
+        $routes->delete('pegawai/personalia/delete/(:segment)/(:num)', 'Personalia::deleteSelfPegawai/$1/$2');
+        $routes->get('pegawai/portofolio', 'Personalia::portfolioSelfPegawai');
 
         $routes->get('siswa', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
         $routes->get('siswa/json', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
     });
+
+    // Dokumen personalia tersimpan non-public. Endpoint ini hanya mengirim file
+    // setelah PersonaliaService memvalidasi self identity / permission Master.
+    $routes->get('personalia/file/(:segment)/(:num)/(:segment)', 'Personalia::file/$1/$2/$3');
 
     $routes->group('settings', static function ($routes) {
         $routes->get('user', 'SettingsUser::index', ['filter' => 'permission:settings_user.manage']);
