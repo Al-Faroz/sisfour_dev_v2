@@ -2,6 +2,7 @@
 
 namespace App\Filters;
 
+use App\Services\JwtService;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
@@ -9,22 +10,6 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Config\Database;
 use Throwable;
 
-/**
- * MaintenanceFilter — SisisFour v0.5
- *
- * Canonical behavior:
- * - Maintenance OFF: semua request berjalan normal.
- * - Maintenance ON:
- *   - effective Admin tetap dapat login dan mengakses aplikasi;
- *   - non-Admin mendapat maintenance page untuk Web;
- *   - non-Admin mendapat JSON HTTP 503 untuk API;
- *   - logout tetap diizinkan;
- *   - login page tetap dapat dibuka agar Admin dapat masuk.
- *
- * Penting:
- * - Admin ditentukan dari UNION primary role + secondary role.
- * - Tidak menggunakan wildcard exemption yang luas.
- */
 class MaintenanceFilter implements FilterInterface
 {
     private const DEFAULT_MESSAGE =
@@ -48,21 +33,21 @@ class MaintenanceFilter implements FilterInterface
         $path = trim($request->getUri()->getPath(), '/');
         $method = strtoupper($request->getMethod());
 
-        // Exact logout routes tetap boleh dipakai agar user dapat keluar.
         if ($this->isExactLogoutRoute($path, $method)) {
             return null;
         }
 
-        // Halaman login Web harus tetap bisa dibuka agar Admin dapat login.
         if ($this->isWebLoginPage($path, $method)) {
             return null;
         }
 
-        // POST login hanya dilewatkan bila username adalah effective Admin.
         if ($this->isLoginAttempt($path, $method)) {
             $username = $this->extractUsername($request);
 
-            if ($username !== '' && $this->usernameIsEffectiveAdmin($username)) {
+            if (
+                $username !== ''
+                && $this->usernameIsEffectiveAdmin($username)
+            ) {
                 return null;
             }
 
@@ -72,7 +57,22 @@ class MaintenanceFilter implements FilterInterface
             );
         }
 
-        // User yang sudah login boleh bypass hanya jika effective Admin.
+        if ($this->isApiRequest($request)) {
+            $apiUserId = $this->validatedApiUserId($request);
+
+            if (
+                $apiUserId > 0
+                && $this->userIsEffectiveAdmin($apiUserId)
+            ) {
+                return null;
+            }
+
+            return $this->maintenanceResponse(
+                $request,
+                $settings['message']
+            );
+        }
+
         $userId = (int) session()->get('user_id');
 
         if (
@@ -97,9 +97,6 @@ class MaintenanceFilter implements FilterInterface
         return null;
     }
 
-    /**
-     * @return array{enabled:bool,message:string}
-     */
     private function maintenanceSettings(): array
     {
         try {
@@ -113,8 +110,6 @@ class MaintenanceFilter implements FilterInterface
                 ->get()
                 ->getResultArray();
         } catch (Throwable $e) {
-            // Fail-open bila tabel settings tidak dapat dibaca.
-            // Aplikasi tidak boleh terkunci permanen karena filter error.
             log_message(
                 'error',
                 'MaintenanceFilter gagal membaca setting: {message}',
@@ -205,6 +200,32 @@ class MaintenanceFilter implements FilterInterface
         return '';
     }
 
+    private function validatedApiUserId(RequestInterface $request): int
+    {
+        $authorization = trim($request->getHeaderLine('Authorization'));
+
+        if (
+            $authorization === ''
+            || !preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)
+        ) {
+            return 0;
+        }
+
+        $token = trim((string) ($matches[1] ?? ''));
+
+        if ($token === '') {
+            return 0;
+        }
+
+        try {
+            $validated = (new JwtService())->validateAccessToken($token);
+        } catch (Throwable $e) {
+            return 0;
+        }
+
+        return (int) ($validated['user']['id'] ?? 0);
+    }
+
     private function usernameIsEffectiveAdmin(string $username): bool
     {
         $row = $this->db
@@ -263,7 +284,7 @@ class MaintenanceFilter implements FilterInterface
             return $response
                 ->setContentType('application/json')
                 ->setJSON([
-                    'status' => 'error',
+                    'success' => false,
                     'code' => 'MAINTENANCE',
                     'message' => $message,
                 ]);

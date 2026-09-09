@@ -11,8 +11,8 @@ use RuntimeException;
 class JwtService
 {
     private const ALGORITHM = 'HS256';
-    private const ACCESS_TTL = 3600;       // 1 jam
-    private const REFRESH_TTL = 2592000;   // 30 hari
+    private const ACCESS_TTL = 3600;
+    private const REFRESH_TTL = 2592000;
 
     protected BaseConnection $db;
 
@@ -21,16 +21,6 @@ class JwtService
         $this->db = Database::connect();
     }
 
-    /**
-     * Membuat access token + refresh token.
-     *
-     * @return array{
-     *     access_token: string,
-     *     refresh_token: string,
-     *     expires_in: int,
-     *     refresh_expires_in: int
-     * }
-     */
     public function issueTokens(
         array $user,
         ?string $deviceName = null
@@ -48,12 +38,6 @@ class JwtService
             throw new RuntimeException('User ID tidak valid.');
         }
 
-        /*
-         * JWT access token.
-         *
-         * auth_version dimasukkan ke claim agar setiap request
-         * dapat dibandingkan dengan users.auth_version.
-         */
         $payload = [
             'iss' => base_url('/'),
             'aud' => 'sisfour-api',
@@ -70,10 +54,6 @@ class JwtService
             self::ALGORITHM
         );
 
-        /*
-         * Refresh token menggunakan random opaque token.
-         * Token tetap disimpan di database sehingga dapat direvoke.
-         */
         $refreshToken = bin2hex(random_bytes(64));
 
         $inserted = $this->db
@@ -83,22 +63,14 @@ class JwtService
                 'token' => $accessToken,
                 'refresh_token' => $refreshToken,
                 'device_name' => $deviceName,
-                'expires_at' => date(
-                    'Y-m-d H:i:s',
-                    $accessExp
-                ),
-                'refresh_expires_at' => date(
-                    'Y-m-d H:i:s',
-                    $refreshExp
-                ),
+                'expires_at' => date('Y-m-d H:i:s', $accessExp),
+                'refresh_expires_at' => date('Y-m-d H:i:s', $refreshExp),
                 'revoked_at' => null,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
 
         if (!$inserted) {
-            throw new RuntimeException(
-                'Token API gagal disimpan.'
-            );
+            throw new RuntimeException('Token API gagal disimpan.');
         }
 
         return [
@@ -109,28 +81,19 @@ class JwtService
         ];
     }
 
-    /**
-     * Validasi access token JWT + database.
-     *
-     * @return array<string,mixed>
-     */
     public function validateAccessToken(
         string $accessToken
     ): array {
         $accessToken = trim($accessToken);
 
         if ($accessToken === '') {
-            throw new RuntimeException(
-                'Access token kosong.'
-            );
+            throw new RuntimeException('Access token kosong.');
         }
-
-        $secret = $this->getSecret();
 
         try {
             $decoded = JWT::decode(
                 $accessToken,
-                new Key($secret, self::ALGORITHM)
+                new Key($this->getSecret(), self::ALGORITHM)
             );
         } catch (\Throwable $e) {
             throw new RuntimeException(
@@ -142,48 +105,26 @@ class JwtService
         $authVersion = (int) ($decoded->av ?? -1);
 
         if ($userId <= 0 || $authVersion < 0) {
-            throw new RuntimeException(
-                'Claim access token tidak valid.'
-            );
+            throw new RuntimeException('Claim access token tidak valid.');
         }
 
-        /*
-         * Token harus masih tercatat dan belum direvoke.
-         */
         $tokenRow = $this->db
             ->table('api_tokens')
             ->where('token', $accessToken)
             ->where('id_user', $userId)
             ->where('revoked_at IS NULL', null, false)
-            ->where(
-                'expires_at >=',
-                date('Y-m-d H:i:s')
-            )
+            ->where('expires_at >=', date('Y-m-d H:i:s'))
             ->get()
             ->getRowArray();
 
         if (!$tokenRow) {
-            throw new RuntimeException(
-                'Access token sudah tidak aktif.'
-            );
+            throw new RuntimeException('Access token sudah tidak aktif.');
         }
 
-        /*
-         * Single Active Session:
-         * auth_version token harus sama dengan database.
-         */
-        $user = $this->db
-            ->table('users')
-            ->select(
-                'id, username, role, id_guru, id_siswa, id_pegawai, auth_version, status_aktif'
-            )
-            ->where('id', $userId)
-            ->get()
-            ->getRowArray();
+        $user = $this->activeUser($userId);
 
         if (
             !$user
-            || (int) $user['status_aktif'] !== 1
             || (int) $user['auth_version'] !== $authVersion
         ) {
             throw new RuntimeException(
@@ -198,9 +139,6 @@ class JwtService
         ];
     }
 
-    /**
-     * Revoke token API.
-     */
     public function revokeAccessToken(
         string $accessToken
     ): bool {
@@ -213,12 +151,6 @@ class JwtService
             ]);
     }
 
-    /**
-     * Refresh access token menggunakan refresh token.
-     *
-     * Refresh tidak menaikkan auth_version karena refresh bukan
-     * login baru. Token baru tetap memakai auth_version aktif.
-     */
     public function refresh(
         string $refreshToken,
         ?string $deviceName = null
@@ -226,9 +158,7 @@ class JwtService
         $refreshToken = trim($refreshToken);
 
         if ($refreshToken === '') {
-            throw new RuntimeException(
-                'Refresh token wajib diisi.'
-            );
+            throw new RuntimeException('Refresh token wajib diisi.');
         }
 
         $row = $this->db
@@ -248,33 +178,41 @@ class JwtService
             );
         }
 
-        $user = $this->db
-            ->table('users')
-            ->select(
-                'id, username, role, id_guru, id_siswa, id_pegawai, auth_version, status_aktif'
-            )
-            ->where('id', (int) $row['id_user'])
-            ->get()
-            ->getRowArray();
+        $userId = (int) ($row['id_user'] ?? 0);
+        $user = $this->activeUser($userId);
+
+        if (!$user) {
+            throw new RuntimeException('User tidak aktif.');
+        }
+
+        $storedClaims = $this->verifiedStoredClaims(
+            (string) ($row['token'] ?? '')
+        );
 
         if (
-            !$user
-            || (int) $user['status_aktif'] !== 1
+            (int) ($storedClaims['uid'] ?? 0) !== $userId
+            || (int) ($storedClaims['av'] ?? -1)
+                !== (int) $user['auth_version']
         ) {
+            $this->db
+                ->table('api_tokens')
+                ->where('id', (int) $row['id'])
+                ->update([
+                    'revoked_at' => date('Y-m-d H:i:s'),
+                ]);
+
             throw new RuntimeException(
-                'User tidak aktif.'
+                'Refresh token sudah tidak berlaku. Silakan login kembali.'
             );
         }
 
-        /*
-         * Jika auth_version berubah karena login lain,
-         * refresh token lama ikut tidak berlaku.
-         */
+        $now = time();
+
         $payload = [
             'iss' => base_url('/'),
             'aud' => 'sisfour-api',
-            'iat' => time(),
-            'exp' => time() + self::ACCESS_TTL,
+            'iat' => $now,
+            'exp' => $now + self::ACCESS_TTL,
             'sub' => (string) $user['id'],
             'uid' => (int) $user['id'],
             'av' => (int) $user['auth_version'],
@@ -286,10 +224,6 @@ class JwtService
             self::ALGORITHM
         );
 
-        /*
-         * Revoke token lama agar satu refresh token hanya
-         * menghasilkan satu access token aktif pada satu waktu.
-         */
         $this->db
             ->table('api_tokens')
             ->where('id', (int) $row['id'])
@@ -299,7 +233,7 @@ class JwtService
 
         $newRefreshToken = bin2hex(random_bytes(64));
 
-        $this->db
+        $inserted = $this->db
             ->table('api_tokens')
             ->insert([
                 'id_user' => (int) $user['id'],
@@ -308,15 +242,19 @@ class JwtService
                 'device_name' => $deviceName ?? $row['device_name'],
                 'expires_at' => date(
                     'Y-m-d H:i:s',
-                    time() + self::ACCESS_TTL
+                    $now + self::ACCESS_TTL
                 ),
                 'refresh_expires_at' => date(
                     'Y-m-d H:i:s',
-                    time() + self::REFRESH_TTL
+                    $now + self::REFRESH_TTL
                 ),
                 'revoked_at' => null,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
+
+        if (!$inserted) {
+            throw new RuntimeException('Token API baru gagal disimpan.');
+        }
 
         return [
             'access_token' => $accessToken,
@@ -326,9 +264,6 @@ class JwtService
         ];
     }
 
-    /**
-     * Ambil secret JWT dari environment.
-     */
     protected function getSecret(): string
     {
         $secret = trim((string) env('JWT_SECRET'));
@@ -346,5 +281,98 @@ class JwtService
         }
 
         return $secret;
+    }
+
+    private function activeUser(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select(
+                'id, username, role, id_guru, id_siswa, id_pegawai, ' .
+                'auth_version, status_aktif'
+            )
+            ->where('id', $userId)
+            ->get()
+            ->getRowArray();
+
+        if (!$user || (int) ($user['status_aktif'] ?? 0) !== 1) {
+            return null;
+        }
+
+        return $user;
+    }
+
+    private function verifiedStoredClaims(string $accessToken): array
+    {
+        $parts = explode('.', trim($accessToken));
+
+        if (count($parts) !== 3) {
+            throw new RuntimeException(
+                'Refresh token tidak terikat pada access token yang valid.'
+            );
+        }
+
+        [$headerPart, $payloadPart, $signaturePart] = $parts;
+
+        $header = json_decode(
+            $this->base64UrlDecode($headerPart),
+            true
+        );
+
+        $payload = json_decode(
+            $this->base64UrlDecode($payloadPart),
+            true
+        );
+
+        if (
+            !is_array($header)
+            || !is_array($payload)
+            || ($header['alg'] ?? '') !== self::ALGORITHM
+        ) {
+            throw new RuntimeException(
+                'Refresh token tidak terikat pada access token yang valid.'
+            );
+        }
+
+        $expectedSignature = hash_hmac(
+            'sha256',
+            $headerPart . '.' . $payloadPart,
+            $this->getSecret(),
+            true
+        );
+
+        $actualSignature = $this->base64UrlDecode($signaturePart);
+
+        if (!hash_equals($expectedSignature, $actualSignature)) {
+            throw new RuntimeException(
+                'Refresh token tidak terikat pada access token yang valid.'
+            );
+        }
+
+        return $payload;
+    }
+
+    private function base64UrlDecode(string $value): string
+    {
+        $remainder = strlen($value) % 4;
+
+        if ($remainder > 0) {
+            $value .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode(
+            strtr($value, '-_', '+/'),
+            true
+        );
+
+        if ($decoded === false) {
+            throw new RuntimeException('Token tidak valid.');
+        }
+
+        return $decoded;
     }
 }

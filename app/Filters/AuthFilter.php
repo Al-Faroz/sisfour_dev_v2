@@ -2,28 +2,38 @@
 
 namespace App\Filters;
 
+use App\Services\JwtService;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Config\Database;
+use Throwable;
 
 class AuthFilter implements FilterInterface
 {
-    /**
-     * Filter autentikasi session web.
-     *
-     * Memastikan:
-     * - session login valid
-     * - user masih aktif
-     * - auth_version session masih sama dengan database
-     */
     public function before(
         RequestInterface $request,
         $arguments = null
     ) {
-        /*
-         * 1. Pastikan session login tersedia.
-         */
+        $arguments = is_array($arguments) ? $arguments : [];
+
+        if (in_array('api', $arguments, true)) {
+            return $this->beforeApi($request);
+        }
+
+        return $this->beforeWeb();
+    }
+
+    public function after(
+        RequestInterface $request,
+        ResponseInterface $response,
+        $arguments = null
+    ) {
+        return null;
+    }
+
+    private function beforeWeb()
+    {
         if (session()->get('logged_in') !== true) {
             session()->setFlashdata(
                 'error',
@@ -33,9 +43,6 @@ class AuthFilter implements FilterInterface
             return redirect()->to('/auth/login');
         }
 
-        /*
-         * 2. Pastikan user_id valid.
-         */
         $userId = (int) session()->get('user_id');
 
         if ($userId <= 0) {
@@ -44,11 +51,6 @@ class AuthFilter implements FilterInterface
             return redirect()->to('/auth/login');
         }
 
-        /*
-         * 3. auth_version wajib tersedia di session.
-         *
-         * Tanpa auth_version, session tidak boleh dianggap valid.
-         */
         $sessionAuthVersion = session()->get('auth_version');
 
         if ($sessionAuthVersion === null) {
@@ -62,9 +64,6 @@ class AuthFilter implements FilterInterface
                 );
         }
 
-        /*
-         * 4. Ambil status user dan auth_version terbaru.
-         */
         $db = Database::connect();
 
         $user = $db
@@ -74,12 +73,6 @@ class AuthFilter implements FilterInterface
             ->get()
             ->getRowArray();
 
-        /*
-         * 5. User tidak ada / nonaktif / auth_version berubah.
-         *
-         * auth_version memastikan hanya satu sesi/token aktif
-         * yang dapat digunakan setelah login berikutnya.
-         */
         if (
             !$user
             || (int) $user['status_aktif'] !== 1
@@ -98,11 +91,51 @@ class AuthFilter implements FilterInterface
         return null;
     }
 
-    public function after(
-        RequestInterface $request,
-        ResponseInterface $response,
-        $arguments = null
-    ) {
-        // Tidak ada aksi setelah response.
+    private function beforeApi(RequestInterface $request)
+    {
+        $token = $this->bearerToken($request);
+
+        if ($token === '') {
+            return service('response')
+                ->setStatusCode(401)
+                ->setContentType('application/json')
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Bearer token wajib dikirim.',
+                ]);
+        }
+
+        try {
+            $validated = (new JwtService())->validateAccessToken($token);
+        } catch (Throwable $e) {
+            return service('response')
+                ->setStatusCode(401)
+                ->setContentType('application/json')
+                ->setJSON([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+        }
+
+        $request->apiUser = $validated['user'];
+        $request->apiAccessToken = $token;
+        $request->apiTokenRow = $validated['token'];
+        $request->apiClaims = $validated['claims'];
+
+        return null;
+    }
+
+    private function bearerToken(RequestInterface $request): string
+    {
+        $authorization = trim($request->getHeaderLine('Authorization'));
+
+        if (
+            $authorization === ''
+            || !preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches)
+        ) {
+            return '';
+        }
+
+        return trim((string) ($matches[1] ?? ''));
     }
 }

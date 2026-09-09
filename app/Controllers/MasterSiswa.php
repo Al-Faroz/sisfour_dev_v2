@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\SiswaKelasService;
 use App\Services\SiswaService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -10,10 +11,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class MasterSiswa extends BaseController
 {
     protected SiswaService $siswaService;
+    protected SiswaKelasService $siswaKelasService;
 
     public function __construct()
     {
         $this->siswaService = new SiswaService();
+        $this->siswaKelasService = new SiswaKelasService();
     }
 
     public function index()
@@ -122,6 +125,18 @@ class MasterSiswa extends BaseController
 
     public function mutasi($id)
     {
+        $aksi = trim((string) $this->request->getPost('aksi'));
+
+        if ($aksi === 'kelas') {
+            return $this->respondResult(
+                $this->siswaKelasService->setOrMoveClass(
+                    (int) session()->get('user_id'),
+                    (int) $id,
+                    (int) $this->request->getPost('id_kelas_tujuan')
+                )
+            );
+        }
+
         return $this->respondResult(
             $this->siswaService->mutasi(
                 (int) $id,

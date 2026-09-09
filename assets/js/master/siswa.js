@@ -22,6 +22,10 @@
         ? new bootstrap.Modal(document.getElementById('modalSiswa'))
         : null;
 
+    const modalKelas = document.getElementById('modalKelasSiswa')
+        ? new bootstrap.Modal(document.getElementById('modalKelasSiswa'))
+        : null;
+
     const modalMutasi = document.getElementById('modalMutasiSiswa')
         ? new bootstrap.Modal(document.getElementById('modalMutasiSiswa'))
         : null;
@@ -124,9 +128,16 @@
                    </button>`
                 : '';
 
+            const kelasButton = canManage && siswa.status_aktif === 'Aktif'
+                ? `<button type="button" class="btn btn-sm btn-outline-info btn-kelas"
+                           data-id="${siswa.id}" title="${siswa.id_kelas_aktif ? 'Pindah kelas' : 'Set kelas'}">
+                        <i class="bx bx-building-house"></i>
+                   </button>`
+                : '';
+
             const mutasiButton = canManage && siswa.status_aktif === 'Aktif'
                 ? `<button type="button" class="btn btn-sm btn-outline-warning btn-mutasi"
-                           data-id="${siswa.id}" title="Mutasi">
+                           data-id="${siswa.id}" title="Mutasi keluar">
                         <i class="bx bx-transfer"></i>
                    </button>`
                 : '';
@@ -163,7 +174,7 @@
                     <td>${statusBadge(siswa.status_aktif)}</td>
                     <td>${siswa.no_telepon ? escapeHtml(siswa.no_telepon) : '<span class="text-muted">-</span>'}</td>
                     ${(canEdit || canManage)
-                        ? `<td><div class="d-flex gap-1 flex-wrap">${editButton}${mutasiButton}${deleteButton}</div></td>`
+                        ? `<td><div class="d-flex gap-1 flex-wrap">${editButton}${kelasButton}${mutasiButton}${deleteButton}</div></td>`
                         : ''}
                 </tr>
             `;
@@ -228,6 +239,7 @@
 
         tbody.addEventListener('click', async (event) => {
             const edit = event.target.closest('.btn-edit');
+            const kelas = event.target.closest('.btn-kelas');
             const mutasi = event.target.closest('.btn-mutasi');
             const hapus = event.target.closest('.btn-delete');
 
@@ -252,6 +264,22 @@
                 nisnInput.readOnly = !canEditNisn;
                 fotoInput.value = '';
                 modalSiswa.show();
+                return;
+            }
+
+            if (kelas) {
+                const id = Number(kelas.dataset.id);
+                const siswa = rows.find((item) => Number(item.id) === id);
+                if (!siswa) return;
+
+                document.getElementById('kelasSiswaId').value = String(id);
+                document.getElementById('kelasNamaSiswa').value = siswa.nama;
+                document.getElementById('kelasSaatIni').value =
+                    siswa.nama_kelas_aktif || 'Belum memiliki kelas';
+                document.getElementById('idKelasTujuan').value =
+                    siswa.id_kelas_aktif ? String(siswa.id_kelas_aktif) : '';
+
+                modalKelas.show();
                 return;
             }
 
@@ -378,6 +406,44 @@
     }
 
     if (canManage) {
+        const kelasForm = document.getElementById('formKelasSiswa');
+
+        kelasForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const id = Number(document.getElementById('kelasSiswaId').value);
+            const target = document.getElementById('idKelasTujuan').value;
+
+            if (!id || !target) {
+                showError(new Error('Kelas tujuan wajib dipilih.'));
+                return;
+            }
+
+            const button = kelasForm.querySelector('button[type="submit"]');
+            const spinner = button.querySelector('.spinner-border');
+            button.disabled = true;
+            spinner.classList.remove('d-none');
+
+            try {
+                const response = await fetch(endpoint(`master/siswa/mutasi/${id}`), {
+                    method: 'POST',
+                    body: new FormData(kelasForm),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+
+                const result = await parseResponse(response);
+                modalKelas.hide();
+                await showSuccess(result.message);
+                await loadData();
+            } catch (error) {
+                showError(error);
+            } finally {
+                button.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
         const mutasiForm = document.getElementById('formMutasiSiswa');
 
         mutasiForm.addEventListener('submit', async (event) => {

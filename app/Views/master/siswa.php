@@ -14,7 +14,7 @@
         <div>
             <h4 class="fw-bold mb-1">Master Siswa</h4>
             <p class="text-muted mb-0">
-                Kelola biodata, akun, foto, status, dan mutasi siswa.
+                Kelola biodata, kelas aktif, akun, foto, status, dan mutasi siswa.
             </p>
         </div>
 
@@ -128,7 +128,7 @@
                         <th>Status</th>
                         <th>Kontak</th>
                         <?php if (!empty($canEdit) || !empty($canManage)): ?>
-                            <th style="min-width: 150px;">Aksi</th>
+                            <th style="min-width: 190px;">Aksi</th>
                         <?php endif; ?>
                     </tr>
                 </thead>
@@ -259,6 +259,68 @@
     <?php endif; ?>
 
     <?php if (!empty($canManage)): ?>
+        <div class="modal fade" id="modalKelasSiswa" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="formKelasSiswa">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="aksi" value="kelas">
+                        <input type="hidden" id="kelasSiswaId">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">Atur Kelas Siswa</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Siswa</label>
+                                <input type="text" class="form-control" id="kelasNamaSiswa" readonly>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Kelas Saat Ini</label>
+                                <input type="text" class="form-control" id="kelasSaatIni" readonly>
+                            </div>
+
+                            <div>
+                                <label class="form-label" for="idKelasTujuan">
+                                    Kelas Tujuan <span class="text-danger">*</span>
+                                </label>
+                                <select
+                                    class="form-select"
+                                    id="idKelasTujuan"
+                                    name="id_kelas_tujuan"
+                                    required
+                                >
+                                    <option value="">Pilih kelas</option>
+                                    <?php foreach ($kelasOptions as $kelas): ?>
+                                        <option value="<?= (int) $kelas['id'] ?>">
+                                            <?= esc($kelas['nama_kelas']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">
+                                    Jika siswa belum memiliki kelas, sistem akan menempatkan siswa.
+                                    Jika sudah memiliki kelas, perpindahan dilakukan secara transactional dan histori diperbarui.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
+                                Simpan Kelas
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="modalMutasiSiswa" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -266,7 +328,7 @@
                         <?= csrf_field() ?>
 
                         <div class="modal-header">
-                            <h5 class="modal-title">Mutasi Siswa</h5>
+                            <h5 class="modal-title">Mutasi Keluar Siswa</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
 
@@ -282,7 +344,7 @@
                                 <label class="form-label" for="mutasiStatus">Status</label>
                                 <select class="form-select" id="mutasiStatus" name="status" required>
                                     <option value="">Pilih</option>
-                                    <option value="Pindah">Pindah</option>
+                                    <option value="Pindah">Pindah Sekolah</option>
                                     <option value="Keluar">Keluar</option>
                                 </select>
                             </div>

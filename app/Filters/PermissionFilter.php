@@ -7,74 +7,54 @@ use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 
-/**
- * PermissionFilter
- *
- * Mengecek permission_key pada route.
- *
- * Contoh:
- * permission:master_guru.manage
- *
- * atau:
- * permission:master_guru.manage,master_guru.view
- *
- * Beberapa permission berarti OR.
- */
 class PermissionFilter implements FilterInterface
 {
     public function before(
         RequestInterface $request,
         $arguments = null
     ) {
-        /*
-         * AuthFilter seharusnya sudah dijalankan oleh
-         * parent route group.
-         *
-         * Tetap cek session sebagai defensive check.
-         */
-        if (session()->get('logged_in') !== true) {
-            return redirect()->to('/auth/login');
-        }
+        $isApi = $this->isApiRequest($request);
 
-        /*
-         * Route wajib memiliki permission key.
-         */
-        if (empty($arguments)) {
-            return service('response')
-                ->setStatusCode(403)
-                ->setBody(
-                    'Permission key tidak dikonfigurasi pada route ini.'
+        if ($isApi) {
+            $apiUser = $request->apiUser ?? null;
+
+            if (!is_array($apiUser) || (int) ($apiUser['id'] ?? 0) <= 0) {
+                return $this->deny(
+                    true,
+                    401,
+                    'User API tidak terautentikasi.'
                 );
-        }
+            }
 
-        /*
-         * Pastikan user_id valid.
-         */
-        $userId = (int) session()->get('user_id');
+            $userId = (int) $apiUser['id'];
+        } else {
+            if (session()->get('logged_in') !== true) {
+                return redirect()->to('/auth/login');
+            }
 
-        if ($userId <= 0) {
-            return service('response')
-                ->setStatusCode(403)
-                ->setBody(
+            $userId = (int) session()->get('user_id');
+
+            if ($userId <= 0) {
+                return $this->deny(
+                    false,
+                    403,
                     'Identitas pengguna tidak valid.'
                 );
+            }
+        }
+
+        if (empty($arguments)) {
+            return $this->deny(
+                $isApi,
+                403,
+                'Permission key tidak dikonfigurasi pada route ini.'
+            );
         }
 
         $authService = new AuthService();
-
         $matchedPermission = null;
         $resolvedScope = 'TIDAK_ADA';
 
-        /*
-         * Permission OR:
-         *
-         * permission:a,b,c
-         *
-         * User cukup memiliki salah satunya.
-         *
-         * resolveScope() juga bertanggung jawab terhadap
-         * validasi contextual scope seperti KELAS_DIAMPU.
-         */
         foreach ($arguments as $permissionKey) {
             $permissionKey = trim((string) $permissionKey);
 
@@ -93,40 +73,26 @@ class PermissionFilter implements FilterInterface
 
             $matchedPermission = $permissionKey;
             $resolvedScope = $scope;
-
             break;
         }
 
-        /*
-         * Tidak memiliki permission.
-         */
         if ($matchedPermission === null) {
             log_message(
                 'warning',
                 'Akses ditolak: user_id={userId}, permissions=[{permissions}]',
                 [
                     'userId' => $userId,
-                    'permissions' => implode(',', $arguments),
+                    'permissions' => implode(',', (array) $arguments),
                 ]
             );
 
-            return service('response')
-                ->setStatusCode(403)
-                ->setBody(
-                    'Anda tidak memiliki akses ke halaman ini.'
-                );
+            return $this->deny(
+                $isApi,
+                403,
+                'Anda tidak memiliki akses ke resource ini.'
+            );
         }
 
-        /*
-         * Simpan hasil resolusi permission ke request.
-         *
-         * Controller/Service dapat membaca:
-         *
-         * $request->permission
-         *
-         * Scope tetap harus diterapkan oleh Model/Service
-         * sesuai aturan masing-masing modul.
-         */
         $request->permission = [
             'key' => $matchedPermission,
             'scope' => $resolvedScope,
@@ -140,6 +106,32 @@ class PermissionFilter implements FilterInterface
         ResponseInterface $response,
         $arguments = null
     ) {
-        // Tidak ada aksi.
+        return null;
+    }
+
+    private function isApiRequest(RequestInterface $request): bool
+    {
+        $path = trim($request->getUri()->getPath(), '/');
+
+        return $path === 'api' || str_starts_with($path, 'api/');
+    }
+
+    private function deny(
+        bool $isApi,
+        int $status,
+        string $message
+    ) {
+        $response = service('response')->setStatusCode($status);
+
+        if ($isApi) {
+            return $response
+                ->setContentType('application/json')
+                ->setJSON([
+                    'success' => false,
+                    'message' => $message,
+                ]);
+        }
+
+        return $response->setBody($message);
     }
 }
