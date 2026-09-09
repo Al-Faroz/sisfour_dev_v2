@@ -121,20 +121,15 @@ class SiswaKelasService
         }
 
         $today = date('Y-m-d');
-
         $this->db->transBegin();
 
         try {
             if (!$membership) {
-                $inserted = $this->db
-                    ->table('anggota_kelas')
-                    ->insert([
-                        'id_siswa' => $idSiswa,
-                        'id_kelas' => $idKelasTujuan,
-                        'id_tahun' => $idTahun,
-                    ]);
-
-                if (!$inserted) {
+                if (!$this->db->table('anggota_kelas')->insert([
+                    'id_siswa' => $idSiswa,
+                    'id_kelas' => $idKelasTujuan,
+                    'id_tahun' => $idTahun,
+                ])) {
                     throw new \RuntimeException(
                         'Keanggotaan kelas gagal disimpan.'
                     );
@@ -147,7 +142,7 @@ class SiswaKelasService
                     'status' => 'Aktif',
                     'tanggal_mulai' => $today,
                     'tanggal_selesai' => null,
-                    'keterangan' => 'Penempatan awal melalui Master Siswa.',
+                    'keterangan' => 'Penempatan awal melalui Manajemen Siswa.',
                     'created_at' => date('Y-m-d H:i:s'),
                 ])) {
                     throw new \RuntimeException(
@@ -179,14 +174,11 @@ class SiswaKelasService
                     ->get()
                     ->getRowArray();
 
-                $updated = $this->db
+                if (!$this->db
                     ->table('anggota_kelas')
                     ->where('id', (int) $membership['id'])
-                    ->update([
-                        'id_kelas' => $idKelasTujuan,
-                    ]);
-
-                if (!$updated) {
+                    ->update(['id_kelas' => $idKelasTujuan])
+                ) {
                     throw new \RuntimeException(
                         'Keanggotaan kelas gagal dipindahkan.'
                     );
@@ -196,7 +188,7 @@ class SiswaKelasService
                     $activeHistory
                     && (string) $activeHistory['tanggal_mulai'] === $today
                 ) {
-                    $historyUpdated = $this->db
+                    if (!$this->db
                         ->table('riwayat_siswa')
                         ->where('id', (int) $activeHistory['id'])
                         ->update([
@@ -206,9 +198,8 @@ class SiswaKelasService
                                 $kelasAsal,
                                 $kelasTujuan['nama_kelas']
                             ),
-                        ]);
-
-                    if (!$historyUpdated) {
+                        ])
+                    ) {
                         throw new \RuntimeException(
                             'Riwayat kelas gagal dikoreksi.'
                         );
@@ -220,7 +211,7 @@ class SiswaKelasService
                             strtotime($today . ' -1 day')
                         );
 
-                        $historyClosed = $this->db
+                        if (!$this->db
                             ->table('riwayat_siswa')
                             ->where('id', (int) $activeHistory['id'])
                             ->update([
@@ -233,33 +224,28 @@ class SiswaKelasService
                                         $today
                                     )
                                 ),
-                            ]);
-
-                        if (!$historyClosed) {
+                            ])
+                        ) {
                             throw new \RuntimeException(
                                 'Riwayat kelas asal gagal ditutup.'
                             );
                         }
                     }
 
-                    $historyInserted = $this->db
-                        ->table('riwayat_siswa')
-                        ->insert([
-                            'id_siswa' => $idSiswa,
-                            'id_tahun' => $idTahun,
-                            'id_kelas' => $idKelasTujuan,
-                            'status' => 'Aktif',
-                            'tanggal_mulai' => $today,
-                            'tanggal_selesai' => null,
-                            'keterangan' => sprintf(
-                                'Pindah kelas dari %s ke %s.',
-                                $kelasAsal,
-                                $kelasTujuan['nama_kelas']
-                            ),
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ]);
-
-                    if (!$historyInserted) {
+                    if (!$this->db->table('riwayat_siswa')->insert([
+                        'id_siswa' => $idSiswa,
+                        'id_tahun' => $idTahun,
+                        'id_kelas' => $idKelasTujuan,
+                        'status' => 'Aktif',
+                        'tanggal_mulai' => $today,
+                        'tanggal_selesai' => null,
+                        'keterangan' => sprintf(
+                            'Pindah kelas dari %s ke %s.',
+                            $kelasAsal,
+                            $kelasTujuan['nama_kelas']
+                        ),
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ])) {
                         throw new \RuntimeException(
                             'Riwayat kelas tujuan gagal disimpan.'
                         );
@@ -290,7 +276,7 @@ class SiswaKelasService
             $this->activityLog->write(
                 $actorUserId,
                 $action,
-                'Master Siswa',
+                'Manajemen Siswa',
                 $logText
             );
 

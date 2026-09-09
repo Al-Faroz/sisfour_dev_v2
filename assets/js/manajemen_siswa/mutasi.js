@@ -1,0 +1,13 @@
+(() => {
+    'use strict';
+    const app=document.getElementById('mutasiSiswaApp');if(!app)return;
+    const baseUrl=app.dataset.baseUrl.replace(/\/+$/,''),tbody=document.querySelector('#tableMutasiSiswa tbody'),filter=document.getElementById('formFilterMutasi'),form=document.getElementById('formMutasi'),modal=new bootstrap.Modal(document.getElementById('modalMutasi'));let rows=[];
+    const endpoint=p=>`${baseUrl}/${p.replace(/^\/+/,'')}`,esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;};
+    const parse=async r=>{const d=await r.json().catch(()=>({}));if(!r.ok||d.status==='error')throw new Error(d.message||'Permintaan gagal.');return d;};
+    const err=m=>Swal.fire({icon:'error',title:'Gagal',text:m});
+    const render=()=>{tbody.innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td class="fw-semibold">${esc(r.nama)}</td><td class="font-monospace">${esc(r.nisn)}</td><td>${esc(r.nama_kelas_aktif||'Belum Ada Kelas')}</td><td>${r.jenis_kelamin==='L'?'L':'P'}</td><td><button type="button" class="btn btn-sm btn-outline-danger btn-mutasi" data-id="${r.id}">Mutasi</button></td></tr>`).join('');};
+    const load=async()=>{try{const q=new URLSearchParams(new FormData(filter));[...q.entries()].forEach(([k,v])=>{if(!String(v).trim())q.delete(k);});const r=await fetch(endpoint(`manajemen-siswa/mutasi/json?${q}`),{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r);rows=Array.isArray(d.data)?d.data:[];render();}catch(e){err(e.message||'Data gagal dimuat.');}};
+    tbody.addEventListener('click',e=>{const b=e.target.closest('.btn-mutasi');if(!b)return;const id=Number(b.dataset.id),r=rows.find(x=>Number(x.id)===id);if(!r)return;form.reset();document.getElementById('idSiswaMutasi').value=id;document.getElementById('namaSiswaMutasi').value=`${r.nama} (${r.nisn})`;modal.show();});
+    form.addEventListener('submit',async e=>{e.preventDefault();const id=Number(document.getElementById('idSiswaMutasi').value),c=await Swal.fire({icon:'warning',title:'Proses mutasi siswa?',text:'Status aktif dan histori kelas akan diperbarui.',showCancelButton:true,confirmButtonText:'Ya, proses',cancelButtonText:'Batal'});if(!c.isConfirmed)return;try{const r=await fetch(endpoint(`manajemen-siswa/mutasi/proses/${id}`),{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r);modal.hide();await Swal.fire({icon:'success',title:'Berhasil',text:d.message});await load();}catch(x){err(x.message||'Mutasi siswa gagal.');}});
+    filter.addEventListener('submit',e=>{e.preventDefault();load();});document.getElementById('btnResetMutasi').addEventListener('click',()=>{filter.reset();load();});load();
+})();

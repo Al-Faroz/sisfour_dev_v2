@@ -63,7 +63,6 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('siswa/recycle/json', 'MasterSiswa::recycle', ['filter' => 'permission:master_siswa.manage']);
         $routes->post('siswa/restore/(:segment)', 'MasterSiswa::restore/$1', ['filter' => 'permission:master_siswa.manage']);
         $routes->delete('siswa/force-delete/(:segment)', 'MasterSiswa::forceDelete/$1', ['filter' => 'permission:master_siswa.manage']);
-        $routes->post('siswa/mutasi/(:segment)', 'MasterSiswa::mutasi/$1', ['filter' => 'permission:master_siswa.manage']);
         $routes->post('siswa/upload-foto/(:segment)', 'MasterSiswa::uploadFoto/$1', ['filter' => 'permission:master_siswa.edit_biodata']);
 
         $routes->get('kelas', 'MasterKelas::index', ['filter' => 'permission:master_kelas.manage']);
@@ -75,12 +74,6 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('kelas/recycle/json', 'MasterKelas::recycle', ['filter' => 'permission:master_kelas.manage']);
         $routes->post('kelas/restore/(:segment)', 'MasterKelas::restore/$1', ['filter' => 'permission:master_kelas.manage']);
         $routes->delete('kelas/force-delete/(:segment)', 'MasterKelas::forceDelete/$1', ['filter' => 'permission:master_kelas.manage']);
-        $routes->get('kelas/anggota/(:segment)', 'MasterKelas::anggota/$1', ['filter' => 'permission:master_kelas.manage']);
-        $routes->post('kelas/anggota/add/(:segment)', 'MasterKelas::addAnggota/$1', ['filter' => 'permission:master_kelas.manage']);
-        $routes->delete('kelas/anggota/remove/(:segment)/(:segment)', 'MasterKelas::removeAnggota/$1/$2', ['filter' => 'permission:master_kelas.manage']);
-        $routes->get('kelas/process-data/(:segment)', 'MasterKelas::processData/$1', ['filter' => 'permission:master_kelas.manage']);
-        $routes->post('kelas/naik/(:segment)', 'MasterKelas::naik/$1', ['filter' => 'permission:master_kelas.manage']);
-        $routes->post('kelas/lulus/(:segment)', 'MasterKelas::lulus/$1', ['filter' => 'permission:master_kelas.manage']);
 
         $routes->get('tahun', 'MasterTahunAjaran::index', ['filter' => 'permission:master_tahun_ajaran.manage']);
         $routes->get('tahun/json', 'MasterTahunAjaran::index', ['filter' => 'permission:master_tahun_ajaran.manage']);
@@ -116,6 +109,20 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('jadwal/import', 'JadwalGuru::import', ['filter' => 'permission:jadwal_guru.manage']);
         $routes->get('jadwal/export', 'JadwalGuru::export', ['filter' => 'permission:jadwal_guru.manage']);
         $routes->delete('jadwal/delete/(:segment)', 'JadwalGuru::delete/$1', ['filter' => 'permission:jadwal_guru.manage']);
+    });
+
+    $routes->group('manajemen-siswa', static function ($routes) {
+        $routes->get('kelas', 'ManajemenSiswa::kelas', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('kelas/json', 'ManajemenSiswa::kelas', ['filter' => 'permission:master_siswa.manage']);
+        $routes->post('kelas/set/(:segment)', 'ManajemenSiswa::setKelas/$1', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('kenaikan', 'ManajemenSiswa::kenaikan', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('process-data/(:segment)', 'ManajemenSiswa::processData/$1', ['filter' => 'permission:master_siswa.manage']);
+        $routes->post('kenaikan/proses/(:segment)', 'ManajemenSiswa::naik/$1', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('mutasi', 'ManajemenSiswa::mutasi', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('mutasi/json', 'ManajemenSiswa::mutasi', ['filter' => 'permission:master_siswa.manage']);
+        $routes->post('mutasi/proses/(:segment)', 'ManajemenSiswa::prosesMutasi/$1', ['filter' => 'permission:master_siswa.manage']);
+        $routes->get('kelulusan', 'ManajemenSiswa::kelulusan', ['filter' => 'permission:master_siswa.manage']);
+        $routes->post('kelulusan/proses/(:segment)', 'ManajemenSiswa::lulus/$1', ['filter' => 'permission:master_siswa.manage']);
     });
 
     $routes->group('presensi', static function ($routes) {

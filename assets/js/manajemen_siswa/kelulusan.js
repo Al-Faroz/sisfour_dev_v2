@@ -1,0 +1,21 @@
+(() => {
+    'use strict';
+    const app=document.getElementById('kelulusanSiswaApp');if(!app)return;
+    const baseUrl=app.dataset.baseUrl.replace(/\/+$/,''),modal=new bootstrap.Modal(document.getElementById('modalKelulusan')),form=document.getElementById('formKelulusan'),tbody=document.getElementById('tbodyLulus');
+    const endpoint=p=>`${baseUrl}/${p.replace(/^\/+/,'')}`,esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;};
+    const parse=async r=>{const d=await r.json().catch(()=>({}));if(!r.ok||d.status==='error')throw new Error(d.message||'Permintaan gagal.');return d;};
+    const error=m=>Swal.fire({icon:'error',title:'Gagal',text:m});
+    const count=()=>{document.getElementById('jumlahLulusDipilih').textContent=`${tbody.querySelectorAll('.check-lulus:checked').length} siswa dipilih`;};
+    document.addEventListener('click',async e=>{const b=e.target.closest('.btn-proses-lulus');if(!b)return;const id=Number(b.dataset.id);
+        try{const r=await fetch(endpoint(`manajemen-siswa/process-data/${id}`),{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r),p=d.data;
+            document.getElementById('idKelasLulus').value=id;document.getElementById('labelKelasLulus').textContent=b.dataset.nama||p.kelas?.nama_kelas||'';
+            tbody.innerHTML=(p.siswa||[]).map(s=>`<tr><td><input class="form-check-input check-lulus" type="checkbox" name="id_siswa[]" value="${s.id_siswa}" checked></td><td>${esc(s.nama)}</td><td class="font-monospace">${esc(s.nisn)}</td><td>${s.jenis_kelamin==='L'?'L':'P'}</td></tr>`).join('');
+            count();modal.show();
+        }catch(x){error(x.message||'Data kelulusan gagal dimuat.');}});
+    tbody.addEventListener('change',count);
+    document.getElementById('btnPilihSemuaLulus').addEventListener('click',()=>{tbody.querySelectorAll('.check-lulus').forEach(x=>x.checked=true);count();});
+    document.getElementById('btnKosongkanLulus').addEventListener('click',()=>{tbody.querySelectorAll('.check-lulus').forEach(x=>x.checked=false);count();});
+    form.addEventListener('submit',async e=>{e.preventDefault();const id=Number(document.getElementById('idKelasLulus').value);if(!tbody.querySelectorAll('.check-lulus:checked').length)return error('Pilih minimal satu siswa.');
+        const c=await Swal.fire({icon:'warning',title:'Luluskan siswa terpilih?',text:'Proses ini mengubah status siswa menjadi Lulus.',showCancelButton:true,confirmButtonText:'Ya, luluskan',cancelButtonText:'Batal'});if(!c.isConfirmed)return;
+        try{const r=await fetch(endpoint(`manajemen-siswa/kelulusan/proses/${id}`),{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r);modal.hide();await Swal.fire({icon:'success',title:'Berhasil',text:d.message});window.location.reload();}catch(x){error(x.message||'Kelulusan siswa gagal.');}});
+})();

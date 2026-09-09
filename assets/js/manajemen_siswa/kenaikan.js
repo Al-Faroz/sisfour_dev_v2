@@ -1,0 +1,22 @@
+(() => {
+    'use strict';
+    const app=document.getElementById('kenaikanSiswaApp');if(!app)return;
+    const baseUrl=app.dataset.baseUrl.replace(/\/+$/,''),modal=new bootstrap.Modal(document.getElementById('modalKenaikan')),form=document.getElementById('formKenaikan'),tbody=document.getElementById('tbodyNaik'),target=document.getElementById('kelasTujuanNaik');
+    const endpoint=p=>`${baseUrl}/${p.replace(/^\/+/,'')}`,esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;};
+    const parse=async r=>{const d=await r.json().catch(()=>({}));if(!r.ok||d.status==='error')throw new Error(d.message||'Permintaan gagal.');return d;};
+    const error=m=>Swal.fire({icon:'error',title:'Gagal',text:m});
+    const count=()=>{document.getElementById('jumlahNaikDipilih').textContent=`${tbody.querySelectorAll('.check-naik:checked').length} siswa`;};
+    document.addEventListener('click',async e=>{const b=e.target.closest('.btn-proses-naik');if(!b)return;const id=Number(b.dataset.id);
+        try{const r=await fetch(endpoint(`manajemen-siswa/process-data/${id}`),{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r),p=d.data;
+            document.getElementById('idKelasAsal').value=id;document.getElementById('labelKelasAsal').textContent=`Dari ${b.dataset.nama||p.kelas?.nama_kelas||''}`;
+            target.innerHTML='<option value="">Pilih kelas tujuan</option>'+((p.target_kelas||[]).map(k=>`<option value="${k.id}" data-tahun="${k.id_tahun}">${esc(k.nama_tahun)} - ${esc(k.semester)} · ${esc(k.nama_kelas)}</option>`).join(''));
+            tbody.innerHTML=(p.siswa||[]).map(s=>`<tr><td><input class="form-check-input check-naik" type="checkbox" name="id_siswa[]" value="${s.id_siswa}" checked></td><td>${esc(s.nama)}</td><td class="font-monospace">${esc(s.nisn)}</td><td>${s.jenis_kelamin==='L'?'L':'P'}</td></tr>`).join('');
+            document.getElementById('idTahunBaru').value='';count();modal.show();
+        }catch(x){error(x.message||'Data kenaikan gagal dimuat.');}});
+    target.addEventListener('change',()=>{const o=target.options[target.selectedIndex];document.getElementById('idTahunBaru').value=o?.dataset?.tahun||'';});
+    tbody.addEventListener('change',count);
+    document.getElementById('btnPilihSemuaNaik').addEventListener('click',()=>{tbody.querySelectorAll('.check-naik').forEach(x=>x.checked=true);count();});
+    document.getElementById('btnKosongkanNaik').addEventListener('click',()=>{tbody.querySelectorAll('.check-naik').forEach(x=>x.checked=false);count();});
+    form.addEventListener('submit',async e=>{e.preventDefault();const id=Number(document.getElementById('idKelasAsal').value);if(!target.value)return error('Kelas tujuan wajib dipilih.');if(!document.getElementById('idTahunBaru').value)return error('Tahun ajaran tujuan tidak valid.');if(!tbody.querySelectorAll('.check-naik:checked').length)return error('Pilih minimal satu siswa.');
+        try{const r=await fetch(endpoint(`manajemen-siswa/kenaikan/proses/${id}`),{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r);modal.hide();await Swal.fire({icon:'success',title:'Berhasil',text:d.message});window.location.reload();}catch(x){error(x.message||'Kenaikan kelas gagal.');}});
+})();

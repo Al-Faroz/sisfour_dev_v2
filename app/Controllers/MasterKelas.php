@@ -4,11 +4,6 @@ namespace App\Controllers;
 
 use App\Services\KelasService;
 
-/**
- * MasterKelas
- *
- * Controller Master Kelas.
- */
 class MasterKelas extends BaseController
 {
     protected KelasService $kelasService;
@@ -102,72 +97,12 @@ class MasterKelas extends BaseController
         );
     }
 
-    public function anggota($id)
-    {
-        return $this->respondResult(
-            $this->kelasService->getAnggotaData((int) $id)
-        );
-    }
-
-    public function addAnggota($id)
-    {
-        return $this->respondResult(
-            $this->kelasService->addAnggota(
-                (int) $id,
-                (int) $this->request->getPost('id_siswa')
-            )
-        );
-    }
-
-    public function removeAnggota($id, $idSiswa)
-    {
-        return $this->respondResult(
-            $this->kelasService->removeAnggota(
-                (int) $id,
-                (int) $idSiswa
-            )
-        );
-    }
-
-    public function processData($id)
-    {
-        return $this->respondResult(
-            $this->kelasService->getProcessData((int) $id)
-        );
-    }
-
-    public function naik($id)
-    {
-        $selected = $this->request->getPost('id_siswa');
-        $selected = is_array($selected) ? $selected : [];
-
-        return $this->respondResult(
-            $this->kelasService->naikKelas(
-                (int) $id,
-                (int) $this->request->getPost('id_kelas_tujuan'),
-                (int) $this->request->getPost('id_tahun_baru'),
-                $selected
-            )
-        );
-    }
-
-    public function lulus($id)
-    {
-        $selected = $this->request->getPost('id_siswa');
-        $selected = is_array($selected) ? $selected : [];
-
-        return $this->respondResult(
-            $this->kelasService->luluskan(
-                (int) $id,
-                $selected
-            )
-        );
-    }
-
     protected function filters(): array
     {
         return [
-            'tingkat' => trim((string) $this->request->getGet('tingkat')),
+            'tingkat' => trim(
+                (string) $this->request->getGet('tingkat')
+            ),
             'id_tahun' => (int) $this->request->getGet('id_tahun'),
         ];
     }

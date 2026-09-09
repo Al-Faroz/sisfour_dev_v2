@@ -2,21 +2,23 @@
 
 namespace App\Controllers;
 
-use App\Services\SiswaKelasService;
+use App\Services\SiswaImportService;
 use App\Services\SiswaService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\NamedRange;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MasterSiswa extends BaseController
 {
     protected SiswaService $siswaService;
-    protected SiswaKelasService $siswaKelasService;
+    protected SiswaImportService $siswaImportService;
 
     public function __construct()
     {
         $this->siswaService = new SiswaService();
-        $this->siswaKelasService = new SiswaKelasService();
+        $this->siswaImportService = new SiswaImportService();
     }
 
     public function index()
@@ -123,29 +125,6 @@ class MasterSiswa extends BaseController
         );
     }
 
-    public function mutasi($id)
-    {
-        $aksi = trim((string) $this->request->getPost('aksi'));
-
-        if ($aksi === 'kelas') {
-            return $this->respondResult(
-                $this->siswaKelasService->setOrMoveClass(
-                    (int) session()->get('user_id'),
-                    (int) $id,
-                    (int) $this->request->getPost('id_kelas_tujuan')
-                )
-            );
-        }
-
-        return $this->respondResult(
-            $this->siswaService->mutasi(
-                (int) $id,
-                trim((string) $this->request->getPost('status')),
-                trim((string) $this->request->getPost('keterangan'))
-            )
-        );
-    }
-
     public function delete($id)
     {
         return $this->respondResult(
@@ -181,15 +160,22 @@ class MasterSiswa extends BaseController
         }
 
         return $this->respondResult(
-            $this->siswaService->importExcel($file)
+            $this->siswaImportService->import(
+                $file,
+                (int) session()->get('user_id')
+            )
         );
     }
 
     public function downloadTemplate()
     {
+        $userId = (int) session()->get('user_id');
+        $kelasOptions = $this->siswaService->getKelasOptions($userId);
+
         $spreadsheet = new Spreadsheet();
+
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Template Siswa');
+        $sheet->setTitle('DATA_SISWA');
 
         $sheet->fromArray([
             [
@@ -200,6 +186,7 @@ class MasterSiswa extends BaseController
                 'TEMPAT LAHIR',
                 'TANGGAL LAHIR',
                 'ALAMAT',
+                'NAMA KELAS',
             ],
             [
                 '3510123412341234',
@@ -209,17 +196,82 @@ class MasterSiswa extends BaseController
                 'Jombang',
                 '2008-01-15',
                 'Jl. Merdeka No. 10',
+                $kelasOptions[0]['nama_kelas'] ?? '',
             ],
         ], null, 'A1');
 
-        $sheet->getStyle('A1:G1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:H1')->getFont()->setBold(true);
         $sheet->getStyle('A:B')->getNumberFormat()->setFormatCode('@');
 
-        foreach (range('A', 'G') as $column) {
+        foreach (range('A', 'H') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'sisfour_template_siswa_');
+        $kelasSheet = $spreadsheet->createSheet();
+        $kelasSheet->setTitle('DAFTAR_KELAS');
+        $kelasSheet->fromArray([
+            ['NAMA KELAS', 'TINGKAT', 'ROMBEL'],
+        ], null, 'A1');
+        $kelasSheet->getStyle('A1:C1')->getFont()->setBold(true);
+
+        $row = 2;
+
+        foreach ($kelasOptions as $kelas) {
+            $kelasSheet->fromArray([[
+                $kelas['nama_kelas'],
+                $kelas['tingkat'],
+                $kelas['rombel'],
+            ]], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'C') as $column) {
+            $kelasSheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        if ($row > 2) {
+            $lastRow = $row - 1;
+
+            $spreadsheet->addNamedRange(
+                new NamedRange(
+                    'DAFTAR_KELAS_VALID',
+                    $kelasSheet,
+                    '$A$2:$A$' . $lastRow
+                )
+            );
+
+            for ($dataRow = 2; $dataRow <= 2000; $dataRow++) {
+                $validation = $sheet
+                    ->getCell('H' . $dataRow)
+                    ->getDataValidation();
+
+                $validation->setType(DataValidation::TYPE_LIST);
+                $validation->setErrorStyle(DataValidation::STYLE_STOP);
+                $validation->setAllowBlank(false);
+                $validation->setShowInputMessage(true);
+                $validation->setShowErrorMessage(true);
+                $validation->setShowDropDown(true);
+                $validation->setErrorTitle('Kelas tidak valid');
+                $validation->setError(
+                    'Pilih nama kelas dari daftar yang tersedia.'
+                );
+                $validation->setPromptTitle('Pilih kelas');
+                $validation->setPrompt(
+                    'Gunakan kelas yang tersedia pada sheet DAFTAR_KELAS.'
+                );
+                $validation->setFormula1('=DAFTAR_KELAS_VALID');
+            }
+        }
+
+        $sheet->freezePane('A2');
+        $kelasSheet->freezePane('A2');
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $tempFile = tempnam(
+            sys_get_temp_dir(),
+            'sisfour_template_siswa_'
+        );
+
         (new Xlsx($spreadsheet))->save($tempFile);
 
         return $this->response
@@ -230,7 +282,10 @@ class MasterSiswa extends BaseController
     public function export()
     {
         $userId = (int) session()->get('user_id');
-        $data = $this->siswaService->getList($this->filters(), $userId);
+        $data = $this->siswaService->getList(
+            $this->filters(),
+            $userId
+        );
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -241,10 +296,23 @@ class MasterSiswa extends BaseController
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
         $sheet->fromArray([[
-            'NIK','NISN','NAMA','JK','TEMPAT LAHIR','TANGGAL LAHIR',
-            'ALAMAT','NO. TELEPON','KEBUTUHAN KHUSUS','DISABILITAS',
-            'NO. KIP/PIP','NAMA AYAH','NAMA IBU','NAMA WALI','KELAS',
-            'STATUS','TANGGAL MUTASI',
+            'NIK',
+            'NISN',
+            'NAMA',
+            'JK',
+            'TEMPAT LAHIR',
+            'TANGGAL LAHIR',
+            'ALAMAT',
+            'NO. TELEPON',
+            'KEBUTUHAN KHUSUS',
+            'DISABILITAS',
+            'NO. KIP/PIP',
+            'NAMA AYAH',
+            'NAMA IBU',
+            'NAMA WALI',
+            'KELAS',
+            'STATUS',
+            'TANGGAL MUTASI',
         ]], null, 'A3');
 
         $row = 4;
@@ -291,12 +359,18 @@ class MasterSiswa extends BaseController
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'sisfour_export_siswa_');
+        $tempFile = tempnam(
+            sys_get_temp_dir(),
+            'sisfour_export_siswa_'
+        );
+
         (new Xlsx($spreadsheet))->save($tempFile);
 
         return $this->response
             ->download($tempFile, null)
-            ->setFileName('data_siswa_' . date('Ymd_His') . '.xlsx');
+            ->setFileName(
+                'data_siswa_' . date('Ymd_His') . '.xlsx'
+            );
     }
 
     protected function filters(): array
@@ -306,7 +380,9 @@ class MasterSiswa extends BaseController
             'nik' => trim((string) $this->request->getGet('nik')),
             'nisn' => trim((string) $this->request->getGet('nisn')),
             'id_kelas' => (int) $this->request->getGet('id_kelas'),
-            'status_aktif' => trim((string) $this->request->getGet('status_aktif')),
+            'status_aktif' => trim(
+                (string) $this->request->getGet('status_aktif')
+            ),
         ];
     }
 
@@ -319,8 +395,10 @@ class MasterSiswa extends BaseController
             || $this->request->isAJAX();
     }
 
-    protected function respondResult(array $result, int $successCode = 200)
-    {
+    protected function respondResult(
+        array $result,
+        int $successCode = 200
+    ) {
         $success = (bool) ($result['success'] ?? false);
 
         return $this->response
