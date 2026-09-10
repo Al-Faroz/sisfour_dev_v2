@@ -34,7 +34,7 @@ $ttl = $ttl !== '' ? $ttl : '-';
     .position { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
     .school { font-size: 9pt; color: #555; margin-top: 5px; }
     .meta { font-size: 9pt; margin-top: 3px; }
-    .section-title { margin: 18px 0 7px 0; font-size: 11pt; font-weight: bold; border-bottom: 1px solid #777; padding-bottom: 4px; }
+    .section-title { margin: 18px 0 7px 0; font-size: 11pt; font-weight: bold; border-bottom: 1px solid #777; padding-bottom: 4px; page-break-after: avoid; }
     .identity { width: 100%; border-collapse: collapse; }
     .identity td { padding: 3px 4px; vertical-align: top; }
     .identity .label { width: 190px; color: #555; }
@@ -42,6 +42,7 @@ $ttl = $ttl !== '' ? $ttl : '-';
     table.data th, table.data td { border: 1px solid #aaa; padding: 5px 6px; vertical-align: top; }
     table.data th { background: #f2f2f2; font-size: 8.5pt; text-align: left; }
     table.data td { font-size: 8.7pt; }
+    table.data tr { page-break-inside: avoid; }
     .empty { color: #777; text-align: center; font-style: italic; }
     .footer { margin-top: 22px; border-top: 1px solid #bbb; padding-top: 7px; font-size: 8pt; color: #666; }
 </style>

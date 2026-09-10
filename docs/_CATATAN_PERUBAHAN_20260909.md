@@ -56,11 +56,25 @@
 - Kebijakan self-delete dikunci: self yang mempunyai hak edit boleh menghapus record miliknya sendiri; Admin/Operator manage tetap boleh menghapus; tidak ada approval workflow.
 - Ditambahkan `PersonaliaHardeningTest` untuk whitelist dan path boundary.
 
-## Sinkronisasi Dokumen Acuan
-Phase 3.1 memperbarui:
+## Phase 3.2 — Final Polish & Documentation Sync
+- `02_DATABASE — SisisFour.md` disinkronkan ke dump `sisfour_dev_v2 (29).sql` dengan 32 tabel dan `ci_sessions.timestamp = DATETIME`.
+- Dokumen Profile dan Testing dikonsolidasikan ke satu nama canonical; duplicate filename encoding `ΓÇö` dihapus.
+- `.gitignore` ditambah untuk `build/`, `writable/uploads/`, dan `uploads/foto_pegawai/` agar artifact test/dokumen raw/foto runtime tidak ikut `git add -A`.
+- Pesan jabatan legacy Pegawai diperbaiki agar mengarahkan pengguna ke Riwayat & Portofolio yang sudah tersedia.
+- Tampilan Personalia readonly tidak lagi menampilkan kolom Aksi.
+- Tab Personalia dibuat horizontal-scroll pada layar sempit.
+- Portofolio PDF diberi page-break guard untuk section title dan row tabel.
+- Viewport utama tidak lagi menonaktifkan zoom pengguna.
+- Ditambahkan script verifikasi CHECK Personalia tanpa mutation data.
 
+## Sinkronisasi Dokumen Acuan
+Phase 3.2 memperbarui:
+
+- `02_DATABASE — SisisFour.md`
 - `09_PROFILE — SisisFour.md`
 - `15_TESTING_POLISH — SisisFour.md`
+- `Tree Structure — SisisFour.md`
 - `_CATATAN_PERUBAHAN_20260909.md`
+- `PHASE3_2_FINAL_POLISH.md`
 
-`02_DATABASE — SisisFour.md` **sengaja belum ditimpa pada paket sebelum runtime**. Dokumen database utama akan disinkronkan dari dump baru setelah SQL Phase 3.1 benar-benar dijalankan dan `SHOW CREATE TABLE` diverifikasi, agar dokumen tidak mendahului kondisi database aktual.
+Status CHECK Personalia pada live MariaDB tetap diverifikasi dengan `SHOW CREATE TABLE` karena representasi CHECK tidak terlihat pada dump `(29)`.

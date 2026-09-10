@@ -1,162 +1,271 @@
-# Profile Guru & Profile Siswa — SisisFour
+# Profile Guru, Pegawai & Siswa — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Versi Acuan:** v0.9 PHASE 3.2 FINAL POLISH  
+**Tanggal Acuan:** 09 September 2026  
+**Baseline Aplikasi:** `main` @ `c05466738012ea2da852fa3e878b6bbb897d6607` + paket Phase 3.2  
+**Baseline Database:** `sisfour_dev_v2 (29).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
+Dokumen ini adalah kontrak Profile SisisFour setelah implementasi Personalia/Portofolio, hardening Phase 3.1, dan final polish Phase 3.2.
 
 ---
 
-# 1. Scope
+# 1. Prinsip
 
-Profile selalu:
+Profile selalu bekerja pada:
 
 ```text
 DIRI_SENDIRI
 ```
 
-Profile bukan Master Data dan bukan User Management.
+Profile bukan Master Data dan bukan User Management. Target identity tidak boleh dipilih melalui parameter bebas.
 
-# 2. Permission Database
+Identity berasal dari relasi pada `users`:
 
 ```text
-profile_guru.view
-profile_guru.edit
-profile_siswa.view
+users.id_guru
+users.id_pegawai
+users.id_siswa
 ```
 
-Role dengan Profile Guru self permission pada baseline mencakup Admin, Operator, Pimpinan, BK, dan Guru sesuai role_permissions. Target hanya valid jika account mempunyai `id_guru`.
+# 2. Profile Guru
 
-Siswa mempunyai `profile_siswa.view = DIRI_SENDIRI`.
-
-# 3. Route Web Terdaftar
+Route Web utama:
 
 ```text
 GET  /profile/guru
 GET  /profile/guru/json
 PUT  /profile/guru/update
 POST /profile/guru/upload-foto
-
-GET  /profile/siswa
-GET  /profile/siswa/json
 ```
 
-# 4. Route API Terdaftar
+Profile Guru hanya tersedia bila account mempunyai `users.id_guru`.
 
-```text
-GET  /api/profile/guru
-PUT  /api/profile/guru
-POST /api/profile/guru/foto
-GET  /api/profile/siswa
-```
+Data identitas inti yang dapat diedit sendiri mengikuti `ProfileService`/`ProfileGuru`. Credential tidak dapat diubah dari Profile.
 
-# 5. Status Runtime Baseline
+NIK/NIP tetap merupakan identitas administratif. Perubahan NIP yang mengubah login identifier hanya dilakukan melalui Master Guru oleh actor berwenang dan mengikuti sinkronisasi account Phase 2.
 
-Pada repo baseline `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`, route tersebut menunjuk:
-
-```text
-ProfileGuru
-ProfileSiswa
-```
-
-Namun file berikut tidak ditemukan di `app/Controllers/`:
-
-```text
-ProfileGuru.php
-ProfileSiswa.php
-```
-
-Pencarian class yang sama juga tidak menemukan implementasi.
-
-Dengan demikian **Profile belum runtime-ready** pada baseline ini.
-
-# 6. Kontrak Profile Guru
-
-Target:
-
-```text
-users.id_guru
-```
-
-NIP readonly.
-
-Field pribadi yang boleh diubah:
-
-```text
-nama
-jenis_kelamin
-tempat_lahir
-tanggal_lahir
-alamat
-no_telepon
-email
-foto
-```
-
-Status kepegawaian adalah data administratif dan tidak diubah sendiri melalui Profile.
-
-Foto:
+Foto Guru:
 
 ```text
 uploads/foto_guru/
 ```
 
-# 7. Kontrak Profile Siswa
+# 3. Profile Pegawai
 
-Target:
-
-```text
-users.id_siswa
-```
-
-Readonly.
-
-Kelas berasal dari membership aktif dan dapat memakai riwayat untuk histori.
-
-Siswa tidak mempunyai endpoint mutation Profile.
-
-# 8. IDOR
-
-Dilarang memilih target melalui parameter bebas:
+Route Web utama:
 
 ```text
-?id_guru=...
-?id_siswa=...
+GET  /profile/pegawai
+GET  /profile/pegawai/json
+PUT  /profile/pegawai/update
+POST /profile/pegawai/upload-foto
 ```
 
-Actor Web dari session, actor API dari token.
+Profile Pegawai hanya tersedia bila account mempunyai `users.id_pegawai`.
 
-# 9. Account Setting
+Pegawai tidak membutuhkan role baru `pegawai`. Account Pegawai memperoleh hak operasional dari role yang dimiliki, sedangkan Profile self ditentukan oleh identity `id_pegawai`.
 
-Profile tidak mengubah:
+Foto Pegawai:
 
-- username;
-- role;
-- secondary role;
-- password;
-- status account;
-- auth_version secara administratif.
+```text
+uploads/foto_pegawai/
+```
 
-# 10. Release Blocker
+# 4. Route API Profile Existing
 
-Sebelum rilis wajib memilih dan menyelesaikan salah satu:
+Route API berada di group `api` dengan filter `auth:api`:
 
-1. implementasikan Controller/Service/View/API Profile sesuai route dan permission yang sudah ada; atau
-2. keluarkan Profile dari scope dan hapus route/menu/permission secara konsisten.
+```text
+GET  /api/profile/guru
+PUT  /api/profile/guru
+POST /api/profile/guru/foto
 
-Route tidak boleh menunjuk Controller yang tidak ada.
+GET  /api/profile/pegawai
+PUT  /api/profile/pegawai
+POST /api/profile/pegawai/foto
 
-# 11. Checkpoint Setelah Sinkron
+GET  /api/profile/siswa
+```
 
-- Guru view/edit diri;
-- NIP readonly;
-- foto;
-- Siswa readonly diri;
-- kelas resolve;
-- IDOR;
-- CSRF Web;
-- JWT API;
-- role tanpa identity ditangani;
+Endpoint API Personalia/Portofolio Phase 3 belum ditambahkan; kontrak Personalia Phase 3 saat ini adalah Web terlebih dahulu.
+
+# 5. Profile Siswa
+
+Route Web:
+
+```text
+GET /profile/siswa
+GET /profile/siswa/json
+```
+
+Target selalu `users.id_siswa`.
+
+Profile Siswa bersifat readonly untuk data identitas. Kelas berasal dari membership tahun ajaran dan histori tersedia melalui riwayat siswa.
+
+# 6. Riwayat Personalia Guru/Pegawai
+
+Phase 3 menambahkan self-service Personalia.
+
+### Guru self
+
+```text
+GET    /profile/guru/personalia
+POST   /profile/guru/personalia/save/{category}
+DELETE /profile/guru/personalia/delete/{category}/{record_id}
+GET    /profile/guru/portofolio
+```
+
+### Pegawai self
+
+```text
+GET    /profile/pegawai/personalia
+POST   /profile/pegawai/personalia/save/{category}
+DELETE /profile/pegawai/personalia/delete/{category}/{record_id}
+GET    /profile/pegawai/portofolio
+```
+
+Kategori:
+
+```text
+pendidikan
+penugasan
+pangkat
+dokumen
+```
+
+Self-service yang mempunyai hak edit **boleh menambah, memperbarui, dan menghapus record miliknya sendiri**. Kebijakan self-delete ini dikunci pada Phase 3.1. Tidak ada workflow approval/verifikasi.
+
+Semua mutation tetap melalui `PersonaliaService`, owner kembali divalidasi pada Service, dan aktivitas dicatat ke `log_activity`.
+
+# 7. Master Personalia
+
+Admin/Operator dengan permission manage Master dapat membantu mengelola Personalia dari:
+
+```text
+/master/guru/personalia/{guru_id}
+/master/pegawai/personalia/{pegawai_id}
+```
+
+Pimpinan/actor readonly yang hanya mempunyai permission view dapat melihat riwayat dan Portofolio tetapi tidak dapat melakukan mutation.
+
+# 8. Dokumen Personalia
+
+Dokumen mentah disimpan non-public di:
+
+```text
+WRITEPATH/uploads/personalia/{guru|pegawai}/{id}/...
+```
+
+Bukan pada public web root.
+
+Format upload:
+
+```text
+PDF
+PNG
+JPG/JPEG
+```
+
+Maksimum 5 MB.
+
+Jenis dokumen umum yang diterima Service:
+
+```text
+KTP / KK
+SK Pengangkatan Awal
+Kartu / Bukti NUPTK
+Sertifikat Pendidik
+Kartu Pegawai
+Lainnya
+```
+
+Phase 3.1 mengunci whitelist tersebut pada backend; request manual tidak dapat menyimpan kategori di luar daftar.
+
+Secure file delivery:
+
+```text
+GET /personalia/file/{category}/{record_id}/{field}
+```
+
+Raw document hanya dapat dibuka oleh:
+
+```text
+pemilik identity sendiri
+ATAU
+actor dengan master_guru.manage / master_pegawai.manage
+```
+
+Readonly Master tidak mendapat raw document.
+
+Phase 3.1 juga mengunci storage path ke prefix identity yang tepat. Record Guru A tidak dapat diarahkan ke folder Guru B/Pegawai lain melalui perubahan path database.
+
+Folder runtime `writable/uploads/` diabaikan Git agar dokumen personalia mentah tidak ikut ter-commit saat `git add -A`.
+
+# 9. Portofolio
+
+Portofolio Guru/Pegawai adalah PDF A4 yang dibangkitkan dari data terbaru, bukan snapshot tabel tersendiri.
+
+Isi utama:
+
+```text
+Header identitas + foto
+Data Identitas Pribadi
+Riwayat Pendidikan Formal
+Riwayat Penugasan & Jabatan
+Riwayat Kepangkatan
+```
+
+NIP hanya ditampilkan bila tersedia. Untuk Pegawai tanpa riwayat penugasan, `pegawai.jabatan` legacy dapat dipakai sebagai fallback display sampai riwayat yang benar diisi.
+
+Raw document tidak dimasukkan ke Portofolio.
+
+# 10. Credential Boundary
+
+Profile/Personalia tidak mengubah secara mandiri:
+
+```text
+username
+password
+role
+secondary role
+status account
+auth_version administratif
+```
+
+Perubahan login identifier akibat NIP/NIK tetap menjadi tanggung jawab Master Guru/Pegawai dan Service account sync.
+
+# 11. IDOR & Authorization
+
+Dilarang mempercayai target dari parameter bebas tanpa owner check.
+
+Actor Web berasal dari session. Actor API berasal dari token untuk endpoint yang memang tersedia.
+
+`PermissionFilter` adalah route gate. `PersonaliaService` tetap menjadi boundary authorization/data scope.
+
+# 12. Tampilan Phase 3.2
+
+Polish UI Phase 3.2 mengunci perilaku berikut:
+
+- tab Personalia tetap satu baris dan dapat di-scroll horizontal pada layar sempit;
+- actor readonly tidak melihat kolom `Aksi` yang kosong/berisi label Readonly;
+- actor readonly tetap dapat melihat data riwayat sesuai scope, tetapi raw document tetap dibatasi Service;
+- pesan jabatan legacy Pegawai tidak lagi menyebut modul Personalia sebagai fase yang belum dibuat;
+- Portofolio menghindari pemotongan row tabel di tengah halaman sejauh dukungan Dompdf memungkinkan;
+- viewport utama tidak menonaktifkan zoom pengguna.
+
+# 13. Checkpoint Wajib
+
+- Guru hanya dapat mengelola riwayat identity sendiri;
+- Pegawai hanya dapat mengelola riwayat identity sendiri;
+- Admin/Operator manage dapat membantu identity target;
+- Pimpinan readonly tidak dapat mutation;
+- Pimpinan readonly tidak dapat raw document;
+- path beda owner ditolak;
+- path traversal ditolak;
+- jenis dokumen di luar whitelist ditolak;
+- file >5 MB ditolak;
+- executable/format selain PDF/PNG/JPG ditolak;
+- self-delete hanya menghapus record miliknya sendiri;
+- Portofolio dapat dibuat dan dibuka;
+- CSRF aktif untuk mutation Web;
 - tidak ada 404/500.

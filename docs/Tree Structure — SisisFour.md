@@ -1,327 +1,159 @@
 # Tree Structure — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Versi Acuan:** v0.9 PHASE 3.2 FINAL POLISH  
+**Tanggal Acuan:** 09 September 2026  
+**Baseline Aplikasi:** `main` @ `c05466738012ea2da852fa3e878b6bbb897d6607` + paket Phase 3.2  
+**Baseline Database:** `sisfour_dev_v2 (29).sql`
 
-Dokumen ini adalah **acuan utama** dan menggambarkan baseline aplikasi yang berlaku. Bagian yang belum tersedia di repo dinyatakan sebagai gap/blocker, bukan diasumsikan sudah selesai.
+Dokumen ini adalah acuan struktur repository SisisFour setelah implementasi Personalia/Portofolio dan final polish Phase 3.2.
 
 ---
 
 # 1. Prinsip Struktur
 
-Project menggunakan CodeIgniter 4 dengan document root langsung di root repository.
+Project menggunakan CodeIgniter 4 dengan **document root langsung di root repository**.
 
 ```text
 sisfour_dev_v2/
 ├── index.php
 ├── .htaccess
+├── .gitignore
 ├── composer.json
+├── composer.lock
+├── phpunit.dist.xml
 ├── README.md
 ├── app/
 ├── assets/
 ├── database/
 ├── docs/
+├── postman/
 ├── tests/
 ├── uploads/
-├── vendor/
-└── writable/
+├── vendor/                 # dependency lokal, tidak di-commit
+└── writable/               # runtime CI4
 ```
 
-Folder `public/` bukan document root runtime.
+Folder `public/` **bukan** document root runtime proyek ini.
 
-# 2. App
+# 2. `app/`
 
 ```text
 app/
 ├── Config/
 ├── Controllers/
+├── Database/
 ├── Filters/
+├── Helpers/
+├── Language/
+├── Libraries/
 ├── Models/
 ├── Services/
+├── ThirdParty/
 ├── Views/
-├── Database/
-├── Language/
-└── ...
+├── Common.php
+└── index.html
 ```
 
-# 3. Config Runtime Penting
+Pola implementasi bisnis:
 
 ```text
-app/Config/
-├── App.php
-├── Database.php
-├── Filters.php
-├── Routes.php
-├── Security.php
-├── Session.php
-└── ...
+Route
+  -> Filter route gate
+  -> Controller
+  -> Service (authorization + business/data scope)
+  -> Model / Query DB
+  -> View / JSON
 ```
 
-Kontrak route utama hanya dari `Routes.php`.
+`PermissionFilter` bukan pengganti authorization pada Service.
 
-# 4. Controllers Aktual
+# 3. Personalia / Portofolio Phase 3
 
-Controller yang terkonfirmasi pada baseline meliputi:
+File utama:
 
 ```text
-app/Controllers/
-├── Auth.php
-├── BaseController.php
-├── Dashboard.php
-├── Home.php
-├── MasterGuru.php
-├── MasterPegawai.php
-├── MasterSiswa.php
-├── MasterKelas.php
-├── MasterTahunAjaran.php
-├── MasterMapel.php
-├── MappingWaliKelas.php
-├── JadwalGuru.php
-├── PresensiSiswa.php
-├── PresensiMengajar.php
-├── LaporanPresensi.php
-├── LaporanJurnal.php
-├── BKKasus.php
-├── BKPelanggaran.php
-├── BKPrestasi.php
-├── KartuPelajar.php
-├── SettingsUser.php
-├── SettingsMenu.php
-├── SettingsSistem.php
-├── Backup.php
-└── LogActivity.php
-```
+app/
+├── Controllers/
+│   └── Personalia.php
+├── Models/
+│   ├── DokumenPersonaliaModel.php
+│   ├── RiwayatPangkatModel.php
+│   ├── RiwayatPendidikanModel.php
+│   └── RiwayatPenugasanModel.php
+├── Services/
+│   ├── PersonaliaService.php
+│   ├── PortfolioService.php
+│   └── UploadService.php
+└── Views/
+    ├── personalia/
+    │   ├── detail.php
+    │   └── portfolio.php
+    └── profile/
+        ├── guru.php
+        └── pegawai.php
 
-# 5. Controller yang Direferensikan Route tetapi Tidak Ada
-
-Baseline memiliki route ke:
-
-```text
-Api
-ProfileGuru
-ProfileSiswa
-```
-
-namun file berikut tidak ditemukan:
-
-```text
-app/Controllers/Api.php
-app/Controllers/ProfileGuru.php
-app/Controllers/ProfileSiswa.php
-```
-
-Tree acuan tidak boleh mencantumkan ketiga file tersebut sebagai file aktual sampai benar-benar dibuat.
-
-# 6. Models Aktual
-
-Folder `app/Models/` berisi model operasional, antara lain:
-
-```text
-AnggotaKelasModel.php
-ApiTokensModel.php
-BKKasusModel.php
-BKPelanggaranModel.php
-BKPrestasiModel.php
-GuruModel.php
-JadwalGuruModel.php
-KartuPelajarModel.php
-KelasModel.php
-LaporanJurnalModel.php
-LaporanPresensiModel.php
-LogActivityModel.php
-MappingWaliKelasModel.php
-MataPelajaranModel.php
-PegawaiModel.php
-PresensiMengajarModel.php
-PresensiModel.php
-RiwayatSiswaModel.php
-SettingSistemModel.php
-SettingsMenuModel.php
-SettingsUserModel.php
-SiswaModel.php
-TahunAjaranModel.php
-UserModel.php
-UserRolesModel.php
-```
-
-Nama Model tidak harus satu-per-satu identik dengan nama tabel karena beberapa model berfungsi sebagai query/read model.
-
-# 7. Services Aktual
-
-Folder `app/Services/` memuat business logic. Service yang terkonfirmasi mencakup:
-
-```text
-ActivityLogService.php
-AuthService.php
-BackupService.php
-BkExportService.php
-BkScopeService.php
-BkService.php
-DashboardService.php
-ExportService.php
-GeofencingService.php
-GuruService.php
-JadwalGuruService.php
-JwtService.php
-KartuPelajarService.php
-KartuRenderService.php
-KelasService.php
-LaporanJurnalService.php
-LaporanPresensiService.php
-LogActivityService.php
-MappingWaliKelasService.php
-MenuService.php
-PegawaiService.php
-PresensiMengajarService.php
-PresensiService.php
-SettingsMenuService.php
-SettingsSistemService.php
-SettingsUserService.php
-SiswaService.php
-TahunAjaranService.php
-```
-
-Business rule baru ditempatkan di Service, bukan View/JavaScript.
-
-# 8. Filters
-
-```text
-app/Filters/
-├── AuthFilter.php
-├── PermissionFilter.php
-└── MaintenanceFilter.php
-```
-
-Fungsi:
-
-```text
-AuthFilter         → authentication Web/API
-PermissionFilter   → gate permission
-MaintenanceFilter  → maintenance global
-```
-
-# 9. Layout Views
-
-Layout canonical:
-
-```text
-app/Views/
-├── main.php
-├── _header.php
-├── _sidebar.php
-├── _navbar.php
-├── _footer.php
-├── _scripts.php
-└── auth_login.php
-```
-
-View halaman modul memakai:
-
-```php
-<?= "$" ?>this->extend('main')
-```
-
-bukan `layout`.
-
-# 10. View Modul
-
-Struktur runtime mengikuti folder domain, misalnya:
-
-```text
-app/Views/
-├── backup/
-│   └── index.php
-├── log/
-│   └── activity.php
-├── settings/
-│   ├── user.php
-│   ├── menu.php
-│   └── sistem.php
-├── errors/html/
-│   └── maintenance.php
-└── ... modul Master/Presensi/Laporan/BK/Kartu/Dashboard
-```
-
-# 11. JavaScript
-
-Business JavaScript berada di:
-
-```text
 assets/js/
+└── personalia/
+    └── detail.js
 ```
 
-dan memakai Vanilla JS + Fetch.
+Dokumen mentah Personalia tidak ditempatkan pada `uploads/` public.
 
-File penting:
+# 4. Master Guru/Pegawai
+
+Core Guru dan Pegawai tetap terpisah:
 
 ```text
-assets/js/csrf-fetch.js
-assets/js/backup/index.js
-assets/js/log/activity.js
-assets/js/settings/user.js
-assets/js/settings/menu.js
-assets/js/settings/sistem.js
+app/Controllers/MasterGuru.php
+app/Controllers/MasterPegawai.php
+app/Models/GuruModel.php
+app/Models/PegawaiModel.php
+app/Services/GuruService.php
+app/Services/PegawaiService.php
+app/Views/master/guru.php
+app/Views/master/pegawai.php
+assets/js/master/guru.js
+assets/js/master/pegawai.js
 ```
 
-jQuery dapat tersedia di vendor/template tetapi bukan fondasi business JS.
+Tidak ada modul gabungan `sdm` dan tidak ada role baru `pegawai`.
 
-# 12. Kartu Default
+# 5. Frontend
 
 ```text
-assets/kartu/default/
-├── background_kta_depan.jpg
-└── background_kta_belakang.jpg
+assets/
+├── css/
+├── img/
+├── js/
+│   ├── components/
+│   ├── master/
+│   ├── personalia/
+│   ├── csrf-fetch.js
+│   └── main.js
+└── vendor/
 ```
 
-Kedua file ini adalah fallback renderer Kartu.
+Business UI utama menggunakan **Vanilla JS + Fetch API**. DataTables/Select2 tidak dimuat global; searchable select internal dipakai untuk kebutuhan pencarian.
 
-# 13. Upload Runtime
+# 6. Database Script
 
 ```text
-uploads/
-├── foto_guru/
-├── foto_siswa/
-└── settings/
-    ├── branding/
-    │   ├── logo_*.png
-    │   └── icon_*.png
-    └── kartu/
-        └── background upload hasil normalisasi
+database/
+├── ... script checkpoint sebelumnya ...
+└── 20260909_PHASE3_2_VERIFY_PERSONALIA_CHECKS.sql
 ```
 
-Path lama seperti:
+Script Phase 3.2 hanya melakukan verifikasi schema live; tidak mengubah data.
+
+Schema canonical didokumentasikan pada:
 
 ```text
-uploads/branding/
-uploads/kartu_pelajar/background_depan/
+docs/02_DATABASE — SisisFour.md
 ```
 
-bukan path canonical baseline.
+# 7. Dokumentasi Canonical
 
-# 14. Writable
-
-```text
-writable/
-├── backups/
-├── cache/
-├── logs/
-├── session/
-└── uploads/ / runtime CI bila digunakan framework
-```
-
-Backup database canonical:
-
-```text
-writable/backups/backup_YYYYMMDD_HHMMSS.sql
-```
-
-# 15. Database
-
-Database baseline memiliki 27 tabel. Daftar lengkap ada di `02_DATABASE — SisisFour.md`.
-
-# 16. Docs Canonical
+File acuan utama menggunakan satu nama yang konsisten:
 
 ```text
 docs/
@@ -338,76 +170,92 @@ docs/
 ├── 15_TESTING_POLISH — SisisFour.md
 ├── 16_MOBILE_CORDOVA — SisisFour.md
 ├── Routes Final — SisisFour.md
-└── Tree Structure — SisisFour.md
+├── Tree Structure — SisisFour.md
+├── PHASE3_1_INTEGRITY_HARDENING.md
+├── PHASE3_2_FINAL_POLISH.md
+└── _CATATAN_PERUBAHAN_20260909.md
 ```
 
-# 17. Mobile Project
-
-Project Cordova belum berada di repo baseline.
-
-Jika Tahap 16 dibuat, client Cordova sebaiknya dipisahkan jelas, misalnya:
+Nama file encoding rusak seperti:
 
 ```text
-mobile/
-├── config.xml
-├── package.json
-└── www/
+09_PROFILE ΓÇö SisisFour.md
+15_TESTING_POLISH ΓÇö SisisFour.md
 ```
 
-atau repository mobile terpisah.
+bukan file canonical dan harus dihapus.
 
-Server Web tidak boleh dicampur dengan generated `platforms/` Cordova.
-
-# 18. Branding
-
-Login:
+# 8. Upload Public
 
 ```text
-SisFour Dev
-logo → setting_sistem.logo_sekolah
+uploads/
+├── branding/
+├── foto_siswa/
+├── foto_guru/
+├── foto_pegawai/
+└── kartu_pelajar/
 ```
 
-Footer:
+Semua file runtime di folder tersebut diabaikan Git. File pengaman seperti `.htaccess`/`index.html` boleh dipertahankan bila ada.
+
+# 9. Upload Non-Public
+
+Dokumen Personalia:
 
 ```text
-By : LemahTeles
+writable/uploads/personalia/
+├── guru/{id}/...
+└── pegawai/{id}/...
 ```
 
-# 19. Struktur yang Tidak Boleh Diasumsikan
+Boundary:
 
-Dokumen Tree hanya menyatakan file yang benar-benar tersedia.
+- tidak dapat diakses langsung melalui URL public;
+- file dikirim melalui endpoint `Personalia::file` setelah authorization Service;
+- path database divalidasi agar tidak keluar dari prefix owner;
+- seluruh file runtime `writable/uploads/` diabaikan Git.
 
-Tidak boleh mencantumkan sebagai file aktual:
+# 10. Runtime / Build yang Tidak Di-commit
 
 ```text
-Api.php
-ProfileGuru.php
-ProfileSiswa.php
-Cordova config.xml
-Cordova www/
+vendor/
+build/
+writable/logs/*
+writable/session/*
+writable/cache/*
+writable/backups/*
+writable/debugbar/*
+writable/uploads/*
+uploads/foto_siswa/*
+uploads/foto_guru/*
+uploads/foto_pegawai/*
+uploads/branding/*
+uploads/kartu_pelajar/**/*
 ```
 
-sampai file tersebut benar-benar ada.
+`build/` berisi output PHPUnit seperti cache, JUnit, TestDox, dan coverage. Source test tetap berada di `tests/` dan boleh di-commit.
 
-# 20. Release Structural Check
-
-Sebelum release jalankan audit:
+# 11. Tests
 
 ```text
-Routes target Controller exists
-Controller target Service exists
-View yang dirender exists
-JS asset exists
-fallback Kartu exists
-upload path writable
-backup path writable
-docs sesuai repo
+tests/
+└── unit/
+    └── PersonaliaHardeningTest.php
 ```
 
-Current structural blockers:
+Gate Phase 3.1/3.2:
 
-```text
-Api::version target missing
-ProfileGuru target missing
-ProfileSiswa target missing
+```powershell
+vendor\bin\phpunit tests\unit\PersonaliaHardeningTest.php
 ```
+
+Hasil build test disimpan lokal sesuai `phpunit.dist.xml`, tetapi tidak menjadi source repository.
+
+# 12. Aturan Penambahan File
+
+- Source PHP mengikuti layer yang sudah ada; jangan menaruh business rule langsung di View/JS bila dapat dipusatkan pada Service.
+- JS modul ditempatkan page-specific dan memakai Vanilla JS + Fetch.
+- Upload user tidak boleh masuk repository.
+- File dokumen mentah Personalia harus tetap non-public.
+- Dokumen acuan tidak boleh mempunyai duplikat nama akibat encoding.
+- `Routes.php` hanya diubah bila route memang perlu berubah; Phase 3.2 tidak membutuhkan perubahan Routes.

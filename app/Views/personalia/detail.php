@@ -67,14 +67,16 @@
 
         <div class="card">
             <div class="card-header border-bottom pb-0">
-                <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabBiodata" type="button">Biodata</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPendidikan" type="button">Pendidikan</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPenugasan" type="button">Penugasan / Jabatan</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPangkat" type="button">Kepangkatan</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabDokumen" type="button">Dokumen</button></li>
-                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPortofolio" type="button">Portofolio</button></li>
-                </ul>
+                <div class="overflow-auto">
+                    <ul class="nav nav-tabs card-header-tabs flex-nowrap" role="tablist" style="white-space: nowrap; min-width: max-content;">
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabBiodata" type="button">Biodata</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPendidikan" type="button">Pendidikan</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPenugasan" type="button">Penugasan / Jabatan</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPangkat" type="button">Kepangkatan</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabDokumen" type="button">Dokumen</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPortofolio" type="button">Portofolio</button></li>
+                    </ul>
+                </div>
             </div>
 
             <div class="card-body pt-4 tab-content">
@@ -123,10 +125,10 @@
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead><tr><th>Tingkat</th><th>Institusi / Program Studi</th><th>Tahun</th><th>No. Ijazah</th><th>Dokumen</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>Tingkat</th><th>Institusi / Program Studi</th><th>Tahun</th><th>No. Ijazah</th><th>Dokumen</th><?php if ($canEdit): ?><th>Aksi</th><?php endif; ?></tr></thead>
                             <tbody>
                             <?php if (empty($pendidikan)): ?>
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat pendidikan.</td></tr>
+                                <tr><td colspan="<?= $canEdit ? 6 : 5 ?>" class="text-center text-muted py-4">Belum ada riwayat pendidikan.</td></tr>
                             <?php else: foreach ($pendidikan as $row): ?>
                                 <tr>
                                     <td><strong><?= esc($row['tingkat_pendidikan']) ?></strong></td>
@@ -142,12 +144,12 @@
                                             <?php if (empty($row['file_ijazah']) && empty($row['file_transkrip'])): ?>-<?php endif; ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-nowrap">
-                                        <?php if ($canEdit): ?>
+                                    <?php if ($canEdit): ?>
+                                        <td class="text-nowrap">
                                             <button class="btn btn-sm btn-outline-primary btn-edit-record" data-category="pendidikan" data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
                                             <button class="btn btn-sm btn-outline-danger btn-delete-record" data-category="pendidikan" data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
-                                        <?php else: ?><span class="text-muted">Readonly</span><?php endif; ?>
-                                    </td>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; endif; ?>
                             </tbody>
@@ -162,10 +164,10 @@
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead><tr><th>Instansi</th><th>Jabatan / Tugas</th><th>Mapel</th><th>Periode</th><th>No. SK</th><th>Dokumen</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>Instansi</th><th>Jabatan / Tugas</th><th>Mapel</th><th>Periode</th><th>No. SK</th><th>Dokumen</th><?php if ($canEdit): ?><th>Aksi</th><?php endif; ?></tr></thead>
                             <tbody>
                             <?php if (empty($penugasan)): ?>
-                                <tr><td colspan="7" class="text-center text-muted py-4">Belum ada riwayat penugasan.</td></tr>
+                                <tr><td colspan="<?= $canEdit ? 7 : 6 ?>" class="text-center text-muted py-4">Belum ada riwayat penugasan.</td></tr>
                             <?php else: foreach ($penugasan as $row): ?>
                                 <tr>
                                     <td><?= esc($row['instansi_penugasan']) ?></td>
@@ -174,12 +176,12 @@
                                     <td><?= esc($row['tanggal_mulai']) ?><br><small class="text-muted">s.d. <?= esc($row['tanggal_selesai'] ?: 'Sekarang') ?></small></td>
                                     <td><?= esc($row['no_sk_penugasan'] ?: '-') ?></td>
                                     <td><?php if (! empty($row['file_sk_penugasan'])): ?><?php if ($canViewDocuments): ?><a class="btn btn-sm btn-outline-secondary" href="<?= esc($fileUrl('penugasan', (int) $row['id'], 'file_sk_penugasan'), 'attr') ?>"><i class="bx bx-file"></i> SK</a><?php else: ?><span class="badge bg-label-secondary">Terbatas</span><?php endif; ?><?php else: ?>-<?php endif; ?></td>
-                                    <td class="text-nowrap">
-                                        <?php if ($canEdit): ?>
+                                    <?php if ($canEdit): ?>
+                                        <td class="text-nowrap">
                                             <button class="btn btn-sm btn-outline-primary btn-edit-record" data-category="penugasan" data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
                                             <button class="btn btn-sm btn-outline-danger btn-delete-record" data-category="penugasan" data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
-                                        <?php else: ?><span class="text-muted">Readonly</span><?php endif; ?>
-                                    </td>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; endif; ?>
                             </tbody>
@@ -194,10 +196,10 @@
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead><tr><th>Golongan / Ruang</th><th>Nama Pangkat</th><th>TMT</th><th>No. SK</th><th>Dokumen</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>Golongan / Ruang</th><th>Nama Pangkat</th><th>TMT</th><th>No. SK</th><th>Dokumen</th><?php if ($canEdit): ?><th>Aksi</th><?php endif; ?></tr></thead>
                             <tbody>
                             <?php if (empty($pangkat)): ?>
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada riwayat kepangkatan.</td></tr>
+                                <tr><td colspan="<?= $canEdit ? 6 : 5 ?>" class="text-center text-muted py-4">Belum ada riwayat kepangkatan.</td></tr>
                             <?php else: foreach ($pangkat as $row): ?>
                                 <tr>
                                     <td><strong><?= esc($row['golongan_ruang']) ?></strong></td>
@@ -205,12 +207,12 @@
                                     <td><?= esc($row['tmt_pangkat']) ?></td>
                                     <td><?= esc($row['no_sk_pangkat'] ?: '-') ?></td>
                                     <td><?php if (! empty($row['file_sk_pangkat'])): ?><?php if ($canViewDocuments): ?><a class="btn btn-sm btn-outline-secondary" href="<?= esc($fileUrl('pangkat', (int) $row['id'], 'file_sk_pangkat'), 'attr') ?>"><i class="bx bx-file"></i> SK</a><?php else: ?><span class="badge bg-label-secondary">Terbatas</span><?php endif; ?><?php else: ?>-<?php endif; ?></td>
-                                    <td class="text-nowrap">
-                                        <?php if ($canEdit): ?>
+                                    <?php if ($canEdit): ?>
+                                        <td class="text-nowrap">
                                             <button class="btn btn-sm btn-outline-primary btn-edit-record" data-category="pangkat" data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
                                             <button class="btn btn-sm btn-outline-danger btn-delete-record" data-category="pangkat" data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
-                                        <?php else: ?><span class="text-muted">Readonly</span><?php endif; ?>
-                                    </td>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; endif; ?>
                             </tbody>
@@ -230,10 +232,10 @@
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead><tr><th>Jenis</th><th>Nama Dokumen</th><th>Nomor</th><th>Tanggal</th><th>File</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>Jenis</th><th>Nama Dokumen</th><th>Nomor</th><th>Tanggal</th><th>File</th><?php if ($canEdit): ?><th>Aksi</th><?php endif; ?></tr></thead>
                             <tbody>
                             <?php if (empty($dokumen)): ?>
-                                <tr><td colspan="6" class="text-center text-muted py-4">Belum ada dokumen personalia.</td></tr>
+                                <tr><td colspan="<?= $canEdit ? 6 : 5 ?>" class="text-center text-muted py-4">Belum ada dokumen personalia.</td></tr>
                             <?php else: foreach ($dokumen as $row): ?>
                                 <tr>
                                     <td><?= esc($row['jenis_dokumen']) ?></td>
@@ -241,12 +243,12 @@
                                     <td><?= esc($row['nomor_dokumen'] ?: '-') ?></td>
                                     <td><?= esc($row['tanggal_dokumen'] ?: '-') ?></td>
                                     <td><a class="btn btn-sm btn-outline-secondary" href="<?= esc($fileUrl('dokumen', (int) $row['id'], 'file_path'), 'attr') ?>"><i class="bx bx-download me-1"></i><?= esc($row['nama_file_asli'] ?: 'Dokumen') ?></a></td>
-                                    <td class="text-nowrap">
-                                        <?php if ($canEdit): ?>
+                                    <?php if ($canEdit): ?>
+                                        <td class="text-nowrap">
                                             <button class="btn btn-sm btn-outline-primary btn-edit-record" data-category="dokumen" data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
                                             <button class="btn btn-sm btn-outline-danger btn-delete-record" data-category="dokumen" data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
-                                        <?php else: ?><span class="text-muted">Readonly</span><?php endif; ?>
-                                    </td>
+                                        </td>
+                                    <?php endif; ?>
                                 </tr>
                             <?php endforeach; endif; ?>
                             </tbody>

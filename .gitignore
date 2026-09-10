@@ -9,6 +9,9 @@
 # --- Dependencies (composer install ulang dari composer.json) ---
 /vendor/
 
+# --- PHPUnit / build artifacts ---
+/build/
+
 # --- Writable (CodeIgniter 4) ---
 /writable/logs/*
 !/writable/logs/index.html
@@ -25,9 +28,14 @@
 /writable/debugbar/*
 !/writable/debugbar/index.html
 
-# --- Uploads Dinamis (data siswa/guru, tidak ikut Git) ---
+# Upload Personalia tersimpan non-public dan tidak boleh masuk repository.
+/writable/uploads/*
+!/writable/uploads/index.html
+
+# --- Uploads Dinamis (data siswa/guru/pegawai, tidak ikut Git) ---
 /uploads/foto_siswa/*
 /uploads/foto_guru/*
+/uploads/foto_pegawai/*
 /uploads/branding/*
 /uploads/kartu_pelajar/**/*
 !/uploads/**/.htaccess
@@ -39,5 +47,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# --- Testing (tidak diupload ke produksi, tapi tetap boleh di-commit selama dev) ---
+# --- Testing ---
+# Source test tetap boleh di-commit; hanya hasil runtime/build yang diabaikan.
 # tests/  <- uncomment jika ingin exclude folder test dari repo

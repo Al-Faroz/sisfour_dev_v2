@@ -1,97 +1,71 @@
 # Testing & Polish — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Versi Acuan:** v0.9 PHASE 3.2 FINAL POLISH  
+**Tanggal Acuan:** 09 September 2026  
+**Baseline Aplikasi:** `main` @ `c05466738012ea2da852fa3e878b6bbb897d6607` + paket Phase 3.2  
+**Baseline Database:** `sisfour_dev_v2 (29).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
+Checklist ini adalah quality gate SisisFour setelah Phase 3.1 hardening dan Phase 3.2 final polish.
 
 ---
 
-# 1. Tujuan
+# 1. Static Gate
 
-Checklist ini adalah quality gate sebelum SisisFour dinyatakan release-ready.
-
-# 2. Blocker Baseline
-
-## BLOCKER-PROFILE-01
-
-Route dan permission Profile tersedia, tetapi `ProfileGuru.php` dan `ProfileSiswa.php` tidak ditemukan pada Controller baseline.
-
-Sebelum release:
-
-```text
-route + implementation harus konsisten
-```
-
-## POLISH-MENU-01
-
-Operator mempunyai `log_activity.view`, tetapi tidak mempunyai menu Log Activity di `role_menus`.
-
-Putuskan:
-
-```text
-tambahkan menu Operator
-atau
-pertahankan direct-url-only secara sadar
-```
-
-# 3. Static
+Untuk setiap file PHP yang berubah:
 
 ```powershell
-php -l app\...
-node --check assets\js\...
+php -l path\file.php
 ```
 
-# 4. Browser & Responsive
+Untuk setiap file JS yang berubah:
 
-Uji desktop/laptop/tablet/mobile.
-
-Login:
-
-- logo dari Setting Sistem;
-- favicon;
-- SisFour Dev;
-- nama sekolah;
-- pesan lokasi;
-- tidak overflow;
-- form usable.
-
-Footer:
-
-```text
-By : LemahTeles
+```powershell
+node --check path\file.js
 ```
 
-# 5. Auth
+Test unit Phase 3.1:
+
+```powershell
+vendor\bin\phpunit tests\unit\PersonaliaHardeningTest.php
+```
+
+# 2. Auth & Session
+
+Uji:
 
 - login valid;
 - password salah;
 - username tidak ada;
 - user nonaktif;
-- role NULL;
+- role NULL yang memang mempunyai identity Pegawai;
 - multi-role;
-- lock 5 menit;
+- lockout;
 - auth_version;
 - logout;
 - LOGIN/LOGOUT tercatat.
 
-# 6. Maintenance
+## Session database Phase 3.1
 
-OFF normal.
+`ci_sessions.timestamp` wajib bertipe:
 
-ON:
+```text
+DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+```
 
-- login page terbuka;
-- Admin login;
-- non-Admin 503;
-- Admin akses;
-- API JSON 503;
-- logout;
-- Admin dapat OFF-kan Maintenance.
+Setelah menjalankan SQL hardening, `ci_sessions` sengaja kosong dan semua account Web harus login ulang.
 
-# 7. RBAC
+Setelah satu login baru:
+
+```sql
+SELECT id, ip_address, timestamp
+FROM ci_sessions
+ORDER BY timestamp DESC
+LIMIT 5;
+```
+
+`timestamp` harus berisi waktu valid, bukan `4294967295`.
+
+# 3. RBAC
 
 Akun minimum:
 
@@ -105,171 +79,237 @@ Guru Wali
 Siswa
 Guru+Operator
 Guru+Pimpinan
+Pegawai dengan role operasional
 ```
 
-Uji menu, direct URL, mutation, scope.
+Uji menu, direct URL, mutation, scope, dan union effective role.
 
-# 8. Master Guru/Pegawai
+Wali Kelas tetap context dari `mapping_wali_kelas`, bukan role terpisah.
+
+# 4. Master Guru/Pegawai
 
 - CRUD;
-- duplicate NIP lintas tabel;
+- NIK wajib untuk create/edit/import baru;
+- NIP nullable;
+- login identifier NIP jika ada, selain itu NIK;
+- perubahan NIK→NIP melakukan account sync sesuai Phase 2;
+- duplicate identity lintas Guru/Pegawai ditolak;
 - import atomic;
 - export;
 - foto;
-- recycle;
-- restore;
+- recycle/restore;
 - force delete dependency;
-- user lifecycle.
+- user lifecycle;
+- Profile identity tetap konsisten.
 
-# 9. Master Siswa
+# 5. Personalia Guru/Pegawai
+
+Tabel:
+
+```text
+riwayat_pendidikan
+riwayat_penugasan
+riwayat_pangkat
+dokumen_personalia
+```
+
+Uji:
+
+- owner Guru valid;
+- owner Pegawai valid;
+- dua owner sekaligus ditolak DB;
+- tanpa owner ditolak DB;
+- tanggal selesai penugasan < tanggal mulai ditolak DB/Service;
+- self Guru CRUD hanya diri sendiri;
+- self Pegawai CRUD hanya diri sendiri;
+- Admin/Operator manage dapat CRUD target;
+- Pimpinan readonly hanya melihat;
+- self-delete record sendiri berjalan;
+- delete record identity lain ditolak;
+- mutation tercatat pada log activity.
+
+# 6. Dokumen Personalia
+
+- PDF valid diterima;
+- PNG valid diterima;
+- JPG/JPEG valid diterima;
+- >5 MB ditolak;
+- executable/format lain ditolak;
+- PDF tanpa signature `%PDF-` ditolak;
+- image rusak ditolak;
+- kategori dokumen di luar whitelist ditolak;
+- edit tanpa file mempertahankan file lama;
+- penggantian file menghapus file lama setelah commit;
+- raw document hanya self/Admin/Operator manage;
+- readonly actor tidak dapat raw document;
+- path `../` ditolak;
+- absolute Windows/Unix path ditolak;
+- path di luar `uploads/personalia/` ditolak;
+- path owner berbeda ditolak;
+- extension storage selain PDF/PNG/JPG/JPEG ditolak.
+
+# 7. Portofolio
+
+- PDF A4 dapat dibuka;
+- Guru dan Pegawai dapat generate sesuai scope;
+- NIP hanya tampil bila ada;
+- NIK tetap tersedia pada identitas;
+- pendidikan terbaru di atas;
+- penugasan terbaru di atas;
+- pangkat terbaru di atas;
+- Pegawai dapat memakai jabatan legacy sebagai fallback display;
+- dokumen mentah tidak disisipkan;
+- remote resource Dompdf tidak diperlukan.
+
+# 8. Master Siswa / Manajemen Siswa
 
 - NIK 16 digit;
 - NISN unique;
 - auto user;
 - update Admin;
-- Wali tidak dapat NISN;
+- Wali tidak dapat mengubah NISN;
 - upload foto;
 - import/export;
+- penempatan/pindah kelas;
+- kenaikan;
 - mutasi;
-- Lulus;
-- kartu Nonaktif;
-- histori;
+- kelulusan;
+- kartu Nonaktif sesuai lifecycle;
+- histori kelas;
 - recycle.
 
-# 10. Kelas/Tahun/Mapel
+# 9. Kelas/Tahun/Mapel
 
 - unique;
 - membership one-per-year;
-- kenaikan;
-- kelulusan;
 - active Tahun tunggal;
-- Mapel dependency.
+- Mapel dependency;
+- recycle/restore sesuai dependency.
 
-# 11. Mapping Wali/Jadwal
+# 10. Mapping Wali/Jadwal
 
 - one Guru active mapping;
 - one Kelas active mapping;
-- soft delete;
-- reassign/restore;
+- Wali sebagai context, bukan role;
+- soft delete/reassign/restore;
 - import Jadwal;
-- overlap Guru;
-- overlap Kelas;
-- histori Nonaktif.
+- overlap Guru ditolak;
+- overlap Kelas ditolak;
+- histori Jadwal Nonaktif tetap terbaca sesuai kebutuhan laporan.
 
-# 12. Presensi Siswa
+# 11. Presensi Siswa
 
 - Admin/Operator;
 - Guru Terjadwal;
-- kelas bukan Jadwal;
-- Wali;
+- kelas bukan Jadwal ditolak;
+- Wali kelas;
 - dual Guru+Wali;
-- before/inside/after window;
-- geofence;
+- window waktu;
+- geofence bila aktif;
 - Sesi Awal/Akhir;
 - bulk rollback;
 - duplicate;
-- revisi;
-- snapshot;
+- revisi sesuai actor;
+- snapshot/histori;
 - Siswa diri.
 
-# 13. Jurnal
+# 12. Presensi Mengajar & Jurnal
 
-- semua sesi;
-- Non Sesi;
-- materi;
-- Hadir/Izin/Sakit;
+- jadwal aktif hari ini;
+- Hadir/Izin/Sakit sesuai kontrak;
 - forged Guru ditolak;
-- duplicate;
-- revisi Admin/Operator;
+- duplicate ditolak;
+- revisi sesuai permission;
+- jurnal semua sesi termasuk Non Sesi;
+- materi;
 - histori Jadwal Nonaktif.
 
-# 14. Laporan
+# 13. Laporan / Dashboard / EWS
 
 - Matrix;
 - membership historis;
-- Sesi Akhir tidak masuk total;
-- export bulanan;
-- export semester;
-- Jurnal;
-- export Jurnal;
-- scope.
-
-# 15. Dashboard
-
-- effective role;
+- Sesi Akhir tidak masuk total resmi;
+- export bulanan/semester;
+- Jurnal dan export Jurnal;
+- scope Wali/Pimpinan/Admin/Operator;
+- Dashboard effective role;
 - contextual Wali;
-- kelas wajib Presensi dari Jadwal;
-- Jurnal belum per Jadwal;
 - EWS 14 hari;
 - Siswa diri;
 - query bounded.
 
-# 16. BK/Prestasi/Kartu
+# 14. BK / Prestasi
 
 - Kasus scope;
-- Top 20;
+- Tindak Lanjut 1:N;
 - Prestasi;
+- searchable student remote;
+- readonly scope sesuai actor;
+- mutation sesuai permission.
+
+# 15. Kartu Pelajar
+
 - satu kartu Aktif;
-- generate batch;
+- generate tunggal;
+- bulk generate;
 - reissue;
 - render depan/belakang;
+- cetak massal A4;
 - QR;
 - public verify;
 - lifecycle kartu.
 
-# 17. Settings
+# 16. Digital Signage
+
+Public route:
+
+```text
+/signage
+/signage/data
+```
+
+Uji tanpa login:
+
+- EWS Alpha Sesi Awal >=3 / 14 hari;
+- kelas belum Presensi Sesi Awal hari ini;
+- Guru belum Presensi Mengajar setelah `jam_selesai + 15 menit`;
+- refresh 20 menit;
+- realtime clock;
+- auto-scroll;
+- tidak ada token/session requirement.
+
+# 17. Settings / Backup / Log
+
+Settings:
 
 - User Management;
-- role NULL Pegawai;
 - secondary role;
 - reset password;
 - auth_version;
 - last Admin protection;
 - Menu & Role;
 - geofence;
-- nama/alamat;
-- logo/icon;
-- KTA background;
+- branding;
 - maintenance.
 
-# 18. Backup
+Backup:
 
 - create;
-- filename;
-- file > 0;
-- CREATE + INSERT;
 - download;
 - delete;
 - traversal ditolak;
 - permission.
 
-# 19. Log Activity
+Log:
 
-- Login;
-- Logout;
+- Login/Logout;
+- Personalia mutation;
 - Backup;
-- Settings/event lain yang memang dilog;
-- search;
-- filter;
-- pagination;
-- CSV;
-- no credential;
-- Admin;
-- Operator direct URL;
-- role lain ditolak.
+- Settings;
+- search/filter/pagination/CSV;
+- no credential leak.
 
-# 20. API
-
-- login;
-- me;
-- refresh;
-- logout;
-- token expired/revoked;
-- endpoint bisnis;
-- scope;
-- no data leak.
-
-# 21. CSRF
+# 18. CSRF / API / Security
 
 Mutation Web:
 
@@ -280,9 +320,17 @@ PATCH
 DELETE
 ```
 
-Request sah membawa token. Request tanpa token ditolak.
+Request tanpa CSRF ditolak.
 
-# 22. Security
+API:
+
+- login/me/refresh/logout;
+- token expired/revoked;
+- endpoint bisnis;
+- scope;
+- no data leak.
+
+Security minimum:
 
 - SQL injection;
 - XSS;
@@ -291,54 +339,77 @@ Request sah membawa token. Request tanpa token ditolak.
 - forged target;
 - direct mutation;
 - upload invalid;
-- backup traversal;
+- path traversal;
 - token leak;
 - sensitive log.
 
-# 23. Performance
+# 19. Performance
 
-Untuk query besar:
+Untuk query besar gunakan:
 
 ```sql
 EXPLAIN SELECT ...
 ```
 
-Periksa:
+Periksa index, bounded rows, no N+1, dan tidak ada unbounded load pada Presensi/Matrix/EWS/Dashboard/Log.
 
-- index;
-- bounded rows;
-- no N+1;
-- no unbounded `findAll()` Presensi;
-- Matrix praktis;
-- EWS praktis;
-- Dashboard praktis;
-- Log server-side pagination.
+# 20. Phase 3.2 UI / Repository Hygiene
 
-# 24. Fresh Install
+Uji tampilan dan repository:
 
-Expected:
+- tab Personalia pada mobile dapat di-scroll horizontal dan tidak memaksa layout melebar;
+- actor readonly tidak melihat kolom `Aksi`;
+- pesan jabatan legacy Pegawai sudah mengarahkan ke Riwayat & Portofolio, bukan menyebut fase berikutnya;
+- PDF Portofolio dengan banyak row tidak memotong row tabel di tengah halaman sejauh dukungan Dompdf;
+- viewport tidak mengunci pinch-zoom;
+- hanya ada satu file canonical `09_PROFILE — SisisFour.md`;
+- hanya ada satu file canonical `15_TESTING_POLISH — SisisFour.md`;
+- tidak ada nama dokumen rusak `ΓÇö`;
+- `build/` tidak tracked Git;
+- `writable/uploads/` tidak tracked Git;
+- `uploads/foto_pegawai/` tidak tracked Git.
 
-```text
-27 tabel
-43 permission
-users.role nullable
-generated unique Mapping Wali
-generated id_siswa_aktif Kartu
-FK/index sesuai baseline
+Command checkpoint:
+
+```powershell
+git status --short
+git ls-files build
+git ls-files writable/uploads
+git ls-files uploads/foto_pegawai
 ```
 
-# 25. Release Criteria
+Tiga command `git ls-files` terakhir tidak boleh menampilkan file runtime.
 
-Release hanya jika:
+# 21. Fresh Database Expected
 
-- BLOCKER-PROFILE-01 selesai;
-- POLISH-MENU-01 diputuskan;
-- semua route target ada;
+Setelah Phase 3.1/3.2:
+
+```text
+32 tabel
+43 permission
+users.role nullable
+unique users.id_guru/id_pegawai/id_siswa
+4 tabel Personalia
+1 tabel tindak_lanjut_kasus
+ci_sessions.timestamp = DATETIME
+CHECK owner XOR Personalia aktif
+CHECK periode Penugasan aktif
+FK/index sesuai schema
+```
+
+# 22. Release Criteria
+
+Release/checkpoint berikut hanya jika:
+
+- PHP/JS static gate lulus;
+- PersonaliaHardeningTest lulus;
+- `SHOW CREATE TABLE ci_sessions` benar;
+- `SHOW CREATE TABLE` 4 tabel Personalia menampilkan CHECK yang diharapkan;
+- browser Personalia/Portfolio lulus;
+- RBAC/IDOR lulus;
+- raw document boundary lulus;
 - tidak ada 404/500 blocker;
-- RBAC lulus;
-- CSRF lulus;
-- Maintenance lulus;
-- Backup lulus;
-- security critical lulus;
-- responsive login/footer lulus;
-- fresh database lulus.
+- dump database terbaru dibuat setelah hardening;
+- dokumen database sudah sinkron ke dump `(29)`;
+- duplicate docs encoding lama sudah dihapus;
+- artifact PHPUnit/build tidak lagi tracked.

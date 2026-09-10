@@ -16,7 +16,7 @@
         <?php if (! empty($profile['jabatan_legacy'])): ?>
             <div class="alert alert-secondary">
                 <i class="bx bx-briefcase me-1"></i>
-                Jabatan legacy tersimpan: <strong><?= esc($profile['jabatan_legacy']) ?></strong>. Data ini dipertahankan sampai modul riwayat penugasan/jabatan dieksekusi pada fase berikutnya.
+                Jabatan legacy tersimpan: <strong><?= esc($profile['jabatan_legacy']) ?></strong>. Data ini dipertahankan untuk kompatibilitas. Gunakan menu <strong>Riwayat &amp; Portofolio</strong> untuk mencatat penugasan/jabatan yang benar beserta periode dan SK; sistem tidak menebak tanggal legacy.
             </div>
         <?php endif; ?>
 
