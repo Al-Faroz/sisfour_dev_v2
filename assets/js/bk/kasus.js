@@ -114,6 +114,41 @@
     alertBox?.classList.add('d-none');
   }
 
+  function setButtonBusy(button, busy, label = 'Memproses...') {
+    if (!button) return;
+
+    if (busy) {
+      if (button.dataset.busy === '1') return;
+
+      button.dataset.busy = '1';
+      button.dataset.busyHtml = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = `
+        <span
+          class="spinner-border spinner-border-sm me-2"
+          role="status"
+          aria-hidden="true"
+        ></span>${label}
+      `;
+      return;
+    }
+
+    button.disabled = false;
+
+    if (button.dataset.busyHtml !== undefined) {
+      button.innerHTML = button.dataset.busyHtml;
+    }
+
+    delete button.dataset.busy;
+    delete button.dataset.busyHtml;
+  }
+
+  function formSubmitButton(targetForm) {
+    return targetForm?.querySelector(
+      'button[type="submit"], input[type="submit"]'
+    ) || null;
+  }
+
   function setRemoteSelectValue(select, value, text) {
     if (!select) return;
 
@@ -140,6 +175,8 @@
     if (!form || !modalEl) return;
 
     form.reset();
+    form.dataset.busy = '0';
+    setButtonBusy(formSubmitButton(form), false);
     form.elements.id.value = row?.id || '';
 
     if (row) {
@@ -315,6 +352,8 @@
       .querySelectorAll('.btn-delete-kasus')
       .forEach((button) => {
         button.addEventListener('click', async () => {
+          if (button.dataset.busy === '1') return;
+
           const row = rowData(button);
 
           if (!confirm(
@@ -322,6 +361,8 @@
           )) {
             return;
           }
+
+          setButtonBusy(button, true, 'Menghapus...');
 
           try {
             const payload = await requestJson(
@@ -339,6 +380,8 @@
             show(
               error.message || 'Gagal menghapus.'
             );
+          } finally {
+            setButtonBusy(button, false);
           }
         });
       });
@@ -467,6 +510,8 @@
       formTindak.elements.id_kasus.value;
 
     formTindak.reset();
+    formTindak.dataset.busy = '0';
+    setButtonBusy(formSubmitButton(formTindak), false);
     formTindak.elements.id.value = '';
     formTindak.elements.id_kasus.value = idKasus;
     formTindak.elements.tanggal.value = today();
@@ -538,6 +583,12 @@
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
+    if (form.dataset.busy === '1') return;
+
+    form.dataset.busy = '1';
+    const submitButton = formSubmitButton(form);
+    setButtonBusy(submitButton, true, 'Menyimpan...');
+
     const fd = new FormData(form);
     const id = String(fd.get('id') || '');
 
@@ -585,6 +636,9 @@
       show(
         error.message || 'Gagal menyimpan.'
       );
+    } finally {
+      form.dataset.busy = '0';
+      setButtonBusy(submitButton, false);
     }
   });
 
@@ -592,6 +646,12 @@
     'submit',
     async (event) => {
       event.preventDefault();
+
+      if (formTindak.dataset.busy === '1') return;
+
+      formTindak.dataset.busy = '1';
+      const submitButton = formSubmitButton(formTindak);
+      setButtonBusy(submitButton, true, 'Menyimpan...');
 
       const fd = new FormData(formTindak);
       const id = String(fd.get('id') || '');
@@ -642,6 +702,9 @@
           error.message
             || 'Tindak lanjut gagal disimpan.'
         );
+      } finally {
+        formTindak.dataset.busy = '0';
+        setButtonBusy(submitButton, false);
       }
     }
   );

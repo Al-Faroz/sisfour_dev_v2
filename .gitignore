@@ -12,6 +12,10 @@
 # --- PHPUnit / build artifacts ---
 /build/
 
+# --- STEP / patch backup artifacts ---
+/_step*_backup/
+/_step*_backup*/
+
 # --- Writable (CodeIgniter 4) ---
 /writable/logs/*
 !/writable/logs/index.html

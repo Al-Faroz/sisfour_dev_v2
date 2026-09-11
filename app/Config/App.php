@@ -16,9 +16,7 @@ class App extends BaseConfig
      *
      * E.g., http://example.com/
      */
-    public string $baseURL = '
-http://localhost/sisfour_dev_v2/
-';
+    public string $baseURL = 'http://localhost/sisfour_dev_v2/';
 
     /**
      * Allowed Hostnames in the Site URL other than the hostname in the baseURL.
@@ -92,7 +90,7 @@ http://localhost/sisfour_dev_v2/
      *
      * The Locale roughly represents the language and location that your visitor
      * is viewing the site from. It affects the language strings and other
-     * strings (like currency markers, numbers, etc) that your program
+     * strings (like currency markers, numbers, etc.) that your application
      * should run under for this request.
      */
     public string $defaultLocale = 'en';

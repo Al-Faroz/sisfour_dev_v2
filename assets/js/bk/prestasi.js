@@ -113,6 +113,41 @@
     alertBox.textContent = message;
   }
 
+  function setButtonBusy(button, busy, label = 'Memproses...') {
+    if (!button) return;
+
+    if (busy) {
+      if (button.dataset.busy === '1') return;
+
+      button.dataset.busy = '1';
+      button.dataset.busyHtml = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = `
+        <span
+          class="spinner-border spinner-border-sm me-2"
+          role="status"
+          aria-hidden="true"
+        ></span>${label}
+      `;
+      return;
+    }
+
+    button.disabled = false;
+
+    if (button.dataset.busyHtml !== undefined) {
+      button.innerHTML = button.dataset.busyHtml;
+    }
+
+    delete button.dataset.busy;
+    delete button.dataset.busyHtml;
+  }
+
+  function formSubmitButton(targetForm) {
+    return targetForm?.querySelector(
+      'button[type="submit"], input[type="submit"]'
+    ) || null;
+  }
+
   async function requestJson(url, options = {}) {
     const response = await fetch(url, {
       ...options,
@@ -124,7 +159,13 @@
       credentials: 'same-origin',
     });
 
-    const payload = await response.json();
+    let payload;
+
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new Error('Response server tidak valid.');
+    }
 
     if (!response.ok || payload.status !== 'success') {
       throw new Error(
@@ -159,6 +200,8 @@
     if (!form || !modalEl) return;
 
     form.reset();
+    form.dataset.busy = '0';
+    setButtonBusy(formSubmitButton(form), false);
     form.elements.id.value = row?.id || '';
     setStudent(row);
 
@@ -287,6 +330,8 @@
       .querySelectorAll('.btn-delete-prestasi')
       .forEach((button) => {
         button.addEventListener('click', async () => {
+          if (button.dataset.busy === '1') return;
+
           const row = JSON.parse(
             decodeURIComponent(
               button.closest('tr').dataset.json
@@ -298,6 +343,8 @@
           )) {
             return;
           }
+
+          setButtonBusy(button, true, 'Menghapus...');
 
           try {
             const payload = await requestJson(
@@ -316,6 +363,8 @@
             show(
               error.message || 'Gagal menghapus.'
             );
+          } finally {
+            setButtonBusy(button, false);
           }
         });
       });
@@ -355,6 +404,12 @@
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    if (form.dataset.busy === '1') return;
+
+    form.dataset.busy = '1';
+    const submitButton = formSubmitButton(form);
+    setButtonBusy(submitButton, true, 'Menyimpan...');
 
     const fd = new FormData(form);
     const id = String(fd.get('id') || '');
@@ -401,6 +456,9 @@
       show(
         error.message || 'Gagal menyimpan.'
       );
+    } finally {
+      form.dataset.busy = '0';
+      setButtonBusy(submitButton, false);
     }
   });
 

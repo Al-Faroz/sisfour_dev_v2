@@ -9,11 +9,23 @@ use Endroid\QrCode\Writer\SvgWriter;
 
 class KartuRenderService
 {
-    private const DEFAULT_FRONT = 'assets/kartu/default/background_kta_depan.jpg';
-    private const DEFAULT_BACK = 'assets/kartu/default/background_kta_belakang.jpg';
+    private const DEFAULT_FRONT =
+        'public/assets/kartu/default/background_kta_depan.jpg';
+    private const DEFAULT_BACK =
+        'public/assets/kartu/default/background_kta_belakang.jpg';
 
-    public function viewData(array $card): array
-    {
+    /**
+     * Background kartu bersifat shared asset. Cache per instance mencegah
+     * query setting + file_get_contents/base64 berulang dalam satu request.
+     *
+     * @var array<string, string|null>
+     */
+    private array $backgroundCache = [];
+
+    public function viewData(
+        array $card,
+        bool $includeBackgrounds = true
+    ): array {
         $payload = $this->buildQrPayload($card);
 
         // Generate SVG lebih besar dari display 120px agar hasil cetak tetap tajam.
@@ -28,19 +40,11 @@ class KartuRenderService
         $alamat = trim((string) ($card['alamat'] ?? ''));
         $kelas = $card['kelas'] ?? [];
 
-        return [
+        $data = [
             'card' => $card,
             'qr_payload' => $payload,
             'qr_data_uri' => $qrDataUri,
             'photo_data_uri' => $this->photoDataUri($card['foto'] ?? null),
-            'background_front_data_uri' => $this->backgroundDataUri(
-                'background_kta_depan',
-                self::DEFAULT_FRONT
-            ),
-            'background_back_data_uri' => $this->backgroundDataUri(
-                'background_kta_belakang',
-                self::DEFAULT_BACK
-            ),
             'verify_url' => base_url('kartu/verify/' . $card['kode_verifikasi']),
             'nama_display' => $nama,
             'name_font_size' => $this->nameFontSize($nama),
@@ -62,6 +66,15 @@ class KartuRenderService
                 'UTF-8'
             ),
         ];
+
+        if ($includeBackgrounds) {
+            $data['background_front_data_uri'] =
+                $this->backgroundDataUri('front');
+            $data['background_back_data_uri'] =
+                $this->backgroundDataUri('back');
+        }
+
+        return $data;
     }
 
     public function buildQrPayload(array $card): string
@@ -96,10 +109,35 @@ class KartuRenderService
         return $dompdf->output();
     }
 
-    private function backgroundDataUri(
+    /**
+     * Mengambil satu background shared sesuai sisi kartu.
+     *
+     * Pemanggil cetak massal menggunakan method ini agar data URI background
+     * tidak disalin ke setiap item kartu.
+     */
+    public function backgroundDataUri(string $side): ?string
+    {
+        $side = strtolower(trim($side));
+
+        return $side === 'back'
+            ? $this->resolveBackgroundDataUri(
+                'background_kta_belakang',
+                self::DEFAULT_BACK
+            )
+            : $this->resolveBackgroundDataUri(
+                'background_kta_depan',
+                self::DEFAULT_FRONT
+            );
+    }
+
+    private function resolveBackgroundDataUri(
         string $settingKey,
         string $fallbackRelative
     ): ?string {
+        if (array_key_exists($settingKey, $this->backgroundCache)) {
+            return $this->backgroundCache[$settingKey];
+        }
+
         $row = db_connect()
             ->table('setting_sistem')
             ->select('setting_value')
@@ -111,10 +149,14 @@ class KartuRenderService
         $path = $this->safePublicPath($relative);
 
         if ($path === null || !is_file($path)) {
-            $path = FCPATH . ltrim($fallbackRelative, '/');
+            $path = $this->fallbackPath($fallbackRelative);
         }
 
-        return $this->fileDataUri($path);
+        $this->backgroundCache[$settingKey] = $path !== null
+            ? $this->fileDataUri($path)
+            : null;
+
+        return $this->backgroundCache[$settingKey];
     }
 
     private function photoDataUri(?string $value): ?string
@@ -164,13 +206,58 @@ class KartuRenderService
             return null;
         }
 
-        $relative = preg_replace(
-            '#^public/#',
-            '',
-            ltrim($relative, '/')
-        );
+        $relative = ltrim($relative, '/');
+        $candidates = [];
 
-        return FCPATH . $relative;
+        if (str_starts_with($relative, 'public/')) {
+            $withoutPublic = substr($relative, 7);
+            $candidates[] = ROOTPATH . $relative;
+            $candidates[] = FCPATH . $withoutPublic;
+        } else {
+            $candidates[] = FCPATH . $relative;
+            $candidates[] = ROOTPATH . $relative;
+            $candidates[] = ROOTPATH . 'public/' . $relative;
+        }
+
+        foreach (array_unique($candidates) as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function fallbackPath(string $relative): ?string
+    {
+        $relative = ltrim(str_replace('\\', '/', $relative), '/');
+
+        if (
+            $relative === ''
+            || str_contains($relative, '..')
+            || str_contains($relative, "\0")
+        ) {
+            return null;
+        }
+
+        $candidates = [
+            ROOTPATH . $relative,
+        ];
+
+        if (str_starts_with($relative, 'public/')) {
+            $candidates[] = FCPATH . substr($relative, 7);
+        } else {
+            $candidates[] = FCPATH . $relative;
+            $candidates[] = ROOTPATH . 'public/' . $relative;
+        }
+
+        foreach (array_unique($candidates) as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     private function fileDataUri(string $path): ?string

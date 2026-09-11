@@ -2,6 +2,22 @@
 Options -Indexes
 
 # ----------------------------------------------------------------------
+# Protect sensitive project files
+# ----------------------------------------------------------------------
+# SisisFour intentionally uses the project root as the Web entry point.
+# These files are required by the application/CLI but must never be served
+# directly by Apache on production hosting.
+<FilesMatch "(?i)^(?:\.env(?:\..*)?|env|composer\.(?:json|lock)|spark|preload\.php|phpunit(?:\.dist)?\.xml|builds)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# ----------------------------------------------------------------------
 # Rewrite engine
 # ----------------------------------------------------------------------
 
@@ -10,6 +26,13 @@ Options -Indexes
 <IfModule mod_rewrite.c>
 	Options +FollowSymlinks
 	RewriteEngine On
+
+	# Never expose internal source/runtime directories from the Web root.
+	# Public application assets remain available through assets/, uploads/,
+	# public/, robots.txt, and the normal CodeIgniter front controller.
+	RewriteRule ^(?:\.git|\.github)(?:/|$) - [F,L,NC]
+	RewriteRule ^(?:app|vendor|writable|tests|database|docs|postman|\.postman)(?:/|$) - [F,L,NC]
+	RewriteRule ^_step[^/]*_backup(?:/|$) - [F,L,NC]
 
 	# If you installed CodeIgniter in a subfolder, you will need to
 	# change the following line to match the subfolder you need.

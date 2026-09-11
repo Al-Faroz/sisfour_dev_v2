@@ -85,6 +85,8 @@
 
         .front {
             color: #fff;
+            background-image:
+                url('<?= esc($background_front_data_uri ?? '') ?>');
         }
 
         .back {
@@ -218,10 +220,7 @@
                     <div class="crop-border"></div>
                 </div>
             <?php else: ?>
-                <div
-                    class="card-slot front slot-<?= (int) $index ?>"
-                    style="background-image:url('<?= esc($item['background_front_data_uri']) ?>')"
-                >
+                <div class="card-slot front slot-<?= (int) $index ?>">
                     <?php if (!empty($item['photo_data_uri'])): ?>
                         <div class="photo">
                             <img

@@ -64,6 +64,41 @@ function hide() {
   alertBox.classList.add('d-none');
 }
 
+function setButtonBusy(button, busy, label = 'Memproses...') {
+  if (!button) return;
+
+  if (busy) {
+    if (button.dataset.busy === '1') return;
+
+    button.dataset.busy = '1';
+    button.dataset.busyHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = `
+      <span
+        class="spinner-border spinner-border-sm me-2"
+        role="status"
+        aria-hidden="true"
+      ></span>${label}
+    `;
+    return;
+  }
+
+  button.disabled = false;
+
+  if (button.dataset.busyHtml !== undefined) {
+    button.innerHTML = button.dataset.busyHtml;
+  }
+
+  delete button.dataset.busy;
+  delete button.dataset.busyHtml;
+}
+
+function formSubmitButton(targetForm) {
+  return targetForm?.querySelector(
+    'button[type="submit"], input[type="submit"]'
+  ) || null;
+}
+
 function params(withPaging = true) {
   const p = new URLSearchParams({ format: 'json' });
   const search = document.getElementById('userSearch').value.trim();
@@ -260,6 +295,8 @@ function setManagedUI(managed) {
 
 function openCreate() {
   form.reset();
+  form.dataset.busy = '0';
+  setButtonBusy(formSubmitButton(form), false);
   form.elements.id.value = '';
   resetIdentity();
 
@@ -295,6 +332,8 @@ async function openEdit(id) {
   const user = json.data.user;
 
   form.reset();
+  form.dataset.busy = '0';
+  setButtonBusy(formSubmitButton(form), false);
   form.elements.id.value = user.id;
   form.elements.username.value = user.username || '';
   form.elements.primary_role.value = user.role || '';
@@ -421,6 +460,8 @@ function bindRows() {
   document.querySelectorAll('.btn-reset-user').forEach((button) => {
     button.addEventListener('click', () => {
       resetForm.reset();
+      resetForm.dataset.busy = '0';
+      setButtonBusy(formSubmitButton(resetForm), false);
       resetForm.elements.id.value = button.dataset.id;
 
       const managed = managedById.get(
@@ -443,28 +484,37 @@ function bindRows() {
 
   document.querySelectorAll('.btn-delete-user').forEach((button) => {
     button.addEventListener('click', async () => {
+      if (button.dataset.busy === '1') return;
       if (!confirm('Hapus user ini?')) return;
 
-      const response = await fetch(
-        `${base}/settings/user/delete/${button.dataset.id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-          },
+      setButtonBusy(button, true, 'Menghapus...');
+
+      try {
+        const response = await fetch(
+          `${base}/settings/user/delete/${button.dataset.id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Accept: 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          }
+        );
+
+        const json = await response.json();
+
+        if (!response.ok || json.status !== 'success') {
+          show(json.message || 'User gagal dihapus.');
+          return;
         }
-      );
 
-      const json = await response.json();
-
-      if (!response.ok || json.status !== 'success') {
-        show(json.message || 'User gagal dihapus.');
-        return;
+        show(json.message || 'User dihapus.', 'success');
+        await load();
+      } catch (error) {
+        show(error.message || 'User gagal dihapus.');
+      } finally {
+        setButtonBusy(button, false);
       }
-
-      show(json.message || 'User dihapus.', 'success');
-      await load();
     });
   });
 }
@@ -520,95 +570,121 @@ document.getElementById('identityResult').addEventListener(
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  if (!document.getElementById('identityType').disabled) {
-    applyIdentity();
-  }
+  if (form.dataset.busy === '1') return;
 
-  const formData = new FormData(form);
-  const id = String(formData.get('id') || '');
-  formData.delete('id');
+  form.dataset.busy = '1';
+  const submitButton = formSubmitButton(form);
+  setButtonBusy(submitButton, true, 'Menyimpan...');
 
-  let response;
-
-  if (!id) {
-    response = await fetch(
-      `${base}/settings/user/create`,
-      {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Accept: 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      }
-    );
-  } else {
-    formData.delete('password');
-
-    const payload = {};
-
-    for (const [key, value] of formData.entries()) {
-      if (key === 'secondary_roles[]') {
-        payload.secondary_roles ??= [];
-        payload.secondary_roles.push(value);
-      } else {
-        payload[key] = value;
-      }
+  try {
+    if (!document.getElementById('identityType').disabled) {
+      applyIdentity();
     }
 
-    response = await fetch(
-      `${base}/settings/user/update/${id}`,
-      {
-        method: 'PUT',
-        body: JSON.stringify(payload),
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
+    const formData = new FormData(form);
+    const id = String(formData.get('id') || '');
+    formData.delete('id');
+
+    let response;
+
+    if (!id) {
+      response = await fetch(
+        `${base}/settings/user/create`,
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        }
+      );
+    } else {
+      formData.delete('password');
+
+      const payload = {};
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'secondary_roles[]') {
+          payload.secondary_roles ??= [];
+          payload.secondary_roles.push(value);
+        } else {
+          payload[key] = value;
+        }
       }
-    );
+
+      response = await fetch(
+        `${base}/settings/user/update/${id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        }
+      );
+    }
+
+    const json = await response.json();
+
+    if (!response.ok || json.status !== 'success') {
+      show(json.message || 'User gagal disimpan.');
+      return;
+    }
+
+    modal.hide();
+    show(json.message || 'User berhasil disimpan.', 'success');
+    await load();
+  } catch (error) {
+    show(error.message || 'User gagal disimpan.');
+  } finally {
+    form.dataset.busy = '0';
+    setButtonBusy(submitButton, false);
   }
-
-  const json = await response.json();
-
-  if (!response.ok || json.status !== 'success') {
-    show(json.message || 'User gagal disimpan.');
-    return;
-  }
-
-  modal.hide();
-  show(json.message || 'User berhasil disimpan.', 'success');
-  await load();
 });
 
 resetForm.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  const id = resetForm.elements.id.value;
+  if (resetForm.dataset.busy === '1') return;
 
-  const response = await fetch(
-    `${base}/settings/user/reset/${id}`,
-    {
-      method: 'POST',
-      body: new FormData(resetForm),
-      headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
+  resetForm.dataset.busy = '1';
+  const submitButton = formSubmitButton(resetForm);
+  setButtonBusy(submitButton, true, 'Mereset...');
+
+  try {
+    const id = resetForm.elements.id.value;
+
+    const response = await fetch(
+      `${base}/settings/user/reset/${id}`,
+      {
+        method: 'POST',
+        body: new FormData(resetForm),
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      }
+    );
+
+    const json = await response.json();
+
+    if (!response.ok || json.status !== 'success') {
+      show(json.message || 'Reset password gagal.');
+      return;
     }
-  );
 
-  const json = await response.json();
-
-  if (!response.ok || json.status !== 'success') {
-    show(json.message || 'Reset password gagal.');
-    return;
+    resetModal.hide();
+    show(json.message || 'Password berhasil direset.', 'success');
+    await load();
+  } catch (error) {
+    show(error.message || 'Reset password gagal.');
+  } finally {
+    resetForm.dataset.busy = '0';
+    setButtonBusy(submitButton, false);
   }
-
-  resetModal.hide();
-  show(json.message || 'Password berhasil direset.', 'success');
-  await load();
 });
 
 restoreState();
