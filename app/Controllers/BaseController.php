@@ -39,13 +39,13 @@ abstract class BaseController extends Controller
      * Actor tunggal untuk controller yang dapat dipanggil Web maupun API.
      *
      * Web  -> session user_id.
-     * API  -> apiUser yang sudah divalidasi AuthFilter/JwtService dan
+     * API  -> api_user yang sudah divalidasi AuthFilter/JwtService dan
      *         disimpan pada RequestContext request-scoped.
      */
     protected function currentActorUserId(): int
     {
         if ($this->requestIsApi()) {
-            $apiUser = RequestContext::get($this->request, 'apiUser');
+            $apiUser = RequestContext::get($this->request, 'api_user');
 
             return is_array($apiUser)
                 ? (int) ($apiUser['id'] ?? 0)

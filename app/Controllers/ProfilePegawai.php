@@ -81,7 +81,7 @@ class ProfilePegawai extends BaseController
     private function actorUserId(): int
     {
         if ($this->isApiRequest()) {
-            $apiUser = RequestContext::get($this->request, 'apiUser');
+            $apiUser = RequestContext::get($this->request, 'api_user');
             return is_array($apiUser) ? (int) ($apiUser['id'] ?? 0) : 0;
         }
 
