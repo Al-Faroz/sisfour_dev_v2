@@ -31,6 +31,13 @@
         total: 0,
     };
 
+    const printButtonIds = [
+        'btnCetakDepanSelected',
+        'btnCetakBelakangSelected',
+        'btnCetakDepanKelas',
+        'btnCetakBelakangKelas',
+    ];
+
     const pager = window.SisfourPagination?.mount(
         body,
         {
@@ -220,6 +227,8 @@
                 button.addEventListener(
                     'click',
                     async () => {
+                        button.disabled = true;
+
                         try {
                             const response =
                                 await fetch(
@@ -254,6 +263,8 @@
                                 error.message,
                                 'danger'
                             );
+                        } finally {
+                            button.disabled = false;
                         }
                     }
                 );
@@ -715,66 +726,127 @@
                 Number(checkbox.value)
         );
 
-    const submitPrint = (
+    const setPrintButtonsDisabled = (disabled) => {
+        printButtonIds.forEach((id) => {
+            const button =
+                document.getElementById(id);
+
+            if (button) {
+                button.disabled = disabled;
+            }
+        });
+    };
+
+    const filenameFromResponse = (
+        response,
+        side
+    ) => {
+        const disposition =
+            response.headers.get(
+                'Content-Disposition'
+            ) || '';
+
+        const utf8Match =
+            disposition.match(
+                /filename\*=UTF-8''([^;]+)/i
+            );
+
+        if (utf8Match?.[1]) {
+            try {
+                return decodeURIComponent(
+                    utf8Match[1]
+                        .trim()
+                        .replace(/^"|"$/g, '')
+                );
+            } catch (error) {
+                // Abaikan dan lanjut ke filename biasa.
+            }
+        }
+
+        const plainMatch =
+            disposition.match(
+                /filename="?([^";]+)"?/i
+            );
+
+        if (plainMatch?.[1]) {
+            return plainMatch[1].trim();
+        }
+
+        const label =
+            side === 'back'
+                ? 'BELAKANG'
+                : 'DEPAN';
+
+        return `kartu_pelajar_A4_${label}.pdf`;
+    };
+
+    const responseErrorMessage = async (
+        response
+    ) => {
+        const contentType = String(
+            response.headers.get('Content-Type')
+            || ''
+        ).toLowerCase();
+
+        if (contentType.includes('application/json')) {
+            const data =
+                await response.json()
+                    .catch(() => ({}));
+
+            return data.message
+                || data.data?.message
+                || `Gagal membuat PDF (HTTP ${response.status}).`;
+        }
+
+        const text =
+            await response.text()
+                .catch(() => '');
+
+        const cleanText = text
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        if (cleanText) {
+            return cleanText.slice(0, 240);
+        }
+
+        return `Gagal membuat PDF (HTTP ${response.status}).`;
+    };
+
+    const downloadPdfBlob = (
+        blob,
+        filename
+    ) => {
+        const objectUrl =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement('a');
+
+        link.href = objectUrl;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        window.setTimeout(
+            () => URL.revokeObjectURL(objectUrl),
+            1000
+        );
+    };
+
+    const submitPrint = async (
         side,
         mode
     ) => {
-        const form =
-            document.createElement('form');
+        const formData =
+            new FormData();
 
-        form.method = 'POST';
-        form.action =
-            `${base}/kartu/cetak-massal`;
-
-        form.target = '_blank';
-        form.style.display = 'none';
-
-        const add = (name, value) => {
-            const input =
-                document.createElement('input');
-
-            input.type = 'hidden';
-            input.name = name;
-            input.value = String(value);
-
-            form.appendChild(input);
-        };
-
-        add('side', side);
-        add('mode', mode);
-
-        if (
-            window.SisisFourCsrf
-            && typeof window.SisisFourCsrf.getToken
-                === 'function'
-            && typeof window.SisisFourCsrf.getTokenName
-                === 'function'
-        ) {
-            add(
-                window.SisisFourCsrf.getTokenName(),
-                window.SisisFourCsrf.getToken()
-            );
-        } else {
-            const tokenMeta =
-                document.querySelector(
-                    'meta[name="csrf-token"]'
-                );
-
-            const tokenNameMeta =
-                document.querySelector(
-                    'meta[name="csrf-token-name"]'
-                );
-
-            if (tokenMeta?.content) {
-                add(
-                    tokenNameMeta
-                        ?.content
-                        ?.trim()
-                        || 'csrf_test_name',
-                    tokenMeta.content
-                );
-            }
-        }
+        formData.append('side', side);
+        formData.append('mode', mode);
 
         if (mode === 'selected') {
             const ids = selectedIds();
@@ -796,7 +868,10 @@
             }
 
             ids.forEach((id) => {
-                add('id_kartu[]', id);
+                formData.append(
+                    'id_kartu[]',
+                    String(id)
+                );
             });
         } else {
             const idKelas =
@@ -812,12 +887,89 @@
                 return;
             }
 
-            add('id_kelas', idKelas);
+            formData.append(
+                'id_kelas',
+                String(idKelas)
+            );
         }
 
-        document.body.appendChild(form);
-        form.submit();
-        form.remove();
+        setPrintButtonsDisabled(true);
+
+        showAlert(
+            'Menyiapkan file PDF. Jangan menutup halaman ini.',
+            'info'
+        );
+
+        try {
+            const response = await fetch(
+                `${base}/kartu/cetak-massal`,
+                {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        Accept:
+                            'application/pdf, application/json',
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+                    },
+                    credentials:
+                        'same-origin',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    await responseErrorMessage(
+                        response
+                    )
+                );
+            }
+
+            const contentType = String(
+                response.headers.get(
+                    'Content-Type'
+                ) || ''
+            ).toLowerCase();
+
+            if (!contentType.includes('application/pdf')) {
+                throw new Error(
+                    'Server tidak mengembalikan file PDF yang valid.'
+                );
+            }
+
+            const blob =
+                await response.blob();
+
+            if (blob.size <= 0) {
+                throw new Error(
+                    'File PDF kosong dan tidak dapat diunduh.'
+                );
+            }
+
+            const filename =
+                filenameFromResponse(
+                    response,
+                    side
+                );
+
+            downloadPdfBlob(
+                blob,
+                filename
+            );
+
+            showAlert(
+                `PDF berhasil dibuat: ${filename}`,
+                'success'
+            );
+        } catch (error) {
+            showAlert(
+                error.message
+                || 'Gagal membuat PDF Kartu Pelajar.',
+                'danger'
+            );
+        } finally {
+            setPrintButtonsDisabled(false);
+        }
     };
 
     document
@@ -826,11 +978,12 @@
         )
         ?.addEventListener(
             'click',
-            () =>
+            () => {
                 submitPrint(
                     'front',
                     'selected'
-                )
+                );
+            }
         );
 
     document
@@ -839,11 +992,12 @@
         )
         ?.addEventListener(
             'click',
-            () =>
+            () => {
                 submitPrint(
                     'back',
                     'selected'
-                )
+                );
+            }
         );
 
     document
@@ -852,11 +1006,12 @@
         )
         ?.addEventListener(
             'click',
-            () =>
+            () => {
                 submitPrint(
                     'front',
                     'kelas'
-                )
+                );
+            }
         );
 
     document
@@ -865,11 +1020,12 @@
         )
         ?.addEventListener(
             'click',
-            () =>
+            () => {
                 submitPrint(
                     'back',
                     'kelas'
-                )
+                );
+            }
         );
 
     restoreState();

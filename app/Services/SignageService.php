@@ -5,18 +5,29 @@ namespace App\Services;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\I18n\Time;
 use Config\Database;
+use Throwable;
 
 /**
  * SignageService
  *
  * Sumber data read-only untuk Digital Signage public.
- * Tidak menggunakan user context dan tidak mengembalikan identifier sensitif.
+ *
+ * Aturan STEP 06:
+ * - sumber Presensi hanya Sesi Awal;
+ * - ranking menggunakan jendela 14 hari yang sama dengan EWS internal;
+ * - Top 20 Alpha, Izin, dan Sakit;
+ * - daftar Sakit/Izin/Alpha hari ini;
+ * - refresh client setiap 5 menit;
+ * - hasil query dicache server-side agar beberapa display tidak membebani DB.
  */
 class SignageService
 {
     private const TZ = 'Asia/Jakarta';
-    private const EWS_MIN_ALPHA = 3;
-    private const REFRESH_MINUTES = 20;
+    private const REFRESH_MINUTES = 5;
+    private const ROTATION_SECONDS = 15;
+    private const RANKING_DAYS = 14;
+    private const TOP_LIMIT = 20;
+    private const CACHE_TTL_SECONDS = 240;
 
     protected BaseConnection $db;
 
@@ -37,6 +48,8 @@ class SignageService
                 ? trim((string) $tahun['nama_tahun'] . ' - ' . (string) $tahun['semester'])
                 : null,
             'refresh_minutes' => self::REFRESH_MINUTES,
+            'rotation_seconds' => self::ROTATION_SECONDS,
+            'ranking_days' => self::RANKING_DAYS,
         ];
     }
 
@@ -51,48 +64,100 @@ class SignageService
                 'message' => 'Tahun Ajaran aktif belum tersedia.',
                 'generated_at' => $now->format('Y-m-d H:i:s'),
                 'tahun_ajaran' => null,
-                'ews_siswa' => [],
-                'kelas_belum_presensi' => [],
-                'guru_belum_presensi' => [],
+                'ranking_period' => null,
+                'top_alpha' => [],
+                'top_izin' => [],
+                'top_sakit' => [],
+                'tidak_masuk_hari_ini' => [],
+                'today_summary' => [
+                    'Sakit' => 0,
+                    'Izin' => 0,
+                    'Alpha' => 0,
+                    'total' => 0,
+                ],
             ];
         }
 
         $idTahun = (int) $tahun['id'];
         $today = $now->format('Y-m-d');
-        $tanggalMulai = $now->subDays(13)->format('Y-m-d');
-        $hari = $this->hariIndonesia($today);
+        $cacheKey = $this->cacheKey($idTahun, $today);
+        $cached = $this->readCache($cacheKey);
 
-        return [
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $tanggalMulai = $now
+            ->subDays(self::RANKING_DAYS - 1)
+            ->format('Y-m-d');
+
+        $tidakMasuk = $this->getTidakMasukHariIni(
+            $idTahun,
+            $today
+        );
+
+        $result = [
             'success' => true,
             'message' => 'Data Digital Signage berhasil dimuat.',
             'generated_at' => Time::now(self::TZ)->format('Y-m-d H:i:s'),
-            'tahun_ajaran' => trim((string) $tahun['nama_tahun'] . ' - ' . (string) $tahun['semester']),
-            'ews_period' => [
+            'tahun_ajaran' => trim(
+                (string) $tahun['nama_tahun']
+                . ' - '
+                . (string) $tahun['semester']
+            ),
+            'ranking_period' => [
                 'mulai' => $tanggalMulai,
                 'selesai' => $today,
+                'days' => self::RANKING_DAYS,
             ],
-            'ews_siswa' => $this->getEwsPresensiSiswa($idTahun, $tanggalMulai, $today),
-            'kelas_belum_presensi' => $this->getKelasBelumPresensiAwal($idTahun, $today),
-            'guru_belum_presensi' => $this->getGuruBelumPresensiMengajar(
+            'top_alpha' => $this->getTopStatus(
                 $idTahun,
+                $tanggalMulai,
                 $today,
-                $hari,
-                Time::now(self::TZ)->format('H:i:s')
+                'Alpha'
             ),
+            'top_izin' => $this->getTopStatus(
+                $idTahun,
+                $tanggalMulai,
+                $today,
+                'Izin'
+            ),
+            'top_sakit' => $this->getTopStatus(
+                $idTahun,
+                $tanggalMulai,
+                $today,
+                'Sakit'
+            ),
+            'tidak_masuk_hari_ini' => $tidakMasuk,
+            'today_summary' => $this->buildTodaySummary($tidakMasuk),
         ];
+
+        $this->writeCache($cacheKey, $result);
+
+        return $result;
     }
 
-    public function getEwsPresensiSiswa(
+    /**
+     * Top siswa per status dalam periode ranking.
+     * Kelas yang ditampilkan adalah kelas aktif siswa pada Tahun Ajaran aktif.
+     */
+    public function getTopStatus(
         int $idTahun,
         string $tanggalMulai,
-        string $tanggalSelesai
+        string $tanggalSelesai,
+        string $status
     ): array {
+        if (! in_array($status, ['Sakit', 'Izin', 'Alpha'], true)) {
+            return [];
+        }
+
         return $this->db
             ->table('presensi pr')
             ->select(
-                'MAX(pr.nama_siswa_snapshot) AS nama_siswa, ' .
-                'COALESCE(MAX(k.nama_kelas), \'-\') AS nama_kelas, ' .
-                'COUNT(pr.id) AS total_alpha',
+                'pr.id_siswa, '
+                . 'MAX(pr.nama_siswa_snapshot) AS nama_siswa, '
+                . 'COALESCE(MAX(k.nama_kelas), \'-\') AS nama_kelas, '
+                . 'COUNT(pr.id) AS total',
                 false
             )
             ->join(
@@ -101,99 +166,77 @@ class SignageService
                 'left',
                 false
             )
-            ->join('kelas k', 'k.id = ak.id_kelas AND k.deleted_at IS NULL', 'left', false)
+            ->join(
+                'kelas k',
+                'k.id = ak.id_kelas AND k.deleted_at IS NULL',
+                'left',
+                false
+            )
             ->where('pr.id_tahun', $idTahun)
             ->where('pr.sesi', 'Sesi Awal')
-            ->where('pr.status', 'Alpha')
+            ->where('pr.status', $status)
             ->where('pr.tanggal >=', $tanggalMulai)
             ->where('pr.tanggal <=', $tanggalSelesai)
             ->where('pr.id_siswa IS NOT NULL', null, false)
             ->groupBy('pr.id_siswa')
-            ->having('COUNT(pr.id) >=', self::EWS_MIN_ALPHA, false)
-            ->orderBy('total_alpha', 'DESC')
+            ->orderBy('total', 'DESC')
             ->orderBy('nama_siswa', 'ASC')
+            ->limit(self::TOP_LIMIT)
             ->get()
             ->getResultArray();
     }
 
-    public function getKelasBelumPresensiAwal(int $idTahun, string $tanggal): array
-    {
-        return $this->db
-            ->table('kelas k')
-            ->select([
-                'k.nama_kelas',
-                'g.nama AS nama_wali',
-            ])
-            ->join(
-                'mapping_wali_kelas mw',
-                'mw.id_kelas = k.id AND mw.id_tahun = ' . $idTahun . ' AND mw.deleted_at IS NULL',
-                'left',
-                false
-            )
-            ->join('guru g', 'g.id = mw.id_guru AND g.deleted_at IS NULL', 'left', false)
-            ->join(
-                'presensi pr',
-                'pr.id_kelas = k.id AND pr.tanggal = ' . $this->db->escape($tanggal)
-                    . " AND pr.sesi = 'Sesi Awal'",
-                'left',
-                false
-            )
-            ->where('k.id_tahun', $idTahun)
-            ->where('k.deleted_at', null)
-            ->where(
-                'EXISTS (SELECT 1 FROM anggota_kelas ak ' .
-                'WHERE ak.id_kelas = k.id AND ak.id_tahun = ' . $idTahun . ')',
-                null,
-                false
-            )
-            ->where('pr.id IS NULL', null, false)
-            ->groupBy('k.id, k.nama_kelas, g.nama')
-            ->orderBy('k.tingkat', 'ASC')
-            ->orderBy('k.rombel', 'ASC')
-            ->get()
-            ->getResultArray();
-    }
-
-    public function getGuruBelumPresensiMengajar(
+    /**
+     * Daftar siswa S/I/A pada Sesi Awal hari berjalan.
+     */
+    public function getTidakMasukHariIni(
         int $idTahun,
-        string $tanggal,
-        string $hari,
-        string $jamSekarang
+        string $tanggal
     ): array {
         return $this->db
-            ->table('jadwal_guru jg')
+            ->table('presensi pr')
             ->select([
-                'g.nama AS nama_guru',
+                'pr.id_siswa',
+                'pr.nama_siswa_snapshot AS nama_siswa',
                 'k.nama_kelas',
-                'mp.nama_mapel',
-                'jg.jam_mulai',
-                'jg.jam_selesai',
+                'pr.status',
             ])
-            ->join('guru g', 'g.id = jg.id_guru')
-            ->join('kelas k', 'k.id = jg.id_kelas')
-            ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
             ->join(
-                'presensi_mengajar pm',
-                'pm.id_jadwal = jg.id AND pm.tanggal = ' . $this->db->escape($tanggal),
+                'kelas k',
+                'k.id = pr.id_kelas AND k.deleted_at IS NULL',
                 'left',
                 false
             )
-            ->where('jg.id_tahun', $idTahun)
-            ->where('jg.hari', $hari)
-            ->where('jg.status_jadwal', 'Aktif')
-            ->where('g.deleted_at', null)
-            ->where('k.deleted_at', null)
-            ->where('pm.id IS NULL', null, false)
-            ->where(
-                "ADDTIME(jg.jam_selesai, '00:15:00') < " . $this->db->escape($jamSekarang),
-                null,
-                false
-            )
-            ->orderBy('jg.jam_mulai', 'ASC')
-            ->orderBy('g.nama', 'ASC')
-            ->orderBy('k.nama_kelas', 'ASC')
+            ->where('pr.id_tahun', $idTahun)
+            ->where('pr.tanggal', $tanggal)
+            ->where('pr.sesi', 'Sesi Awal')
+            ->whereIn('pr.status', ['Sakit', 'Izin', 'Alpha'])
+            ->orderBy('k.tingkat', 'ASC')
+            ->orderBy('k.rombel', 'ASC')
+            ->orderBy('pr.nama_siswa_snapshot', 'ASC')
             ->get()
             ->getResultArray();
+    }
+
+    private function buildTodaySummary(array $rows): array
+    {
+        $summary = [
+            'Sakit' => 0,
+            'Izin' => 0,
+            'Alpha' => 0,
+            'total' => 0,
+        ];
+
+        foreach ($rows as $row) {
+            $status = (string) ($row['status'] ?? '');
+
+            if (array_key_exists($status, $summary) && $status !== 'total') {
+                $summary[$status]++;
+                $summary['total']++;
+            }
+        }
+
+        return $summary;
     }
 
     private function getTahunAktif(): ?array
@@ -221,25 +264,53 @@ class SignageService
         $result = [];
 
         foreach ($rows as $row) {
-            $result[(string) $row['setting_key']] = trim((string) $row['setting_value']);
+            $result[(string) $row['setting_key']] = trim(
+                (string) $row['setting_value']
+            );
         }
 
         return $result;
     }
 
-    private function hariIndonesia(string $tanggal): string
+    private function cacheKey(int $idTahun, string $tanggal): string
     {
-        $english = (new \DateTimeImmutable($tanggal))->format('l');
+        return 'sisfour_signage_v2_'
+            . $idTahun
+            . '_'
+            . str_replace('-', '', $tanggal);
+    }
 
-        return match ($english) {
-            'Monday' => 'Senin',
-            'Tuesday' => 'Selasa',
-            'Wednesday' => 'Rabu',
-            'Thursday' => 'Kamis',
-            'Friday' => 'Jumat',
-            'Saturday' => 'Sabtu',
-            'Sunday' => 'Minggu',
-            default => 'Senin',
-        };
+    private function readCache(string $key): ?array
+    {
+        try {
+            $cached = service('cache')->get($key);
+
+            return is_array($cached) ? $cached : null;
+        } catch (Throwable $e) {
+            log_message(
+                'warning',
+                'Signage cache read gagal: {message}',
+                ['message' => $e->getMessage()]
+            );
+
+            return null;
+        }
+    }
+
+    private function writeCache(string $key, array $data): void
+    {
+        try {
+            service('cache')->save(
+                $key,
+                $data,
+                self::CACHE_TTL_SECONDS
+            );
+        } catch (Throwable $e) {
+            log_message(
+                'warning',
+                'Signage cache write gagal: {message}',
+                ['message' => $e->getMessage()]
+            );
+        }
     }
 }

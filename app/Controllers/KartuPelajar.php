@@ -232,16 +232,26 @@ class KartuPelajar extends BaseController
 
     private function getPayload(): array
     {
-        $json = $this->request->getJSON(true);
-
-        if (is_array($json) && $json !== []) {
-            return $json;
-        }
-
+        // FormData / application/x-www-form-urlencoded harus dibaca sebagai
+        // POST biasa. Jangan memanggil getJSON() untuk multipart/form-data,
+        // karena body tersebut bukan JSON dan akan memicu JSON syntax error.
         $post = $this->request->getPost();
 
         if (is_array($post) && $post !== []) {
             return $post;
+        }
+
+        $contentType = strtolower(
+            $this->request->getHeaderLine('Content-Type')
+        );
+
+        if (
+            str_contains($contentType, 'application/json')
+            || str_contains($contentType, '+json')
+        ) {
+            $json = $this->request->getJSON(true);
+
+            return is_array($json) ? $json : [];
         }
 
         $raw = $this->request->getRawInput();

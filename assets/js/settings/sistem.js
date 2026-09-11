@@ -87,13 +87,19 @@ document.querySelectorAll('.kta-form').forEach(form => {
 document.getElementById('formMaintenance').addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData(e.target);
-  fd.set('maintenance_mode', e.target.elements.maintenance_mode.checked ? '1' : '0');
+  const maintenanceEnabled = e.target.elements.maintenance_mode.checked;
+
+  fd.set('maintenance_mode', maintenanceEnabled ? '1' : '0');
 
   const message = document.querySelector('#formSistem [name="maintenance_message"]').value;
   fd.set('maintenance_message', message);
 
-  if (e.target.elements.maintenance_mode.checked &&
-      !confirm('Aktifkan Maintenance Mode? Role non-Admin akan dibatasi setelah MaintenanceFilter diaktifkan.')) {
+  if (maintenanceEnabled &&
+      !confirm(
+        'Aktifkan Maintenance Mode? '
+        + 'Pengguna non-Admin Web/API akan langsung dibatasi dengan HTTP 503. '
+        + 'Admin efektif tetap dapat mengakses sistem.'
+      )) {
     return;
   }
 

@@ -3,6 +3,7 @@
 namespace App\Filters;
 
 use App\Services\AuthService;
+use App\Support\RequestContext;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -16,7 +17,10 @@ class PermissionFilter implements FilterInterface
         $isApi = $this->isApiRequest($request);
 
         if ($isApi) {
-            $apiUser = $request->apiUser ?? null;
+            $apiUser = RequestContext::get(
+                $request,
+                'api_user'
+            );
 
             if (!is_array($apiUser) || (int) ($apiUser['id'] ?? 0) <= 0) {
                 return $this->deny(
@@ -93,10 +97,14 @@ class PermissionFilter implements FilterInterface
             );
         }
 
-        $request->permission = [
-            'key' => $matchedPermission,
-            'scope' => $resolvedScope,
-        ];
+        RequestContext::set(
+            $request,
+            'permission',
+            [
+                'key' => $matchedPermission,
+                'scope' => $resolvedScope,
+            ]
+        );
 
         return null;
     }

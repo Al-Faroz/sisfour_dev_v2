@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\ProfileService;
+use App\Support\RequestContext;
 use Throwable;
 
 class ProfilePegawai extends BaseController
@@ -80,7 +81,7 @@ class ProfilePegawai extends BaseController
     private function actorUserId(): int
     {
         if ($this->isApiRequest()) {
-            $apiUser = $this->request->apiUser ?? null;
+            $apiUser = RequestContext::get($this->request, 'apiUser');
             return is_array($apiUser) ? (int) ($apiUser['id'] ?? 0) : 0;
         }
 

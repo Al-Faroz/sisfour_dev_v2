@@ -6,6 +6,7 @@ use App\Models\SettingSistemModel;
 use App\Services\ActivityLogService;
 use App\Services\AuthService;
 use App\Services\JwtService;
+use App\Support\RequestContext;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -235,8 +236,15 @@ class Auth extends Controller
      */
     public function apiLogout()
     {
-        $token = $this->request->apiAccessToken ?? null;
-        $user = $this->request->apiUser ?? null;
+        $token = RequestContext::get(
+            $this->request,
+            'api_access_token'
+        );
+
+        $user = RequestContext::get(
+            $this->request,
+            'api_user'
+        );
 
         if (! $token) {
             return $this->response
@@ -273,7 +281,10 @@ class Auth extends Controller
      */
     public function apiMe()
     {
-        $user = $this->request->apiUser ?? null;
+        $user = RequestContext::get(
+            $this->request,
+            'api_user'
+        );
 
         if (! $user) {
             return $this->response

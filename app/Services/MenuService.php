@@ -212,6 +212,14 @@ class MenuService
             }
 
             $menu['children'] = $this->buildTree($menus, (int) $menu['id']);
+
+            $link = trim((string) ($menu['link'] ?? ''));
+            $isContainerOnly = $link === '' || $link === '#';
+
+            if ($isContainerOnly && $menu['children'] === []) {
+                continue;
+            }
+
             $branch[] = $menu;
         }
 
@@ -220,35 +228,108 @@ class MenuService
 
     public function markActive(array $tree, string $currentPath): array
     {
+        $currentPath = $this->normalizeMenuPath($currentPath);
+        $activeLink = $this->findBestActiveLink($tree, $currentPath);
+
+        return $this->applyActiveState($tree, $activeLink);
+    }
+
+    protected function findBestActiveLink(
+        array $tree,
+        string $currentPath
+    ): ?string {
+        $bestLink = null;
+
+        foreach ($tree as $item) {
+            $link = $this->normalizeMenuPath(
+                (string) ($item['link'] ?? '')
+            );
+
+            if (
+                $link !== ''
+                && $link !== '#'
+                && $this->pathMatchesMenuLink($currentPath, $link)
+                && (
+                    $bestLink === null
+                    || strlen($link) > strlen($bestLink)
+                )
+            ) {
+                $bestLink = $link;
+            }
+
+            $childBest = $this->findBestActiveLink(
+                $item['children'] ?? [],
+                $currentPath
+            );
+
+            if (
+                $childBest !== null
+                && (
+                    $bestLink === null
+                    || strlen($childBest) > strlen($bestLink)
+                )
+            ) {
+                $bestLink = $childBest;
+            }
+        }
+
+        return $bestLink;
+    }
+
+    protected function applyActiveState(
+        array $tree,
+        ?string $activeLink
+    ): array {
         foreach ($tree as &$item) {
-            $itemActive = false;
+            $item['children'] = $this->applyActiveState(
+                $item['children'] ?? [],
+                $activeLink
+            );
 
-            if (! empty($item['link']) && $item['link'] !== '#') {
-                $link = ltrim((string) $item['link'], '/');
-                $itemActive = strpos($currentPath, $link) === 0;
-            }
+            $link = $this->normalizeMenuPath(
+                (string) ($item['link'] ?? '')
+            );
 
-            if (! empty($item['children'])) {
-                $item['children'] = $this->markActive($item['children'], $currentPath);
-                $childActive = false;
+            $selfActive = $activeLink !== null
+                && $link !== ''
+                && $link !== '#'
+                && $link === $activeLink;
 
-                foreach ($item['children'] as $child) {
-                    if (! empty($child['active'])) {
-                        $childActive = true;
-                        break;
-                    }
+            $childActive = false;
+
+            foreach ($item['children'] as $child) {
+                if (! empty($child['active'])) {
+                    $childActive = true;
+                    break;
                 }
-
-                $item['active'] = $childActive;
-                $item['open'] = $childActive;
-            } else {
-                $item['active'] = $itemActive;
-                $item['open'] = false;
             }
+
+            $item['active'] = $selfActive || $childActive;
+            $item['open'] = $item['children'] !== []
+                && $childActive;
         }
 
         unset($item);
 
         return $tree;
+    }
+
+    protected function pathMatchesMenuLink(
+        string $currentPath,
+        string $link
+    ): bool {
+        if ($currentPath === $link) {
+            return true;
+        }
+
+        return str_starts_with(
+            $currentPath,
+            $link . '/'
+        );
+    }
+
+    protected function normalizeMenuPath(string $path): string
+    {
+        return trim($path, "/ \t\n\r\0\x0B");
     }
 }

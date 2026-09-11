@@ -141,6 +141,11 @@ class SettingsMenuService
             'master/wali-kelas' => ['mapping_wali.view', 'mapping_wali.manage', 'mapping_wali.view_all'],
             'master/jadwal' => ['jadwal_guru.view', 'jadwal_guru.view_all', 'jadwal_guru.manage'],
 
+            'manajemen-siswa/kelas',
+            'manajemen-siswa/kenaikan',
+            'manajemen-siswa/mutasi',
+            'manajemen-siswa/kelulusan' => ['master_siswa.manage'],
+
             'laporan/presensi/matrix' => ['laporan_matrix.view'],
             'laporan/presensi/export' => ['laporan_export.generate'],
             'laporan/jurnal' => ['laporan_jurnal.view'],

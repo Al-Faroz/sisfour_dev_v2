@@ -7,9 +7,11 @@
      * Tujuan:
      * - seluruh request mutasi Fetch same-origin otomatis membawa token CSRF;
      * - tidak perlu menyalin token secara manual ke setiap modul;
-     * - request GET/HEAD/OPTIONS tidak dimodifikasi;
+     * - request GET/HEAD/OPTIONS tidak dimodifikasi header-nya;
      * - request cross-origin tidak disentuh;
-     * - header yang sudah dipasang caller tidak ditimpa.
+     * - header yang sudah dipasang caller tidak ditimpa;
+     * - fetch Web yang diarahkan AuthFilter ke halaman login memulihkan
+     *   navigasi utama agar modul tidak menerima HTML login sebagai JSON.
      *
      * Security.php menggunakan regenerate=false sehingga token tetap valid
      * untuk seluruh request AJAX selama lifetime halaman/session cookie.
@@ -42,6 +44,8 @@
         'PATCH',
         'DELETE',
     ]);
+
+    let redirectingToLogin = false;
 
     const isSameOrigin = (input) => {
         try {
@@ -92,14 +96,78 @@
         return headers;
     };
 
+    const isAuthLoginResponse = (response) => {
+        if (
+            !response
+            || !response.redirected
+            || !response.url
+        ) {
+            return false;
+        }
+
+        try {
+            const url = new URL(
+                response.url,
+                window.location.href
+            );
+
+            if (url.origin !== window.location.origin) {
+                return false;
+            }
+
+            return url.pathname
+                .replace(/\/+$/, '')
+                .endsWith('/auth/login');
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const recoverExpiredSession = (response) => {
+        if (!isAuthLoginResponse(response)) {
+            return response;
+        }
+
+        if (!redirectingToLogin) {
+            redirectingToLogin = true;
+            window.location.assign(response.url);
+        }
+
+        /*
+         * Jangan teruskan HTML login ke caller yang mengharapkan JSON/PDF.
+         * Navigasi sedang berpindah ke halaman login, sehingga promise ini
+         * sengaja dibiarkan pending sampai document lama di-unload.
+         */
+        return new Promise(() => {});
+    };
+
+    const runFetch = (
+        input,
+        init,
+        sameOrigin
+    ) => {
+        const promise = nativeFetch(input, init);
+
+        if (!sameOrigin) {
+            return promise;
+        }
+
+        return promise.then(recoverExpiredSession);
+    };
+
     window.fetch = (input, init = {}) => {
+        const sameOrigin = isSameOrigin(input);
         const method = resolveMethod(input, init);
 
         if (
-            !mutationMethods.has(method)
-            || !isSameOrigin(input)
+            !sameOrigin
+            || !mutationMethods.has(method)
         ) {
-            return nativeFetch(input, init);
+            return runFetch(
+                input,
+                init,
+                sameOrigin
+            );
         }
 
         const headers = mergeHeaders(input, init);
@@ -117,13 +185,21 @@
                 headers,
             });
 
-            return nativeFetch(request);
+            return runFetch(
+                request,
+                undefined,
+                true
+            );
         }
 
-        return nativeFetch(input, {
-            ...init,
-            headers,
-        });
+        return runFetch(
+            input,
+            {
+                ...init,
+                headers,
+            },
+            true
+        );
     };
 
     window.SisisFourCsrf = Object.freeze({

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\BkService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Throwable;
 
 class BKPelanggaran extends BaseController
 {
@@ -37,7 +38,7 @@ class BKPelanggaran extends BaseController
         return $this->respond(
             $this->service->createPelanggaran(
                 (int) session()->get('user_id'),
-                $this->request->getPost()
+                $this->getPayload()
             )
         );
     }
@@ -48,7 +49,7 @@ class BKPelanggaran extends BaseController
             $this->service->updatePelanggaran(
                 (int) session()->get('user_id'),
                 (int) $id,
-                $this->request->getJSON(true) ?: $this->request->getRawInput()
+                $this->getPayload()
             )
         );
     }
@@ -61,6 +62,35 @@ class BKPelanggaran extends BaseController
                 (int) $id
             )
         );
+    }
+
+    private function getPayload(): array
+    {
+        $contentType = strtolower(
+            trim($this->request->getHeaderLine('Content-Type'))
+        );
+
+        if (str_contains($contentType, 'application/json')) {
+            try {
+                $json = $this->request->getJSON(true);
+            } catch (Throwable $e) {
+                $json = null;
+            }
+
+            if (is_array($json)) {
+                return $json;
+            }
+        }
+
+        $raw = $this->request->getRawInput();
+
+        if (is_array($raw) && $raw !== []) {
+            return $raw;
+        }
+
+        $post = $this->request->getPost();
+
+        return is_array($post) ? $post : [];
     }
 
     private function wantsJson(): bool

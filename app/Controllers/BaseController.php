@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\SettingSistemModel;
 use App\Services\AuthService;
 use App\Services\MenuService;
+use App\Support\RequestContext;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -38,12 +39,13 @@ abstract class BaseController extends Controller
      * Actor tunggal untuk controller yang dapat dipanggil Web maupun API.
      *
      * Web  -> session user_id.
-     * API  -> apiUser yang sudah divalidasi AuthFilter/JwtService.
+     * API  -> apiUser yang sudah divalidasi AuthFilter/JwtService dan
+     *         disimpan pada RequestContext request-scoped.
      */
     protected function currentActorUserId(): int
     {
         if ($this->requestIsApi()) {
-            $apiUser = $this->request->apiUser ?? null;
+            $apiUser = RequestContext::get($this->request, 'apiUser');
 
             return is_array($apiUser)
                 ? (int) ($apiUser['id'] ?? 0)

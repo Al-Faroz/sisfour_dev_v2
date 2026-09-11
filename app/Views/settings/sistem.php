@@ -128,7 +128,10 @@ $getSetting = static function (string $key, string $default = '') use ($settings
                 </label>
             </div>
             <input type="hidden" name="maintenance_message" value="<?= esc($getSetting('maintenance_message', 'Sistem sedang dalam pemeliharaan...')) ?>">
-            <div class="form-text">Admin tetap dapat masuk. Enforcement untuk role non-Admin dilakukan oleh MaintenanceFilter saat modul Maintenance difinalisasi.</div>
+            <div class="form-text">
+                Admin efektif tetap dapat login dan mengakses sistem.
+                Pengguna non-Admin Web/API akan langsung dibatasi dengan HTTP 503 selama Maintenance Mode aktif.
+            </div>
             <button class="btn btn-warning mt-3" type="submit">Terapkan Maintenance</button>
         </form>
     </div>

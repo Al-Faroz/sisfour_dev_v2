@@ -3,6 +3,7 @@
 namespace App\Filters;
 
 use App\Services\JwtService;
+use App\Support\RequestContext;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -93,6 +94,8 @@ class AuthFilter implements FilterInterface
 
     private function beforeApi(RequestInterface $request)
     {
+        RequestContext::clear($request);
+
         $token = $this->bearerToken($request);
 
         if ($token === '') {
@@ -117,10 +120,15 @@ class AuthFilter implements FilterInterface
                 ]);
         }
 
-        $request->apiUser = $validated['user'];
-        $request->apiAccessToken = $token;
-        $request->apiTokenRow = $validated['token'];
-        $request->apiClaims = $validated['claims'];
+        RequestContext::merge(
+            $request,
+            [
+                'api_user' => $validated['user'],
+                'api_access_token' => $token,
+                'api_token_row' => $validated['token'],
+                'api_claims' => $validated['claims'],
+            ]
+        );
 
         return null;
     }

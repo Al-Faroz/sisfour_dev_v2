@@ -20,12 +20,14 @@ class ManajemenSiswa extends BaseController
         if ($this->isJsonRequest()) {
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->service->getPlacementList(
+                'data' => $this->service->getPlacementPage(
                     $userId,
                     [
                         'q' => trim((string) $this->request->getGet('q')),
                         'kelas' => trim((string) $this->request->getGet('kelas')),
-                    ]
+                    ],
+                    (int) $this->request->getGet('limit'),
+                    (int) $this->request->getGet('offset')
                 ),
             ]);
         }
@@ -98,12 +100,14 @@ class ManajemenSiswa extends BaseController
         if ($this->isJsonRequest()) {
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->service->getMutasiList(
+                'data' => $this->service->getMutasiPage(
                     $userId,
                     [
                         'q' => trim((string) $this->request->getGet('q')),
                         'id_kelas' => (int) $this->request->getGet('id_kelas'),
-                    ]
+                    ],
+                    (int) $this->request->getGet('limit'),
+                    (int) $this->request->getGet('offset')
                 ),
             ]);
         }

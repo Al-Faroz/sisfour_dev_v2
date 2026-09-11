@@ -57,7 +57,14 @@ class MaintenanceFilter implements FilterInterface
             );
         }
 
-        if ($this->isApiRequest($request)) {
+        /*
+         * Authentication mode ditentukan dari path, bukan dari header
+         * Accept / X-Requested-With.
+         *
+         * Request Web AJAX tetap memakai session Web. Sebaliknya endpoint
+         * /api/... tetap wajib menggunakan Bearer token.
+         */
+        if ($this->isApiPath($request)) {
             $apiUserId = $this->validatedApiUserId($request);
 
             if (
@@ -280,7 +287,7 @@ class MaintenanceFilter implements FilterInterface
             ->setHeader('Retry-After', '300')
             ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-        if ($this->isApiRequest($request)) {
+        if ($this->wantsJsonResponse($request)) {
             return $response
                 ->setContentType('application/json')
                 ->setJSON([
@@ -299,11 +306,17 @@ class MaintenanceFilter implements FilterInterface
             );
     }
 
-    private function isApiRequest(RequestInterface $request): bool
+    private function isApiPath(RequestInterface $request): bool
     {
         $path = trim($request->getUri()->getPath(), '/');
 
-        if ($path === 'api' || str_starts_with($path, 'api/')) {
+        return $path === 'api'
+            || str_starts_with($path, 'api/');
+    }
+
+    private function wantsJsonResponse(RequestInterface $request): bool
+    {
+        if ($this->isApiPath($request)) {
             return true;
         }
 

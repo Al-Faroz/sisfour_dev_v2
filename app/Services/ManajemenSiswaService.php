@@ -33,41 +33,46 @@ class ManajemenSiswaService
             return [];
         }
 
-        $builder = $this->db->table('siswa s')
-            ->select(
-                's.id, s.nik, s.nisn, s.nama, s.jenis_kelamin, s.status_aktif, ' .
-                'ak.id_kelas, k.nama_kelas'
-            )
-            ->join(
-                'anggota_kelas ak',
-                'ak.id_siswa = s.id AND ak.id_tahun = ' . (int) $tahun['id'],
-                'left'
-            )
-            ->join(
-                'kelas k',
-                'k.id = ak.id_kelas AND k.deleted_at IS NULL',
-                'left'
-            )
-            ->where('s.deleted_at', null)
-            ->where('s.status_aktif', 'Aktif');
-
-        $q = trim((string) ($filter['q'] ?? ''));
-        if ($q !== '') {
-            $builder->groupStart()
-                ->like('s.nama', $q)
-                ->orLike('s.nisn', $q)
-                ->orLike('s.nik', $q)
-                ->groupEnd();
-        }
-
-        $kelas = trim((string) ($filter['kelas'] ?? ''));
-        if ($kelas === 'tanpa') {
-            $builder->where('ak.id IS NULL', null, false);
-        } elseif (ctype_digit($kelas) && (int) $kelas > 0) {
-            $builder->where('ak.id_kelas', (int) $kelas);
-        }
+        $builder = $this->placementBuilder((int) $tahun['id'], $filter);
 
         return $builder->orderBy('s.nama', 'ASC')->get()->getResultArray();
+    }
+
+    public function getPlacementPage(
+        int $actorUserId,
+        array $filter = [],
+        int $limit = 25,
+        int $offset = 0
+    ): array {
+        if (!$this->canManage($actorUserId)) {
+            return $this->emptyPage($limit);
+        }
+
+        $tahun = $this->getActiveYear();
+        if ($tahun === null) {
+            return $this->emptyPage($limit);
+        }
+
+        $limit = $this->normalizeLimit($limit);
+        $offset = max(0, $offset);
+
+        $builder = $this->placementBuilder((int) $tahun['id'], $filter);
+        $total = (clone $builder)->countAllResults();
+
+        $offset = $this->normalizeOffset($offset, $limit, $total);
+
+        $rows = $builder
+            ->orderBy('s.nama', 'ASC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' => $rows,
+            'total' => $total,
+            'limit' => $limit,
+            'offset' => $offset,
+        ];
     }
 
     public function getMutasiList(int $actorUserId, array $filter = []): array
@@ -81,41 +86,46 @@ class ManajemenSiswaService
             return [];
         }
 
-        $builder = $this->db->table('siswa s')
-            ->select(
-                's.id, s.nik, s.nisn, s.nama, s.jenis_kelamin, ' .
-                's.status_aktif, ak.id_kelas AS id_kelas_aktif, ' .
-                'k.nama_kelas AS nama_kelas_aktif'
-            )
-            ->join(
-                'anggota_kelas ak',
-                'ak.id_siswa = s.id AND ak.id_tahun = ' . (int) $tahun['id'],
-                'left'
-            )
-            ->join(
-                'kelas k',
-                'k.id = ak.id_kelas AND k.deleted_at IS NULL',
-                'left'
-            )
-            ->where('s.deleted_at', null)
-            ->where('s.status_aktif', 'Aktif');
-
-        $q = trim((string) ($filter['q'] ?? ''));
-        if ($q !== '') {
-            $builder
-                ->groupStart()
-                ->like('s.nama', $q)
-                ->orLike('s.nisn', $q)
-                ->orLike('s.nik', $q)
-                ->groupEnd();
-        }
-
-        $idKelas = (int) ($filter['id_kelas'] ?? 0);
-        if ($idKelas > 0) {
-            $builder->where('ak.id_kelas', $idKelas);
-        }
+        $builder = $this->mutasiBuilder((int) $tahun['id'], $filter);
 
         return $builder->orderBy('s.nama', 'ASC')->get()->getResultArray();
+    }
+
+    public function getMutasiPage(
+        int $actorUserId,
+        array $filter = [],
+        int $limit = 25,
+        int $offset = 0
+    ): array {
+        if (!$this->canManage($actorUserId)) {
+            return $this->emptyPage($limit);
+        }
+
+        $tahun = $this->getActiveYear();
+        if ($tahun === null) {
+            return $this->emptyPage($limit);
+        }
+
+        $limit = $this->normalizeLimit($limit);
+        $offset = max(0, $offset);
+
+        $builder = $this->mutasiBuilder((int) $tahun['id'], $filter);
+        $total = (clone $builder)->countAllResults();
+
+        $offset = $this->normalizeOffset($offset, $limit, $total);
+
+        $rows = $builder
+            ->orderBy('s.nama', 'ASC')
+            ->limit($limit, $offset)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' => $rows,
+            'total' => $total,
+            'limit' => $limit,
+            'offset' => $offset,
+        ];
     }
 
     public function getActiveClassOptions(int $actorUserId): array
@@ -222,6 +232,112 @@ class ManajemenSiswaService
         }
 
         return $this->getActiveYear();
+    }
+
+    private function placementBuilder(int $idTahun, array $filter)
+    {
+        $builder = $this->db->table('siswa s')
+            ->select(
+                's.id, s.nik, s.nisn, s.nama, s.jenis_kelamin, s.status_aktif, ' .
+                'ak.id_kelas, k.nama_kelas'
+            )
+            ->join(
+                'anggota_kelas ak',
+                'ak.id_siswa = s.id AND ak.id_tahun = ' . $idTahun,
+                'left'
+            )
+            ->join(
+                'kelas k',
+                'k.id = ak.id_kelas AND k.deleted_at IS NULL',
+                'left'
+            )
+            ->where('s.deleted_at', null)
+            ->where('s.status_aktif', 'Aktif');
+
+        $q = trim((string) ($filter['q'] ?? ''));
+        if ($q !== '') {
+            $builder->groupStart()
+                ->like('s.nama', $q)
+                ->orLike('s.nisn', $q)
+                ->orLike('s.nik', $q)
+                ->groupEnd();
+        }
+
+        $kelas = trim((string) ($filter['kelas'] ?? ''));
+        if ($kelas === 'tanpa') {
+            $builder->where('ak.id IS NULL', null, false);
+        } elseif (ctype_digit($kelas) && (int) $kelas > 0) {
+            $builder->where('ak.id_kelas', (int) $kelas);
+        }
+
+        return $builder;
+    }
+
+    private function mutasiBuilder(int $idTahun, array $filter)
+    {
+        $builder = $this->db->table('siswa s')
+            ->select(
+                's.id, s.nik, s.nisn, s.nama, s.jenis_kelamin, ' .
+                's.status_aktif, ak.id_kelas AS id_kelas_aktif, ' .
+                'k.nama_kelas AS nama_kelas_aktif'
+            )
+            ->join(
+                'anggota_kelas ak',
+                'ak.id_siswa = s.id AND ak.id_tahun = ' . $idTahun,
+                'left'
+            )
+            ->join(
+                'kelas k',
+                'k.id = ak.id_kelas AND k.deleted_at IS NULL',
+                'left'
+            )
+            ->where('s.deleted_at', null)
+            ->where('s.status_aktif', 'Aktif');
+
+        $q = trim((string) ($filter['q'] ?? ''));
+        if ($q !== '') {
+            $builder
+                ->groupStart()
+                ->like('s.nama', $q)
+                ->orLike('s.nisn', $q)
+                ->orLike('s.nik', $q)
+                ->groupEnd();
+        }
+
+        $idKelas = (int) ($filter['id_kelas'] ?? 0);
+        if ($idKelas > 0) {
+            $builder->where('ak.id_kelas', $idKelas);
+        }
+
+        return $builder;
+    }
+
+    private function normalizeLimit(int $limit): int
+    {
+        return in_array($limit, [25, 50, 100], true) ? $limit : 25;
+    }
+
+    private function normalizeOffset(int $offset, int $limit, int $total): int
+    {
+        if ($total <= 0) {
+            return 0;
+        }
+
+        if ($offset < $total) {
+            return max(0, $offset);
+        }
+
+        return (int) (floor(($total - 1) / $limit) * $limit);
+    }
+
+    private function emptyPage(int $limit): array
+    {
+        return [
+            'rows' => [],
+            'total' => 0,
+            'limit' => $this->normalizeLimit($limit),
+            'offset' => 0,
+        ];
     }
 
     private function getSourceClasses(int $actorUserId, array $tingkat): array

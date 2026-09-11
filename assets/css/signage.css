@@ -1,115 +1,437 @@
 :root {
-  color-scheme: dark;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #0d1020;
-  color: #f6f7fb;
+    color-scheme: dark;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #0d1020;
+    color: #f6f7fb;
 }
 
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #0d1020;
+* {
+    box-sizing: border-box;
 }
 
-body { min-width: 1024px; }
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1020;
+}
+
+body {
+    min-width: 960px;
+}
 
 .signage-shell {
-  height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 14px;
-  padding: 18px;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(105, 108, 255, .18), transparent 30%),
-    #0d1020;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 12px;
+    padding: 16px;
+    background:
+        radial-gradient(circle at 14% 8%, rgba(105, 108, 255, .18), transparent 31%),
+        radial-gradient(circle at 88% 92%, rgba(3, 195, 236, .10), transparent 25%),
+        #0d1020;
 }
 
 .signage-header,
+.signage-summary,
 .signage-panel,
 .signage-footer {
-  border: 1px solid rgba(255, 255, 255, .10);
-  background: rgba(20, 25, 48, .94);
-  border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, .10);
+    background: rgba(20, 25, 48, .95);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
 }
 
 .signage-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 14px 20px;
 }
 
-.signage-brand { display: flex; align-items: center; gap: 16px; }
-.signage-logo { width: 72px; height: 72px; object-fit: contain; }
-.signage-kicker { font-size: .9rem; letter-spacing: .12em; color: #aeb8d6; font-weight: 700; }
-.signage-header h1 { margin: 4px 0 2px; font-size: clamp(1.5rem, 2.3vw, 2.7rem); line-height: 1.05; }
-.signage-year { color: #bac4df; font-size: 1rem; }
-.signage-clock-wrap { text-align: right; }
-.signage-date { color: #bdc6df; font-size: 1rem; }
-.signage-clock { font-size: clamp(2rem, 3vw, 3.5rem); font-weight: 800; letter-spacing: .04em; }
-.signage-update { color: #aab5d2; font-size: .9rem; }
-
-.signage-grid {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: 1.15fr 1fr;
-  gap: 14px;
+.signage-brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
-.signage-grid__bottom {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: .85fr 1.15fr;
-  gap: 14px;
+.signage-brand__text {
+    min-width: 0;
+}
+
+.signage-logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.signage-kicker,
+.signage-panel__kicker,
+.signage-summary__eyebrow {
+    font-size: .82rem;
+    letter-spacing: .12em;
+    color: #aeb8d6;
+    font-weight: 800;
+}
+
+.signage-header h1 {
+    margin: 4px 0 2px;
+    font-size: clamp(1.55rem, 2.35vw, 2.8rem);
+    line-height: 1.05;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.signage-year {
+    color: #bac4df;
+    font-size: 1rem;
+}
+
+.signage-clock-wrap {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.signage-date {
+    color: #bdc6df;
+    font-size: 1rem;
+}
+
+.signage-clock {
+    font-size: clamp(2rem, 3vw, 3.55rem);
+    font-weight: 800;
+    letter-spacing: .04em;
+    line-height: 1;
+}
+
+.signage-update {
+    margin-top: 4px;
+    color: #aab5d2;
+    font-size: .9rem;
+}
+
+.signage-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 10px 14px 10px 18px;
+}
+
+.signage-summary__label {
+    display: grid;
+    gap: 3px;
+}
+
+.signage-summary__label strong {
+    font-size: clamp(1rem, 1.35vw, 1.35rem);
+}
+
+.signage-summary__items {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(108px, 1fr));
+    gap: 10px;
+}
+
+.signage-summary__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-width: 120px;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .04);
+}
+
+.signage-summary__item span {
+    color: #c8d0e6;
+    font-weight: 700;
+}
+
+.signage-summary__item strong {
+    font-size: 1.35rem;
+}
+
+.signage-summary__item--sakit strong {
+    color: #71dd37;
+}
+
+.signage-summary__item--izin strong {
+    color: #ffab00;
+}
+
+.signage-summary__item--alpha strong {
+    color: #ff3e1d;
+}
+
+.signage-stage {
+    min-height: 0;
 }
 
 .signage-panel {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
 }
 
 .signage-panel__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
 
-.signage-panel__header h2 { margin: 0; font-size: clamp(1.05rem, 1.5vw, 1.55rem); }
-.signage-panel__header p { margin: 3px 0 0; color: #9faaca; font-size: .84rem; }
-.signage-badge { min-width: 44px; text-align: center; padding: 7px 10px; border-radius: 999px; background: rgba(105, 108, 255, .20); font-weight: 800; }
+.signage-panel__header h2 {
+    margin: 3px 0 0;
+    font-size: clamp(1.3rem, 1.9vw, 2rem);
+}
 
-.signage-scroll { min-height: 0; overflow: hidden; }
-.signage-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.signage-table thead { position: sticky; top: 0; z-index: 2; background: #171d38; }
-.signage-table th, .signage-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255, 255, 255, .07); text-align: left; font-size: clamp(.82rem, 1.05vw, 1.1rem); }
-.signage-table th { color: #aeb9da; font-weight: 700; }
-.signage-table td { color: #f7f8fc; font-weight: 600; }
-.signage-table .col-no { width: 60px; }
-.signage-table .col-center { width: 130px; text-align: center; }
-.signage-table .empty { text-align: center; color: #9faaca; padding: 28px 12px; font-weight: 500; }
-.signage-table .ok { color: #7de0a7; }
+.signage-panel__header p {
+    margin: 4px 0 0;
+    color: #9faaca;
+    font-size: .9rem;
+}
+
+.signage-badge {
+    min-width: 58px;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(105, 108, 255, .22);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.signage-scroll {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.signage-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.signage-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #171d38;
+}
+
+.signage-table th,
+.signage-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .07);
+    text-align: left;
+    font-size: clamp(.9rem, 1.18vw, 1.2rem);
+}
+
+.signage-table th {
+    color: #aeb9da;
+    font-weight: 700;
+}
+
+.signage-table td {
+    color: #f7f8fc;
+    font-weight: 600;
+}
+
+.signage-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, .018);
+}
+
+.signage-table .col-no {
+    width: 72px;
+}
+
+.signage-table .col-center {
+    width: 160px;
+    text-align: center;
+}
+
+.col-no-value {
+    color: #aeb9da !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.student-name {
+    font-weight: 750 !important;
+}
+
+.total-value {
+    font-size: clamp(1rem, 1.35vw, 1.4rem) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.signage-table .empty {
+    text-align: center;
+    color: #9faaca;
+    padding: 34px 14px;
+    font-weight: 500;
+}
+
+.signage-table .ok {
+    color: #7de0a7;
+}
+
+.signage-status-badge {
+    display: inline-flex;
+    justify-content: center;
+    min-width: 82px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: .9em;
+    font-weight: 800;
+}
+
+.status-sakit {
+    color: #b9f39b;
+    background: rgba(113, 221, 55, .16);
+}
+
+.status-izin {
+    color: #ffd36b;
+    background: rgba(255, 171, 0, .16);
+}
+
+.status-alpha {
+    color: #ff9a86;
+    background: rgba(255, 62, 29, .17);
+}
 
 .signage-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 8px 14px;
-  color: #9ea9c8;
-  font-size: .86rem;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 14px;
+    color: #9ea9c8;
+    font-size: .86rem;
+}
+
+.signage-footer__left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.signage-footer__separator {
+    opacity: .6;
+}
+
+.signage-status {
+    justify-self: end;
+    text-align: right;
+}
+
+.signage-status.is-error {
+    color: #ff9a86;
+}
+
+.signage-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.signage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .25);
+    transition: width .2s ease, border-radius .2s ease, background .2s ease;
+}
+
+.signage-dot.is-active {
+    width: 28px;
+    border-radius: 999px;
+    background: #696cff;
 }
 
 @media (max-aspect-ratio: 4/3) {
-  body { min-width: 0; overflow: auto; }
-  .signage-shell { min-height: 100vh; height: auto; }
-  .signage-grid, .signage-grid__bottom { grid-template-columns: 1fr; grid-template-rows: auto; }
-  .signage-panel { min-height: 360px; }
+    html,
+    body {
+        overflow: auto;
+    }
+
+    body {
+        min-width: 0;
+    }
+
+    .signage-shell {
+        min-height: 100vh;
+        height: auto;
+        grid-template-rows: auto auto minmax(520px, 1fr) auto;
+    }
+
+    .signage-header,
+    .signage-summary {
+        align-items: flex-start;
+    }
+
+    .signage-summary {
+        flex-direction: column;
+    }
+
+    .signage-summary__items {
+        width: 100%;
+    }
+
+    .signage-footer {
+        grid-template-columns: 1fr;
+    }
+
+    .signage-dots,
+    .signage-status {
+        justify-self: start;
+    }
+}
+
+@media (max-width: 760px) {
+    .signage-shell {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .signage-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .signage-clock-wrap {
+        text-align: left;
+    }
+
+    .signage-logo {
+        width: 56px;
+        height: 56px;
+    }
+
+    .signage-summary__items {
+        grid-template-columns: 1fr;
+    }
+
+    .signage-table .col-center {
+        width: 120px;
+    }
+
+    .signage-footer__left {
+        flex-wrap: wrap;
+    }
 }

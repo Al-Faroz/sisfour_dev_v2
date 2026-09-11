@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Services\BkExportService;
 use App\Services\PrestasiService;
 use CodeIgniter\HTTP\ResponseInterface;
+use Throwable;
 
 class BKPrestasi extends BaseController
 {
@@ -98,10 +99,20 @@ class BKPrestasi extends BaseController
 
     private function getPayload(): array
     {
-        $json = $this->request->getJSON(true);
+        $contentType = strtolower(
+            trim($this->request->getHeaderLine('Content-Type'))
+        );
 
-        if (is_array($json) && $json !== []) {
-            return $json;
+        if (str_contains($contentType, 'application/json')) {
+            try {
+                $json = $this->request->getJSON(true);
+            } catch (Throwable $e) {
+                $json = null;
+            }
+
+            if (is_array($json)) {
+                return $json;
+            }
         }
 
         $raw = $this->request->getRawInput();

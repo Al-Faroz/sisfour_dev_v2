@@ -3,6 +3,7 @@
 namespace App\Filters;
 
 use App\Services\JwtService;
+use App\Support\RequestContext;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -42,14 +43,16 @@ class ApiAuthFilter implements FilterInterface
                 $token
             );
 
-            /*
-             * Simpan hasil autentikasi pada request.
-             * Controller dapat mengambilnya dari request attribute.
-             */
-            $request->apiUser = $auth['user'];
-            $request->apiToken = $auth['token'];
-            $request->apiClaims = $auth['claims'];
-            $request->apiAccessToken = $token;
+            RequestContext::clear($request);
+            RequestContext::merge(
+                $request,
+                [
+                    'api_user' => $auth['user'],
+                    'api_token_row' => $auth['token'],
+                    'api_claims' => $auth['claims'],
+                    'api_access_token' => $token,
+                ]
+            );
         } catch (\Throwable $e) {
             return $this->unauthorized(
                 $e->getMessage()

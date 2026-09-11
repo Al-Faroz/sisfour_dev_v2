@@ -7,6 +7,10 @@ $logoUrl = '';
 if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
     $logoUrl = base_url(ltrim($logo, '/'));
 }
+
+$refreshMinutes = max(1, (int) ($info['refresh_minutes'] ?? 5));
+$rotationSeconds = max(5, (int) ($info['rotation_seconds'] ?? 15));
+$rankingDays = max(1, (int) ($info['ranking_days'] ?? 14));
 ?>
 <!doctype html>
 <html lang="id">
@@ -21,14 +25,21 @@ if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
         id="signageApp"
         class="signage-shell"
         data-data-url="<?= esc(base_url('signage/data')) ?>"
-        data-refresh-minutes="<?= (int) ($info['refresh_minutes'] ?? 20) ?>"
+        data-refresh-minutes="<?= $refreshMinutes ?>"
+        data-rotation-seconds="<?= $rotationSeconds ?>"
+        data-ranking-days="<?= $rankingDays ?>"
     >
         <header class="signage-header">
             <div class="signage-brand">
                 <?php if ($logoUrl !== ''): ?>
-                    <img src="<?= esc($logoUrl, 'attr') ?>" alt="Logo" class="signage-logo">
+                    <img
+                        src="<?= esc($logoUrl, 'attr') ?>"
+                        alt="Logo <?= esc($namaSekolah, 'attr') ?>"
+                        class="signage-logo"
+                    >
                 <?php endif; ?>
-                <div>
+
+                <div class="signage-brand__text">
                     <div class="signage-kicker">EWS DIGITAL SIGNAGE SISFOUR</div>
                     <h1><?= esc($namaSekolah) ?></h1>
                     <div id="signageTahun" class="signage-year">
@@ -36,25 +47,57 @@ if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
                     </div>
                 </div>
             </div>
+
             <div class="signage-clock-wrap">
                 <div id="signageDate" class="signage-date"></div>
                 <div id="signageClock" class="signage-clock">--:--:--</div>
-                <div class="signage-update">Update: <span id="signageLastUpdate">-</span></div>
+                <div class="signage-update">
+                    Update data: <span id="signageLastUpdate">-</span>
+                </div>
             </div>
         </header>
 
-        <section class="signage-grid">
-            <article class="signage-panel signage-panel--wide">
+        <section class="signage-summary" aria-label="Ringkasan ketidakhadiran hari ini">
+            <div class="signage-summary__label">
+                <span class="signage-summary__eyebrow">SESI AWAL • HARI INI</span>
+                <strong id="todayTotal">0 siswa tidak masuk</strong>
+            </div>
+
+            <div class="signage-summary__items">
+                <div class="signage-summary__item signage-summary__item--sakit">
+                    <span>Sakit</span>
+                    <strong id="todaySakit">0</strong>
+                </div>
+                <div class="signage-summary__item signage-summary__item--izin">
+                    <span>Izin</span>
+                    <strong id="todayIzin">0</strong>
+                </div>
+                <div class="signage-summary__item signage-summary__item--alpha">
+                    <span>Alpha</span>
+                    <strong id="todayAlpha">0</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="signage-stage" aria-live="polite">
+            <article class="signage-panel">
                 <div class="signage-panel__header">
                     <div>
-                        <h2>EWS Presensi Siswa</h2>
-                        <p>Alpha ≥ 3 pada Sesi Awal dalam 14 hari terakhir</p>
+                        <div id="signageSlideKicker" class="signage-panel__kicker">
+                            PEMANTAUAN PRESENSI
+                        </div>
+                        <h2 id="signageSlideTitle">20 Siswa Alpha Tertinggi</h2>
+                        <p id="signageSlideSubtitle">
+                            Sesi Awal • <?= $rankingDays ?> hari terakhir
+                        </p>
                     </div>
-                    <span id="ewsCount" class="signage-badge">0</span>
+
+                    <span id="signageSlideCount" class="signage-badge">0</span>
                 </div>
-                <div class="signage-scroll" id="ewsScroll">
+
+                <div id="signageTableScroll" class="signage-scroll">
                     <table class="signage-table">
-                        <thead>
+                        <thead id="signageTableHead">
                             <tr>
                                 <th class="col-no">No</th>
                                 <th>Nama Siswa</th>
@@ -62,69 +105,37 @@ if ($logo !== '' && is_file(FCPATH . ltrim($logo, '/\\'))) {
                                 <th class="col-center">Total Alpha</th>
                             </tr>
                         </thead>
-                        <tbody id="ewsBody">
-                            <tr><td colspan="4" class="empty">Memuat data...</td></tr>
+                        <tbody id="signageTableBody">
+                            <tr>
+                                <td colspan="4" class="empty">Memuat data...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </article>
-
-            <div class="signage-grid__bottom">
-                <article class="signage-panel">
-                    <div class="signage-panel__header">
-                        <div>
-                            <h2>Kelas Belum Presensi</h2>
-                            <p>Khusus Sesi Awal hari ini</p>
-                        </div>
-                        <span id="kelasCount" class="signage-badge">0</span>
-                    </div>
-                    <div class="signage-scroll" id="kelasScroll">
-                        <table class="signage-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-no">No</th>
-                                    <th>Kelas</th>
-                                    <th>Wali Kelas</th>
-                                </tr>
-                            </thead>
-                            <tbody id="kelasBody">
-                                <tr><td colspan="3" class="empty">Memuat data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </article>
-
-                <article class="signage-panel">
-                    <div class="signage-panel__header">
-                        <div>
-                            <h2>Guru Belum Presensi Mengajar</h2>
-                            <p>Lewat jam selesai + 15 menit</p>
-                        </div>
-                        <span id="guruCount" class="signage-badge">0</span>
-                    </div>
-                    <div class="signage-scroll" id="guruScroll">
-                        <table class="signage-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-no">No</th>
-                                    <th>Guru</th>
-                                    <th>Kelas</th>
-                                    <th>Mapel</th>
-                                    <th>Jam</th>
-                                </tr>
-                            </thead>
-                            <tbody id="guruBody">
-                                <tr><td colspan="5" class="empty">Memuat data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </article>
-            </div>
         </section>
 
         <footer class="signage-footer">
-            <span>Data read-only • refresh otomatis setiap <?= (int) ($info['refresh_minutes'] ?? 20) ?> menit</span>
-            <span id="signageStatus">Menghubungkan ke server...</span>
+            <div class="signage-footer__left">
+                <span>
+                    Data read-only • refresh server setiap <?= $refreshMinutes ?> menit
+                </span>
+                <span class="signage-footer__separator">•</span>
+                <span>
+                    Tabel berganti setiap <?= $rotationSeconds ?> detik
+                </span>
+            </div>
+
+            <div id="signageSlideDots" class="signage-dots" aria-label="Posisi tabel">
+                <span class="signage-dot is-active"></span>
+                <span class="signage-dot"></span>
+                <span class="signage-dot"></span>
+                <span class="signage-dot"></span>
+            </div>
+
+            <span id="signageStatus" class="signage-status">
+                Menghubungkan ke server...
+            </span>
         </footer>
     </main>
 
