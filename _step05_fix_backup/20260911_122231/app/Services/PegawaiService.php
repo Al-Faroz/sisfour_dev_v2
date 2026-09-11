@@ -16,11 +16,6 @@ use Throwable;
  * Akun Pegawai dibuat tanpa role otomatis. Admin tetap menetapkan role
  * operasional melalui Manajemen User. Identitas login mengikuti NIP bila
  * tersedia, selain itu NIK.
- *
- * STEP 05 FIX:
- * - authorization Master Pegawai ditegakkan ulang di Service;
- * - route filter tetap hanya gate pertama;
- * - perubahan identifier login tetap atomik dan menaikkan auth_version.
  */
 class PegawaiService
 {
@@ -40,7 +35,6 @@ class PegawaiService
     protected UserModel $userModel;
     protected UploadService $uploadService;
     protected ActivityLogService $activityLog;
-    protected AuthService $authService;
 
     public function __construct()
     {
@@ -49,19 +43,10 @@ class PegawaiService
         $this->userModel     = new UserModel();
         $this->uploadService = new UploadService();
         $this->activityLog   = new ActivityLogService();
-        $this->authService   = new AuthService();
     }
 
     public function getList(array $filter = [], bool $deletedOnly = false): array
     {
-        if ($deletedOnly) {
-            if (!$this->canManage()) {
-                return [];
-            }
-        } elseif (!$this->canManage() && !$this->canView()) {
-            return [];
-        }
-
         $builder = $this->db
             ->table('pegawai p')
             ->select(
@@ -130,10 +115,6 @@ class PegawaiService
 
     public function create(array $data, ?UploadedFile $foto = null): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $payload = $this->normalizePayload($data);
         $precheck = $this->validateBusiness($payload);
 
@@ -184,10 +165,6 @@ class PegawaiService
 
     public function update(int $id, array $data): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $pegawai = $this->pegawaiModel->find($id);
 
         if ($pegawai === null) {
@@ -280,10 +257,6 @@ class PegawaiService
 
     public function uploadFoto(int $id, UploadedFile $foto): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $pegawai = $this->pegawaiModel->find($id);
 
         if ($pegawai === null) {
@@ -331,10 +304,6 @@ class PegawaiService
 
     public function delete(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $pegawai = $this->pegawaiModel->find($id);
 
         if ($pegawai === null) {
@@ -383,10 +352,6 @@ class PegawaiService
 
     public function restore(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $pegawai = $this->findWithDeleted($id);
 
         if ($pegawai === null || empty($pegawai['deleted_at'])) {
@@ -457,10 +422,6 @@ class PegawaiService
 
     public function forceDelete(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $pegawai = $this->findWithDeleted($id);
 
         if ($pegawai === null || empty($pegawai['deleted_at'])) {
@@ -504,10 +465,6 @@ class PegawaiService
 
     public function importExcel(UploadedFile $file): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         if (! $file->isValid()) {
             return $this->fail('File import tidak valid.');
         }
@@ -892,28 +849,6 @@ class PegawaiService
         return $id > 0 ? $id : null;
     }
 
-    private function canManage(): bool
-    {
-        $id = (int) session()->get('user_id');
-
-        return $id > 0 && in_array(
-            'SEMUA',
-            $this->authService->getPermissionScopes('master_pegawai.manage', $id),
-            true
-        );
-    }
-
-    private function canView(): bool
-    {
-        $id = (int) session()->get('user_id');
-
-        return $id > 0 && in_array(
-            'SEMUA',
-            $this->authService->getPermissionScopes('master_pegawai.view', $id),
-            true
-        );
-    }
-
     /**
      * Ambil path file Phase 3 sebelum owner dihapus permanen. DB rows akan
      * terhapus lewat ON DELETE CASCADE; file fisik baru dihapus setelah commit.
@@ -974,14 +909,5 @@ class PegawaiService
     private function fail(string $message): array
     {
         return ['success' => false, 'message' => $message];
-    }
-
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki izin untuk mengelola Master Pegawai.',
-        ];
     }
 }

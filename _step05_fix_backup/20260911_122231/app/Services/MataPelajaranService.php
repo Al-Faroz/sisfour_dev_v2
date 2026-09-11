@@ -17,27 +17,20 @@ use Throwable;
  * - kode dinormalisasi uppercase;
  * - hard delete;
  * - delete ditolak bila mapel sudah digunakan pada jadwal_guru.
- * - authorization authoritative di Service.
  */
 class MataPelajaranService
 {
     protected MataPelajaranModel $mapelModel;
-    protected AuthService $authService;
     protected $db;
 
     public function __construct()
     {
         $this->mapelModel = new MataPelajaranModel();
-        $this->authService = new AuthService();
         $this->db = Database::connect();
     }
 
     public function getList(array $filter = []): array
     {
-        if (! $this->canManage()) {
-            return [];
-        }
-
         $builder = $this->db
             ->table('mata_pelajaran mp')
             ->select(
@@ -70,10 +63,6 @@ class MataPelajaranService
 
     public function create(array $data): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $payload = $this->normalizePayload($data);
 
         $error = $this->validatePayload($payload);
@@ -126,10 +115,6 @@ class MataPelajaranService
 
     public function update(int $id, array $data): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $mapel = $this->mapelModel->find($id);
 
         if ($mapel === null) {
@@ -192,10 +177,6 @@ class MataPelajaranService
 
     public function delete(int $id): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $mapel = $this->mapelModel->find($id);
 
         if ($mapel === null) {
@@ -320,26 +301,6 @@ class MataPelajaranService
         }
 
         return null;
-    }
-
-    private function canManage(): bool
-    {
-        $userId = (int) (session()->get('user_id') ?? 0);
-
-        return $userId > 0
-            && $this->authService->resolveScope(
-                'master_mapel.manage',
-                $userId
-            ) === 'SEMUA';
-    }
-
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki hak mengelola Master Mata Pelajaran.',
-        ];
     }
 
     protected function logActivity(

@@ -14,21 +14,15 @@ class SettingsMenuService
 
     protected SettingsMenuModel $model;
     protected BaseConnection $db;
-    protected AuthService $authService;
 
     public function __construct()
     {
         $this->model = new SettingsMenuModel();
         $this->db = Database::connect();
-        $this->authService = new AuthService();
     }
 
     public function page(): array
     {
-        if (! $this->canManage($this->currentUserId())) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola Menu & Role.');
-        }
-
         $menus = $this->model->getMenus();
         $roleMenus = $this->model->getRoleMenus();
 
@@ -54,10 +48,6 @@ class SettingsMenuService
 
     public function update(int $actorUserId, int $idMenu, array $input): array
     {
-        if (! $this->canManage($actorUserId)) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola Menu & Role.');
-        }
-
         $menu = $this->model->getMenu($idMenu);
 
         if (!$menu) {
@@ -163,20 +153,6 @@ class SettingsMenuService
 
             default => [],
         };
-    }
-
-    private function canManage(int $actorUserId): bool
-    {
-        return $actorUserId > 0
-            && $this->authService->resolveScope(
-                'settings_menu.manage',
-                $actorUserId
-            ) === 'SEMUA';
-    }
-
-    private function currentUserId(): int
-    {
-        return (int) (session()->get('user_id') ?? 0);
     }
 
     private function log(int $userId, string $keterangan): void

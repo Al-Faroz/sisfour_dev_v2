@@ -40,9 +40,9 @@ class MappingWaliKelas extends BaseController
                     'title' => 'Mapping Wali Kelas',
                     'filters' => $filter,
                     'tahunOptions' => $this->mappingService
-                        ->getTahunOptions($userId),
+                        ->getTahunOptions(),
                     'kelasFilterOptions' => $this->mappingService
-                        ->getKelasFilterOptions($userId),
+                        ->getKelasFilterOptions(),
                     'canManage' => $this->mappingService
                         ->canManage($userId),
                     'extraJs' => [
@@ -55,29 +55,22 @@ class MappingWaliKelas extends BaseController
 
     public function options()
     {
-        $userId = (int) session()->get('user_id');
         $idTahun = (int) $this->request
             ->getGet('id_tahun');
 
         return $this->respondResult(
             $this->mappingService
-                ->getAssignOptions(
-                    $idTahun,
-                    $userId
-                )
+                ->getAssignOptions($idTahun)
         );
     }
 
     public function assign()
     {
-        $userId = (int) session()->get('user_id');
-
         return $this->respondResult(
             $this->mappingService->assign(
                 (int) $this->request->getPost('id_guru'),
                 (int) $this->request->getPost('id_kelas'),
-                (int) $this->request->getPost('id_tahun'),
-                $userId
+                (int) $this->request->getPost('id_tahun')
             ),
             201
         );
@@ -85,13 +78,8 @@ class MappingWaliKelas extends BaseController
 
     public function delete($id)
     {
-        $userId = (int) session()->get('user_id');
-
         return $this->respondResult(
-            $this->mappingService->delete(
-                (int) $id,
-                $userId
-            )
+            $this->mappingService->delete((int) $id)
         );
     }
 
@@ -125,25 +113,15 @@ class MappingWaliKelas extends BaseController
 
     public function restore($id)
     {
-        $userId = (int) session()->get('user_id');
-
         return $this->respondResult(
-            $this->mappingService->restore(
-                (int) $id,
-                $userId
-            )
+            $this->mappingService->restore((int) $id)
         );
     }
 
     public function forceDelete($id)
     {
-        $userId = (int) session()->get('user_id');
-
         return $this->respondResult(
-            $this->mappingService->forceDelete(
-                (int) $id,
-                $userId
-            )
+            $this->mappingService->forceDelete((int) $id)
         );
     }
 

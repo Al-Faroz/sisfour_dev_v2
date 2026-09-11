@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\PegawaiModel;
+use App\Models\GuruModel;
 use App\Models\UserModel;
+use App\Models\UserRolesModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use Config\Database;
@@ -11,18 +12,14 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Throwable;
 
 /**
- * Business logic Master Pegawai - Phase 2 Personalia.
+ * Business logic Master Guru - Phase 2 Personalia.
  *
- * Akun Pegawai dibuat tanpa role otomatis. Admin tetap menetapkan role
- * operasional melalui Manajemen User. Identitas login mengikuti NIP bila
- * tersedia, selain itu NIK.
- *
- * STEP 05 FIX:
- * - authorization Master Pegawai ditegakkan ulang di Service;
- * - route filter tetap hanya gate pertama;
- * - perubahan identifier login tetap atomik dan menaikkan auth_version.
+ * Aturan login:
+ * - bila NIP tersedia, username/password identifier = NIP;
+ * - bila NIP kosong, username/password identifier = NIK;
+ * - perubahan identifier login mereset password dan menaikkan auth_version.
  */
-class PegawaiService
+class GuruService
 {
     public const STATUS_KEPEGAWAIAN = [
         'PNS',
@@ -36,76 +33,68 @@ class PegawaiService
     ];
 
     protected BaseConnection $db;
-    protected PegawaiModel $pegawaiModel;
+    protected GuruModel $guruModel;
     protected UserModel $userModel;
+    protected UserRolesModel $userRolesModel;
     protected UploadService $uploadService;
     protected ActivityLogService $activityLog;
-    protected AuthService $authService;
 
     public function __construct()
     {
-        $this->db            = Database::connect();
-        $this->pegawaiModel  = new PegawaiModel();
-        $this->userModel     = new UserModel();
-        $this->uploadService = new UploadService();
-        $this->activityLog   = new ActivityLogService();
-        $this->authService   = new AuthService();
+        $this->db             = Database::connect();
+        $this->guruModel      = new GuruModel();
+        $this->userModel      = new UserModel();
+        $this->userRolesModel = new UserRolesModel();
+        $this->uploadService  = new UploadService();
+        $this->activityLog    = new ActivityLogService();
     }
 
     public function getList(array $filter = [], bool $deletedOnly = false): array
     {
-        if ($deletedOnly) {
-            if (!$this->canManage()) {
-                return [];
-            }
-        } elseif (!$this->canManage() && !$this->canView()) {
-            return [];
-        }
-
         $builder = $this->db
-            ->table('pegawai p')
+            ->table('guru g')
             ->select(
-                'p.id, p.nik, p.nip, p.nama, p.jenis_kelamin, p.tempat_lahir, ' .
-                'p.tanggal_lahir, p.agama, p.alamat, p.no_telepon, p.email, ' .
-                'p.status_kepegawaian, p.nuptk, p.foto, p.jabatan AS jabatan_legacy, ' .
-                'p.deleted_at, p.created_at, p.updated_at, u.id AS id_user, ' .
-                'u.username, u.role AS role_user, u.status_aktif AS status_user'
+                'g.id, g.nik, g.nip, g.nama, g.jenis_kelamin, g.tempat_lahir, ' .
+                'g.tanggal_lahir, g.agama, g.alamat, g.no_telepon, g.email, ' .
+                'g.status_kepegawaian, g.nuptk, g.foto, g.deleted_at, ' .
+                'g.created_at, g.updated_at, u.id AS id_user, u.username, ' .
+                'u.role AS role_user, u.status_aktif AS status_user'
             )
-            ->join('users u', 'u.id_pegawai = p.id', 'left');
+            ->join('users u', 'u.id_guru = g.id', 'left');
 
         if ($deletedOnly) {
-            $builder->where('p.deleted_at IS NOT NULL', null, false);
+            $builder->where('g.deleted_at IS NOT NULL', null, false);
         } else {
-            $builder->where('p.deleted_at', null);
+            $builder->where('g.deleted_at', null);
         }
 
         $nama = trim((string) ($filter['nama'] ?? ''));
         if ($nama !== '') {
-            $builder->like('p.nama', $nama);
+            $builder->like('g.nama', $nama);
         }
 
         $nik = trim((string) ($filter['nik'] ?? ''));
         if ($nik !== '') {
-            $builder->like('p.nik', $nik);
+            $builder->like('g.nik', $nik);
         }
 
         $nip = trim((string) ($filter['nip'] ?? ''));
         if ($nip !== '') {
-            $builder->like('p.nip', $nip);
+            $builder->like('g.nip', $nip);
         }
 
         $jk = strtoupper(trim((string) ($filter['jenis_kelamin'] ?? '')));
         if (in_array($jk, ['L', 'P'], true)) {
-            $builder->where('p.jenis_kelamin', $jk);
+            $builder->where('g.jenis_kelamin', $jk);
         }
 
         $status = $this->canonicalStatus($filter['status_kepegawaian'] ?? null);
         if ($status !== null) {
-            $builder->where('p.status_kepegawaian', $status);
+            $builder->where('g.status_kepegawaian', $status);
         }
 
         $rows = $builder
-            ->orderBy('p.nama', 'ASC')
+            ->orderBy('g.nama', 'ASC')
             ->get()
             ->getResultArray();
 
@@ -120,20 +109,16 @@ class PegawaiService
 
     public function find(int $id): ?array
     {
-        return $this->pegawaiModel->find($id);
+        return $this->guruModel->find($id);
     }
 
     public function findWithDeleted(int $id): ?array
     {
-        return $this->pegawaiModel->withDeleted()->find($id);
+        return $this->guruModel->withDeleted()->find($id);
     }
 
     public function create(array $data, ?UploadedFile $foto = null): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         $payload = $this->normalizePayload($data);
         $precheck = $this->validateBusiness($payload);
 
@@ -150,7 +135,7 @@ class PegawaiService
                 $payload['foto'] = $newFoto;
             }
 
-            $idPegawai = $this->insertPegawaiAndUser($payload);
+            $idGuru = $this->insertGuruAndUser($payload);
 
             if ($this->db->transStatus() === false) {
                 throw new \RuntimeException('Transaksi database gagal.');
@@ -159,16 +144,16 @@ class PegawaiService
             $this->activityLog->write(
                 $this->actorUserId(),
                 'CREATE',
-                'Master Pegawai',
-                sprintf('Menambahkan Pegawai ID %d - %s.', $idPegawai, $payload['nama'])
+                'Master Guru',
+                sprintf('Menambahkan Guru ID %d - %s.', $idGuru, $payload['nama'])
             );
 
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => 'Data Pegawai berhasil ditambahkan. Akun otomatis dibuat tanpa role; Admin menentukan role melalui Manajemen User.',
-                'id' => $idPegawai,
+                'message' => 'Data Guru berhasil ditambahkan dan akun Guru otomatis dibuat.',
+                'id' => $idGuru,
                 'login_identifier' => $this->loginIdentifier($payload),
             ];
         } catch (Throwable $e) {
@@ -184,19 +169,15 @@ class PegawaiService
 
     public function update(int $id, array $data): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
+        $guru = $this->guruModel->find($id);
 
-        $pegawai = $this->pegawaiModel->find($id);
-
-        if ($pegawai === null) {
-            return $this->fail('Data Pegawai tidak ditemukan.');
+        if ($guru === null) {
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
         $linkedUser = $this->db
             ->table('users')
-            ->where('id_pegawai', $id)
+            ->where('id_guru', $id)
             ->get()
             ->getRowArray();
 
@@ -211,21 +192,21 @@ class PegawaiService
             return $precheck;
         }
 
-        $oldLogin = $this->loginIdentifier($pegawai);
+        $oldLogin = $this->loginIdentifier($guru);
         $newLogin = $this->loginIdentifier($payload);
         $credentialReset = false;
 
         $this->db->transBegin();
 
         try {
-            if (! $this->pegawaiModel->update($id, $payload)) {
+            if (! $this->guruModel->update($id, $payload)) {
                 throw new \RuntimeException(
-                    implode(' ', $this->pegawaiModel->errors()) ?: 'Data Pegawai gagal diperbarui.'
+                    implode(' ', $this->guruModel->errors()) ?: 'Data Guru gagal diperbarui.'
                 );
             }
 
             if ($linkedUser === null) {
-                $this->createPegawaiUser($id, $newLogin);
+                $this->createGuruUser($id, $newLogin);
                 $credentialReset = true;
             } else {
                 $credentialReset = $oldLogin !== $newLogin
@@ -242,8 +223,10 @@ class PegawaiService
                 }
 
                 if (! $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate)) {
-                    throw new \RuntimeException('Akun Pegawai gagal disinkronkan.');
+                    throw new \RuntimeException('Akun Guru gagal disinkronkan.');
                 }
+
+                $this->ensureGuruRole((int) $linkedUser['id']);
             }
 
             if ($this->db->transStatus() === false) {
@@ -253,9 +236,9 @@ class PegawaiService
             $this->activityLog->write(
                 $this->actorUserId(),
                 'UPDATE',
-                'Master Pegawai',
+                'Master Guru',
                 sprintf(
-                    'Memperbarui Pegawai ID %d - %s%s',
+                    'Memperbarui Guru ID %d - %s%s',
                     $id,
                     $payload['nama'],
                     $credentialReset ? ' dan mereset kredensial login.' : '.'
@@ -267,8 +250,8 @@ class PegawaiService
             return [
                 'success' => true,
                 'message' => $credentialReset
-                    ? 'Data Pegawai berhasil diperbarui. Username dan password disinkronkan ke identitas login baru.'
-                    : 'Data Pegawai berhasil diperbarui.',
+                    ? 'Data Guru berhasil diperbarui. Username dan password disinkronkan ke identitas login baru.'
+                    : 'Data Guru berhasil diperbarui.',
                 'credential_reset' => $credentialReset,
                 'login_identifier' => $newLogin,
             ];
@@ -280,44 +263,37 @@ class PegawaiService
 
     public function uploadFoto(int $id, UploadedFile $foto): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
+        $guru = $this->guruModel->find($id);
 
-        $pegawai = $this->pegawaiModel->find($id);
-
-        if ($pegawai === null) {
-            return $this->fail('Data Pegawai tidak ditemukan.');
+        if ($guru === null) {
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
         $newFoto = null;
 
         try {
-            $newFoto = $this->processFoto(
-                $foto,
-                $this->loginIdentifier($pegawai) ?: 'pegawai_' . $id
-            );
+            $newFoto = $this->processFoto($foto, $this->loginIdentifier($guru) ?: 'guru_' . $id);
 
-            if (! $this->pegawaiModel->update($id, ['foto' => $newFoto])) {
+            if (! $this->guruModel->update($id, ['foto' => $newFoto])) {
                 throw new \RuntimeException(
-                    implode(' ', $this->pegawaiModel->errors()) ?: 'Foto Pegawai gagal disimpan.'
+                    implode(' ', $this->guruModel->errors()) ?: 'Foto Guru gagal disimpan.'
                 );
             }
 
-            if (! empty($pegawai['foto'])) {
-                $this->deleteFotoFile((string) $pegawai['foto']);
+            if (! empty($guru['foto'])) {
+                $this->deleteFotoFile((string) $guru['foto']);
             }
 
             $this->activityLog->write(
                 $this->actorUserId(),
                 'UPDATE_FOTO',
-                'Master Pegawai',
-                sprintf('Mengganti foto Pegawai ID %d - %s.', $id, $pegawai['nama'])
+                'Master Guru',
+                sprintf('Mengganti foto Guru ID %d - %s.', $id, $guru['nama'])
             );
 
             return [
                 'success' => true,
-                'message' => 'Foto Pegawai berhasil diperbarui.',
+                'message' => 'Foto Guru berhasil diperbarui.',
                 'foto' => $newFoto,
             ];
         } catch (Throwable $e) {
@@ -331,24 +307,20 @@ class PegawaiService
 
     public function delete(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
+        $guru = $this->guruModel->find($id);
 
-        $pegawai = $this->pegawaiModel->find($id);
-
-        if ($pegawai === null) {
-            return $this->fail('Data Pegawai tidak ditemukan.');
+        if ($guru === null) {
+            return $this->fail('Data Guru tidak ditemukan.');
         }
 
         $this->db->transBegin();
 
         try {
-            if (! $this->pegawaiModel->delete($id)) {
-                throw new \RuntimeException('Data Pegawai gagal dipindahkan ke Recycle Bin.');
+            if (! $this->guruModel->delete($id)) {
+                throw new \RuntimeException('Data Guru gagal dipindahkan ke Recycle Bin.');
             }
 
-            $linkedUser = $this->db->table('users')->where('id_pegawai', $id)->get()->getRowArray();
+            $linkedUser = $this->db->table('users')->where('id_guru', $id)->get()->getRowArray();
 
             if ($linkedUser !== null) {
                 $this->db
@@ -368,13 +340,13 @@ class PegawaiService
             $this->activityLog->write(
                 $this->actorUserId(),
                 'DELETE',
-                'Master Pegawai',
-                sprintf('Memindahkan Pegawai ID %d - %s ke Recycle Bin.', $id, $pegawai['nama'])
+                'Master Guru',
+                sprintf('Memindahkan Guru ID %d - %s ke Recycle Bin.', $id, $guru['nama'])
             );
 
             $this->db->transCommit();
 
-            return ['success' => true, 'message' => 'Data Pegawai dipindahkan ke Recycle Bin.'];
+            return ['success' => true, 'message' => 'Data Guru dipindahkan ke Recycle Bin.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
             return $this->fail($e->getMessage());
@@ -383,22 +355,18 @@ class PegawaiService
 
     public function restore(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
+        $guru = $this->findWithDeleted($id);
+
+        if ($guru === null || empty($guru['deleted_at'])) {
+            return $this->fail('Data Guru pada Recycle Bin tidak ditemukan.');
         }
 
-        $pegawai = $this->findWithDeleted($id);
-
-        if ($pegawai === null || empty($pegawai['deleted_at'])) {
-            return $this->fail('Data Pegawai pada Recycle Bin tidak ditemukan.');
-        }
-
-        $login = $this->loginIdentifier($pegawai);
+        $login = $this->loginIdentifier($guru);
         if ($login === '') {
-            return $this->fail('Restore gagal: identitas login Pegawai belum tersedia.');
+            return $this->fail('Restore gagal: identitas login Guru belum tersedia.');
         }
 
-        $linkedUser = $this->db->table('users')->where('id_pegawai', $id)->get()->getRowArray();
+        $linkedUser = $this->db->table('users')->where('id_guru', $id)->get()->getRowArray();
         $available = $this->usernameAvailable(
             $login,
             $linkedUser !== null ? (int) $linkedUser['id'] : null
@@ -411,15 +379,15 @@ class PegawaiService
         $this->db->transBegin();
 
         try {
-            if (! $this->db->table('pegawai')->where('id', $id)->update([
+            if (! $this->db->table('guru')->where('id', $id)->update([
                 'deleted_at' => null,
                 'updated_at' => date('Y-m-d H:i:s'),
             ])) {
-                throw new \RuntimeException('Data Pegawai gagal dipulihkan.');
+                throw new \RuntimeException('Data Guru gagal dipulihkan.');
             }
 
             if ($linkedUser === null) {
-                $this->createPegawaiUser($id, $login);
+                $this->createGuruUser($id, $login);
             } else {
                 $userUpdate = [
                     'username' => $login,
@@ -433,6 +401,7 @@ class PegawaiService
                 }
 
                 $this->db->table('users')->where('id', (int) $linkedUser['id'])->update($userUpdate);
+                $this->ensureGuruRole((int) $linkedUser['id']);
             }
 
             if ($this->db->transStatus() === false) {
@@ -442,13 +411,13 @@ class PegawaiService
             $this->activityLog->write(
                 $this->actorUserId(),
                 'RESTORE',
-                'Master Pegawai',
-                sprintf('Memulihkan Pegawai ID %d - %s.', $id, $pegawai['nama'])
+                'Master Guru',
+                sprintf('Memulihkan Guru ID %d - %s.', $id, $guru['nama'])
             );
 
             $this->db->transCommit();
 
-            return ['success' => true, 'message' => 'Data Pegawai berhasil dipulihkan.'];
+            return ['success' => true, 'message' => 'Data Guru berhasil dipulihkan.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
             return $this->fail($e->getMessage());
@@ -457,57 +426,51 @@ class PegawaiService
 
     public function forceDelete(int $id): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
+        $guru = $this->findWithDeleted($id);
+
+        if ($guru === null || empty($guru['deleted_at'])) {
+            return $this->fail('Data Guru pada Recycle Bin tidak ditemukan.');
         }
 
-        $pegawai = $this->findWithDeleted($id);
-
-        if ($pegawai === null || empty($pegawai['deleted_at'])) {
-            return $this->fail('Data Pegawai pada Recycle Bin tidak ditemukan.');
-        }
-
-        $personaliaFiles = $this->collectPersonaliaFiles('id_pegawai', $id);
+        $personaliaFiles = $this->collectPersonaliaFiles('id_guru', $id);
 
         $this->db->transBegin();
 
         try {
-            $this->db->table('users')->where('id_pegawai', $id)->delete();
-            $this->db->table('pegawai')->where('id', $id)->delete();
+            $this->db->table('users')->where('id_guru', $id)->delete();
+            $this->db->table('guru')->where('id', $id)->delete();
 
             if ($this->db->transStatus() === false) {
-                throw new \RuntimeException('Pegawai masih direferensikan data lain.');
+                throw new \RuntimeException(
+                    'Guru tidak dapat dihapus permanen karena masih direferensikan data lain.'
+                );
             }
 
             $this->activityLog->write(
                 $this->actorUserId(),
                 'FORCE_DELETE',
-                'Master Pegawai',
-                sprintf('Menghapus permanen Pegawai ID %d - %s.', $id, $pegawai['nama'])
+                'Master Guru',
+                sprintf('Menghapus permanen Guru ID %d - %s.', $id, $guru['nama'])
             );
 
             $this->db->transCommit();
 
-            if (! empty($pegawai['foto'])) {
-                $this->deleteFotoFile((string) $pegawai['foto']);
+            if (! empty($guru['foto'])) {
+                $this->deleteFotoFile((string) $guru['foto']);
             }
             $this->deletePersonaliaFiles($personaliaFiles);
 
-            return ['success' => true, 'message' => 'Data Pegawai berhasil dihapus permanen.'];
+            return ['success' => true, 'message' => 'Data Guru berhasil dihapus permanen.'];
         } catch (Throwable $e) {
             $this->db->transRollback();
             return $this->fail(
-                'Hapus permanen gagal. Data Pegawai kemungkinan masih digunakan akun atau data terkait lainnya.'
+                'Hapus permanen gagal. Data Guru masih digunakan oleh jadwal, wali kelas, presensi, BK, atau data terkait lainnya.'
             );
         }
     }
 
     public function importExcel(UploadedFile $file): array
     {
-        if (!$this->canManage()) {
-            return $this->forbidden();
-        }
-
         if (! $file->isValid()) {
             return $this->fail('File import tidak valid.');
         }
@@ -586,14 +549,14 @@ class PegawaiService
         }
 
         if ($prepared === []) {
-            return $this->fail('Tidak ada baris data Pegawai yang dapat diimport.');
+            return $this->fail('Tidak ada baris data Guru yang dapat diimport.');
         }
 
         $this->db->transBegin();
 
         try {
             foreach ($prepared as $payload) {
-                $this->insertPegawaiAndUser($payload);
+                $this->insertGuruAndUser($payload);
             }
 
             if ($this->db->transStatus() === false) {
@@ -603,15 +566,15 @@ class PegawaiService
             $this->activityLog->write(
                 $this->actorUserId(),
                 'IMPORT',
-                'Master Pegawai',
-                sprintf('Import %d data Pegawai berhasil.', count($prepared))
+                'Master Guru',
+                sprintf('Import %d data Guru berhasil.', count($prepared))
             );
 
             $this->db->transCommit();
 
             return [
                 'success' => true,
-                'message' => sprintf('%d data Pegawai berhasil diimport.', count($prepared)),
+                'message' => sprintf('%d data Guru berhasil diimport.', count($prepared)),
                 'total' => count($prepared),
             ];
         } catch (Throwable $e) {
@@ -620,26 +583,26 @@ class PegawaiService
         }
     }
 
-    private function insertPegawaiAndUser(array $payload): int
+    private function insertGuruAndUser(array $payload): int
     {
-        $idPegawai = $this->pegawaiModel->insert($payload, true);
+        $idGuru = $this->guruModel->insert($payload, true);
 
-        if ($idPegawai === false) {
+        if ($idGuru === false) {
             throw new \RuntimeException(
-                implode(' ', $this->pegawaiModel->errors()) ?: 'Data Pegawai gagal disimpan.'
+                implode(' ', $this->guruModel->errors()) ?: 'Data Guru gagal disimpan.'
             );
         }
 
-        $idPegawai = (int) $idPegawai;
-        $this->createPegawaiUser($idPegawai, $this->loginIdentifier($payload));
+        $idGuru = (int) $idGuru;
+        $this->createGuruUser($idGuru, $this->loginIdentifier($payload));
 
-        return $idPegawai;
+        return $idGuru;
     }
 
-    private function createPegawaiUser(int $idPegawai, string $login): int
+    private function createGuruUser(int $idGuru, string $login): int
     {
         if ($login === '') {
-            throw new \RuntimeException('Identitas login Pegawai tidak tersedia.');
+            throw new \RuntimeException('Identitas login Guru tidak tersedia.');
         }
 
         if (! $this->usernameAvailable($login)) {
@@ -649,9 +612,9 @@ class PegawaiService
         $idUser = $this->userModel->insert([
             'username' => $login,
             'password' => password_hash($login, PASSWORD_DEFAULT),
-            'role' => null,
-            'id_guru' => null,
-            'id_pegawai' => $idPegawai,
+            'role' => 'guru',
+            'id_guru' => $idGuru,
+            'id_pegawai' => null,
             'id_siswa' => null,
             'status_aktif' => 1,
             'auth_version' => 1,
@@ -659,11 +622,33 @@ class PegawaiService
 
         if ($idUser === false) {
             throw new \RuntimeException(
-                implode(' ', $this->userModel->errors()) ?: 'Akun Pegawai gagal dibuat.'
+                implode(' ', $this->userModel->errors()) ?: 'Akun Guru gagal dibuat.'
             );
         }
 
+        $this->ensureGuruRole((int) $idUser);
+
         return (int) $idUser;
+    }
+
+    private function ensureGuruRole(int $idUser): void
+    {
+        $exists = $this->db
+            ->table('user_roles')
+            ->where('id_user', $idUser)
+            ->where('role', 'guru')
+            ->countAllResults() > 0;
+
+        if ($exists) {
+            return;
+        }
+
+        if ($this->userRolesModel->insert([
+            'id_user' => $idUser,
+            'role' => 'guru',
+        ]) === false) {
+            throw new \RuntimeException('Role akun Guru gagal dibuat.');
+        }
     }
 
     private function normalizePayload(array $data): array
@@ -721,21 +706,21 @@ class PegawaiService
             return $this->fail('Tanggal lahir harus menggunakan format YYYY-MM-DD.');
         }
 
-        if ($this->identifierExists('pegawai', 'nik', $payload['nik'], $currentId)) {
-            return $this->fail('NIK sudah terdaftar pada data Pegawai.');
+        if ($this->identifierExists('guru', 'nik', $payload['nik'], $currentId)) {
+            return $this->fail('NIK sudah terdaftar pada data Guru.');
         }
 
-        if ($this->pegawaiModel->nikDipakaiGuru($payload['nik'])) {
-            return $this->fail('NIK sudah digunakan pada data Guru.');
+        if ($this->guruModel->nikDipakaiPegawai($payload['nik'])) {
+            return $this->fail('NIK sudah digunakan pada data Pegawai.');
         }
 
         if ($payload['nip'] !== null) {
-            if ($this->identifierExists('pegawai', 'nip', $payload['nip'], $currentId)) {
-                return $this->fail('NIP sudah terdaftar pada data Pegawai.');
+            if ($this->identifierExists('guru', 'nip', $payload['nip'], $currentId)) {
+                return $this->fail('NIP sudah terdaftar pada data Guru.');
             }
 
-            if ($this->pegawaiModel->nipDipakaiGuru($payload['nip'])) {
-                return $this->fail('NIP sudah digunakan pada data Guru.');
+            if ($this->guruModel->nipDipakaiPegawai($payload['nip'])) {
+                return $this->fail('NIP sudah digunakan pada data Pegawai.');
             }
         }
 
@@ -837,12 +822,12 @@ class PegawaiService
 
     private function processFoto(UploadedFile $foto, string $identity): string
     {
-        $safe = preg_replace('/[^A-Za-z0-9_-]/', '_', $identity) ?: 'pegawai';
+        $safe = preg_replace('/[^A-Za-z0-9_-]/', '_', $identity) ?: 'guru';
 
         return $this->uploadService->processFotoPortrait(
             $foto,
-            rtrim(FCPATH . 'uploads/foto_pegawai', DIRECTORY_SEPARATOR),
-            'pegawai_' . $safe
+            rtrim(FCPATH . 'uploads/foto_guru', DIRECTORY_SEPARATOR),
+            'guru_' . $safe
         );
     }
 
@@ -853,7 +838,7 @@ class PegawaiService
             return;
         }
 
-        $path = rtrim(FCPATH . 'uploads/foto_pegawai', DIRECTORY_SEPARATOR)
+        $path = rtrim(FCPATH . 'uploads/foto_guru', DIRECTORY_SEPARATOR)
             . DIRECTORY_SEPARATOR
             . $filename;
 
@@ -890,28 +875,6 @@ class PegawaiService
     {
         $id = (int) session()->get('user_id');
         return $id > 0 ? $id : null;
-    }
-
-    private function canManage(): bool
-    {
-        $id = (int) session()->get('user_id');
-
-        return $id > 0 && in_array(
-            'SEMUA',
-            $this->authService->getPermissionScopes('master_pegawai.manage', $id),
-            true
-        );
-    }
-
-    private function canView(): bool
-    {
-        $id = (int) session()->get('user_id');
-
-        return $id > 0 && in_array(
-            'SEMUA',
-            $this->authService->getPermissionScopes('master_pegawai.view', $id),
-            true
-        );
     }
 
     /**
@@ -974,14 +937,5 @@ class PegawaiService
     private function fail(string $message): array
     {
         return ['success' => false, 'message' => $message];
-    }
-
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki izin untuk mengelola Master Pegawai.',
-        ];
     }
 }

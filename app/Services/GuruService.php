@@ -18,6 +18,7 @@ use Throwable;
  * - bila NIP tersedia, username/password identifier = NIP;
  * - bila NIP kosong, username/password identifier = NIK;
  * - perubahan identifier login mereset password dan menaikkan auth_version.
+ * - authorization Master Guru dijaga di Service.
  */
 class GuruService
 {
@@ -38,6 +39,7 @@ class GuruService
     protected UserRolesModel $userRolesModel;
     protected UploadService $uploadService;
     protected ActivityLogService $activityLog;
+    protected AuthService $authService;
 
     public function __construct()
     {
@@ -47,10 +49,19 @@ class GuruService
         $this->userRolesModel = new UserRolesModel();
         $this->uploadService  = new UploadService();
         $this->activityLog    = new ActivityLogService();
+        $this->authService    = new AuthService();
     }
 
     public function getList(array $filter = [], bool $deletedOnly = false): array
     {
+        if (
+            $deletedOnly
+                ? ! $this->canManage()
+                : ! $this->canView()
+        ) {
+            return [];
+        }
+
         $builder = $this->db
             ->table('guru g')
             ->select(
@@ -119,6 +130,10 @@ class GuruService
 
     public function create(array $data, ?UploadedFile $foto = null): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $payload = $this->normalizePayload($data);
         $precheck = $this->validateBusiness($payload);
 
@@ -169,6 +184,10 @@ class GuruService
 
     public function update(int $id, array $data): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
@@ -263,6 +282,10 @@ class GuruService
 
     public function uploadFoto(int $id, UploadedFile $foto): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
@@ -307,6 +330,10 @@ class GuruService
 
     public function delete(int $id): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $guru = $this->guruModel->find($id);
 
         if ($guru === null) {
@@ -355,6 +382,10 @@ class GuruService
 
     public function restore(int $id): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $guru = $this->findWithDeleted($id);
 
         if ($guru === null || empty($guru['deleted_at'])) {
@@ -426,6 +457,10 @@ class GuruService
 
     public function forceDelete(int $id): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         $guru = $this->findWithDeleted($id);
 
         if ($guru === null || empty($guru['deleted_at'])) {
@@ -471,6 +506,10 @@ class GuruService
 
     public function importExcel(UploadedFile $file): array
     {
+        if (! $this->canManage()) {
+            return $this->forbidden();
+        }
+
         if (! $file->isValid()) {
             return $this->fail('File import tidak valid.');
         }
@@ -871,16 +910,40 @@ class GuruService
         return count($resolved) === count($aliases) ? $resolved : null;
     }
 
+    private function canView(): bool
+    {
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        return $userId > 0
+            && (
+                $this->authService->hasPermission(
+                    'master_guru.view',
+                    $userId
+                )
+                || $this->authService->hasPermission(
+                    'master_guru.manage',
+                    $userId
+                )
+            );
+    }
+
+    private function canManage(): bool
+    {
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        return $userId > 0
+            && $this->authService->resolveScope(
+                'master_guru.manage',
+                $userId
+            ) === 'SEMUA';
+    }
+
     private function actorUserId(): ?int
     {
         $id = (int) session()->get('user_id');
         return $id > 0 ? $id : null;
     }
 
-    /**
-     * Ambil path file Phase 3 sebelum owner dihapus permanen. DB rows akan
-     * terhapus lewat ON DELETE CASCADE; file fisik baru dihapus setelah commit.
-     */
     private function collectPersonaliaFiles(string $ownerColumn, int $ownerId): array
     {
         if ($ownerId <= 0 || ! in_array($ownerColumn, ['id_guru', 'id_pegawai'], true)) {
@@ -932,6 +995,15 @@ class GuruService
                 @unlink($path);
             }
         }
+    }
+
+    private function forbidden(): array
+    {
+        return [
+            'success' => false,
+            'code' => 'FORBIDDEN',
+            'message' => 'Anda tidak memiliki hak mengelola Master Guru.',
+        ];
     }
 
     private function fail(string $message): array

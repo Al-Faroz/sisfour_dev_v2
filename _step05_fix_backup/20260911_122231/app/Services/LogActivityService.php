@@ -11,20 +11,14 @@ class LogActivityService
     private const EXPORT_LIMIT = 10000;
 
     protected LogActivityModel $model;
-    protected AuthService $authService;
 
     public function __construct()
     {
         $this->model = new LogActivityModel();
-        $this->authService = new AuthService();
     }
 
     public function page(array $input): array
     {
-        if (! $this->canView()) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak melihat Log Activity.');
-        }
-
         $validated = $this->validateFilter($input);
 
         if (!$validated['success']) {
@@ -66,10 +60,6 @@ class LogActivityService
 
     public function export(array $input): array
     {
-        if (! $this->canView()) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengekspor Log Activity.');
-        }
-
         $validated = $this->validateFilter($input);
 
         if (!$validated['success']) {
@@ -93,6 +83,7 @@ class LogActivityService
             );
         }
 
+        // UTF-8 BOM agar Excel Windows membaca karakter Indonesia dengan baik.
         fwrite(
             $stream,
             "\xEF\xBB\xBF"
@@ -247,17 +238,6 @@ class LogActivityService
                         : null,
             ],
         ];
-    }
-
-    private function canView(): bool
-    {
-        $userId = (int) (session()->get('user_id') ?? 0);
-
-        return $userId > 0
-            && $this->authService->hasPermission(
-                'log_activity.view',
-                $userId
-            );
     }
 
     private function validDate(string $value): bool

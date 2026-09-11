@@ -23,8 +23,6 @@ use Config\Database;
  * - Status Wali selalu dihitung dinamis dari mapping_wali_kelas.
  * - Permission user adalah union primary role + secondary roles.
  * - Satu role dapat mempunyai lebih dari satu scope untuk permission yang sama.
- * - Login normal tidak mengubah auth_version. auth_version hanya berubah ketika
- *   state keamanan/kredensial diubah oleh service yang berwenang.
  */
 class AuthService
 {
@@ -92,15 +90,24 @@ class AuthService
 
         $this->recordAttempt($username, true);
 
-        /*
-         * STEP 05 FIX:
-         * Login normal tidak boleh menaikkan auth_version.
-         *
-         * auth_version adalah invalidation token untuk session/JWT ketika
-         * kredensial atau state keamanan berubah. Menaikkannya pada setiap
-         * login membuat login kedua memutus session/token login pertama.
-         */
-        $user['auth_version'] = (int) ($user['auth_version'] ?? 0);
+        $newAuthVersion = ((int) ($user['auth_version'] ?? 0)) + 1;
+
+        $updated = $this->db
+            ->table('users')
+            ->where('id', $user['id'])
+            ->update([
+                'auth_version' => $newAuthVersion,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        if (! $updated) {
+            return [
+                'success' => false,
+                'message' => 'Login gagal diproses. Silakan coba lagi.',
+            ];
+        }
+
+        $user['auth_version'] = $newAuthVersion;
 
         return [
             'success' => true,

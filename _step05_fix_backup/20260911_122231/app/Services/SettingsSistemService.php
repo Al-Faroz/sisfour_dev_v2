@@ -13,22 +13,14 @@ class SettingsSistemService
     private const MAX_IMAGE_BYTES = 5_242_880;
 
     protected SettingSistemModel $model;
-    protected AuthService $authService;
 
     public function __construct()
     {
         $this->model = new SettingSistemModel();
-        $this->authService = new AuthService();
     }
 
     public function page(): array
     {
-        $actorUserId = $this->currentUserId();
-        $guard = $this->authorizeManage($actorUserId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         return [
             'success' => true,
             'settings' => $this->model->allAssoc(),
@@ -37,11 +29,6 @@ class SettingsSistemService
 
     public function update(int $userId, array $input): array
     {
-        $guard = $this->authorizeManage($userId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $lat = trim((string) ($input['latitude_sekolah'] ?? ''));
         $lng = trim((string) ($input['longitude_sekolah'] ?? ''));
         $radius = trim((string) ($input['radius_geofencing'] ?? ''));
@@ -91,11 +78,6 @@ class SettingsSistemService
 
     public function maintenance(int $userId, array $input): array
     {
-        $guard = $this->authorizeManage($userId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $enabled = $this->boolValue($input['maintenance_mode'] ?? '0');
         $message = trim((string) ($input['maintenance_message'] ?? ''));
 
@@ -127,11 +109,6 @@ class SettingsSistemService
         string $assetType,
         ?UploadedFile $file
     ): array {
-        $guard = $this->authorizeManage($userId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $map = [
             'logo' => 'logo_sekolah',
             'icon' => 'icon_sekolah',
@@ -266,11 +243,6 @@ class SettingsSistemService
         string $side,
         ?UploadedFile $file
     ): array {
-        $guard = $this->authorizeManage($userId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         if (!in_array($side, ['depan', 'belakang'], true)) {
             return $this->fail('VALIDATION', 'Sisi kartu tidak valid.');
         }
@@ -427,26 +399,6 @@ class SettingsSistemService
             'message' => 'Template kartu ' . $side . ' berhasil di-upload dan dinormalisasi ke 1011×638 px.',
             'path' => $relative,
         ];
-    }
-
-    private function authorizeManage(int $userId): ?array
-    {
-        if (
-            $userId > 0
-            && $this->authService->resolveScope('settings_sistem.manage', $userId) === 'SEMUA'
-        ) {
-            return null;
-        }
-
-        return $this->fail(
-            'FORBIDDEN',
-            'Anda tidak memiliki izin untuk mengelola Setting Sistem.'
-        );
-    }
-
-    private function currentUserId(): int
-    {
-        return (int) session()->get('user_id');
     }
 
     private function validateImage(?UploadedFile $file): array

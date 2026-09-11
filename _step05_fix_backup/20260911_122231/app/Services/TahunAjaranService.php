@@ -11,32 +11,25 @@ use Throwable;
  *
  * Business logic Master Tahun Ajaran.
  *
- * Aturan:
+ * Acuan docs/04_MASTER_DATA §3.3:
  * - semester wajib Ganjil/Genap;
  * - hanya satu tahun ajaran aktif;
  * - mengaktifkan satu otomatis menonaktifkan yang sebelumnya;
- * - tabel memakai soft delete + recycle bin;
- * - authorization authoritative di Service.
+ * - tabel memakai soft delete + recycle bin.
  */
 class TahunAjaranService
 {
     protected TahunAjaranModel $tahunModel;
-    protected AuthService $authService;
     protected $db;
 
     public function __construct()
     {
         $this->tahunModel = new TahunAjaranModel();
-        $this->authService = new AuthService();
         $this->db = Database::connect();
     }
 
     public function getList(bool $deletedOnly = false): array
     {
-        if (! $this->canManage()) {
-            return [];
-        }
-
         $builder = $this->db
             ->table('tahun_ajaran ta')
             ->select(
@@ -78,10 +71,6 @@ class TahunAjaranService
 
     public function create(array $data): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $payload = $this->normalizePayload($data);
 
         $error = $this->validatePayload($payload);
@@ -132,10 +121,6 @@ class TahunAjaranService
 
     public function update(int $id, array $data): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $tahun = $this->tahunModel->find($id);
 
         if ($tahun === null) {
@@ -165,6 +150,11 @@ class TahunAjaranService
             ];
         }
 
+        /*
+         * status_aktif tidak diedit dari form.
+         * Aktivasi hanya melalui endpoint aktifkan agar invariant satu-aktif
+         * selalu terjaga.
+         */
         if (!$this->tahunModel->update($id, [
             'nama_tahun' => $payload['nama_tahun'],
             'semester' => $payload['semester'],
@@ -195,10 +185,6 @@ class TahunAjaranService
 
     public function aktifkan(int $id): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $tahun = $this->tahunModel->find($id);
 
         if ($tahun === null) {
@@ -218,6 +204,11 @@ class TahunAjaranService
         $this->db->transBegin();
 
         try {
+            /*
+             * Query Builder langsung digunakan agar seluruh baris aktif,
+             * termasuk jika pernah terjadi data abnormal >1 aktif,
+             * dinonaktifkan dalam transaksi yang sama.
+             */
             $this->db
                 ->table('tahun_ajaran')
                 ->where('status_aktif', 1)
@@ -276,10 +267,6 @@ class TahunAjaranService
 
     public function delete(int $id): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $tahun = $this->tahunModel->find($id);
 
         if ($tahun === null) {
@@ -331,10 +318,6 @@ class TahunAjaranService
 
     public function restore(int $id): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $tahun = $this->tahunModel
             ->withDeleted()
             ->find($id);
@@ -393,10 +376,6 @@ class TahunAjaranService
 
     public function forceDelete(int $id): array
     {
-        if (! $this->canManage()) {
-            return $this->forbidden();
-        }
-
         $tahun = $this->tahunModel
             ->withDeleted()
             ->find($id);
@@ -512,6 +491,11 @@ class TahunAjaranService
         return null;
     }
 
+    /**
+     * Soft delete tahun ajaran yang masih dipakai akan membuat child
+     * tetap hidup tetapi parent hilang dari dropdown. Karena itu
+     * penghapusan dibatasi saat dependency masih ada.
+     */
     protected function getDependencies(int $idTahun): array
     {
         $map = [
@@ -538,26 +522,6 @@ class TahunAjaranService
         }
 
         return $dependencies;
-    }
-
-    private function canManage(): bool
-    {
-        $userId = (int) (session()->get('user_id') ?? 0);
-
-        return $userId > 0
-            && $this->authService->resolveScope(
-                'master_tahun_ajaran.manage',
-                $userId
-            ) === 'SEMUA';
-    }
-
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki hak mengelola Master Tahun Ajaran.',
-        ];
     }
 
     protected function logActivity(

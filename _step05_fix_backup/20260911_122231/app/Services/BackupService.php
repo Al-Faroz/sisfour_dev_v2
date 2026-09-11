@@ -16,7 +16,6 @@ class BackupService
 
     protected BaseConnection $db;
     protected string $backupDir;
-    protected AuthService $authService;
 
     public function __construct()
     {
@@ -24,17 +23,10 @@ class BackupService
         $this->backupDir = rtrim(WRITEPATH, DIRECTORY_SEPARATOR)
             . DIRECTORY_SEPARATOR
             . 'backups';
-        $this->authService = new AuthService();
     }
 
     public function page(): array
     {
-        $actorUserId = $this->currentUserId();
-        $guard = $this->authorizeManage($actorUserId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $directory = $this->ensureBackupDirectory();
 
         if (!$directory['success']) {
@@ -81,11 +73,6 @@ class BackupService
 
     public function create(int $actorUserId): array
     {
-        $guard = $this->authorizeManage($actorUserId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $directory = $this->ensureBackupDirectory();
 
         if (!$directory['success']) {
@@ -200,11 +187,6 @@ class BackupService
         int $actorUserId,
         string $filename
     ): array {
-        $guard = $this->authorizeManage($actorUserId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $resolved = $this->resolveFile($filename);
 
         if (!$resolved['success']) {
@@ -226,11 +208,6 @@ class BackupService
 
     public function delete(int $actorUserId, string $filename): array
     {
-        $guard = $this->authorizeManage($actorUserId);
-        if ($guard !== null) {
-            return $guard;
-        }
-
         $resolved = $this->resolveFile($filename);
 
         if (!$resolved['success']) {
@@ -254,26 +231,6 @@ class BackupService
             'success' => true,
             'message' => 'File backup berhasil dihapus.',
         ];
-    }
-
-    private function authorizeManage(int $actorUserId): ?array
-    {
-        if (
-            $actorUserId > 0
-            && $this->authService->resolveScope('backup.manage', $actorUserId) === 'SEMUA'
-        ) {
-            return null;
-        }
-
-        return $this->fail(
-            'FORBIDDEN',
-            'Anda tidak memiliki izin untuk mengelola Backup.'
-        );
-    }
-
-    private function currentUserId(): int
-    {
-        return (int) session()->get('user_id');
     }
 
     private function ensureBackupDirectory(): array

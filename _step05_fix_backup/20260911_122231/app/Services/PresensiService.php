@@ -752,11 +752,7 @@ class PresensiService
      * Menentukan capability input terhadap target kelas/tanggal/sesi.
      *
      * Prioritas:
-     * SEMUA → WALI target → GURU_TERJADWAL valid → tolak.
-     *
-     * Hak Wali adalah hak contextual tambahan (UNION). Jika actor merupakan
-     * Wali target, jangan diturunkan menjadi capability Guru biasa hanya
-     * karena pada saat yang sama ia juga sedang terjadwal mengajar.
+     * SEMUA → GURU_TERJADWAL valid → fallback WALI → tolak.
      */
     private function resolveInputCapability(
         int $userId,
@@ -789,15 +785,15 @@ class PresensiService
         $isWaliTarget = in_array('KELAS_DIAMPU', $scopes, true)
             && $this->isWaliTarget($idGuru, $idTahun, $idKelas);
 
-        if ($isWaliTarget) {
-            return [
-                'success' => true,
-                'capability' => 'WALI',
-                'message' => 'Akses Wali Kelas.',
-            ];
-        }
-
         if ($tanggal !== $this->today()) {
+            if ($isWaliTarget) {
+                return [
+                    'success' => true,
+                    'capability' => 'WALI',
+                    'message' => 'Akses Wali Kelas.',
+                ];
+            }
+
             return [
                 'success' => false,
                 'code' => 'OUTSIDE_SCHEDULE_DATE',
@@ -834,6 +830,14 @@ class PresensiService
                     ];
                 }
 
+                if ($window['state'] === 'ENDED' && $isWaliTarget) {
+                    return [
+                        'success' => true,
+                        'capability' => 'WALI',
+                        'message' => 'Time-window jadwal telah berakhir; akses fallback Wali digunakan.',
+                    ];
+                }
+
                 if ($window['state'] === 'NOT_STARTED') {
                     return [
                         'success' => false,
@@ -848,6 +852,14 @@ class PresensiService
                     'message' => 'Waktu input Presensi untuk jadwal ini sudah berakhir.',
                 ];
             }
+        }
+
+        if ($isWaliTarget) {
+            return [
+                'success' => true,
+                'capability' => 'WALI',
+                'message' => 'Akses Wali Kelas.',
+            ];
         }
 
         return [

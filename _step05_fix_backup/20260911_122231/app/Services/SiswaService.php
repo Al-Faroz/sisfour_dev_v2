@@ -34,10 +34,6 @@ class SiswaService
 
     public function getList(array $filter, int $userId, bool $deletedOnly = false): array
     {
-        if ($deletedOnly && !$this->hasScope('master_siswa.manage', $userId, 'SEMUA')) {
-            return [];
-        }
-
         $idTahunAktif = $this->getIdTahunAktif();
 
         $builder = $this->db->table('siswa s')
@@ -110,58 +106,48 @@ class SiswaService
             return [];
         }
 
-        $scopes = $this->authService->getPermissionScopes('master_siswa.view', $userId);
+        $scope = $this->authService->resolveScope('master_siswa.view', $userId);
 
         $builder = $this->db->table('kelas')
             ->select('id, nama_kelas, tingkat, rombel')
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null);
 
-        if (in_array('SEMUA', $scopes, true)) {
-            return $builder
-                ->orderBy('tingkat', 'ASC')
-                ->orderBy('rombel', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
-
-        $allowed = [];
-
-        if (in_array('KELAS_DIAMPU', $scopes, true)) {
-            $allowed = array_merge(
-                $allowed,
-                $this->authService->getKelasDiampu(
-                    $this->getIdGuruUser($userId),
-                    $idTahun
-                )
+        if ($scope === 'KELAS_DIAMPU') {
+            $kelas = $this->authService->getKelasDiampu(
+                $this->getIdGuruUser($userId),
+                $idTahun
             );
-        }
 
-        if (in_array('DIRI_SENDIRI', $scopes, true)) {
+            if ($kelas === []) {
+                return [];
+            }
+
+            $builder->whereIn('id', $kelas);
+        } elseif ($scope === 'DIRI_SENDIRI') {
             $idSiswa = $this->getIdSiswaUser($userId);
 
-            if ($idSiswa > 0) {
-                $anggota = $this->db->table('anggota_kelas')
-                    ->select('id_kelas')
-                    ->where('id_siswa', $idSiswa)
-                    ->where('id_tahun', $idTahun)
-                    ->get()
-                    ->getRowArray();
-
-                if ($anggota !== null) {
-                    $allowed[] = (int) $anggota['id_kelas'];
-                }
+            if ($idSiswa <= 0) {
+                return [];
             }
-        }
 
-        $allowed = array_values(array_unique(array_filter(array_map('intval', $allowed))));
+            $anggota = $this->db->table('anggota_kelas')
+                ->select('id_kelas')
+                ->where('id_siswa', $idSiswa)
+                ->where('id_tahun', $idTahun)
+                ->get()
+                ->getRowArray();
 
-        if ($allowed === []) {
+            if ($anggota === null) {
+                return [];
+            }
+
+            $builder->where('id', (int) $anggota['id_kelas']);
+        } elseif ($scope !== 'SEMUA') {
             return [];
         }
 
         return $builder
-            ->whereIn('id', $allowed)
             ->orderBy('tingkat', 'ASC')
             ->orderBy('rombel', 'ASC')
             ->get()
@@ -185,10 +171,6 @@ class SiswaService
 
     public function create(array $data, ?UploadedFile $foto = null): array
     {
-        if (!$this->currentActorHasScope('master_siswa.manage', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         $payload = $this->normalizePayload($data);
         $payload['status_aktif'] = 'Aktif';
         $payload['tanggal_mutasi'] = null;
@@ -324,16 +306,13 @@ class SiswaService
                         );
                     }
 
-                    if (!$this->db->table('users')
+                    $this->db->table('users')
                         ->where('id', (int) $linkedUser['id'])
                         ->update([
                             'username' => $payload['nisn'],
-                            'password' => password_hash($payload['nisn'], PASSWORD_DEFAULT),
                             'auth_version' => ((int) $linkedUser['auth_version']) + 1,
                             'updated_at' => date('Y-m-d H:i:s'),
-                        ])) {
-                        throw new \RuntimeException('Kredensial akun Siswa gagal disinkronkan.');
-                    }
+                        ]);
                 }
             }
 
@@ -406,10 +385,6 @@ class SiswaService
 
     public function mutasi(int $id, string $status, string $keterangan): array
     {
-        if (!$this->currentActorHasScope('master_siswa.manage', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         $result = $this->kelasService->mutasiSiswa($id, $status, $keterangan);
 
         if (!empty($result['success'])) {
@@ -425,10 +400,6 @@ class SiswaService
 
     public function delete(int $id): array
     {
-        if (!$this->currentActorHasScope('master_siswa.manage', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         $siswa = $this->siswaModel->find($id);
 
         if ($siswa === null) {
@@ -479,10 +450,6 @@ class SiswaService
 
     public function restore(int $id): array
     {
-        if (!$this->currentActorHasScope('master_siswa.manage', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         $siswa = $this->siswaModel->withDeleted()->find($id);
 
         if ($siswa === null || empty($siswa['deleted_at'])) {
@@ -566,10 +533,6 @@ class SiswaService
 
     public function forceDelete(int $id): array
     {
-        if (!$this->currentActorHasScope('master_siswa.manage', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         $siswa = $this->siswaModel->withDeleted()->find($id);
 
         if ($siswa === null || empty($siswa['deleted_at'])) {
@@ -611,10 +574,6 @@ class SiswaService
 
     public function importExcel(UploadedFile $file): array
     {
-        if (!$this->currentActorHasScope('master_siswa.import_export', 'SEMUA')) {
-            return $this->forbidden();
-        }
-
         if (!$file->isValid()) {
             return ['success' => false, 'message' => 'File import tidak valid.'];
         }
@@ -679,7 +638,7 @@ class SiswaService
                 continue;
             }
 
-            if (!preg_match('/^\d{16}$/', $nik)) {
+            if (!preg_match('/^\\d{16}$/', $nik)) {
                 return [
                     'success' => false,
                     'message' => "Import dihentikan pada baris {$excelRow}: NIK wajib tepat 16 digit.",
@@ -845,7 +804,7 @@ class SiswaService
 
     protected function validateBusiness(array $payload, ?int $exceptId = null): ?array
     {
-        if (!preg_match('/^\d{16}$/', $payload['nik'])) {
+        if (!preg_match('/^\\d{16}$/', $payload['nik'])) {
             return ['success' => false, 'message' => 'NIK wajib tepat 16 digit angka.'];
         }
 
@@ -895,50 +854,42 @@ class SiswaService
 
     protected function applyViewScope($builder, int $userId, ?int $idTahun): bool
     {
-        $scopes = $this->authService->getPermissionScopes('master_siswa.view', $userId);
+        $scope = $this->authService->resolveScope('master_siswa.view', $userId);
 
-        if (in_array('SEMUA', $scopes, true)) {
+        if ($scope === 'SEMUA') {
             return true;
         }
 
-        $canWali = in_array('KELAS_DIAMPU', $scopes, true) && $idTahun !== null;
-        $canSelf = in_array('DIRI_SENDIRI', $scopes, true);
-        $kelas = [];
-        $idSiswa = 0;
+        if ($scope === 'KELAS_DIAMPU') {
+            if ($idTahun === null) {
+                return false;
+            }
 
-        if ($canWali) {
             $kelas = $this->authService->getKelasDiampu(
                 $this->getIdGuruUser($userId),
-                (int) $idTahun
+                $idTahun
             );
-        }
 
-        if ($canSelf) {
-            $idSiswa = $this->getIdSiswaUser($userId);
-        }
-
-        if ($kelas === [] && $idSiswa <= 0) {
-            return false;
-        }
-
-        $builder->groupStart();
-        $hasCondition = false;
-
-        if ($kelas !== []) {
-            $builder->whereIn('ak.id_kelas', $kelas);
-            $hasCondition = true;
-        }
-
-        if ($idSiswa > 0) {
-            if ($hasCondition) {
-                $builder->orWhere('s.id', $idSiswa);
-            } else {
-                $builder->where('s.id', $idSiswa);
+            if ($kelas === []) {
+                return false;
             }
+
+            $builder->whereIn('ak.id_kelas', $kelas);
+            return true;
         }
 
-        $builder->groupEnd();
-        return true;
+        if ($scope === 'DIRI_SENDIRI') {
+            $idSiswa = $this->getIdSiswaUser($userId);
+
+            if ($idSiswa <= 0) {
+                return false;
+            }
+
+            $builder->where('s.id', $idSiswa);
+            return true;
+        }
+
+        return false;
     }
 
     protected function canAccessStudentByScope(int $idSiswa, int $userId, string $scope): bool
@@ -1067,36 +1018,5 @@ class SiswaService
             'keterangan' => $keterangan,
             'waktu' => date('Y-m-d H:i:s'),
         ]);
-    }
-
-    private function hasScope(string $permissionKey, int $userId, string $scope): bool
-    {
-        if ($userId <= 0) {
-            return false;
-        }
-
-        return in_array(
-            $scope,
-            $this->authService->getPermissionScopes($permissionKey, $userId),
-            true
-        );
-    }
-
-    private function currentActorHasScope(string $permissionKey, string $scope): bool
-    {
-        return $this->hasScope(
-            $permissionKey,
-            (int) session()->get('user_id'),
-            $scope
-        );
-    }
-
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki izin untuk menjalankan operasi ini.',
-        ];
     }
 }

@@ -15,21 +15,15 @@ class SettingsUserService
 
     protected SettingsUserModel $model;
     protected BaseConnection $db;
-    protected AuthService $authService;
 
     public function __construct()
     {
         $this->model = new SettingsUserModel();
         $this->db = Database::connect();
-        $this->authService = new AuthService();
     }
 
     public function page(array $input): array
     {
-        if (! $this->canManage($this->currentUserId())) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $limit = max(1, min(100, (int) ($input['limit'] ?? 30)));
         $offset = max(0, (int) ($input['offset'] ?? 0));
         $role = trim((string) ($input['role'] ?? ''));
@@ -68,10 +62,6 @@ class SettingsUserService
 
     public function get(int $id): array
     {
-        if (! $this->canManage($this->currentUserId())) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $row = $this->model->getById($id);
         if (! $row) {
             return $this->fail('NOT_FOUND', 'User tidak ditemukan.');
@@ -86,10 +76,6 @@ class SettingsUserService
 
     public function identityOptions(array $input): array
     {
-        if (! $this->canManage($this->currentUserId())) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $type = trim((string) ($input['type'] ?? ''));
         $search = trim((string) ($input['search'] ?? ''));
         if (! in_array($type, ['guru', 'pegawai', 'siswa'], true)) {
@@ -100,10 +86,6 @@ class SettingsUserService
 
     public function create(int $actorUserId, array $input): array
     {
-        if (! $this->canManage($actorUserId)) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $validated = $this->validatePayload($input, null, null);
         if (! $validated['success']) {
             return $validated;
@@ -149,10 +131,6 @@ class SettingsUserService
 
     public function update(int $actorUserId, int $id, array $input): array
     {
-        if (! $this->canManage($actorUserId)) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $existing = $this->model->getById($id);
         if (! $existing) {
             return $this->fail('NOT_FOUND', 'User tidak ditemukan.');
@@ -188,6 +166,10 @@ class SettingsUserService
             && $credentialIdentifier !== ''
             && (string) ($existing['username'] ?? '') !== $credentialIdentifier
         ) {
+            // Akun Guru/Pegawai harus selalu memakai identifier Master sebagai
+            // username sekaligus password default. Bila username legacy/rusak
+            // ditemukan saat Admin mengubah user, sinkronkan keduanya secara
+            // atomik agar invariant kredensial tidak terpecah.
             $data['username'] = $credentialIdentifier;
             $data['password'] = password_hash($credentialIdentifier, PASSWORD_DEFAULT);
             $credentialSynchronized = true;
@@ -229,10 +211,6 @@ class SettingsUserService
 
     public function resetPassword(int $actorUserId, int $id, array $input): array
     {
-        if (! $this->canManage($actorUserId)) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         $existing = $this->model->getById($id);
         if (! $existing) {
             return $this->fail('NOT_FOUND', 'User tidak ditemukan.');
@@ -283,10 +261,6 @@ class SettingsUserService
 
     public function delete(int $actorUserId, int $id): array
     {
-        if (! $this->canManage($actorUserId)) {
-            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola user.');
-        }
-
         if ($id === $actorUserId) {
             return $this->fail('SELF_DELETE', 'Akun yang sedang digunakan tidak dapat dihapus.');
         }
@@ -359,6 +333,9 @@ class SettingsUserService
         $idPegawai = (int) ($input['id_pegawai'] ?? 0) ?: null;
         $idSiswa = (int) ($input['id_siswa'] ?? 0) ?: null;
 
+        // Identitas Guru selalu mempertahankan effective role Guru. Admin tetap
+        // boleh menjadikan role operasional lain sebagai primary; role Guru
+        // otomatis dipertahankan sebagai secondary bila diperlukan.
         if ($idGuru && $primary !== 'guru' && ! in_array('guru', $secondary, true)) {
             $secondary[] = 'guru';
         }
@@ -490,20 +467,6 @@ class SettingsUserService
             return 'Siswa — ' . ($row['nisn'] ? $row['nisn'] . ' — ' : '') . $row['nama_siswa'];
         }
         return 'Tanpa relasi';
-    }
-
-    private function canManage(int $actorUserId): bool
-    {
-        return $actorUserId > 0
-            && $this->authService->resolveScope(
-                'settings_user.manage',
-                $actorUserId
-            ) === 'SEMUA';
-    }
-
-    private function currentUserId(): int
-    {
-        return (int) (session()->get('user_id') ?? 0);
     }
 
     private function log(int $actorUserId, string $aksi, string $keterangan): void

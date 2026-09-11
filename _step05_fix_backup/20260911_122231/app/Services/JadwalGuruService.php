@@ -17,7 +17,6 @@ use Throwable;
  * STEP 05 consistency:
  * - Service tetap authorization boundary.
  * - Wali Kelas adalah context dinamis, bukan role.
- * - scope DIRI_SENDIRI dan KELAS_DIAMPU digabung sebagai UNION data.
  * - scope KELAS_DIAMPU melihat jadwal kelas Wali aktif.
  * - identitas import Guru menerima NIP (18 digit) atau NIK (16 digit).
  * - header lama NIP_GURU tetap diterima untuk kompatibilitas.
@@ -84,202 +83,160 @@ class JadwalGuruService
      * - seluruh Guru/Kelas/Tahun.
      *
      * DIRI_SENDIRI:
-     * - identitas Guru actor dan kelas/tahun dari jadwal dirinya.
+     * - hanya identitas Guru actor dan kelas yang mempunyai jadwal Guru tersebut.
      *
      * KELAS_DIAMPU:
-     * - kelas Wali aktif dan Guru/Tahun yang muncul pada jadwal kelas tersebut.
-     *
-     * Kombinasi DIRI_SENDIRI + KELAS_DIAMPU:
-     * - UNION kedua konteks. Hak Wali tidak menghapus hak jadwal diri sendiri.
+     * - hanya kelas Wali aktif dan Guru yang muncul pada jadwal kelas tersebut.
      */
     public function getOptions(
         int $userId,
         ?int $filterGuru = null
     ): array {
-        $scopes = $this->resolveViewScopes($userId);
+        $scope = $this->resolveViewScope($userId);
+        $idGuruUser = $this->getIdGuruUser($userId);
+        $idTahunAktif = $this->getIdTahunAktif();
+        $kelasDiampu = [];
 
-        if ($scopes === []) {
-            return $this->emptyOptions('');
+        if ($scope === 'KELAS_DIAMPU') {
+            if ($idGuruUser <= 0 || $idTahunAktif <= 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Opsi jadwal berhasil dimuat.',
+                    'guru' => [],
+                    'kelas' => [],
+                    'tahun' => [],
+                    'scope' => $scope,
+                ];
+            }
+
+            $kelasDiampu = $this->authService->getKelasDiampu(
+                $idGuruUser,
+                $idTahunAktif
+            );
+
+            if ($kelasDiampu === []) {
+                return [
+                    'success' => true,
+                    'message' => 'Opsi jadwal berhasil dimuat.',
+                    'guru' => [],
+                    'kelas' => [],
+                    'tahun' => [],
+                    'scope' => $scope,
+                ];
+            }
         }
 
-        if (in_array('SEMUA', $scopes, true)) {
-            $guru = $this->db
-                ->table('guru')
-                ->select('id, nip, nik, nama')
-                ->where('deleted_at', null)
-                ->orderBy('nama', 'ASC')
+        $guruBuilder = $this->db
+            ->table('guru g')
+            ->distinct()
+            ->select('g.id, g.nip, g.nik, g.nama')
+            ->where('g.deleted_at', null);
+
+        if ($scope === 'DIRI_SENDIRI') {
+            if ($idGuruUser <= 0) {
+                $guru = [];
+            } else {
+                $guru = $guruBuilder
+                    ->where('g.id', $idGuruUser)
+                    ->orderBy('g.nama', 'ASC')
+                    ->get()
+                    ->getResultArray();
+            }
+        } elseif ($scope === 'KELAS_DIAMPU') {
+            $guru = $guruBuilder
+                ->join(
+                    'jadwal_guru jgo',
+                    'jgo.id_guru = g.id',
+                    'inner'
+                )
+                ->whereIn('jgo.id_kelas', $kelasDiampu)
+                ->where('jgo.id_tahun', $idTahunAktif)
+                ->where('jgo.status_jadwal', 'Aktif')
+                ->orderBy('g.nama', 'ASC')
                 ->get()
                 ->getResultArray();
+        } elseif ($scope === 'SEMUA') {
+            $guru = $guruBuilder
+                ->orderBy('g.nama', 'ASC')
+                ->get()
+                ->getResultArray();
+        } else {
+            $guru = [];
+        }
 
-            $kelasBuilder = $this->db
-                ->table('kelas k')
-                ->distinct()
-                ->select(
-                    'k.id, k.nama_kelas, k.tingkat, k.rombel, k.id_tahun, ' .
-                    'ta.nama_tahun, ta.semester'
-                )
-                ->join('tahun_ajaran ta', 'ta.id = k.id_tahun')
-                ->where('k.deleted_at', null)
-                ->where('ta.deleted_at', null);
+        $kelasBuilder = $this->db
+            ->table('kelas k')
+            ->distinct()
+            ->select(
+                'k.id, k.nama_kelas, k.tingkat, k.rombel, k.id_tahun, ' .
+                'ta.nama_tahun, ta.semester'
+            )
+            ->join('tahun_ajaran ta', 'ta.id = k.id_tahun')
+            ->where('k.deleted_at', null)
+            ->where('ta.deleted_at', null);
 
-            if ($filterGuru !== null && $filterGuru > 0) {
+        $idGuruKelas = $filterGuru ?: null;
+
+        if ($scope === 'DIRI_SENDIRI') {
+            $idGuruKelas = $idGuruUser > 0
+                ? $idGuruUser
+                : -1;
+        } elseif ($scope === 'KELAS_DIAMPU') {
+            $kelasBuilder
+                ->where('k.id_tahun', $idTahunAktif)
+                ->whereIn('k.id', $kelasDiampu);
+
+            if ($idGuruKelas !== null) {
                 $kelasBuilder
                     ->join(
                         'jadwal_guru jgk',
                         'jgk.id_kelas = k.id AND jgk.id_tahun = k.id_tahun'
                     )
-                    ->where('jgk.id_guru', $filterGuru);
-            }
-
-            $kelas = $kelasBuilder
-                ->orderBy('ta.nama_tahun', 'DESC')
-                ->orderBy('k.tingkat', 'ASC')
-                ->orderBy('k.rombel', 'ASC')
-                ->get()
-                ->getResultArray();
-
-            $tahun = $this->db
-                ->table('tahun_ajaran')
-                ->select('id, nama_tahun, semester, status_aktif')
-                ->where('deleted_at', null)
-                ->orderBy('nama_tahun', 'DESC')
-                ->orderBy(
-                    "FIELD(semester,'Ganjil','Genap')",
-                    '',
-                    false
-                )
-                ->get()
-                ->getResultArray();
-
-            return [
-                'success' => true,
-                'message' => 'Opsi jadwal berhasil dimuat.',
-                'guru' => $guru,
-                'kelas' => $kelas,
-                'tahun' => $tahun,
-                'scope' => 'SEMUA',
-            ];
-        }
-
-        $idGuruUser = $this->getIdGuruUser($userId);
-
-        if ($idGuruUser <= 0) {
-            return $this->emptyOptions(implode('+', $scopes));
-        }
-
-        $idTahunAktif = $this->getIdTahunAktif();
-        $allowSelf = in_array('DIRI_SENDIRI', $scopes, true);
-        $allowWali = in_array('KELAS_DIAMPU', $scopes, true);
-        $kelasDiampu = [];
-
-        if ($allowWali && $idTahunAktif > 0) {
-            $kelasDiampu = $this->authService->getKelasDiampu(
-                $idGuruUser,
-                $idTahunAktif
-            );
-        }
-
-        $scheduleBuilder = $this->db
-            ->table('jadwal_guru jgo')
-            ->distinct()
-            ->select('jgo.id_guru, jgo.id_kelas, jgo.id_tahun');
-
-        if (! $this->applyViewScope($scheduleBuilder, $userId, 'jgo')) {
-            return $this->emptyOptions(implode('+', $scopes));
-        }
-
-        $scheduleRows = $scheduleBuilder
-            ->get()
-            ->getResultArray();
-
-        $guruIds = [];
-        $kelasIds = [];
-        $tahunIds = [];
-
-        if ($allowSelf) {
-            $guruIds[$idGuruUser] = $idGuruUser;
-        }
-
-        foreach ($scheduleRows as $row) {
-            $rowGuru = (int) ($row['id_guru'] ?? 0);
-            $rowKelas = (int) ($row['id_kelas'] ?? 0);
-            $rowTahun = (int) ($row['id_tahun'] ?? 0);
-
-            if ($rowGuru > 0) {
-                $guruIds[$rowGuru] = $rowGuru;
-            }
-
-            if (
-                $rowKelas > 0
-                && (
-                    $filterGuru === null
-                    || $filterGuru <= 0
-                    || $rowGuru === $filterGuru
-                )
-            ) {
-                $kelasIds[$rowKelas] = $rowKelas;
-            }
-
-            if ($rowTahun > 0) {
-                $tahunIds[$rowTahun] = $rowTahun;
+                    ->where('jgk.id_guru', $idGuruKelas)
+                    ->where('jgk.status_jadwal', 'Aktif');
             }
         }
 
         if (
-            $allowWali
-            && $idTahunAktif > 0
-            && ($filterGuru === null || $filterGuru <= 0)
+            $scope !== 'KELAS_DIAMPU'
+            && $idGuruKelas !== null
         ) {
-            foreach ($kelasDiampu as $idKelas) {
-                $kelasIds[(int) $idKelas] = (int) $idKelas;
-            }
-        }
-
-        if ($allowWali && $idTahunAktif > 0 && $kelasDiampu !== []) {
-            $tahunIds[$idTahunAktif] = $idTahunAktif;
-        }
-
-        $guru = [];
-
-        if ($guruIds !== []) {
-            $guru = $this->db
-                ->table('guru')
-                ->select('id, nip, nik, nama')
-                ->where('deleted_at', null)
-                ->whereIn('id', array_values($guruIds))
-                ->orderBy('nama', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
-
-        $kelas = [];
-
-        if ($kelasIds !== []) {
-            $kelas = $this->db
-                ->table('kelas k')
-                ->select(
-                    'k.id, k.nama_kelas, k.tingkat, k.rombel, k.id_tahun, ' .
-                    'ta.nama_tahun, ta.semester'
+            $kelasBuilder
+                ->join(
+                    'jadwal_guru jgk',
+                    'jgk.id_kelas = k.id AND jgk.id_tahun = k.id_tahun'
                 )
-                ->join('tahun_ajaran ta', 'ta.id = k.id_tahun')
-                ->where('k.deleted_at', null)
-                ->where('ta.deleted_at', null)
-                ->whereIn('k.id', array_values($kelasIds))
+                ->where('jgk.id_guru', $idGuruKelas);
+        }
+
+        $kelas = in_array(
+            $scope,
+            ['SEMUA', 'DIRI_SENDIRI', 'KELAS_DIAMPU'],
+            true
+        )
+            ? $kelasBuilder
                 ->orderBy('ta.nama_tahun', 'DESC')
                 ->orderBy('k.tingkat', 'ASC')
                 ->orderBy('k.rombel', 'ASC')
                 ->get()
-                ->getResultArray();
+                ->getResultArray()
+            : [];
+
+        $tahunBuilder = $this->db
+            ->table('tahun_ajaran')
+            ->select('id, nama_tahun, semester, status_aktif')
+            ->where('deleted_at', null);
+
+        if ($scope === 'KELAS_DIAMPU') {
+            $tahunBuilder->where('id', $idTahunAktif);
         }
 
-        $tahun = [];
-
-        if ($tahunIds !== []) {
-            $tahun = $this->db
-                ->table('tahun_ajaran')
-                ->select('id, nama_tahun, semester, status_aktif')
-                ->where('deleted_at', null)
-                ->whereIn('id', array_values($tahunIds))
+        $tahun = in_array(
+            $scope,
+            ['SEMUA', 'DIRI_SENDIRI', 'KELAS_DIAMPU'],
+            true
+        )
+            ? $tahunBuilder
                 ->orderBy('nama_tahun', 'DESC')
                 ->orderBy(
                     "FIELD(semester,'Ganjil','Genap')",
@@ -287,8 +244,8 @@ class JadwalGuruService
                     false
                 )
                 ->get()
-                ->getResultArray();
-        }
+                ->getResultArray()
+            : [];
 
         return [
             'success' => true,
@@ -296,7 +253,7 @@ class JadwalGuruService
             'guru' => $guru,
             'kelas' => $kelas,
             'tahun' => $tahun,
-            'scope' => implode('+', $scopes),
+            'scope' => $scope,
         ];
     }
 
@@ -796,82 +753,55 @@ class JadwalGuruService
         ];
     }
 
-    /**
-     * Terapkan data-level authorization Jadwal.
-     *
-     * DIRI_SENDIRI dan KELAS_DIAMPU harus menjadi UNION:
-     *   jadwal actor sendiri
-     *   OR
-     *   jadwal kelas Wali pada tahun aktif.
-     */
     protected function applyViewScope(
         BaseBuilder $builder,
-        int $userId,
-        string $alias = 'jg'
+        int $userId
     ): bool {
-        $scopes = $this->resolveViewScopes($userId);
+        $scope = $this->resolveViewScope($userId);
 
-        if (in_array('SEMUA', $scopes, true)) {
+        if ($scope === 'SEMUA') {
             return true;
         }
 
         $idGuru = $this->getIdGuruUser($userId);
 
-        if ($idGuru <= 0) {
-            return false;
+        if ($scope === 'DIRI_SENDIRI') {
+            if ($idGuru <= 0) {
+                return false;
+            }
+
+            $builder->where('jg.id_guru', $idGuru);
+
+            return true;
         }
 
-        $allowSelf = in_array('DIRI_SENDIRI', $scopes, true);
-        $allowWali = in_array('KELAS_DIAMPU', $scopes, true);
+        if ($scope === 'KELAS_DIAMPU') {
+            $idTahun = $this->getIdTahunAktif();
 
-        $idTahun = $allowWali
-            ? $this->getIdTahunAktif()
-            : 0;
+            if ($idGuru <= 0 || $idTahun <= 0) {
+                return false;
+            }
 
-        $kelas = (
-            $allowWali
-            && $idTahun > 0
-        )
-            ? $this->authService->getKelasDiampu(
+            $kelas = $this->authService->getKelasDiampu(
                 $idGuru,
                 $idTahun
-            )
-            : [];
+            );
 
-        if (! $allowSelf && $kelas === []) {
-            return false;
-        }
+            if ($kelas === []) {
+                return false;
+            }
 
-        if ($allowSelf && $kelas !== []) {
             $builder
-                ->groupStart()
-                    ->where($alias . '.id_guru', $idGuru)
-                    ->orGroupStart()
-                        ->where($alias . '.id_tahun', $idTahun)
-                        ->whereIn($alias . '.id_kelas', $kelas)
-                    ->groupEnd()
-                ->groupEnd();
+                ->where('jg.id_tahun', $idTahun)
+                ->whereIn('jg.id_kelas', $kelas);
 
             return true;
         }
 
-        if ($allowSelf) {
-            $builder->where($alias . '.id_guru', $idGuru);
-
-            return true;
-        }
-
-        $builder
-            ->where($alias . '.id_tahun', $idTahun)
-            ->whereIn($alias . '.id_kelas', $kelas);
-
-        return true;
+        return false;
     }
 
-    /**
-     * @return string[]
-     */
-    protected function resolveViewScopes(int $userId): array
+    protected function resolveViewScope(int $userId): string
     {
         if (
             $this->authService->resolveScope(
@@ -879,7 +809,7 @@ class JadwalGuruService
                 $userId
             ) === 'SEMUA'
         ) {
-            return ['SEMUA'];
+            return 'SEMUA';
         }
 
         if (
@@ -888,29 +818,13 @@ class JadwalGuruService
                 $userId
             ) === 'SEMUA'
         ) {
-            return ['SEMUA'];
+            return 'SEMUA';
         }
 
-        $raw = $this->authService->getPermissionScopes(
+        return $this->authService->resolveScope(
             'jadwal_guru.view',
             $userId
         );
-
-        $scopes = [];
-
-        foreach ($raw as $scope) {
-            if (
-                in_array(
-                    $scope,
-                    ['DIRI_SENDIRI', 'KELAS_DIAMPU'],
-                    true
-                )
-            ) {
-                $scopes[$scope] = $scope;
-            }
-        }
-
-        return array_values($scopes);
     }
 
     protected function getIdGuruUser(int $userId): int
@@ -1010,18 +924,6 @@ class JadwalGuruService
             ->getRowArray();
 
         return (int) ($row['id'] ?? 0);
-    }
-
-    private function emptyOptions(string $scope): array
-    {
-        return [
-            'success' => true,
-            'message' => 'Opsi jadwal berhasil dimuat.',
-            'guru' => [],
-            'kelas' => [],
-            'tahun' => [],
-            'scope' => $scope,
-        ];
     }
 
     private function validImportHeader(array $header): bool

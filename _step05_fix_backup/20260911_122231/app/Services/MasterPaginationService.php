@@ -13,12 +13,6 @@ use Config\Database;
  * - one response contract: rows, total, limit, offset, page, total_pages;
  * - preserve existing business services for create/update/delete/import/export;
  * - preserve RBAC/data scope for Master Siswa and Jadwal Guru.
- *
- * STEP 05 FIX:
- * - read/recycle Guru/Pegawai ikut dijaga pada Service;
- * - recycle Siswa hanya untuk master_siswa.manage;
- * - scope multi-role DIRI_SENDIRI + KELAS_DIAMPU digabung sebagai UNION,
- *   bukan dipilih salah satu.
  */
 class MasterPaginationService
 {
@@ -57,22 +51,6 @@ class MasterPaginationService
         int $offset,
         bool $deletedOnly = false
     ): array {
-        $actorUserId = $this->currentUserId();
-
-        if (
-            $actorUserId <= 0
-            || (
-                $deletedOnly
-                    ? ! $this->hasScope('master_guru.manage', $actorUserId, 'SEMUA')
-                    : ! $this->hasAnyPermission(
-                        ['master_guru.manage', 'master_guru.view'],
-                        $actorUserId
-                    )
-            )
-        ) {
-            return $this->emptyPage($limit);
-        }
-
         $builder = $this->db
             ->table('guru g')
             ->select(
@@ -116,22 +94,6 @@ class MasterPaginationService
         int $offset,
         bool $deletedOnly = false
     ): array {
-        $actorUserId = $this->currentUserId();
-
-        if (
-            $actorUserId <= 0
-            || (
-                $deletedOnly
-                    ? ! $this->hasScope('master_pegawai.manage', $actorUserId, 'SEMUA')
-                    : ! $this->hasAnyPermission(
-                        ['master_pegawai.manage', 'master_pegawai.view'],
-                        $actorUserId
-                    )
-            )
-        ) {
-            return $this->emptyPage($limit);
-        }
-
         $builder = $this->db
             ->table('pegawai p')
             ->select(
@@ -176,16 +138,6 @@ class MasterPaginationService
         int $offset,
         bool $deletedOnly = false
     ): array {
-        if (
-            $userId <= 0
-            || (
-                $deletedOnly
-                && ! $this->hasScope('master_siswa.manage', $userId, 'SEMUA')
-            )
-        ) {
-            return $this->emptyPage($limit);
-        }
-
         $idTahunAktif = $this->getIdTahunAktif();
 
         $builder = $this->db
@@ -384,74 +336,58 @@ class MasterPaginationService
         }
     }
 
-    /**
-     * Master Siswa dapat mempunyai beberapa scope sekaligus melalui role UNION.
-     * Terapkan sebagai OR-union, bukan scalar winner.
-     */
     private function applySiswaViewScope(
         $builder,
         int $userId,
         ?int $idTahunAktif
     ): bool {
-        $scopes = $this->authService->getPermissionScopes(
+        $scope = $this->authService->resolveScope(
             'master_siswa.view',
             $userId
         );
 
-        if (in_array('SEMUA', $scopes, true)) {
+        if ($scope === 'SEMUA') {
             return true;
         }
 
-        $allowWali = in_array('KELAS_DIAMPU', $scopes, true);
-        $allowSelf = in_array('DIRI_SENDIRI', $scopes, true);
+        if ($scope === 'KELAS_DIAMPU') {
+            if ($idTahunAktif === null) {
+                return false;
+            }
 
-        $kelas = [];
-        $idSiswa = 0;
-
-        if ($allowWali && $idTahunAktif !== null) {
             $idGuru = $this->getIdentityId($userId, 'id_guru');
 
-            if ($idGuru > 0) {
-                $kelas = $this->authService->getKelasDiampu(
-                    $idGuru,
-                    $idTahunAktif
-                );
+            if ($idGuru <= 0) {
+                return false;
             }
-        }
 
-        if ($allowSelf) {
-            $idSiswa = $this->getIdentityId($userId, 'id_siswa');
-        }
+            $kelas = $this->authService->getKelasDiampu(
+                $idGuru,
+                $idTahunAktif
+            );
 
-        if ($kelas !== [] && $idSiswa > 0) {
-            $builder
-                ->groupStart()
-                    ->whereIn('ak.id_kelas', $kelas)
-                    ->orWhere('s.id', $idSiswa)
-                ->groupEnd();
+            if ($kelas === []) {
+                return false;
+            }
 
-            return true;
-        }
-
-        if ($kelas !== []) {
             $builder->whereIn('ak.id_kelas', $kelas);
-
             return true;
         }
 
-        if ($idSiswa > 0) {
-            $builder->where('s.id', $idSiswa);
+        if ($scope === 'DIRI_SENDIRI') {
+            $idSiswa = $this->getIdentityId($userId, 'id_siswa');
 
+            if ($idSiswa <= 0) {
+                return false;
+            }
+
+            $builder->where('s.id', $idSiswa);
             return true;
         }
 
         return false;
     }
 
-    /**
-     * Jadwal Guru multi-role:
-     * DIRI_SENDIRI OR (tahun aktif AND kelas Wali aktif).
-     */
     private function applyJadwalViewScope(
         $builder,
         int $userId
@@ -474,65 +410,49 @@ class MasterPaginationService
             return true;
         }
 
-        $scopes = $this->authService->getPermissionScopes(
+        $scope = $this->authService->resolveScope(
             'jadwal_guru.view',
             $userId
         );
-
-        $allowSelf = in_array('DIRI_SENDIRI', $scopes, true);
-        $allowWali = in_array('KELAS_DIAMPU', $scopes, true);
 
         $idGuru = $this->getIdentityId(
             $userId,
             'id_guru'
         );
 
-        if ($idGuru <= 0) {
-            return false;
+        if ($scope === 'DIRI_SENDIRI') {
+            if ($idGuru <= 0) {
+                return false;
+            }
+
+            $builder->where('jg.id_guru', $idGuru);
+            return true;
         }
 
-        $idTahun = $allowWali
-            ? $this->getIdTahunAktif()
-            : null;
+        if ($scope === 'KELAS_DIAMPU') {
+            $idTahun = $this->getIdTahunAktif();
 
-        $kelas = (
-            $allowWali
-            && $idTahun !== null
-        )
-            ? $this->authService->getKelasDiampu(
+            if ($idGuru <= 0 || $idTahun === null) {
+                return false;
+            }
+
+            $kelas = $this->authService->getKelasDiampu(
                 $idGuru,
                 $idTahun
-            )
-            : [];
+            );
 
-        if (! $allowSelf && $kelas === []) {
-            return false;
-        }
+            if ($kelas === []) {
+                return false;
+            }
 
-        if ($allowSelf && $kelas !== []) {
             $builder
-                ->groupStart()
-                    ->where('jg.id_guru', $idGuru)
-                    ->orGroupStart()
-                        ->where('jg.id_tahun', $idTahun)
-                        ->whereIn('jg.id_kelas', $kelas)
-                    ->groupEnd()
-                ->groupEnd();
+                ->where('jg.id_tahun', $idTahun)
+                ->whereIn('jg.id_kelas', $kelas);
 
             return true;
         }
 
-        if ($allowSelf) {
-            $builder->where('jg.id_guru', $idGuru);
-
-            return true;
-        }
-
-        $builder
-            ->where('jg.id_tahun', $idTahun)
-            ->whereIn('jg.id_kelas', $kelas);
-
-        return true;
+        return false;
     }
 
     private function executePage(
@@ -623,42 +543,10 @@ class MasterPaginationService
             ->table('users')
             ->select($column)
             ->where('id', $userId)
-            ->where('status_aktif', 1)
             ->get()
             ->getRowArray();
 
         return isset($row[$column]) ? (int) $row[$column] : 0;
-    }
-
-    private function currentUserId(): int
-    {
-        return (int) (session()->get('user_id') ?? 0);
-    }
-
-    private function hasAnyPermission(array $permissionKeys, int $userId): bool
-    {
-        foreach ($permissionKeys as $permissionKey) {
-            if ($this->authService->hasPermission($permissionKey, $userId)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function hasScope(
-        string $permissionKey,
-        int $userId,
-        string $scope
-    ): bool {
-        return in_array(
-            $scope,
-            $this->authService->getPermissionScopes(
-                $permissionKey,
-                $userId
-            ),
-            true
-        );
     }
 
     private function loginIdentifier(array $row): string

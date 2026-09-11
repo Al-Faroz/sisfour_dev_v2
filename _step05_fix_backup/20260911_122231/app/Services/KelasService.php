@@ -12,12 +12,19 @@ use Throwable;
 /**
  * KelasService
  *
- * Business logic Master Kelas dan workflow Manajemen Siswa.
+ * Business logic Master Kelas.
  *
- * STEP 05 FIX:
- * - Master Kelas entry point dijaga master_kelas.manage di Service.
- * - Workflow kenaikan/mutasi/kelulusan dijaga master_siswa.manage di Service.
- * - Helper murni tetap dapat dipakai antar-Service tanpa hardcoded role.
+ * Acuan:
+ * - docs/04_MASTER_DATA §2, §3.3, §7.1
+ *
+ * Menangani:
+ * - CRUD kelas + auto-generate nama_kelas;
+ * - filter kelas;
+ * - anggota kelas;
+ * - kenaikan kelas checklist;
+ * - kelulusan;
+ * - soft delete/recycle bin/restore/force delete;
+ * - activity log.
  */
 class KelasService
 {
@@ -25,7 +32,6 @@ class KelasService
     protected SiswaModel $siswaModel;
     protected AnggotaKelasModel $anggotaKelasModel;
     protected RiwayatSiswaModel $riwayatSiswaModel;
-    protected AuthService $authService;
     protected $db;
 
     public function __construct()
@@ -34,7 +40,6 @@ class KelasService
         $this->siswaModel = new SiswaModel();
         $this->anggotaKelasModel = new AnggotaKelasModel();
         $this->riwayatSiswaModel = new RiwayatSiswaModel();
-        $this->authService = new AuthService();
         $this->db = Database::connect();
     }
 
@@ -45,10 +50,6 @@ class KelasService
 
     public function getList(array $filter = [], bool $deletedOnly = false): array
     {
-        if (! $this->canManageKelas()) {
-            return [];
-        }
-
         $builder = $this->db
             ->table('kelas k')
             ->select(
@@ -90,10 +91,6 @@ class KelasService
 
     public function getTahunOptions(): array
     {
-        if (! $this->canManageKelas()) {
-            return [];
-        }
-
         return $this->db
             ->table('tahun_ajaran')
             ->select('id, nama_tahun, semester, status_aktif')
@@ -106,10 +103,6 @@ class KelasService
 
     public function create(array $data): array
     {
-        if (! $this->canManageKelas()) {
-            return $this->forbiddenKelas();
-        }
-
         $payload = $this->normalizeKelasPayload($data);
 
         $precheck = $this->validateKelasPayload($payload);
@@ -158,10 +151,6 @@ class KelasService
 
     public function update(int $id, array $data): array
     {
-        if (! $this->canManageKelas()) {
-            return $this->forbiddenKelas();
-        }
-
         $kelas = $this->kelasModel->find($id);
 
         if ($kelas === null) {
@@ -191,6 +180,10 @@ class KelasService
             ];
         }
 
+        /*
+         * Perubahan tahun ajaran pada kelas yang sudah mempunyai anggota
+         * berisiko memutus konsistensi anggota_kelas/riwayat_siswa.
+         */
         if (
             (int) $kelas['id_tahun'] !== $payload['id_tahun']
             && $this->anggotaKelasModel
@@ -229,10 +222,6 @@ class KelasService
 
     public function delete(int $id): array
     {
-        if (! $this->canManageKelas()) {
-            return $this->forbiddenKelas();
-        }
-
         $kelas = $this->kelasModel->find($id);
 
         if ($kelas === null) {
@@ -277,10 +266,6 @@ class KelasService
 
     public function restore(int $id): array
     {
-        if (! $this->canManageKelas()) {
-            return $this->forbiddenKelas();
-        }
-
         $kelas = $this->kelasModel->withDeleted()->find($id);
 
         if ($kelas === null || empty($kelas['deleted_at'])) {
@@ -323,10 +308,6 @@ class KelasService
 
     public function forceDelete(int $id): array
     {
-        if (! $this->canManageKelas()) {
-            return $this->forbiddenKelas();
-        }
-
         $kelas = $this->kelasModel->withDeleted()->find($id);
 
         if ($kelas === null || empty($kelas['deleted_at'])) {
@@ -376,12 +357,15 @@ class KelasService
         }
     }
 
+    /**
+     * Data untuk modal Kelola Anggota.
+     *
+     * Daftar kandidat hanya siswa Aktif yang:
+     * - belum memiliki kelas pada tahun yang sama; atau
+     * - memang sudah menjadi anggota kelas ini.
+     */
     public function getAnggotaData(int $idKelas): array
     {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         $kelas = $this->kelasModel->find($idKelas);
 
         if ($kelas === null) {
@@ -424,10 +408,6 @@ class KelasService
 
     public function addAnggota(int $idKelas, int $idSiswa): array
     {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         $kelas = $this->kelasModel->find($idKelas);
         $siswa = $this->siswaModel->find($idSiswa);
 
@@ -530,12 +510,12 @@ class KelasService
         }
     }
 
+    /**
+     * Mengeluarkan siswa dari keanggotaan kelas untuk koreksi administratif.
+     * Status siswa tetap Aktif, tetapi riwayat Aktif pada tahun tersebut ditutup.
+     */
     public function removeAnggota(int $idKelas, int $idSiswa): array
     {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         $kelas = $this->kelasModel->find($idKelas);
 
         if ($kelas === null) {
@@ -603,12 +583,11 @@ class KelasService
         }
     }
 
+    /**
+     * Data checklist untuk kenaikan/kelulusan.
+     */
     public function getProcessData(int $idKelas): array
     {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         $kelas = $this->kelasModel->find($idKelas);
 
         if ($kelas === null) {
@@ -664,10 +643,6 @@ class KelasService
         int $idTahunBaru,
         array $daftarSiswaTerpilih
     ): array {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         if ($daftarSiswaTerpilih === []) {
             return [
                 'success' => false,
@@ -805,10 +780,6 @@ class KelasService
         int $idKelas,
         array $daftarSiswaTerpilih
     ): array {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         if ($daftarSiswaTerpilih === []) {
             return [
                 'success' => false,
@@ -923,15 +894,14 @@ class KelasService
         }
     }
 
+    /**
+     * Tetap dipakai oleh Master Siswa untuk Pindah/Keluar.
+     */
     public function mutasiSiswa(
         int $idSiswa,
         string $statusBaru,
         string $keterangan
     ): array {
-        if (! $this->canManageSiswa()) {
-            return $this->forbiddenSiswa();
-        }
-
         if (!in_array($statusBaru, ['Pindah', 'Keluar'], true)) {
             return [
                 'success' => false,
@@ -1087,6 +1057,9 @@ class KelasService
         return null;
     }
 
+    /**
+     * Dependency aktif yang membuat soft delete berbahaya.
+     */
     protected function getActiveDependencies(int $idKelas): array
     {
         $dependencies = [];
@@ -1132,45 +1105,6 @@ class KelasService
             ->update([
                 'status_aktif' => 'Nonaktif',
             ]);
-    }
-
-    private function canManageKelas(): bool
-    {
-        return $this->hasAllScope('master_kelas.manage');
-    }
-
-    private function canManageSiswa(): bool
-    {
-        return $this->hasAllScope('master_siswa.manage');
-    }
-
-    private function hasAllScope(string $permissionKey): bool
-    {
-        $userId = (int) (session()->get('user_id') ?? 0);
-
-        return $userId > 0
-            && $this->authService->resolveScope(
-                $permissionKey,
-                $userId
-            ) === 'SEMUA';
-    }
-
-    private function forbiddenKelas(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki hak mengelola Master Kelas.',
-        ];
-    }
-
-    private function forbiddenSiswa(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki hak menjalankan Manajemen Siswa.',
-        ];
     }
 
     protected function logActivity(

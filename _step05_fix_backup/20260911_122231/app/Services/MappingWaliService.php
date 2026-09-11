@@ -11,6 +11,8 @@ use Throwable;
  *
  * Business logic Mapping Wali Kelas.
  *
+ * Acuan docs/04_MASTER_DATA §4 dan §7.3.
+ *
  * Aturan utama:
  * - Wali Kelas bukan role.
  * - 1 guru maksimal 1 kelas aktif per tahun.
@@ -18,7 +20,6 @@ use Throwable;
  * - assign guru yang pernah menjadi wali pada tahun yang sama harus
  *   RESTORE row lama, bukan INSERT baru.
  * - dropdown guru/kelas hanya menampilkan yang belum dipakai aktif.
- * - Service adalah authoritative authorization boundary.
  */
 class MappingWaliService
 {
@@ -34,24 +35,16 @@ class MappingWaliService
     }
 
     /**
-     * Daftar mapping sesuai scope.
+     * Daftar mapping aktif sesuai scope.
      *
-     * Recycle Bin bersifat administratif dan hanya boleh dibaca actor yang
-     * mempunyai mapping_wali.manage = SEMUA.
+     * Admin/Operator/Pimpinan: semua sesuai permission.
+     * Guru: hanya mapping dirinya sendiri.
      */
     public function getList(
         array $filter,
         int $userId,
         bool $deletedOnly = false
     ): array {
-        if ($userId <= 0) {
-            return [];
-        }
-
-        if ($deletedOnly && ! $this->canManage($userId)) {
-            return [];
-        }
-
         $builder = $this->db
             ->table('mapping_wali_kelas mw')
             ->select(
@@ -83,7 +76,7 @@ class MappingWaliService
         } else {
             $builder->where('mw.deleted_at', null);
 
-            if (! $this->applyViewScope($builder, $userId)) {
+            if (!$this->applyViewScope($builder, $userId)) {
                 return [];
             }
         }
@@ -101,7 +94,6 @@ class MappingWaliService
                 ->groupStart()
                 ->like('g.nama', $guru)
                 ->orLike('g.nip', $guru)
-                ->orLike('g.nik', $guru)
                 ->groupEnd();
         }
 
@@ -124,50 +116,17 @@ class MappingWaliService
             ->getResultArray();
     }
 
-    public function getTahunOptions(int $userId): array
+    public function getTahunOptions(): array
     {
-        $builder = $this->db
-            ->table('tahun_ajaran ta')
-            ->distinct()
+        return $this->db
+            ->table('tahun_ajaran')
             ->select(
-                'ta.id, ta.nama_tahun, ta.semester, ta.status_aktif'
+                'id, nama_tahun, semester, status_aktif'
             )
-            ->where('ta.deleted_at', null);
-
-        if ($this->canViewAll($userId)) {
-            return $builder
-                ->orderBy('ta.nama_tahun', 'DESC')
-                ->orderBy(
-                    "FIELD(ta.semester, 'Ganjil', 'Genap')",
-                    '',
-                    false
-                )
-                ->get()
-                ->getResultArray();
-        }
-
-        $idGuru = $this->getIdGuruUser($userId);
-
-        if (
-            $idGuru <= 0
-            || $this->authService->resolveScope(
-                'mapping_wali.view',
-                $userId
-            ) !== 'DIRI_SENDIRI'
-        ) {
-            return [];
-        }
-
-        return $builder
-            ->join(
-                'mapping_wali_kelas mw',
-                'mw.id_tahun = ta.id'
-            )
-            ->where('mw.id_guru', $idGuru)
-            ->where('mw.deleted_at', null)
-            ->orderBy('ta.nama_tahun', 'DESC')
+            ->where('deleted_at', null)
+            ->orderBy('nama_tahun', 'DESC')
             ->orderBy(
-                "FIELD(ta.semester, 'Ganjil', 'Genap')",
+                "FIELD(semester, 'Ganjil', 'Genap')",
                 '',
                 false
             )
@@ -175,11 +134,10 @@ class MappingWaliService
             ->getResultArray();
     }
 
-    public function getKelasFilterOptions(int $userId): array
+    public function getKelasFilterOptions(): array
     {
-        $builder = $this->db
+        return $this->db
             ->table('kelas k')
-            ->distinct()
             ->select(
                 'k.id, k.nama_kelas, k.id_tahun, ' .
                 'ta.nama_tahun, ta.semester'
@@ -189,36 +147,7 @@ class MappingWaliService
                 'ta.id = k.id_tahun'
             )
             ->where('k.deleted_at', null)
-            ->where('ta.deleted_at', null);
-
-        if ($this->canViewAll($userId)) {
-            return $builder
-                ->orderBy('ta.nama_tahun', 'DESC')
-                ->orderBy('k.tingkat', 'ASC')
-                ->orderBy('k.rombel', 'ASC')
-                ->get()
-                ->getResultArray();
-        }
-
-        $idGuru = $this->getIdGuruUser($userId);
-
-        if (
-            $idGuru <= 0
-            || $this->authService->resolveScope(
-                'mapping_wali.view',
-                $userId
-            ) !== 'DIRI_SENDIRI'
-        ) {
-            return [];
-        }
-
-        return $builder
-            ->join(
-                'mapping_wali_kelas mw',
-                'mw.id_kelas = k.id AND mw.id_tahun = k.id_tahun'
-            )
-            ->where('mw.id_guru', $idGuru)
-            ->where('mw.deleted_at', null)
+            ->where('ta.deleted_at', null)
             ->orderBy('ta.nama_tahun', 'DESC')
             ->orderBy('k.tingkat', 'ASC')
             ->orderBy('k.rombel', 'ASC')
@@ -229,16 +158,11 @@ class MappingWaliService
     /**
      * Dropdown assign.
      *
-     * Hanya actor dengan mapping_wali.manage = SEMUA yang boleh meminta opsi.
+     * Guru: hanya guru yang belum menjadi wali aktif pada tahun tersebut.
+     * Kelas: hanya kelas yang belum memiliki wali aktif pada tahun tersebut.
      */
-    public function getAssignOptions(
-        int $idTahun,
-        int $userId
-    ): array {
-        if (! $this->canManage($userId)) {
-            return $this->forbidden();
-        }
-
+    public function getAssignOptions(int $idTahun): array
+    {
         $tahun = $this->db
             ->table('tahun_ajaran')
             ->where('id', $idTahun)
@@ -258,7 +182,7 @@ class MappingWaliService
         $guru = $this->db
             ->table('guru g')
             ->select(
-                'g.id, g.nip, g.nik, g.nama'
+                'g.id, g.nip, g.nama'
             )
             ->join(
                 'mapping_wali_kelas mw',
@@ -302,16 +226,18 @@ class MappingWaliService
         ];
     }
 
+    /**
+     * Assign / reassign Wali Kelas.
+     *
+     * Jika guru mempunyai row histori soft-deleted di tahun yang sama:
+     * UPDATE row tersebut (restore + ganti id_kelas).
+     * Tidak membuat INSERT kedua untuk guru/tahun yang sama.
+     */
     public function assign(
         int $idGuru,
         int $idKelas,
-        int $idTahun,
-        int $userId
+        int $idTahun
     ): array {
-        if (! $this->canManage($userId)) {
-            return $this->forbidden();
-        }
-
         $validation = $this->validateReferences(
             $idGuru,
             $idKelas,
@@ -369,10 +295,10 @@ class MappingWaliService
         try {
             if (
                 $historiGuru !== null
-                && ! empty($historiGuru['deleted_at'])
+                && !empty($historiGuru['deleted_at'])
             ) {
                 if (
-                    ! $this->mappingModel->restoreMapping(
+                    !$this->mappingModel->restoreMapping(
                         (int) $historiGuru['id'],
                         $idKelas
                     )
@@ -411,7 +337,6 @@ class MappingWaliService
             );
 
             $this->logActivity(
-                $userId,
                 $action,
                 'Mapping Wali Kelas',
                 sprintf(
@@ -445,12 +370,11 @@ class MappingWaliService
         }
     }
 
-    public function delete(int $id, int $userId): array
+    /**
+     * Nonaktifkan mapping melalui soft delete.
+     */
+    public function delete(int $id): array
     {
-        if (! $this->canManage($userId)) {
-            return $this->forbidden();
-        }
-
         $mapping = $this->getOneActive($id);
 
         if ($mapping === null) {
@@ -460,7 +384,7 @@ class MappingWaliService
             ];
         }
 
-        if (! $this->mappingModel->delete($id)) {
+        if (!$this->mappingModel->delete($id)) {
             return [
                 'success' => false,
                 'message' => 'Mapping wali kelas gagal dinonaktifkan.',
@@ -468,7 +392,6 @@ class MappingWaliService
         }
 
         $this->logActivity(
-            $userId,
             'NONAKTIFKAN',
             'Mapping Wali Kelas',
             sprintf(
@@ -486,12 +409,14 @@ class MappingWaliService
         ];
     }
 
-    public function restore(int $id, int $userId): array
+    /**
+     * Restore dari Recycle Bin ke kelas historisnya.
+     *
+     * Untuk reassign ke kelas berbeda, gunakan assign(); assign akan
+     * otomatis me-restore row lama milik guru/tahun tersebut.
+     */
+    public function restore(int $id): array
     {
-        if (! $this->canManage($userId)) {
-            return $this->forbidden();
-        }
-
         $mapping = $this->getOneDeleted($id);
 
         if ($mapping === null) {
@@ -567,7 +492,7 @@ class MappingWaliService
         }
 
         if (
-            ! $this->mappingModel->restoreMapping(
+            !$this->mappingModel->restoreMapping(
                 $id,
                 (int) $mapping['id_kelas']
             )
@@ -579,7 +504,6 @@ class MappingWaliService
         }
 
         $this->logActivity(
-            $userId,
             'RESTORE',
             'Mapping Wali Kelas',
             sprintf(
@@ -597,12 +521,8 @@ class MappingWaliService
         ];
     }
 
-    public function forceDelete(int $id, int $userId): array
+    public function forceDelete(int $id): array
     {
-        if (! $this->canManage($userId)) {
-            return $this->forbidden();
-        }
-
         $mapping = $this->getOneDeleted($id);
 
         if ($mapping === null) {
@@ -622,7 +542,7 @@ class MappingWaliService
             )
             ->delete();
 
-        if (! $deleted) {
+        if (!$deleted) {
             return [
                 'success' => false,
                 'message' => 'Histori mapping wali kelas gagal dihapus permanen.',
@@ -630,7 +550,6 @@ class MappingWaliService
         }
 
         $this->logActivity(
-            $userId,
             'FORCE_DELETE',
             'Mapping Wali Kelas',
             sprintf(
@@ -676,18 +595,31 @@ class MappingWaliService
 
     public function canManage(int $userId): bool
     {
-        return $userId > 0
-            && $this->authService->resolveScope(
-                'mapping_wali.manage',
-                $userId
-            ) === 'SEMUA';
+        return $this->authService->resolveScope(
+            'mapping_wali.manage',
+            $userId
+        ) === 'SEMUA';
     }
 
     protected function applyViewScope(
         $builder,
         int $userId
     ): bool {
-        if ($this->canViewAll($userId)) {
+        if (
+            $this->authService->resolveScope(
+                'mapping_wali.manage',
+                $userId
+            ) === 'SEMUA'
+        ) {
+            return true;
+        }
+
+        if (
+            $this->authService->resolveScope(
+                'mapping_wali.view_all',
+                $userId
+            ) === 'SEMUA'
+        ) {
             return true;
         }
 
@@ -695,6 +627,10 @@ class MappingWaliService
             'mapping_wali.view',
             $userId
         );
+
+        if ($scope === 'SEMUA') {
+            return true;
+        }
 
         if ($scope === 'DIRI_SENDIRI') {
             $idGuru = $this->getIdGuruUser(
@@ -714,19 +650,6 @@ class MappingWaliService
         }
 
         return false;
-    }
-
-    private function canViewAll(int $userId): bool
-    {
-        if ($this->canManage($userId)) {
-            return true;
-        }
-
-        return $userId > 0
-            && $this->authService->resolveScope(
-                'mapping_wali.view_all',
-                $userId
-            ) === 'SEMUA';
     }
 
     protected function validateReferences(
@@ -884,7 +807,6 @@ class MappingWaliService
             ->table('users')
             ->select('id_guru')
             ->where('id', $userId)
-            ->where('status_aktif', 1)
             ->get()
             ->getRowArray();
 
@@ -893,26 +815,18 @@ class MappingWaliService
             : 0;
     }
 
-    private function forbidden(): array
-    {
-        return [
-            'success' => false,
-            'code' => 'FORBIDDEN',
-            'message' => 'Anda tidak memiliki hak mengelola Mapping Wali Kelas.',
-        ];
-    }
-
     protected function logActivity(
-        int $idUser,
         string $aksi,
         string $modul,
         string $keterangan
     ): void {
+        $idUser = session()->get('user_id');
+
         $this->db
             ->table('log_activity')
             ->insert([
-                'id_user' => $idUser > 0
-                    ? $idUser
+                'id_user' => $idUser
+                    ? (int) $idUser
                     : null,
                 'aksi' => $aksi,
                 'modul' => $modul,
