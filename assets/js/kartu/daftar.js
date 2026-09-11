@@ -15,17 +15,46 @@
     const canManage =
         app.dataset.canManage === '1';
 
-    let offset = 0;
-    let total = 0;
-    const limit = 50;
+    const body =
+        document.getElementById('kartuBody');
 
-    const body = document.getElementById('kartuBody');
     const checkAll =
         document.getElementById('checkAllKartu');
 
+    if (!body) {
+        return;
+    }
+
+    const state = {
+        limit: 25,
+        offset: 0,
+        total: 0,
+    };
+
+    const pager = window.SisfourPagination?.mount(
+        body,
+        {
+            id: 'kartuDaftarPager',
+            label: 'kartu',
+            onChange: (next) => {
+                state.limit = next.limit;
+                state.offset = next.offset;
+
+                if (checkAll) {
+                    checkAll.checked = false;
+                }
+
+                load();
+            },
+        }
+    );
+
     const esc = (value) => {
-        const div = document.createElement('div');
+        const div =
+            document.createElement('div');
+
         div.textContent = value ?? '';
+
         return div.innerHTML;
     };
 
@@ -43,6 +72,7 @@
 
         box.className =
             `alert alert-${type}`;
+
         box.textContent = message;
     };
 
@@ -56,12 +86,21 @@
         }
     };
 
-    const params = () => {
-        const params = new URLSearchParams({
-            format: 'json',
-            limit: String(limit),
-            offset: String(offset),
-        });
+    const params = (withPaging = true) => {
+        const query =
+            new URLSearchParams();
+
+        if (withPaging) {
+            query.set('format', 'json');
+            query.set(
+                'limit',
+                String(state.limit)
+            );
+            query.set(
+                'offset',
+                String(state.offset)
+            );
+        }
 
         const search =
             document.getElementById(
@@ -79,23 +118,87 @@
             )?.value;
 
         if (search) {
-            params.set('search', search);
+            query.set('search', search);
         }
 
         if (status) {
-            params.set('status', status);
+            query.set('status', status);
         }
 
         if (kelas) {
-            params.set('id_kelas', kelas);
+            query.set('id_kelas', kelas);
         }
 
-        return params;
+        return query;
+    };
+
+    const syncUrl = () => {
+        const query = params(true);
+
+        query.delete('format');
+
+        const encoded =
+            query.toString();
+
+        window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${encoded ? `?${encoded}` : ''}`
+        );
+    };
+
+    const restoreState = () => {
+        const query =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        const limit = Number(
+            query.get('limit') || 25
+        );
+
+        const offset = Number(
+            query.get('offset') || 0
+        );
+
+        state.limit =
+            [25, 50, 100].includes(limit)
+                ? limit
+                : 25;
+
+        state.offset =
+            Number.isFinite(offset)
+            && offset >= 0
+                ? offset
+                : 0;
+
+        const mapping = {
+            search: 'kartuSearch',
+            status: 'kartuStatus',
+            id_kelas: 'kartuKelas',
+        };
+
+        Object.entries(mapping)
+            .forEach(([key, id]) => {
+                const value =
+                    query.get(key);
+
+                const element =
+                    document.getElementById(id);
+
+                if (
+                    value !== null
+                    && element
+                ) {
+                    element.value = value;
+                }
+            });
     };
 
     async function parseJson(response) {
         const data =
-            await response.json().catch(() => ({}));
+            await response.json()
+                .catch(() => ({}));
 
         if (
             !response.ok
@@ -110,19 +213,162 @@
         return data;
     }
 
+    const bindReissue = () => {
+        document
+            .querySelectorAll('.btn-reissue')
+            .forEach((button) => {
+                button.addEventListener(
+                    'click',
+                    async () => {
+                        try {
+                            const response =
+                                await fetch(
+                                    `${base}/kartu/reissue/${button.dataset.id}`,
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            Accept:
+                                                'application/json',
+                                            'X-Requested-With':
+                                                'XMLHttpRequest',
+                                        },
+                                        credentials:
+                                            'same-origin',
+                                    }
+                                );
+
+                            const json =
+                                await parseJson(
+                                    response
+                                );
+
+                            showAlert(
+                                json.message
+                                || 'Reissue selesai.',
+                                'success'
+                            );
+
+                            await load();
+                        } catch (error) {
+                            showAlert(
+                                error.message,
+                                'danger'
+                            );
+                        }
+                    }
+                );
+            });
+    };
+
+    const renderRows = (
+        rows,
+        serverCanManage
+    ) => {
+        body.innerHTML =
+            rows.map((card) => `
+                <tr>
+                    ${
+                        canManage
+                            ? `
+                                <td>
+                                    <input
+                                        class="form-check-input check-kartu"
+                                        type="checkbox"
+                                        value="${Number(card.id)}"
+                                        ${card.status_aktif === 'Aktif' ? '' : 'disabled'}
+                                    >
+                                </td>
+                            `
+                            : ''
+                    }
+                    <td>
+                        <div class="font-monospace small">
+                            ${esc(card.nisn)}
+                        </div>
+                        <strong>${esc(card.nama)}</strong>
+                    </td>
+                    <td>${esc(card.nama_kelas || '-')}</td>
+                    <td>${esc(card.nomor_kartu)}</td>
+                    <td>${esc(card.tanggal_terbit)}</td>
+                    <td>
+                        <span class="badge ${
+                            card.status_aktif === 'Aktif'
+                                ? 'bg-label-success'
+                                : 'bg-label-secondary'
+                        }">
+                            ${esc(card.status_aktif)}
+                        </span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <a
+                            class="btn btn-sm btn-outline-primary"
+                            href="${base}/kartu/preview/${Number(card.id)}"
+                        >
+                            Preview
+                        </a>
+                        <a
+                            class="btn btn-sm btn-outline-secondary"
+                            href="${base}/kartu/download/${Number(card.id)}"
+                        >
+                            PDF
+                        </a>
+                        ${
+                            serverCanManage
+                                ? `
+                                    <button
+                                        class="btn btn-sm btn-outline-warning btn-reissue"
+                                        data-id="${Number(card.id)}"
+                                        type="button"
+                                    >
+                                        Reissue
+                                    </button>
+                                `
+                                : ''
+                        }
+                    </td>
+                </tr>
+            `).join('')
+            || `
+                <tr>
+                    <td
+                        colspan="${canManage ? 7 : 6}"
+                        class="text-center text-muted py-4"
+                    >
+                        Belum ada kartu.
+                    </td>
+                </tr>
+            `;
+
+        bindReissue();
+    };
+
     async function load() {
         hideAlert();
+        pager?.setDisabled(true);
+
+        body.innerHTML = `
+            <tr>
+                <td
+                    colspan="${canManage ? 7 : 6}"
+                    class="text-center py-4"
+                >
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    Memuat kartu...
+                </td>
+            </tr>
+        `;
 
         try {
             const response = await fetch(
-                `${base}/kartu/daftar?${params()}`,
+                `${base}/kartu/daftar?${params(true)}`,
                 {
                     headers: {
                         Accept: 'application/json',
                         'X-Requested-With':
                             'XMLHttpRequest',
                     },
-                    credentials: 'same-origin',
+                    credentials:
+                        'same-origin',
                 }
             );
 
@@ -130,193 +376,84 @@
                 await parseJson(response);
 
             const data = json.data || {};
-            total = Number(data.total || 0);
+            const rows =
+                Array.isArray(data.rows)
+                    ? data.rows
+                    : [];
 
-            body.innerHTML =
-                (data.rows || []).map((card) => `
-                    <tr>
-                        ${
-                            canManage
-                                ? `
-                                    <td>
-                                        <input
-                                            class="form-check-input check-kartu"
-                                            type="checkbox"
-                                            value="${Number(card.id)}"
-                                            ${card.status_aktif === 'Aktif' ? '' : 'disabled'}
-                                        >
-                                    </td>
-                                `
-                                : ''
-                        }
-                        <td>
-                            <div class="font-monospace small">
-                                ${esc(card.nisn)}
-                            </div>
-                            <strong>${esc(card.nama)}</strong>
-                        </td>
-                        <td>${esc(card.nama_kelas || '-')}</td>
-                        <td>${esc(card.nomor_kartu)}</td>
-                        <td>${esc(card.tanggal_terbit)}</td>
-                        <td>
-                            <span class="badge ${
-                                card.status_aktif === 'Aktif'
-                                    ? 'bg-label-success'
-                                    : 'bg-label-secondary'
-                            }">
-                                ${esc(card.status_aktif)}
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <a
-                                class="btn btn-sm btn-outline-primary"
-                                href="${base}/kartu/preview/${Number(card.id)}"
-                            >
-                                Preview
-                            </a>
-                            <a
-                                class="btn btn-sm btn-outline-secondary"
-                                href="${base}/kartu/download/${Number(card.id)}"
-                            >
-                                PDF
-                            </a>
-                            ${
-                                data.can_manage
-                                    ? `
-                                        <button
-                                            class="btn btn-sm btn-outline-warning btn-reissue"
-                                            data-id="${Number(card.id)}"
-                                            type="button"
-                                        >
-                                            Reissue
-                                        </button>
-                                    `
-                                    : ''
-                            }
-                        </td>
-                    </tr>
-                `).join('')
-                || `
-                    <tr>
-                        <td
-                            colspan="${canManage ? 7 : 6}"
-                            class="text-center text-muted"
-                        >
-                            Belum ada kartu.
-                        </td>
-                    </tr>
-                `;
+            state.total =
+                Number(data.total || 0);
 
-            const info =
-                document.getElementById(
-                    'kartuInfo'
+            state.limit =
+                Number(
+                    data.limit
+                    || state.limit
                 );
 
-            if (info) {
-                info.textContent =
-                    `${total ? offset + 1 : 0}`
-                    + `-${Math.min(offset + limit, total)}`
-                    + ` dari ${total}`;
-            }
-
-            const prev =
-                document.getElementById(
-                    'kartuPrev'
+            state.offset =
+                Number(
+                    data.offset
+                    ?? state.offset
                 );
 
-            const next =
-                document.getElementById(
-                    'kartuNext'
-                );
+            if (
+                rows.length === 0
+                && state.total > 0
+                && state.offset >= state.total
+            ) {
+                state.offset =
+                    Math.floor(
+                        (state.total - 1)
+                        / state.limit
+                    ) * state.limit;
 
-            if (prev) {
-                prev.disabled = offset <= 0;
+                await load();
+                return;
             }
 
-            if (next) {
-                next.disabled =
-                    offset + limit >= total;
-            }
+            renderRows(
+                rows,
+                Boolean(data.can_manage)
+            );
+
+            pager?.render(state);
+            syncUrl();
 
             if (checkAll) {
                 checkAll.checked = false;
             }
-
-            document
-                .querySelectorAll('.btn-reissue')
-                .forEach((button) => {
-                    button.addEventListener(
-                        'click',
-                        async () => {
-                            try {
-                                const response =
-                                    await fetch(
-                                        `${base}/kartu/reissue/${button.dataset.id}`,
-                                        {
-                                            method: 'POST',
-                                            headers: {
-                                                Accept:
-                                                    'application/json',
-                                                'X-Requested-With':
-                                                    'XMLHttpRequest',
-                                            },
-                                            credentials:
-                                                'same-origin',
-                                        }
-                                    );
-
-                                const json =
-                                    await parseJson(
-                                        response
-                                    );
-
-                                showAlert(
-                                    json.message
-                                    || 'Reissue selesai.',
-                                    'success'
-                                );
-                            } catch (error) {
-                                showAlert(
-                                    error.message,
-                                    'danger'
-                                );
-                            }
-                        }
-                    );
-                });
         } catch (error) {
             showAlert(
                 error.message,
                 'danger'
             );
+        } finally {
+            pager?.setDisabled(false);
         }
     }
 
     document
         .getElementById('btnKartuCari')
-        ?.addEventListener('click', () => {
-            offset = 0;
-            load();
-        });
-
-    document
-        .getElementById('kartuPrev')
-        ?.addEventListener('click', () => {
-            offset = Math.max(
-                0,
-                offset - limit
-            );
-            load();
-        });
-
-    document
-        .getElementById('kartuNext')
-        ?.addEventListener('click', () => {
-            if (offset + limit < total) {
-                offset += limit;
+        ?.addEventListener(
+            'click',
+            () => {
+                state.offset = 0;
                 load();
             }
-        });
+        );
+
+    document
+        .getElementById('kartuSearch')
+        ?.addEventListener(
+            'keydown',
+            (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    state.offset = 0;
+                    load();
+                }
+            }
+        );
 
     document
         .getElementById('formGenerateKartu')
@@ -354,7 +491,9 @@
                     );
 
                     const json =
-                        await parseJson(response);
+                        await parseJson(
+                            response
+                        );
 
                     showAlert(
                         json.message
@@ -418,7 +557,8 @@
                         batchNo += 1;
 
                         const processed =
-                            initialCount - remaining;
+                            initialCount
+                            - remaining;
 
                         button.textContent =
                             `Memproses ${processed}/${initialCount}...`;
@@ -437,12 +577,6 @@
                                 'kartuKelas'
                             )?.value;
 
-                        /*
-                         * Tombol "Generate Semua Belum Terbit"
-                         * default-nya seluruh scope.
-                         * Jika operator memilih kelas pada filter,
-                         * bulk dibatasi ke kelas tersebut.
-                         */
                         if (selectedClass) {
                             formData.append(
                                 'id_kelas',
@@ -476,25 +610,24 @@
                             json.data || {};
 
                         totalGenerated += Number(
-                            data.generated_count || 0
+                            data.generated_count
+                            || 0
                         );
 
                         totalExisting += Number(
-                            data.existing_count || 0
+                            data.existing_count
+                            || 0
                         );
 
                         const nextRemaining =
                             Number(
-                                data.remaining_count || 0
+                                data.remaining_count
+                                || 0
                             );
 
-                        /*
-                         * Guard untuk mencegah infinite loop
-                         * bila server melaporkan sukses tetapi
-                         * jumlah eligible tidak berkurang.
-                         */
                         if (
-                            nextRemaining >= remaining
+                            nextRemaining
+                                >= remaining
                             && !data.done
                         ) {
                             throw new Error(
@@ -507,7 +640,8 @@
                             nextRemaining;
 
                         const doneCount =
-                            initialCount - remaining;
+                            initialCount
+                            - remaining;
 
                         const eligibleCount =
                             document.getElementById(
@@ -591,6 +725,7 @@
         form.method = 'POST';
         form.action =
             `${base}/kartu/cetak-massal`;
+
         form.target = '_blank';
         form.style.display = 'none';
 
@@ -601,38 +736,40 @@
             input.type = 'hidden';
             input.name = name;
             input.value = String(value);
+
             form.appendChild(input);
         };
 
         add('side', side);
         add('mode', mode);
 
-        /*
-         * submitPrint menggunakan form.submit(), bukan fetch().
-         * csrf-fetch.js hanya menginjeksi token ke request Fetch,
-         * sehingga form POST biasa wajib membawa field CSRF sendiri.
-         */
         if (
             window.SisisFourCsrf
-            && typeof window.SisisFourCsrf.getToken === 'function'
-            && typeof window.SisisFourCsrf.getTokenName === 'function'
+            && typeof window.SisisFourCsrf.getToken
+                === 'function'
+            && typeof window.SisisFourCsrf.getTokenName
+                === 'function'
         ) {
             add(
                 window.SisisFourCsrf.getTokenName(),
                 window.SisisFourCsrf.getToken()
             );
         } else {
-            const tokenMeta = document.querySelector(
-                'meta[name="csrf-token"]'
-            );
+            const tokenMeta =
+                document.querySelector(
+                    'meta[name="csrf-token"]'
+                );
 
-            const tokenNameMeta = document.querySelector(
-                'meta[name="csrf-token-name"]'
-            );
+            const tokenNameMeta =
+                document.querySelector(
+                    'meta[name="csrf-token-name"]'
+                );
 
             if (tokenMeta?.content) {
                 add(
-                    tokenNameMeta?.content?.trim()
+                    tokenNameMeta
+                        ?.content
+                        ?.trim()
                         || 'csrf_test_name',
                     tokenMeta.content
                 );
@@ -735,5 +872,6 @@
                 )
         );
 
+    restoreState();
     load();
 })();

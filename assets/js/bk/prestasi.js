@@ -9,9 +9,24 @@
   const form = document.getElementById('formPrestasi');
   const alertBox = document.getElementById('prestasiAlert');
   const modalEl = document.getElementById('modalPrestasi');
-  let offset = 0;
-  let total = 0;
-  const limit = 50;
+
+  if (!body) return;
+
+  const state = {
+    limit: 25,
+    offset: 0,
+    total: 0,
+  };
+
+  const pager = window.SisfourPagination?.mount(body, {
+    id: 'bkPrestasiPager',
+    label: 'prestasi',
+    onChange: (next) => {
+      state.limit = next.limit;
+      state.offset = next.offset;
+      load();
+    },
+  });
 
   const esc = (value) => {
     const div = document.createElement('div');
@@ -21,26 +36,80 @@
 
   const today = () => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    return `${d.getFullYear()}-${String(
+      d.getMonth() + 1
+    ).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`;
   };
 
-  const params = () => {
-    const p = new URLSearchParams({ format: 'json', limit: String(limit), offset: String(offset) });
+  const params = (withPaging = true) => {
+    const p = new URLSearchParams({
+      format: 'json',
+    });
+
+    if (withPaging) {
+      p.set('limit', String(state.limit));
+      p.set('offset', String(state.offset));
+    }
+
     [
       ['search', 'prestasiSearch'],
       ['tingkat', 'prestasiTingkat'],
       ['tanggal_mulai', 'prestasiMulai'],
       ['tanggal_selesai', 'prestasiSelesai'],
     ].forEach(([key, id]) => {
-      const value = document.getElementById(id)?.value;
+      const value =
+        document.getElementById(id)?.value;
+
       if (value) p.set(key, value);
     });
+
     return p;
+  };
+
+  const syncUrl = () => {
+    const p = params(true);
+    p.delete('format');
+    const query = p.toString();
+
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}`
+    );
+  };
+
+  const restoreState = () => {
+    const p = new URLSearchParams(window.location.search);
+    const limit = Number(p.get('limit') || 25);
+    const offset = Number(p.get('offset') || 0);
+
+    state.limit = [25, 50, 100].includes(limit) ? limit : 25;
+    state.offset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
+
+    [
+      ['search', 'prestasiSearch'],
+      ['tingkat', 'prestasiTingkat'],
+      ['tanggal_mulai', 'prestasiMulai'],
+      ['tanggal_selesai', 'prestasiSelesai'],
+    ].forEach(([key, id]) => {
+      const value = p.get(key);
+      const element = document.getElementById(id);
+
+      if (value !== null && element) {
+        element.value = value;
+      }
+    });
   };
 
   function show(message, type = 'danger') {
     if (!alertBox) return;
-    alertBox.className = `alert alert-${type}`;
+
+    alertBox.className =
+      `alert alert-${type}`;
+
     alertBox.textContent = message;
   }
 
@@ -52,17 +121,25 @@
         'X-Requested-With': 'XMLHttpRequest',
         ...(options.headers || {}),
       },
+      credentials: 'same-origin',
     });
+
     const payload = await response.json();
+
     if (!response.ok || payload.status !== 'success') {
-      throw new Error(payload.message || 'Proses gagal.');
+      throw new Error(
+        payload.message || 'Proses gagal.'
+      );
     }
+
     return payload;
   }
 
   function setStudent(row = null) {
     if (!form) return;
+
     const select = form.elements.id_siswa;
+
     if (row) {
       window.SisfourSearchableSelect?.setValue(
         select,
@@ -70,132 +147,263 @@
         `${row.nisn} — ${row.nama_siswa}`
       );
     } else {
-      window.SisfourSearchableSelect?.setValue(select, '', '');
+      window.SisfourSearchableSelect?.setValue(
+        select,
+        '',
+        ''
+      );
     }
   }
 
   function openForm(row = null) {
     if (!form || !modalEl) return;
+
     form.reset();
     form.elements.id.value = row?.id || '';
     setStudent(row);
-    form.elements.nama_prestasi.value = row?.nama_prestasi || '';
-    form.elements.tingkat.value = row?.tingkat || 'Madrasah';
-    form.elements.tanggal.value = row?.tanggal || today();
-    form.elements.penyelenggara.value = row?.penyelenggara || '';
-    form.elements.keterangan.value = row?.keterangan || '';
-    document.getElementById('judulModalPrestasi').textContent = row ? 'Edit Prestasi Siswa' : 'Tambah Prestasi Siswa';
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+    form.elements.nama_prestasi.value =
+      row?.nama_prestasi || '';
+
+    form.elements.tingkat.value =
+      row?.tingkat || 'Madrasah';
+
+    form.elements.tanggal.value =
+      row?.tanggal || today();
+
+    form.elements.penyelenggara.value =
+      row?.penyelenggara || '';
+
+    form.elements.keterangan.value =
+      row?.keterangan || '';
+
+    document.getElementById(
+      'judulModalPrestasi'
+    ).textContent = row
+      ? 'Edit Prestasi Siswa'
+      : 'Tambah Prestasi Siswa';
+
+    bootstrap.Modal
+      .getOrCreateInstance(modalEl)
+      .show();
   }
 
   async function load() {
+    pager?.setDisabled(true);
+
     try {
-      const payload = await requestJson(`${base}/bk/prestasi?${params()}`);
+      const payload = await requestJson(
+        `${base}/bk/prestasi?${params(true)}`
+      );
+
       const data = payload.data || {};
-      total = Number(data.total || 0);
+      const rows = Array.isArray(data.rows)
+        ? data.rows
+        : [];
+
+      state.total = Number(data.total || 0);
+      state.limit = Number(data.limit || state.limit);
+      state.offset = Number(data.offset ?? state.offset);
+
+      if (
+        rows.length === 0
+        && state.total > 0
+        && state.offset >= state.total
+      ) {
+        state.offset = Math.floor(
+          (state.total - 1) / state.limit
+        ) * state.limit;
+
+        await load();
+        return;
+      }
+
       const manage = Boolean(data.can_manage);
 
-      body.innerHTML = (data.rows || []).map((row) => `
+      body.innerHTML = rows.map((row) => `
         <tr data-json="${encodeURIComponent(JSON.stringify(row))}">
           <td>${esc(row.tanggal)}</td>
-          <td>${esc(row.nisn)}<br><strong>${esc(row.nama_siswa)}</strong></td>
+          <td>
+            ${esc(row.nisn)}
+            <br>
+            <strong>${esc(row.nama_siswa)}</strong>
+          </td>
           <td>${esc(row.nama_prestasi)}</td>
           <td>${esc(row.tingkat)}</td>
           <td>${esc(row.penyelenggara || '-')}</td>
           <td>${esc(row.keterangan || '-')}</td>
           ${manage ? `
             <td class="text-nowrap">
-              <button type="button" class="btn btn-sm btn-outline-primary btn-edit-prestasi">Edit</button>
-              <button type="button" class="btn btn-sm btn-outline-danger btn-delete-prestasi">Hapus</button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary btn-edit-prestasi"
+              >Edit</button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger btn-delete-prestasi"
+              >Hapus</button>
             </td>
           ` : ''}
         </tr>
       `).join('') || `
-        <tr><td colspan="${manage ? 7 : 6}" class="text-center text-muted py-4">Tidak ada data.</td></tr>
+        <tr>
+          <td
+            colspan="${manage ? 7 : 6}"
+            class="text-center text-muted py-4"
+          >
+            Tidak ada data.
+          </td>
+        </tr>
       `;
 
-      document.getElementById('prestasiInfo').textContent = `${total ? offset + 1 : 0}-${Math.min(offset + limit, total)} dari ${total}`;
-      document.getElementById('prestasiPrev').disabled = offset <= 0;
-      document.getElementById('prestasiNext').disabled = offset + limit >= total;
       bindRows();
+      pager?.render(state);
+      syncUrl();
     } catch (error) {
-      show(error.message || 'Gagal memuat data.');
+      show(
+        error.message || 'Gagal memuat data.'
+      );
+    } finally {
+      pager?.setDisabled(false);
     }
   }
 
   function bindRows() {
-    document.querySelectorAll('.btn-edit-prestasi').forEach((button) => {
-      button.addEventListener('click', () => {
-        openForm(JSON.parse(decodeURIComponent(button.closest('tr').dataset.json)));
+    document
+      .querySelectorAll('.btn-edit-prestasi')
+      .forEach((button) => {
+        button.addEventListener('click', () => {
+          openForm(
+            JSON.parse(
+              decodeURIComponent(
+                button.closest('tr').dataset.json
+              )
+            )
+          );
+        });
       });
-    });
 
-    document.querySelectorAll('.btn-delete-prestasi').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const row = JSON.parse(decodeURIComponent(button.closest('tr').dataset.json));
-        if (!confirm(`Hapus prestasi ${row.nama_siswa}?`)) return;
-        try {
-          const payload = await requestJson(`${base}/bk/prestasi/delete/${row.id}`, { method: 'DELETE' });
-          show(payload.message || 'Prestasi berhasil dihapus.', 'success');
-          load();
-        } catch (error) {
-          show(error.message || 'Gagal menghapus.');
-        }
+    document
+      .querySelectorAll('.btn-delete-prestasi')
+      .forEach((button) => {
+        button.addEventListener('click', async () => {
+          const row = JSON.parse(
+            decodeURIComponent(
+              button.closest('tr').dataset.json
+            )
+          );
+
+          if (!confirm(
+            `Hapus prestasi ${row.nama_siswa}?`
+          )) {
+            return;
+          }
+
+          try {
+            const payload = await requestJson(
+              `${base}/bk/prestasi/delete/${row.id}`,
+              { method: 'DELETE' }
+            );
+
+            show(
+              payload.message
+                || 'Prestasi berhasil dihapus.',
+              'success'
+            );
+
+            await load();
+          } catch (error) {
+            show(
+              error.message || 'Gagal menghapus.'
+            );
+          }
+        });
       });
-    });
   }
 
-  document.getElementById('btnPrestasiBaru')?.addEventListener('click', () => openForm());
-  document.getElementById('btnPrestasiCari')?.addEventListener('click', () => {
-    offset = 0;
-    load();
-  });
-  document.getElementById('prestasiPrev')?.addEventListener('click', () => {
-    offset = Math.max(0, offset - limit);
-    load();
-  });
-  document.getElementById('prestasiNext')?.addEventListener('click', () => {
-    if (offset + limit < total) {
-      offset += limit;
+  document.getElementById('btnPrestasiBaru')
+    ?.addEventListener(
+      'click',
+      () => openForm()
+    );
+
+  document.getElementById('btnPrestasiCari')
+    ?.addEventListener('click', () => {
+      state.offset = 0;
       load();
-    }
-  });
-  document.getElementById('btnPrestasiExport')?.addEventListener('click', (event) => {
-    event.preventDefault();
-    const p = params();
-    p.delete('format');
-    p.delete('limit');
-    p.delete('offset');
-    window.location.href = `${base}/bk/prestasi/export?${p}`;
-  });
+    });
+
+  document.getElementById('prestasiSearch')
+    ?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        state.offset = 0;
+        load();
+      }
+    });
+
+  document.getElementById('btnPrestasiExport')
+    ?.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      const p = params(false);
+      p.delete('format');
+
+      window.location.href =
+        `${base}/bk/prestasi/export?${p}`;
+    });
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
+
     const fd = new FormData(form);
     const id = String(fd.get('id') || '');
+
     fd.delete('id');
 
     let url = `${base}/bk/prestasi/create`;
-    let options = { method: 'POST', body: fd };
+    let options = {
+      method: 'POST',
+      body: fd,
+    };
 
     if (id) {
       url = `${base}/bk/prestasi/update/${id}`;
+
       options = {
         method: 'PUT',
         body: new URLSearchParams(fd),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type':
+            'application/x-www-form-urlencoded',
+        },
       };
     }
 
     try {
-      const payload = await requestJson(url, options);
-      bootstrap.Modal.getInstance(modalEl)?.hide();
-      show(payload.message || 'Prestasi berhasil disimpan.', 'success');
-      load();
+      const payload = await requestJson(
+        url,
+        options
+      );
+
+      bootstrap.Modal
+        .getInstance(modalEl)
+        ?.hide();
+
+      show(
+        payload.message
+          || 'Prestasi berhasil disimpan.',
+        'success'
+      );
+
+      await load();
     } catch (error) {
-      show(error.message || 'Gagal menyimpan.');
+      show(
+        error.message || 'Gagal menyimpan.'
+      );
     }
   });
 
+  restoreState();
   load();
 })();

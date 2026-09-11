@@ -22,8 +22,13 @@
     }
 
     let rows = [];
-    let dataTable = null;
     let editingId = null;
+
+    const state = {
+        limit: 25,
+        offset: 0,
+        total: 0,
+    };
 
     const modalSiswaElement = document.getElementById('modalSiswa');
     const modalSiswa = modalSiswaElement
@@ -37,6 +42,33 @@
 
     const endpoint = (path) =>
         `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
+
+    const ensurePager = () => {
+        let container = document.getElementById('siswaPager');
+
+        if (container) {
+            return container;
+        }
+
+        container = document.createElement('div');
+        container.id = 'siswaPager';
+        container.className = 'card-footer';
+        table.closest('.card')?.appendChild(container);
+
+        return container;
+    };
+
+    const pager = window.SisfourPagination?.create(
+        ensurePager(),
+        {
+            label: 'siswa',
+            onChange: (next) => {
+                state.limit = next.limit;
+                state.offset = next.offset;
+                loadData();
+            },
+        }
+    );
 
     const escapeHtml = (value) => {
         const div = document.createElement('div');
@@ -78,7 +110,7 @@
         showConfirmButton: false,
     });
 
-    const filterParams = () => {
+    const filterParams = (withPaging = true) => {
         const params = new URLSearchParams(
             new FormData(filterForm)
         );
@@ -89,27 +121,46 @@
             }
         }
 
+        if (withPaging) {
+            params.set('limit', String(state.limit));
+            params.set('offset', String(state.offset));
+        }
+
         return params;
     };
 
-    const destroyDataTable = () => {
-        if (
-            dataTable
-            && typeof dataTable.destroy === 'function'
-        ) {
-            dataTable.destroy();
-            dataTable = null;
-        }
+    const syncUrl = () => {
+        const params = filterParams(true);
+        const query = params.toString();
+
+        window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${query ? `?${query}` : ''}`
+        );
     };
 
-    const initDataTable = () => {
-        if (typeof window.DataTable === 'function') {
-            dataTable = new window.DataTable(table, {
-                pageLength: 25,
-                lengthMenu: [10, 25, 50, 100],
-                order: [[1, 'asc']],
+    const restoreState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const limit = Number(params.get('limit') || 25);
+        const offset = Number(params.get('offset') || 0);
+
+        state.limit = [25, 50, 100].includes(limit) ? limit : 25;
+        state.offset = Number.isFinite(offset) && offset >= 0
+            ? offset
+            : 0;
+
+        ['nama', 'nik', 'nisn', 'id_kelas', 'status_aktif']
+            .forEach((name) => {
+                const value = params.get(name);
+
+                if (
+                    value !== null
+                    && filterForm.elements[name]
+                ) {
+                    filterForm.elements[name].value = value;
+                }
             });
-        }
     };
 
     const statusBadge = (status) => {
@@ -128,7 +179,18 @@
     };
 
     const renderRows = () => {
-        destroyDataTable();
+        const actionColspan = canEdit || canManage ? 8 : 7;
+
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${actionColspan}" class="text-center text-muted py-4">
+                        Tidak ada data Siswa pada filter ini.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         tbody.innerHTML = rows.map((siswa, index) => {
             const kelas = siswa.nama_kelas_aktif
@@ -182,7 +244,7 @@
 
             return `
                 <tr>
-                    <td>${index + 1}</td>
+                    <td>${state.offset + index + 1}</td>
                     <td>
                         <div class="fw-semibold">
                             ${escapeHtml(siswa.nama)}
@@ -205,9 +267,7 @@
                             ? 'Laki-laki'
                             : 'Perempuan'}
                     </td>
-                    <td>
-                        ${statusBadge(siswa.status_aktif)}
-                    </td>
+                    <td>${statusBadge(siswa.status_aktif)}</td>
                     <td>
                         ${siswa.no_telepon
                             ? escapeHtml(siswa.no_telepon)
@@ -217,19 +277,26 @@
                 </tr>
             `;
         }).join('');
-
-        initDataTable();
     };
 
     const loadData = async () => {
+        pager?.setDisabled(true);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${canEdit || canManage ? 8 : 7}" class="text-center py-4">
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    Memuat data...
+                </td>
+            </tr>
+        `;
+
         try {
-            const params = filterParams();
-            const suffix = params.toString()
-                ? `?${params.toString()}`
-                : '';
+            const params = filterParams(true);
+            params.set('format', 'json');
 
             const response = await fetch(
-                endpoint(`master/siswa/json${suffix}`),
+                endpoint(`master/siswa/json?${params.toString()}`),
                 {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -239,18 +306,29 @@
             );
 
             const result = await parseResponse(response);
-            rows = Array.isArray(result.data)
-                ? result.data
+            const data = result.data || {};
+
+            rows = Array.isArray(data.rows)
+                ? data.rows
                 : [];
 
+            state.total = Number(data.total || 0);
+            state.limit = Number(data.limit || state.limit);
+            state.offset = Number(data.offset || 0);
+
             renderRows();
+            pager?.render(state);
+            syncUrl();
         } catch (error) {
             showError(error);
+        } finally {
+            pager?.setDisabled(false);
         }
     };
 
     filterForm.addEventListener('submit', (event) => {
         event.preventDefault();
+        state.offset = 0;
         loadData();
     });
 
@@ -258,6 +336,7 @@
         .getElementById('btnResetFilter')
         ?.addEventListener('click', () => {
             filterForm.reset();
+            state.offset = 0;
             loadData();
         });
 
@@ -266,7 +345,7 @@
         ?.addEventListener('click', (event) => {
             event.preventDefault();
 
-            const params = filterParams();
+            const params = filterParams(false);
             const suffix = params.toString()
                 ? `?${params.toString()}`
                 : '';
@@ -278,15 +357,11 @@
 
     if (canEdit || canManage) {
         const formSiswa = document.getElementById('formSiswa');
-        const modalTitle = document.getElementById(
-            'modalSiswaTitle'
-        );
+        const modalTitle = document.getElementById('modalSiswaTitle');
         const siswaIdInput = document.getElementById('siswaId');
         const nisnInput = document.getElementById('nisn');
         const fotoInput = document.getElementById('foto');
-        const btnSimpan = document.getElementById(
-            'btnSimpanSiswa'
-        );
+        const btnSimpan = document.getElementById('btnSimpanSiswa');
 
         if (
             formSiswa
@@ -321,12 +396,8 @@
                 });
 
             tbody.addEventListener('click', async (event) => {
-                const editButton = event.target.closest(
-                    '.btn-edit'
-                );
-                const deleteButton = event.target.closest(
-                    '.btn-delete'
-                );
+                const editButton = event.target.closest('.btn-edit');
+                const deleteButton = event.target.closest('.btn-delete');
 
                 if (editButton) {
                     const id = Number(editButton.dataset.id);
@@ -338,8 +409,7 @@
 
                     editingId = id;
                     formSiswa.reset();
-                    modalTitle.textContent =
-                        'Edit Biodata Siswa';
+                    modalTitle.textContent = 'Edit Biodata Siswa';
                     siswaIdInput.value = String(id);
 
                     [
@@ -358,12 +428,10 @@
                         'nama_ibu_kandung',
                         'nama_wali',
                     ].forEach((field) => {
-                        const input =
-                            document.getElementById(field);
+                        const input = document.getElementById(field);
 
                         if (input) {
-                            input.value =
-                                siswa[field] ?? '';
+                            input.value = siswa[field] ?? '';
                         }
                     });
 
@@ -378,9 +446,7 @@
                 }
 
                 if (deleteButton) {
-                    const id = Number(
-                        deleteButton.dataset.id
-                    );
+                    const id = Number(deleteButton.dataset.id);
                     const siswa = rows.find(
                         (item) => Number(item.id) === id
                     );
@@ -402,21 +468,17 @@
 
                     try {
                         const response = await fetch(
-                            endpoint(
-                                `master/siswa/delete/${id}`
-                            ),
+                            endpoint(`master/siswa/delete/${id}`),
                             {
                                 method: 'DELETE',
                                 headers: {
-                                    'X-Requested-With':
-                                        'XMLHttpRequest',
+                                    'X-Requested-With': 'XMLHttpRequest',
                                 },
                                 credentials: 'same-origin',
                             }
                         );
 
-                        const result =
-                            await parseResponse(response);
+                        const result = await parseResponse(response);
 
                         await showSuccess(result.message);
                         await loadData();
@@ -431,10 +493,9 @@
                 async (event) => {
                     event.preventDefault();
 
-                    const spinner =
-                        btnSimpan.querySelector(
-                            '.spinner-border'
-                        );
+                    const spinner = btnSimpan.querySelector(
+                        '.spinner-border'
+                    );
 
                     btnSimpan.disabled = true;
                     spinner?.classList.remove('d-none');
@@ -450,41 +511,28 @@
                             }
 
                             response = await fetch(
-                                endpoint(
-                                    'master/siswa/create'
-                                ),
+                                endpoint('master/siswa/create'),
                                 {
                                     method: 'POST',
-                                    body: new FormData(
-                                        formSiswa
-                                    ),
+                                    body: new FormData(formSiswa),
                                     headers: {
-                                        'X-Requested-With':
-                                            'XMLHttpRequest',
+                                        'X-Requested-With': 'XMLHttpRequest',
                                     },
-                                    credentials:
-                                        'same-origin',
+                                    credentials: 'same-origin',
                                 }
                             );
                         } else {
-                            const payload =
-                                new URLSearchParams();
+                            const payload = new URLSearchParams();
 
                             for (
                                 const [key, value]
-                                of new FormData(
-                                    formSiswa
-                                ).entries()
+                                of new FormData(formSiswa).entries()
                             ) {
                                 if (
                                     key !== 'foto'
-                                    && key
-                                        !== 'csrf_test_name'
+                                    && key !== 'csrf_test_name'
                                 ) {
-                                    payload.append(
-                                        key,
-                                        value
-                                    );
+                                    payload.append(key, value);
                                 }
                             }
 
@@ -501,47 +549,36 @@
                                         'X-Requested-With':
                                             'XMLHttpRequest',
                                     },
-                                    credentials:
-                                        'same-origin',
+                                    credentials: 'same-origin',
                                 }
                             );
                         }
 
-                        const result =
-                            await parseResponse(response);
+                        const result = await parseResponse(response);
 
                         if (
                             editingId !== null
                             && fotoInput?.files?.length
                         ) {
-                            const fotoForm =
-                                new FormData();
+                            const fotoForm = new FormData();
+                            fotoForm.append('foto', fotoInput.files[0]);
 
-                            fotoForm.append(
-                                'foto',
-                                fotoInput.files[0]
+                            const fotoResponse = await fetch(
+                                endpoint(
+                                    `master/siswa/upload-foto/${editingId}`
+                                ),
+                                {
+                                    method: 'POST',
+                                    body: fotoForm,
+                                    headers: {
+                                        'X-Requested-With':
+                                            'XMLHttpRequest',
+                                    },
+                                    credentials: 'same-origin',
+                                }
                             );
 
-                            const fotoResponse =
-                                await fetch(
-                                    endpoint(
-                                        `master/siswa/upload-foto/${editingId}`
-                                    ),
-                                    {
-                                        method: 'POST',
-                                        body: fotoForm,
-                                        headers: {
-                                            'X-Requested-With':
-                                                'XMLHttpRequest',
-                                        },
-                                        credentials:
-                                            'same-origin',
-                                    }
-                                );
-
-                            await parseResponse(
-                                fotoResponse
-                            );
+                            await parseResponse(fotoResponse);
                         }
 
                         modalSiswa.hide();
@@ -559,18 +596,10 @@
     }
 
     if (canImportExport) {
-        const btnImport = document.getElementById(
-            'btnImportSiswa'
-        );
-        const formImport = document.getElementById(
-            'formImportSiswa'
-        );
+        const btnImport = document.getElementById('btnImportSiswa');
+        const formImport = document.getElementById('formImportSiswa');
 
-        if (
-            btnImport
-            && formImport
-            && modalImport
-        ) {
+        if (btnImport && formImport && modalImport) {
             btnImport.addEventListener('click', () => {
                 formImport.reset();
                 modalImport.show();
@@ -581,10 +610,9 @@
                 async (event) => {
                     event.preventDefault();
 
-                    const submitButton =
-                        formImport.querySelector(
-                            'button[type="submit"]'
-                        );
+                    const submitButton = formImport.querySelector(
+                        'button[type="submit"]'
+                    );
 
                     if (submitButton) {
                         submitButton.disabled = true;
@@ -592,27 +620,22 @@
 
                     try {
                         const response = await fetch(
-                            endpoint(
-                                'master/siswa/import'
-                            ),
+                            endpoint('master/siswa/import'),
                             {
                                 method: 'POST',
-                                body: new FormData(
-                                    formImport
-                                ),
+                                body: new FormData(formImport),
                                 headers: {
                                     'X-Requested-With':
                                         'XMLHttpRequest',
                                 },
-                                credentials:
-                                    'same-origin',
+                                credentials: 'same-origin',
                             }
                         );
 
-                        const result =
-                            await parseResponse(response);
+                        const result = await parseResponse(response);
 
                         modalImport.hide();
+                        state.offset = 0;
                         await showSuccess(result.message);
                         await loadData();
                     } catch (error) {
@@ -624,13 +647,9 @@
                     }
                 }
             );
-        } else {
-            console.error(
-                'Import Siswa gagal diinisialisasi: '
-                + 'btnImportSiswa/formImportSiswa/modalImportSiswa tidak lengkap.'
-            );
         }
     }
 
+    restoreState();
     loadData();
 })();

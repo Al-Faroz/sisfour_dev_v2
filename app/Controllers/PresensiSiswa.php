@@ -10,6 +10,11 @@ use CodeIgniter\I18n\Time;
  *
  * Controller tipis untuk Presensi Siswa.
  * Business rule dan data-level authorization berada di PresensiService.
+ *
+ * STEP 05:
+ * - actor Web/API menggunakan resolver yang sama dari BaseController;
+ * - route API selalu menghasilkan JSON;
+ * - Service tetap menjadi authorization boundary data.
  */
 class PresensiSiswa extends BaseController
 {
@@ -24,7 +29,7 @@ class PresensiSiswa extends BaseController
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
 
         if ($tanggal === '') {
@@ -36,7 +41,7 @@ class PresensiSiswa extends BaseController
             $tanggal
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Opsi kelas berhasil dimuat.',
@@ -52,7 +57,8 @@ class PresensiSiswa extends BaseController
                 'title' => 'Presensi Siswa',
                 'tanggal' => $tanggal,
                 'selectedKelas' => (int) $this->request->getGet('id_kelas'),
-                'selectedSesi' => trim((string) $this->request->getGet('sesi')) ?: 'Sesi Awal',
+                'selectedSesi' => trim((string) $this->request->getGet('sesi'))
+                    ?: 'Sesi Awal',
                 'kelasOptions' => $kelasOptions,
                 'tahunAktif' => $this->presensiService->getTahunAktifInfo(),
                 'extraJs' => ['assets/js/presensi/siswa.js'],
@@ -62,7 +68,7 @@ class PresensiSiswa extends BaseController
 
     public function input($idKelas)
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
         $sesi = trim((string) $this->request->getGet('sesi'));
 
@@ -81,7 +87,7 @@ class PresensiSiswa extends BaseController
             $sesi
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respondService($result);
         }
 
@@ -104,12 +110,10 @@ class PresensiSiswa extends BaseController
 
     public function save()
     {
-        $payload = $this->getPayload();
-
         return $this->respondService(
             $this->presensiService->saveBulk(
-                (int) session()->get('user_id'),
-                $payload,
+                $this->currentActorUserId(),
+                $this->getPayload(),
                 false
             ),
             201
@@ -118,7 +122,7 @@ class PresensiSiswa extends BaseController
 
     public function revisi($idKelas)
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
         $sesi = trim((string) $this->request->getGet('sesi'));
 
@@ -137,7 +141,7 @@ class PresensiSiswa extends BaseController
             $sesi
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respondService($result);
         }
 
@@ -163,7 +167,7 @@ class PresensiSiswa extends BaseController
     {
         return $this->respondService(
             $this->presensiService->saveBulk(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 $this->getPayload(),
                 true
             )
@@ -172,14 +176,17 @@ class PresensiSiswa extends BaseController
 
     public function rekap()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $now = Time::now(self::TZ);
         $tanggalMulai = trim((string) $this->request->getGet('tanggal_mulai'));
         $tanggalSelesai = trim((string) $this->request->getGet('tanggal_selesai'));
         $idKelas = (int) $this->request->getGet('id_kelas');
         $sesi = trim((string) $this->request->getGet('sesi'));
         $statusRaw = trim((string) $this->request->getGet('status'));
-        $limit = max(1, min(500, (int) ($this->request->getGet('limit') ?: 50)));
+        $limit = max(
+            1,
+            min(500, (int) ($this->request->getGet('limit') ?: 50))
+        );
         $offset = max(0, (int) $this->request->getGet('offset'));
 
         if ($tanggalMulai === '') {
@@ -190,15 +197,23 @@ class PresensiSiswa extends BaseController
             $tanggalSelesai = $now->format('Y-m-d');
         }
 
-        $sesiFilter = in_array($sesi, ['Sesi Awal', 'Sesi Akhir'], true)
+        $sesiFilter = in_array(
+            $sesi,
+            ['Sesi Awal', 'Sesi Akhir'],
+            true
+        )
             ? $sesi
             : null;
 
-        $statusFilter = in_array($statusRaw, ['Hadir', 'Sakit', 'Izin', 'Alpha'], true)
+        $statusFilter = in_array(
+            $statusRaw,
+            ['Hadir', 'Sakit', 'Izin', 'Alpha'],
+            true
+        )
             ? [$statusRaw]
             : null;
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             if ($this->presensiService->isSiswaSelfView($userId)) {
                 return $this->respondService(
                     $this->presensiService->getHistoriDiriSiswa(
@@ -243,8 +258,12 @@ class PresensiSiswa extends BaseController
                 'title' => 'Rekap Presensi Siswa',
                 'tanggalMulai' => $tanggalMulai,
                 'tanggalSelesai' => $tanggalSelesai,
-                'kelasOptions' => $this->presensiService->getKelasViewOptions($userId),
-                'isSiswaSelfView' => $this->presensiService->isSiswaSelfView($userId),
+                'kelasOptions' => $this->presensiService->getKelasViewOptions(
+                    $userId
+                ),
+                'isSiswaSelfView' => $this->presensiService->isSiswaSelfView(
+                    $userId
+                ),
                 'tahunAktif' => $this->presensiService->getTahunAktifInfo(),
                 'extraJs' => ['assets/js/presensi/siswa-rekap.js'],
             ])
@@ -254,8 +273,12 @@ class PresensiSiswa extends BaseController
     public function ews()
     {
         $now = Time::now(self::TZ);
-        $tanggalSelesai = trim((string) $this->request->getGet('tanggal_selesai'));
-        $tanggalMulai = trim((string) $this->request->getGet('tanggal_mulai'));
+        $tanggalSelesai = trim(
+            (string) $this->request->getGet('tanggal_selesai')
+        );
+        $tanggalMulai = trim(
+            (string) $this->request->getGet('tanggal_mulai')
+        );
 
         if ($tanggalSelesai === '') {
             $tanggalSelesai = $now->format('Y-m-d');
@@ -266,12 +289,12 @@ class PresensiSiswa extends BaseController
         }
 
         $data = $this->presensiService->getEwsAlpha(
-            (int) session()->get('user_id'),
+            $this->currentActorUserId(),
             $tanggalMulai,
             $tanggalSelesai
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Data EWS berhasil dimuat.',
@@ -301,15 +324,6 @@ class PresensiSiswa extends BaseController
         $post = $this->request->getPost();
 
         return is_array($post) ? $post : [];
-    }
-
-    private function wantsJson(): bool
-    {
-        $path = trim($this->request->getUri()->getPath(), '/');
-
-        return str_ends_with($path, '/json')
-            || $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX();
     }
 
     private function respondService(array $result, int $successCode = 200)

@@ -11,62 +11,62 @@
  * perbaiki data di tabel role_menus.
  */
 
-if (!function_exists('render_menu_items')) {
-function render_menu_items(array $items): void
-{
-    foreach ($items as $item) {
-        $hasChildren = !empty($item['children']);
-        $isActive = !empty($item['active']);
-        $isOpen = !empty($item['open']);
+if (! function_exists('render_menu_items')) {
+    function render_menu_items(array $items): void
+    {
+        foreach ($items as $item) {
+            $hasChildren = ! empty($item['children']);
+            $isActive = ! empty($item['active']);
+            $isOpen = ! empty($item['open']);
 
-        $liClass = 'menu-item';
+            $liClass = 'menu-item';
 
-        if ($isActive) {
-            $liClass .= ' active';
+            if ($isActive) {
+                $liClass .= ' active';
+            }
+
+            if ($hasChildren && $isOpen) {
+                $liClass .= ' open';
+            }
+
+            $linkClass = 'menu-link' . ($hasChildren ? ' menu-toggle' : '');
+            $href = $hasChildren
+                ? 'javascript:void(0);'
+                : base_url(ltrim($item['link'] ?? '#', '/'));
+
+            echo '<li class="' . $liClass . '">';
+            echo '<a href="' . $href . '" class="' . $linkClass . '">';
+
+            if (! empty($item['icon'])) {
+                echo '<i class="menu-icon tf-icons bx '
+                    . esc(
+                        str_replace(
+                            'bx bx-',
+                            'bx-',
+                            $item['icon']
+                        ),
+                        'attr'
+                    )
+                    . '"></i>';
+            } else {
+                echo '<i class="menu-icon tf-icons bx bx-circle" '
+                    . 'style="font-size:.4rem;opacity:.5"></i>';
+            }
+
+            echo '<div class="text-truncate">'
+                . esc($item['nama_menu'])
+                . '</div>';
+            echo '</a>';
+
+            if ($hasChildren) {
+                echo '<ul class="menu-sub">';
+                render_menu_items($item['children']);
+                echo '</ul>';
+            }
+
+            echo '</li>';
         }
-
-        if ($hasChildren && $isOpen) {
-            $liClass .= ' open';
-        }
-
-        $linkClass = 'menu-link' . ($hasChildren ? ' menu-toggle' : '');
-        $href = $hasChildren
-            ? 'javascript:void(0);'
-            : base_url(ltrim($item['link'] ?? '#', '/'));
-
-        echo '<li class="' . $liClass . '">';
-        echo '<a href="' . $href . '" class="' . $linkClass . '">';
-
-        if (!empty($item['icon'])) {
-            echo '<i class="menu-icon tf-icons bx '
-                . esc(
-                    str_replace(
-                        'bx bx-',
-                        'bx-',
-                        $item['icon']
-                    ),
-                    'attr'
-                )
-                . '"></i>';
-        } else {
-            echo '<i class="menu-icon tf-icons bx bx-circle" '
-                . 'style="font-size:.4rem;opacity:.5"></i>';
-        }
-
-        echo '<div class="text-truncate">'
-            . esc($item['nama_menu'])
-            . '</div>';
-        echo '</a>';
-
-        if ($hasChildren) {
-            echo '<ul class="menu-sub">';
-            render_menu_items($item['children']);
-            echo '</ul>';
-        }
-
-        echo '</li>';
     }
-}
 }
 
 $settings = $systemSettings ?? [];
@@ -104,8 +104,14 @@ $logoUrl = $hasLogo
       </span>
       <span class="app-brand-text demo menu-text fw-bold ms-2">SisisFour</span>
     </a>
-    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-none d-xl-block">
-      <i class="icon-base bx bx-chevron-left icon-sm align-middle"></i>
+    <a
+      href="javascript:void(0);"
+      class="layout-menu-toggle menu-link text-large ms-auto d-none d-xl-block"
+      aria-label="Minimalkan sidebar"
+      aria-expanded="true"
+      title="Minimalkan / perluas sidebar"
+    >
+      <i class="icon-base bx bx-chevron-left icon-sm align-middle" data-sidebar-toggle-icon></i>
     </a>
   </div>
 

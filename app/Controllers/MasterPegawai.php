@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\PegawaiService;
+use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -10,10 +11,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class MasterPegawai extends BaseController
 {
     protected PegawaiService $pegawaiService;
+    protected MasterPaginationService $paginationService;
 
     public function __construct()
     {
         $this->pegawaiService = new PegawaiService();
+        $this->paginationService = new MasterPaginationService();
     }
 
     public function index()
@@ -21,9 +24,17 @@ class MasterPegawai extends BaseController
         $filter = $this->filters();
 
         if ($this->isJsonRequest()) {
+            $paging = $this->paginationService->normalizePaging(
+                $this->request->getGet()
+            );
+
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->pegawaiService->getList($filter),
+                'data' => $this->paginationService->pagePegawai(
+                    $filter,
+                    $paging['limit'],
+                    $paging['offset']
+                ),
             ]);
         }
 
@@ -146,7 +157,11 @@ class MasterPegawai extends BaseController
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        return $this->downloadSpreadsheet($spreadsheet, 'template_import_pegawai.xlsx', 'sisfour_pegawai_template_');
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'template_import_pegawai.xlsx',
+            'sisfour_pegawai_template_'
+        );
     }
 
     public function export()
@@ -248,8 +263,11 @@ class MasterPegawai extends BaseController
             ]);
     }
 
-    private function downloadSpreadsheet(Spreadsheet $spreadsheet, string $filename, string $prefix)
-    {
+    private function downloadSpreadsheet(
+        Spreadsheet $spreadsheet,
+        string $filename,
+        string $prefix
+    ) {
         $tempFile = tempnam(sys_get_temp_dir(), $prefix);
         (new Xlsx($spreadsheet))->save($tempFile);
 
@@ -259,6 +277,8 @@ class MasterPegawai extends BaseController
             }
         });
 
-        return $this->response->download($tempFile, null)->setFileName($filename);
+        return $this->response
+            ->download($tempFile, null)
+            ->setFileName($filename);
     }
 }

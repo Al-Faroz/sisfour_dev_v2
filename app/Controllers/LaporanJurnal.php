@@ -19,11 +19,11 @@ class LaporanJurnal extends BaseController
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $idTahun = (int) $this->request->getGet('id_tahun');
         $defaults = $this->service->defaultDates();
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respondService(
                 $this->service->getPaged(
                     $userId,
@@ -32,15 +32,29 @@ class LaporanJurnal extends BaseController
             );
         }
 
-        $options = $this->service->getOptions($userId, $idTahun ?: null);
+        $options = $this->service->getOptions(
+            $userId,
+            $idTahun ?: null
+        );
 
         return $this->response->setBody(
             $this->renderWithLayout('laporan/jurnal', [
                 'title' => 'Laporan Jurnal Mengajar',
                 'options' => $options,
-                'selectedTahun' => $idTahun ?: (int) ($options['selected_tahun'] ?? 0),
-                'tanggalMulai' => trim((string) ($this->request->getGet('tanggal_mulai') ?: $defaults['tanggal_mulai'])),
-                'tanggalSelesai' => trim((string) ($this->request->getGet('tanggal_selesai') ?: $defaults['tanggal_selesai'])),
+                'selectedTahun' => $idTahun
+                    ?: (int) ($options['selected_tahun'] ?? 0),
+                'tanggalMulai' => trim(
+                    (string) (
+                        $this->request->getGet('tanggal_mulai')
+                        ?: $defaults['tanggal_mulai']
+                    )
+                ),
+                'tanggalSelesai' => trim(
+                    (string) (
+                        $this->request->getGet('tanggal_selesai')
+                        ?: $defaults['tanggal_selesai']
+                    )
+                ),
                 'extraJs' => ['assets/js/laporan/jurnal.js'],
             ])
         );
@@ -48,7 +62,8 @@ class LaporanJurnal extends BaseController
 
     public function export()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
+
         $result = $this->service->getExportData(
             $userId,
             $this->request->getGet()
@@ -58,7 +73,10 @@ class LaporanJurnal extends BaseController
             return $this->respondService($result);
         }
 
-        $file = $this->exportService->exportJurnal($result, $userId);
+        $file = $this->exportService->exportJurnal(
+            $result,
+            $userId
+        );
 
         if (!($file['success'] ?? false)) {
             return $this->respondService($file);
@@ -85,24 +103,20 @@ class LaporanJurnal extends BaseController
             ->setFileName($filename);
     }
 
-    private function wantsJson(): bool
-    {
-        $path = rtrim($this->request->getUri()->getPath(), '/');
-
-        return $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX()
-            || str_ends_with($path, '/json');
-    }
-
     private function respondService(array $result)
     {
         $success = (bool) ($result['success'] ?? false);
 
         return $this->response
-            ->setStatusCode($success ? ResponseInterface::HTTP_OK : $this->httpCode($result['code'] ?? ''))
+            ->setStatusCode(
+                $success
+                    ? ResponseInterface::HTTP_OK
+                    : $this->httpCode((string) ($result['code'] ?? ''))
+            )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $result['message']
+                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
     }
@@ -110,7 +124,9 @@ class LaporanJurnal extends BaseController
     private function httpCode(string $code): int
     {
         return match ($code) {
-            'FORBIDDEN', 'FORBIDDEN_VIEW', 'NO_GURU_IDENTITY' => 403,
+            'FORBIDDEN',
+            'FORBIDDEN_VIEW',
+            'NO_GURU_IDENTITY' => 403,
             default => 422,
         };
     }

@@ -8,16 +8,52 @@
     const canManage = app.dataset.canManage === '1';
 
     const table = document.getElementById('tableJadwal');
-    const tbody = table.querySelector('tbody');
+    const tbody = table?.querySelector('tbody');
     const filterForm = document.getElementById('formFilterJadwal');
     const filterGuru = document.getElementById('filterGuru');
     const filterKelas = document.getElementById('filterKelas');
 
+    if (!table || !tbody || !filterForm || !filterGuru || !filterKelas) {
+        return;
+    }
+
     let rows = [];
-    let dataTable = null;
+
+    const state = {
+        limit: 25,
+        offset: 0,
+        total: 0,
+    };
 
     const endpoint = (path) =>
         `${baseUrl}/${path.replace(/^\/+/, '')}`;
+
+    const ensurePager = () => {
+        let container = document.getElementById('jadwalPager');
+
+        if (container) {
+            return container;
+        }
+
+        container = document.createElement('div');
+        container.id = 'jadwalPager';
+        container.className = 'card-footer';
+        table.closest('.card')?.appendChild(container);
+
+        return container;
+    };
+
+    const pager = window.SisfourPagination?.create(
+        ensurePager(),
+        {
+            label: 'jadwal',
+            onChange: (next) => {
+                state.limit = next.limit;
+                state.offset = next.offset;
+                loadData();
+            },
+        }
+    );
 
     const escapeHtml = (value) => {
         const div = document.createElement('div');
@@ -51,7 +87,7 @@
         showConfirmButton: false,
     });
 
-    const filterParams = () => {
+    const filterParams = (withPaging = true) => {
         const params = new URLSearchParams(
             new FormData(filterForm)
         );
@@ -62,34 +98,67 @@
             }
         }
 
+        if (withPaging) {
+            params.set('limit', String(state.limit));
+            params.set('offset', String(state.offset));
+        }
+
         return params;
     };
 
-    const destroyTable = () => {
-        if (dataTable && typeof dataTable.destroy === 'function') {
-            dataTable.destroy();
-            dataTable = null;
-        }
+    const syncUrl = () => {
+        const params = filterParams(true);
+        const query = params.toString();
+
+        window.history.replaceState(
+            null,
+            '',
+            `${window.location.pathname}${query ? `?${query}` : ''}`
+        );
     };
 
-    const initTable = () => {
-        if (typeof window.DataTable === 'function') {
-            dataTable = new window.DataTable(table, {
-                pageLength: 25,
-                lengthMenu: [10, 25, 50, 100],
-                order: [[4, 'asc'], [5, 'asc']],
+    const restoreState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const limit = Number(params.get('limit') || 25);
+        const offset = Number(params.get('offset') || 0);
+
+        state.limit = [25, 50, 100].includes(limit) ? limit : 25;
+        state.offset = Number.isFinite(offset) && offset >= 0
+            ? offset
+            : 0;
+
+        ['id_guru', 'id_kelas', 'id_tahun', 'hari', 'status_jadwal']
+            .forEach((name) => {
+                const value = params.get(name);
+
+                if (
+                    value !== null
+                    && filterForm.elements[name]
+                ) {
+                    filterForm.elements[name].value = value;
+                }
             });
-        }
     };
 
     const renderRows = () => {
-        destroyTable();
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${canManage ? 10 : 9}" class="text-center text-muted py-4">
+                        Tidak ada jadwal pada filter ini.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
 
         tbody.innerHTML = rows.map((row, index) => {
             const statusClass =
                 row.status_jadwal === 'Aktif'
                     ? 'success'
                     : 'secondary';
+
+            const identifier = String(row.nip || row.nik || '').trim();
 
             const action = canManage
                 ? `
@@ -108,13 +177,13 @@
 
             return `
                 <tr>
-                    <td>${index + 1}</td>
+                    <td>${state.offset + index + 1}</td>
                     <td>
                         <div class="fw-semibold">
                             ${escapeHtml(row.nama_guru)}
                         </div>
                         <small class="text-muted font-monospace">
-                            ${escapeHtml(row.nip)}
+                            ${escapeHtml(identifier || '-')}
                         </small>
                     </td>
                     <td>${escapeHtml(row.nama_kelas)}</td>
@@ -126,9 +195,9 @@
                     </td>
                     <td>${escapeHtml(row.hari)}</td>
                     <td class="font-monospace">
-                        ${escapeHtml(String(row.jam_mulai).slice(0,5))}
+                        ${escapeHtml(String(row.jam_mulai).slice(0, 5))}
                         -
-                        ${escapeHtml(String(row.jam_selesai).slice(0,5))}
+                        ${escapeHtml(String(row.jam_selesai).slice(0, 5))}
                     </td>
                     <td>${escapeHtml(row.sesi)}</td>
                     <td>
@@ -150,19 +219,26 @@
                 </tr>
             `;
         }).join('');
-
-        initTable();
     };
 
     const loadData = async () => {
+        pager?.setDisabled(true);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${canManage ? 10 : 9}" class="text-center py-4">
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    Memuat jadwal...
+                </td>
+            </tr>
+        `;
+
         try {
-            const params = filterParams();
-            const suffix = params.toString()
-                ? `?${params.toString()}`
-                : '';
+            const params = filterParams(true);
+            params.set('format', 'json');
 
             const response = await fetch(
-                endpoint(`master/jadwal/json${suffix}`),
+                endpoint(`master/jadwal/json?${params.toString()}`),
                 {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -172,10 +248,20 @@
             );
 
             const result = await parseResponse(response);
-            rows = Array.isArray(result.data) ? result.data : [];
+            const data = result.data || {};
+
+            rows = Array.isArray(data.rows) ? data.rows : [];
+            state.total = Number(data.total || 0);
+            state.limit = Number(data.limit || state.limit);
+            state.offset = Number(data.offset || 0);
+
             renderRows();
+            pager?.render(state);
+            syncUrl();
         } catch (error) {
             showError(error);
+        } finally {
+            pager?.setDisabled(false);
         }
     };
 
@@ -199,6 +285,7 @@
 
             const result = await parseResponse(response);
             const options = result.data?.kelas || [];
+            const selected = filterKelas.value;
 
             filterKelas.innerHTML = `
                 <option value="">Semua</option>
@@ -212,24 +299,36 @@
                     </option>
                 `).join('')}
             `;
+
+            if (
+                selected
+                && options.some(
+                    (kelas) => String(kelas.id) === String(selected)
+                )
+            ) {
+                filterKelas.value = selected;
+            }
         } catch (error) {
             showError(error);
         }
     };
 
     filterGuru.addEventListener('change', async () => {
+        state.offset = 0;
         await loadKelasByGuru();
     });
 
     filterForm.addEventListener('submit', (event) => {
         event.preventDefault();
+        state.offset = 0;
         loadData();
     });
 
     document
         .getElementById('btnResetFilter')
-        .addEventListener('click', async () => {
+        ?.addEventListener('click', async () => {
             filterForm.reset();
+            state.offset = 0;
             await loadKelasByGuru();
             await loadData();
         });
@@ -244,12 +343,12 @@
 
         document
             .getElementById('btnImportJadwal')
-            .addEventListener('click', () => {
+            ?.addEventListener('click', () => {
                 importForm.reset();
                 modal.show();
             });
 
-        importForm.addEventListener('submit', async (event) => {
+        importForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const button =
@@ -283,6 +382,7 @@
                     text: result.message,
                 });
 
+                state.offset = 0;
                 await loadKelasByGuru();
                 await loadData();
             } catch (error) {
@@ -295,10 +395,10 @@
 
         document
             .getElementById('btnExportJadwal')
-            .addEventListener('click', (event) => {
+            ?.addEventListener('click', (event) => {
                 event.preventDefault();
 
-                const params = filterParams();
+                const params = filterParams(false);
                 const suffix = params.toString()
                     ? `?${params.toString()}`
                     : '';
@@ -329,9 +429,9 @@
                     ${escapeHtml(row?.nama_mapel || '')}
                     <br>
                     ${escapeHtml(row?.hari || '')}
-                    ${escapeHtml(String(row?.jam_mulai || '').slice(0,5))}
+                    ${escapeHtml(String(row?.jam_mulai || '').slice(0, 5))}
                     -
-                    ${escapeHtml(String(row?.jam_selesai || '').slice(0,5))}
+                    ${escapeHtml(String(row?.jam_selesai || '').slice(0, 5))}
                 `,
                 showCancelButton: true,
                 confirmButtonText: 'Ya, hapus',
@@ -362,5 +462,6 @@
         });
     }
 
+    restoreState();
     loadData();
 })();

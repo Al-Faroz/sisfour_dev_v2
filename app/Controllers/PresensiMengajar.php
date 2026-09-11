@@ -24,7 +24,7 @@ class PresensiMengajar extends BaseController
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
         $idGuru = (int) $this->request->getGet('id_guru');
 
@@ -32,15 +32,22 @@ class PresensiMengajar extends BaseController
             $tanggal = Time::now(self::TZ)->format('Y-m-d');
         }
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Data pilihan Jurnal berhasil dimuat.',
                 'data' => [
                     'tanggal' => $tanggal,
-                    'guru' => $this->service->getGuruInputOptions($userId, $tanggal),
+                    'guru' => $this->service->getGuruInputOptions(
+                        $userId,
+                        $tanggal
+                    ),
                     'jadwal' => $idGuru > 0
-                        ? $this->service->getJadwalByGuruTanggal($userId, $idGuru, $tanggal)
+                        ? $this->service->getJadwalByGuruTanggal(
+                            $userId,
+                            $idGuru,
+                            $tanggal
+                        )
                         : [],
                 ],
             ]);
@@ -52,9 +59,16 @@ class PresensiMengajar extends BaseController
                 'tanggal' => $tanggal,
                 'selectedGuru' => $idGuru,
                 'selectedJadwal' => (int) $this->request->getGet('id_jadwal'),
-                'guruOptions' => $this->service->getGuruInputOptions($userId, $tanggal),
+                'guruOptions' => $this->service->getGuruInputOptions(
+                    $userId,
+                    $tanggal
+                ),
                 'jadwalOptions' => $idGuru > 0
-                    ? $this->service->getJadwalByGuruTanggal($userId, $idGuru, $tanggal)
+                    ? $this->service->getJadwalByGuruTanggal(
+                        $userId,
+                        $idGuru,
+                        $tanggal
+                    )
                     : [],
                 'tahunAktif' => $this->service->getTahunAktifInfo(),
                 'extraJs' => ['assets/js/presensi/mengajar.js'],
@@ -64,7 +78,7 @@ class PresensiMengajar extends BaseController
 
     public function input($idJadwal)
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
 
         if ($tanggal === '') {
@@ -77,7 +91,7 @@ class PresensiMengajar extends BaseController
             $tanggal
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respondService($result);
         }
 
@@ -94,7 +108,11 @@ class PresensiMengajar extends BaseController
                     $tanggal
                 ),
                 'jadwalOptions' => $idGuru > 0
-                    ? $this->service->getJadwalByGuruTanggal($userId, $idGuru, $tanggal)
+                    ? $this->service->getJadwalByGuruTanggal(
+                        $userId,
+                        $idGuru,
+                        $tanggal
+                    )
                     : [],
                 'tahunAktif' => $this->service->getTahunAktifInfo(),
                 'initialResult' => $result,
@@ -107,7 +125,7 @@ class PresensiMengajar extends BaseController
     {
         return $this->respondService(
             $this->service->save(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 $this->getPayload()
             ),
             201
@@ -116,13 +134,20 @@ class PresensiMengajar extends BaseController
 
     public function laporan()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $now = Time::now(self::TZ);
 
-        $tanggalMulai = trim((string) $this->request->getGet('tanggal_mulai'));
-        $tanggalSelesai = trim((string) $this->request->getGet('tanggal_selesai'));
+        $tanggalMulai = trim(
+            (string) $this->request->getGet('tanggal_mulai')
+        );
+        $tanggalSelesai = trim(
+            (string) $this->request->getGet('tanggal_selesai')
+        );
         $statusRaw = trim((string) $this->request->getGet('status'));
-        $limit = max(1, min(500, (int) ($this->request->getGet('limit') ?: 50)));
+        $limit = max(
+            1,
+            min(500, (int) ($this->request->getGet('limit') ?: 50))
+        );
         $offset = max(0, (int) $this->request->getGet('offset'));
 
         if ($tanggalMulai === '') {
@@ -137,7 +162,7 @@ class PresensiMengajar extends BaseController
             ? $statusRaw
             : null;
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respondService(
                 $this->service->getHistori(
                     $userId,
@@ -172,12 +197,6 @@ class PresensiMengajar extends BaseController
         $post = $this->request->getPost();
 
         return is_array($post) ? $post : [];
-    }
-
-    private function wantsJson(): bool
-    {
-        return $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX();
     }
 
     private function respondService(array $result, int $successCode = 200)

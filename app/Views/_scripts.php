@@ -7,8 +7,8 @@
 <!--
   DataTables dan Select2 tidak lagi dimuat global.
   Business UI SisisFour menggunakan Vanilla JS + Fetch API dan komponen
-  searchable-select internal. Library vendor tetap boleh dipakai kembali
-  secara page-specific bila benar-benar dibutuhkan pada modul legacy.
+  internal. Library vendor tetap boleh dipakai kembali secara page-specific
+  hanya bila benar-benar dibutuhkan modul legacy.
 -->
 <script src="<?= sisfour_asset_url('assets/vendor/libs/sweetalert2/sweetalert2.all.min.js') ?>"></script>
 <script src="<?= sisfour_asset_url('assets/vendor/libs/apex-charts/apexcharts.js') ?>"></script>
@@ -19,11 +19,9 @@
 -->
 <script src="<?= sisfour_asset_url('assets/js/csrf-fetch.js') ?>"></script>
 
-<!--
-  Komponen searchable-select SisisFour menggunakan Vanilla JS.
-  Tidak bergantung pada jQuery/Select2.
--->
+<!-- Komponen UI internal SisisFour: Vanilla JS, tanpa jQuery/Select2/DataTables. -->
 <script src="<?= sisfour_asset_url('assets/js/components/searchable-select.js') ?>"></script>
+<script src="<?= sisfour_asset_url('assets/js/components/pagination.js') ?>"></script>
 
 <script src="<?= sisfour_asset_url('assets/js/main.js') ?>"></script>
 

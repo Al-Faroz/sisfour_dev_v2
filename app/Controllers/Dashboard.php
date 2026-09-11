@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\DashboardService;
+use App\Services\RoleAwareDashboardService;
 
 /**
  * Dashboard
@@ -12,19 +12,19 @@ use App\Services\DashboardService;
  */
 class Dashboard extends BaseController
 {
-    protected DashboardService $dashboardService;
+    protected RoleAwareDashboardService $dashboardService;
 
     public function __construct()
     {
-        $this->dashboardService = new DashboardService();
+        $this->dashboardService = new RoleAwareDashboardService();
     }
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $result = $this->dashboardService->build($userId);
 
-        if ($this->request->getGet('format') === 'json' || $this->request->isAJAX()) {
+        if ($this->requestWantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => $result,

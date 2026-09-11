@@ -6,13 +6,37 @@
 
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
   const canManage = app.dataset.canManage === '1';
-  const tbody = document.querySelector('#tablePegawai tbody');
+  const table = document.getElementById('tablePegawai');
+  const tbody = table?.querySelector('tbody');
   const filterForm = document.getElementById('formFilterPegawai');
   const form = document.getElementById('formPegawai');
   const modalEl = document.getElementById('modalPegawai');
   const importModalEl = document.getElementById('modalImportPegawai');
   const importForm = document.getElementById('formImportPegawai');
   let rows = [];
+  const state = { limit: 25, offset: 0, total: 0 };
+
+  if (!table || !tbody || !filterForm) return;
+
+  const ensurePager = () => {
+    let container = document.getElementById('pegawaiPager');
+    if (container) return container;
+
+    container = document.createElement('div');
+    container.id = 'pegawaiPager';
+    container.className = 'card-footer';
+    table.closest('.card')?.appendChild(container);
+    return container;
+  };
+
+  const pager = window.SisfourPagination?.create(ensurePager(), {
+    label: 'pegawai',
+    onChange: (next) => {
+      state.limit = next.limit;
+      state.offset = next.offset;
+      load();
+    },
+  });
 
   const esc = (value) => {
     const node = document.createElement('div');
@@ -25,13 +49,41 @@
     return text === '' ? '-' : esc(text);
   };
 
-  const params = () => {
+  const params = (withPaging = true) => {
     const p = new URLSearchParams({ format: 'json' });
     ['nama', 'nik', 'nip', 'jenis_kelamin', 'status_kepegawaian'].forEach((name) => {
-      const value = filterForm?.elements[name]?.value?.trim();
+      const value = filterForm.elements[name]?.value?.trim();
       if (value) p.set(name, value);
     });
+
+    if (withPaging) {
+      p.set('limit', String(state.limit));
+      p.set('offset', String(state.offset));
+    }
+
     return p;
+  };
+
+  const syncUrl = () => {
+    const p = params(true);
+    p.delete('format');
+    const query = p.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  };
+
+  const restoreState = () => {
+    const p = new URLSearchParams(window.location.search);
+    const limit = Number(p.get('limit') || 25);
+    const offset = Number(p.get('offset') || 0);
+    state.limit = [25, 50, 100].includes(limit) ? limit : 25;
+    state.offset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
+
+    ['nama', 'nik', 'nip', 'jenis_kelamin', 'status_kepegawaian'].forEach((name) => {
+      const value = p.get(name);
+      if (value !== null && filterForm.elements[name]) {
+        filterForm.elements[name].value = value;
+      }
+    });
   };
 
   function message(text, type = 'success') {
@@ -42,30 +94,12 @@
         confirmButtonText: 'OK',
       });
     }
+
     window.alert(text);
     return Promise.resolve();
   }
 
-  async function load() {
-    try {
-      const response = await fetch(`${base}/master/pegawai?${params()}`, {
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      });
-      const payload = await response.json();
-      if (!response.ok || payload.status !== 'success') {
-        await message(payload.message || 'Gagal memuat data Pegawai.', 'error');
-        return;
-      }
-      rows = Array.isArray(payload.data) ? payload.data : [];
-      render();
-    } catch (error) {
-      await message('Terjadi kesalahan jaringan saat memuat data Pegawai.', 'error');
-    }
-  }
-
   function render() {
-    if (!tbody) return;
-
     tbody.innerHTML = rows.map((row, index) => {
       const complete = Boolean(row.identity_complete);
       const identityBadge = complete
@@ -83,7 +117,7 @@
         : '';
 
       return `<tr data-row="${data}">
-        <td>${index + 1}</td>
+        <td>${state.offset + index + 1}</td>
         <td><strong>${esc(row.nama)}</strong><br><small>${row.jenis_kelamin === 'P' ? 'Perempuan' : 'Laki-laki'}</small></td>
         <td>${valueOrDash(row.nik)}<br>${identityBadge}</td>
         <td>${valueOrDash(row.nip)}</td>
@@ -98,6 +132,36 @@
     }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada data Pegawai.</td></tr>';
 
     bindRows();
+  }
+
+  async function load() {
+    pager?.setDisabled(true);
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</td></tr>';
+
+    try {
+      const response = await fetch(`${base}/master/pegawai?${params(true)}`, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const payload = await response.json();
+
+      if (!response.ok || payload.status !== 'success') {
+        await message(payload.message || 'Gagal memuat data Pegawai.', 'error');
+        return;
+      }
+
+      const data = payload.data || {};
+      rows = Array.isArray(data.rows) ? data.rows : [];
+      state.total = Number(data.total || 0);
+      state.limit = Number(data.limit || state.limit);
+      state.offset = Number(data.offset || 0);
+      render();
+      pager?.render(state);
+      syncUrl();
+    } catch (error) {
+      await message('Terjadi kesalahan jaringan saat memuat data Pegawai.', 'error');
+    } finally {
+      pager?.setDisabled(false);
+    }
   }
 
   function rowData(button) {
@@ -159,20 +223,24 @@
     fields.forEach((name) => {
       if (form.elements[name]) form.elements[name].value = row?.[name] ?? '';
     });
-    if (form.elements.foto) form.elements.foto.value = '';
 
+    if (form.elements.foto) form.elements.foto.value = '';
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
   async function uploadPhotoPrompt(row) {
     if (!row) return;
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/png';
+
     input.addEventListener('change', async () => {
       if (!input.files?.[0]) return;
+
       const fd = new FormData();
       fd.append('foto', input.files[0]);
+
       try {
         const response = await fetch(`${base}/master/pegawai/upload-foto/${row.id}`, {
           method: 'POST',
@@ -180,22 +248,27 @@
           headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
         const payload = await response.json();
+
         if (!response.ok || payload.status !== 'success') {
           await message(payload.message || 'Gagal memperbarui foto.', 'error');
           return;
         }
+
         await message(payload.message || 'Foto berhasil diperbarui.');
-        load();
+        await load();
       } catch (error) {
         await message('Terjadi kesalahan jaringan.', 'error');
       }
     });
+
     input.click();
   }
 
   async function remove(row) {
     if (!row) return;
+
     let confirmed = window.confirm(`Pindahkan ${row.nama} ke Recycle Bin?`);
+
     if (window.Swal) {
       const result = await Swal.fire({
         icon: 'warning',
@@ -207,6 +280,7 @@
       });
       confirmed = result.isConfirmed;
     }
+
     if (!confirmed) return;
 
     try {
@@ -215,12 +289,14 @@
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       });
       const payload = await response.json();
+
       if (!response.ok || payload.status !== 'success') {
         await message(payload.message || 'Gagal menghapus data Pegawai.', 'error');
         return;
       }
+
       await message(payload.message || 'Data dipindahkan ke Recycle Bin.');
-      load();
+      await load();
     } catch (error) {
       await message('Terjadi kesalahan jaringan.', 'error');
     }
@@ -231,21 +307,21 @@
     bootstrap.Modal.getOrCreateInstance(importModalEl).show();
   });
 
-  filterForm?.addEventListener('submit', (event) => {
+  filterForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    state.offset = 0;
     load();
   });
 
   document.getElementById('btnResetFilter')?.addEventListener('click', () => {
-    filterForm?.reset();
+    filterForm.reset();
+    state.offset = 0;
     load();
   });
 
   document.getElementById('btnExportPegawai')?.addEventListener('click', (event) => {
     event.preventDefault();
-    const p = params();
-    p.delete('format');
-    window.location.href = `${base}/master/pegawai/export?${p}`;
+    window.location.href = `${base}/master/pegawai/export?${params(false)}`;
   });
 
   form?.addEventListener('submit', async (event) => {
@@ -256,6 +332,7 @@
 
     try {
       let response;
+
       if (!id) {
         response = await fetch(`${base}/master/pegawai/create`, {
           method: 'POST',
@@ -276,6 +353,7 @@
       }
 
       const payload = await response.json();
+
       if (!response.ok || payload.status !== 'success') {
         await message(payload.message || 'Gagal menyimpan data Pegawai.', 'error');
         return;
@@ -284,12 +362,14 @@
       if (id && photo instanceof File && photo.size > 0) {
         const photoData = new FormData();
         photoData.append('foto', photo);
+
         const photoResponse = await fetch(`${base}/master/pegawai/upload-foto/${id}`, {
           method: 'POST',
           body: photoData,
           headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
         const photoPayload = await photoResponse.json();
+
         if (!photoResponse.ok || photoPayload.status !== 'success') {
           await message(`${payload.message} Namun foto gagal diperbarui: ${photoPayload.message || 'unknown error'}`, 'error');
           return;
@@ -298,7 +378,7 @@
 
       bootstrap.Modal.getInstance(modalEl)?.hide();
       await message(payload.message || 'Data Pegawai berhasil disimpan.');
-      load();
+      await load();
     } catch (error) {
       await message('Terjadi kesalahan jaringan saat menyimpan data.', 'error');
     }
@@ -307,6 +387,7 @@
   importForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const fd = new FormData(importForm);
+
     try {
       const response = await fetch(`${base}/master/pegawai/import`, {
         method: 'POST',
@@ -314,18 +395,22 @@
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       });
       const payload = await response.json();
+
       if (!response.ok || payload.status !== 'success') {
         await message(payload.message || 'Import gagal.', 'error');
         return;
       }
+
       bootstrap.Modal.getInstance(importModalEl)?.hide();
       importForm.reset();
+      state.offset = 0;
       await message(payload.message || 'Import berhasil.');
-      load();
+      await load();
     } catch (error) {
       await message('Terjadi kesalahan jaringan saat import.', 'error');
     }
   });
 
+  restoreState();
   load();
 })();

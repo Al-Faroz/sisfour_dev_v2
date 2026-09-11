@@ -22,9 +22,9 @@ class KartuPelajar extends BaseController
 
     public function daftar()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respond(
                 $this->service->getPage(
                     $userId,
@@ -38,11 +38,10 @@ class KartuPelajar extends BaseController
                 'kartu/daftar',
                 [
                     'title' => 'Kartu Pelajar',
-                    'initial' =>
-                        $this->service->getPage(
-                            $userId,
-                            []
-                        ),
+                    'initial' => $this->service->getPage(
+                        $userId,
+                        []
+                    ),
                     'extraJs' => [
                         'assets/js/kartu/daftar.js',
                     ],
@@ -55,8 +54,8 @@ class KartuPelajar extends BaseController
     {
         return $this->respond(
             $this->service->generate(
-                (int) session()->get('user_id'),
-                $this->request->getPost()
+                $this->currentActorUserId(),
+                $this->getPayload()
             )
         );
     }
@@ -65,8 +64,8 @@ class KartuPelajar extends BaseController
     {
         return $this->respond(
             $this->service->generateBulk(
-                (int) session()->get('user_id'),
-                $this->request->getPost()
+                $this->currentActorUserId(),
+                $this->getPayload()
             )
         );
     }
@@ -74,7 +73,7 @@ class KartuPelajar extends BaseController
     public function preview($id)
     {
         $result = $this->service->getCard(
-            (int) session()->get('user_id'),
+            $this->currentActorUserId(),
             (int) $id
         );
 
@@ -86,15 +85,13 @@ class KartuPelajar extends BaseController
             $result['card']
         );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => [
                     'card' => $result['card'],
-                    'qr_payload' =>
-                        $data['qr_payload'],
-                    'verify_url' =>
-                        $data['verify_url'],
+                    'qr_payload' => $data['qr_payload'],
+                    'verify_url' => $data['verify_url'],
                 ],
             ]);
         }
@@ -103,8 +100,7 @@ class KartuPelajar extends BaseController
             $this->renderWithLayout(
                 'kartu/preview',
                 [
-                    'title' =>
-                        'Preview Kartu Pelajar',
+                    'title' => 'Preview Kartu Pelajar',
                     ...$data,
                 ]
             )
@@ -119,7 +115,7 @@ class KartuPelajar extends BaseController
     public function download($id)
     {
         $result = $this->service->getCard(
-            (int) session()->get('user_id'),
+            $this->currentActorUserId(),
             (int) $id
         );
 
@@ -158,9 +154,11 @@ class KartuPelajar extends BaseController
 
     public function cetakMassal()
     {
+        $payload = $this->getPayload();
+
         $result = $this->service->getCardsForPrint(
-            (int) session()->get('user_id'),
-            $this->request->getPost()
+            $this->currentActorUserId(),
+            $payload
         );
 
         if (!$result['success']) {
@@ -168,10 +166,7 @@ class KartuPelajar extends BaseController
         }
 
         $side = strtolower(
-            trim(
-                (string)
-                $this->request->getPost('side')
-            )
+            trim((string) ($payload['side'] ?? ''))
         );
 
         $side = in_array(
@@ -216,7 +211,7 @@ class KartuPelajar extends BaseController
     {
         return $this->respond(
             $this->service->reissue(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id
             )
         );
@@ -227,41 +222,42 @@ class KartuPelajar extends BaseController
         return view(
             'kartu/verify',
             [
-                'title' =>
-                    'Verifikasi Kartu Pelajar',
-                'result' =>
-                    $this->service->verifyPublic(
-                        (string) $code
-                    ),
+                'title' => 'Verifikasi Kartu Pelajar',
+                'result' => $this->service->verifyPublic(
+                    (string) $code
+                ),
             ]
         );
     }
 
-    private function wantsJson(): bool
+    private function getPayload(): array
     {
-        $path = rtrim(
-            $this->request->getUri()->getPath(),
-            '/'
-        );
+        $json = $this->request->getJSON(true);
 
-        return $this->request
-                ->getGet('format') === 'json'
-            || $this->request->isAJAX()
-            || str_ends_with($path, '/json');
+        if (is_array($json) && $json !== []) {
+            return $json;
+        }
+
+        $post = $this->request->getPost();
+
+        if (is_array($post) && $post !== []) {
+            return $post;
+        }
+
+        $raw = $this->request->getRawInput();
+
+        return is_array($raw) ? $raw : [];
     }
 
     private function respond(array $result)
     {
-        $success =
-            (bool) ($result['success'] ?? false);
+        $success = (bool) ($result['success'] ?? false);
 
         return $this->response
             ->setStatusCode(
                 $success
                     ? 200
-                    : match (
-                        $result['code'] ?? ''
-                    ) {
+                    : match ($result['code'] ?? '') {
                         'FORBIDDEN',
                         'NO_STUDENT_IDENTITY',
                         'NO_GURU_IDENTITY'
@@ -273,17 +269,9 @@ class KartuPelajar extends BaseController
                     }
             )
             ->setJSON([
-                'status' =>
-                    $success
-                        ? 'success'
-                        : 'error',
-                'message' =>
-                    $result['message']
-                    ?? (
-                        $success
-                            ? 'Berhasil.'
-                            : 'Gagal.'
-                    ),
+                'status' => $success ? 'success' : 'error',
+                'message' => $result['message']
+                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
     }

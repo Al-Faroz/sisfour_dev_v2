@@ -2,6 +2,18 @@
 
 <?= $this->section('content') ?>
 
+<?php
+$guruIdentifier = static function (array $guru): string {
+    $nip = trim((string) ($guru['nip'] ?? ''));
+
+    if ($nip !== '') {
+        return $nip;
+    }
+
+    return trim((string) ($guru['nik'] ?? ''));
+};
+?>
+
 <div
     id="masterJadwalApp"
     data-base-url="<?= esc(base_url()) ?>"
@@ -48,9 +60,9 @@
 
     <div class="alert alert-info">
         <i class="bx bx-info-circle me-1"></i>
-        Tidak ada input jadwal manual satu-satu. Import baru akan menonaktifkan
-        seluruh jadwal aktif lama tanpa menghapus histori, lalu memasukkan
-        jadwal baru sebagai <strong>Aktif</strong>.
+        Import menggunakan <strong>NIP atau NIK Guru</strong> sebagai identitas.
+        Import baru hanya menonaktifkan jadwal aktif lama pada
+        <strong>Tahun Ajaran/Semester yang dipilih</strong>, tanpa menghapus histori.
     </div>
 
     <div class="card mb-4">
@@ -65,8 +77,12 @@
                     >
                         <option value="">Semua</option>
                         <?php foreach (($options['guru'] ?? []) as $guru): ?>
+                            <?php $identifier = $guruIdentifier($guru); ?>
                             <option value="<?= (int) $guru['id'] ?>">
-                                <?= esc($guru['nama'] . ' (' . $guru['nip'] . ')') ?>
+                                <?= esc(
+                                    $guru['nama']
+                                    . ($identifier !== '' ? ' (' . $identifier . ')' : '')
+                                ) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -127,7 +143,10 @@
                         name="hari"
                     >
                         <option value="">Semua</option>
-                        <?php foreach (['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $hari): ?>
+                        <?php foreach (
+                            ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+                            as $hari
+                        ): ?>
                             <option value="<?= esc($hari) ?>">
                                 <?= esc($hari) ?>
                             </option>
@@ -169,6 +188,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Daftar Jadwal Guru</h5>
+
             <?php if (empty($canManage)): ?>
                 <span class="badge bg-label-info">Readonly</span>
             <?php endif; ?>
@@ -190,6 +210,7 @@
                         <th>Sesi</th>
                         <th>Tahun Ajaran</th>
                         <th>Status</th>
+
                         <?php if (!empty($canManage)): ?>
                             <th style="width:80px;">Aksi</th>
                         <?php endif; ?>
@@ -216,6 +237,7 @@
                             <h5 class="modal-title">
                                 Import Jadwal Guru
                             </h5>
+
                             <button
                                 type="button"
                                 class="btn-close"
@@ -231,6 +253,12 @@
                                 seluruh import.
                             </div>
 
+                            <div class="alert alert-light border">
+                                Kolom <strong>IDENTITAS_GURU</strong> menerima
+                                NIP 18 digit atau NIK 16 digit dan wajib
+                                disimpan sebagai <strong>Text</strong> di Excel.
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label" for="importTahun">
                                     Tahun Ajaran / Semester Aktif
@@ -243,11 +271,10 @@
                                     required
                                 >
                                     <option value="">Pilih</option>
+
                                     <?php foreach (($options['tahun'] ?? []) as $tahun): ?>
                                         <?php if ((int) $tahun['status_aktif'] === 1): ?>
-                                            <option
-                                                value="<?= (int) $tahun['id'] ?>"
-                                            >
+                                            <option value="<?= (int) $tahun['id'] ?>">
                                                 <?= esc(
                                                     $tahun['nama_tahun']
                                                     . ' - '

@@ -1,0 +1,236 @@
+/*
+ * SisisFour Global UI Foundation
+ * Shared UI primitives only. Page-specific styling stays in the page/module.
+ */
+
+.sisfour-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--bs-border-color, rgba(67, 89, 113, 0.12));
+}
+
+.sisfour-pager__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sisfour-pager__limit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.sisfour-pager__limit .form-select {
+  width: auto;
+  min-width: 4.75rem;
+}
+
+.sisfour-pager .page-link {
+  min-width: 2rem;
+  text-align: center;
+}
+
+.layout-menu-toggle [data-sidebar-toggle-icon] {
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 767.98px) {
+  .sisfour-pager {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sisfour-pager__summary {
+    justify-content: space-between;
+  }
+
+  .sisfour-pager nav {
+    overflow-x: auto;
+    padding-bottom: 0.125rem;
+  }
+
+  .sisfour-pager .pagination {
+    width: max-content;
+    min-width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Desktop compact sidebar: toggle tetap mudah ditemukan saat sidebar kecil. */
+@media (min-width: 1200px) {
+  .layout-menu-collapsed:not(.layout-menu-hover) #layout-menu .app-brand .layout-menu-toggle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .layout-menu-collapsed #layout-menu .app-brand {
+    overflow: visible;
+  }
+}
+
+/* STEP 04 — Guru/Pegawai Profile & Personalia */
+
+.sisfour-profile-hero { position: relative; overflow: hidden; }
+.sisfour-profile-hero__body { display: flex; align-items: center; gap: 1.5rem; }
+.sisfour-profile-photo {
+  width: 112px; height: 144px; flex: 0 0 112px; border-radius: .75rem;
+  object-fit: cover; border: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+  background: var(--bs-body-bg, #fff);
+}
+.sisfour-profile-photo--lg { width: 132px; height: 176px; flex-basis: 132px; }
+.sisfour-profile-photo__fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--bs-secondary-color, #8592a3); background: var(--bs-secondary-bg, #f5f5f9);
+  font-size: 3rem;
+}
+.sisfour-profile-identity { min-width: 0; flex: 1 1 auto; }
+.sisfour-profile-name {
+  margin-bottom: .35rem; font-size: clamp(1.35rem, 1.1rem + .8vw, 2rem); line-height: 1.2;
+}
+.sisfour-meta-list {
+  display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .75rem;
+  color: var(--bs-secondary-color, #697a8d); font-size: .875rem;
+}
+.sisfour-meta-list__item { display: inline-flex; align-items: center; gap: .35rem; min-width: 0; }
+.sisfour-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .875rem; }
+.sisfour-stat-card {
+  padding: 1rem; border: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+  border-radius: .75rem; background: var(--bs-body-bg, #fff);
+}
+.sisfour-stat-card__value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+.sisfour-stat-card__label {
+  margin-top: .4rem; color: var(--bs-secondary-color, #697a8d); font-size: .8125rem;
+}
+.sisfour-section-heading {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1rem;
+}
+.sisfour-section-heading__copy { min-width: 0; }
+.sisfour-section-heading__copy p {
+  margin-bottom: 0; color: var(--bs-secondary-color, #697a8d);
+}
+.sisfour-info-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0;
+  border: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+  border-radius: .75rem; overflow: hidden;
+}
+.sisfour-info-item {
+  padding: .9rem 1rem; border-bottom: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+}
+.sisfour-info-item:nth-child(odd) {
+  border-right: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+}
+.sisfour-info-item__label {
+  display: block; margin-bottom: .25rem; color: var(--bs-secondary-color, #697a8d);
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .025em;
+}
+.sisfour-info-item__value { font-weight: 500; overflow-wrap: anywhere; }
+.sisfour-empty-state { padding: 2.75rem 1.25rem; text-align: center; }
+.sisfour-empty-state__icon {
+  display: inline-flex; width: 3.25rem; height: 3.25rem; align-items: center;
+  justify-content: center; margin-bottom: .8rem; border-radius: 50%;
+  background: var(--bs-secondary-bg, #f5f5f9);
+  color: var(--bs-secondary-color, #697a8d); font-size: 1.6rem;
+}
+.sisfour-record-card {
+  border: 1px solid var(--bs-border-color, rgba(67,89,113,.12)); border-radius: .75rem;
+  padding: 1rem; background: var(--bs-body-bg, #fff);
+}
+.sisfour-record-card + .sisfour-record-card { margin-top: .75rem; }
+.sisfour-record-card__title { font-weight: 600; line-height: 1.3; }
+.sisfour-record-card__meta {
+  margin-top: .35rem; color: var(--bs-secondary-color, #697a8d); font-size: .8125rem;
+}
+.sisfour-record-card__footer {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: .75rem; margin-top: .9rem; padding-top: .9rem;
+  border-top: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+}
+.sisfour-action-group { display: inline-flex; align-items: center; gap: .35rem; }
+.sisfour-profile-section {
+  border-top: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+  padding-top: 1.25rem; margin-top: 1.25rem;
+}
+.sisfour-profile-section:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.sisfour-profile-section__title { margin-bottom: 1rem; font-size: .95rem; font-weight: 600; }
+.sisfour-readonly-field {
+  min-height: 38px; padding: .45rem .75rem; border: 1px solid var(--bs-border-color, rgba(67,89,113,.12));
+  border-radius: .375rem; background: var(--bs-secondary-bg, #f5f5f9);
+  color: var(--bs-body-color, #566a7f); overflow-wrap: anywhere;
+}
+.sisfour-file-tile { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.sisfour-file-tile__icon {
+  display: inline-flex; width: 2.5rem; height: 2.5rem; flex: 0 0 2.5rem;
+  align-items: center; justify-content: center; border-radius: .5rem;
+  background: var(--bs-secondary-bg, #f5f5f9); font-size: 1.25rem;
+}
+.sisfour-file-tile__copy { min-width: 0; }
+.sisfour-file-tile__copy strong,
+.sisfour-file-tile__copy small {
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+  .sisfour-stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .sisfour-profile-hero__body { align-items: flex-start; }
+  .sisfour-profile-photo--lg { width: 112px; height: 150px; flex-basis: 112px; }
+}
+
+@media (max-width: 575.98px) {
+  .sisfour-profile-hero__body { flex-direction: column; align-items: stretch; }
+  .sisfour-profile-photo, .sisfour-profile-photo--lg {
+    width: 96px; height: 128px; flex-basis: auto;
+  }
+  .sisfour-profile-hero__actions { display: grid !important; grid-template-columns: 1fr; width: 100%; }
+  .sisfour-stat-grid, .sisfour-info-grid { grid-template-columns: 1fr; }
+  .sisfour-info-item:nth-child(odd) { border-right: 0; }
+  .sisfour-section-heading { flex-direction: column; }
+  .sisfour-section-heading > .btn,
+  .sisfour-section-heading > .d-flex { width: 100%; }
+}
+
+/* STEP 04 FIX1 — use Sneat native tabs structure, no desktop scrollbar. */
+.sisfour-personalia-native-tabs .nav-tabs {
+  flex-wrap: nowrap;
+}
+
+.sisfour-personalia-native-tabs .nav-item {
+  min-width: 0;
+}
+
+.sisfour-personalia-native-tabs .nav-link {
+  width: 100%;
+  min-height: 3.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  padding-inline: .55rem;
+  white-space: nowrap;
+}
+
+.sisfour-personalia-native-tabs .nav-link .badge {
+  flex: 0 0 auto;
+  font-size: .68rem;
+}
+
+.sisfour-personalia-native-tabs .tab-content {
+  overflow: visible;
+}
+
+@media (max-width: 991.98px) {
+  .sisfour-personalia-native-tabs .nav-link {
+    min-height: 3rem;
+    padding-inline: .35rem;
+  }
+
+  .sisfour-personalia-native-tabs .nav-link > i {
+    font-size: 1.15rem;
+  }
+}

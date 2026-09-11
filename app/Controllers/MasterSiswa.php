@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\MasterPaginationService;
 use App\Services\SiswaImportService;
 use App\Services\SiswaService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -14,11 +15,13 @@ class MasterSiswa extends BaseController
 {
     protected SiswaService $siswaService;
     protected SiswaImportService $siswaImportService;
+    protected MasterPaginationService $paginationService;
 
     public function __construct()
     {
         $this->siswaService = new SiswaService();
         $this->siswaImportService = new SiswaImportService();
+        $this->paginationService = new MasterPaginationService();
     }
 
     public function index()
@@ -27,9 +30,18 @@ class MasterSiswa extends BaseController
         $filter = $this->filters();
 
         if ($this->isJsonRequest()) {
+            $paging = $this->paginationService->normalizePaging(
+                $this->request->getGet()
+            );
+
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->siswaService->getList($filter, $userId),
+                'data' => $this->paginationService->pageSiswa(
+                    $filter,
+                    $userId,
+                    $paging['limit'],
+                    $paging['offset']
+                ),
             ]);
         }
 

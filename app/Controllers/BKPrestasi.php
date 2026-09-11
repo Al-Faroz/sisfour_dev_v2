@@ -19,10 +19,15 @@ class BKPrestasi extends BaseController
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
 
-        if ($this->wantsJson()) {
-            return $this->respond($this->service->getPage($userId, $this->request->getGet()));
+        if ($this->requestWantsJson()) {
+            return $this->respond(
+                $this->service->getPage(
+                    $userId,
+                    $this->request->getGet()
+                )
+            );
         }
 
         $initial = $this->service->getPage($userId, []);
@@ -40,8 +45,8 @@ class BKPrestasi extends BaseController
     {
         return $this->respond(
             $this->service->create(
-                (int) session()->get('user_id'),
-                $this->request->getPost()
+                $this->currentActorUserId(),
+                $this->getPayload()
             )
         );
     }
@@ -50,9 +55,9 @@ class BKPrestasi extends BaseController
     {
         return $this->respond(
             $this->service->update(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id,
-                $this->request->getJSON(true) ?: $this->request->getRawInput()
+                $this->getPayload()
             )
         );
     }
@@ -61,7 +66,7 @@ class BKPrestasi extends BaseController
     {
         return $this->respond(
             $this->service->delete(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id
             )
         );
@@ -69,8 +74,11 @@ class BKPrestasi extends BaseController
 
     public function export()
     {
-        $userId = (int) session()->get('user_id');
-        $data = $this->service->getExport($userId, $this->request->getGet());
+        $userId = $this->currentActorUserId();
+        $data = $this->service->getExport(
+            $userId,
+            $this->request->getGet()
+        );
 
         if (!$data['success']) {
             return $this->respond($data);
@@ -82,27 +90,44 @@ class BKPrestasi extends BaseController
             return $this->respond($file);
         }
 
-        return $this->downloadAndCleanup($file['path'], $file['filename']);
+        return $this->downloadAndCleanup(
+            $file['path'],
+            $file['filename']
+        );
+    }
+
+    private function getPayload(): array
+    {
+        $json = $this->request->getJSON(true);
+
+        if (is_array($json) && $json !== []) {
+            return $json;
+        }
+
+        $raw = $this->request->getRawInput();
+
+        if (is_array($raw) && $raw !== []) {
+            return $raw;
+        }
+
+        $post = $this->request->getPost();
+
+        return is_array($post) ? $post : [];
     }
 
     private function downloadAndCleanup(string $path, string $filename)
     {
-        register_shutdown_function(static function () use ($path): void {
-            if (is_file($path)) {
-                @unlink($path);
+        register_shutdown_function(
+            static function () use ($path): void {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
             }
-        });
+        );
 
-        return $this->response->download($path, null)->setFileName($filename);
-    }
-
-    private function wantsJson(): bool
-    {
-        $path = rtrim($this->request->getUri()->getPath(), '/');
-
-        return $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX()
-            || str_ends_with($path, '/json');
+        return $this->response
+            ->download($path, null)
+            ->setFileName($filename);
     }
 
     private function respond(array $result)
@@ -110,14 +135,24 @@ class BKPrestasi extends BaseController
         $success = (bool) ($result['success'] ?? false);
 
         return $this->response
-            ->setStatusCode($success ? 200 : match ($result['code'] ?? '') {
-                'FORBIDDEN', 'NO_STUDENT_IDENTITY', 'NO_GURU_IDENTITY' => ResponseInterface::HTTP_FORBIDDEN,
-                'NOT_FOUND' => ResponseInterface::HTTP_NOT_FOUND,
-                default => ResponseInterface::HTTP_UNPROCESSABLE_ENTITY,
-            })
+            ->setStatusCode(
+                $success
+                    ? ResponseInterface::HTTP_OK
+                    : match ($result['code'] ?? '') {
+                        'FORBIDDEN',
+                        'NO_STUDENT_IDENTITY',
+                        'NO_GURU_IDENTITY'
+                            => ResponseInterface::HTTP_FORBIDDEN,
+                        'NOT_FOUND'
+                            => ResponseInterface::HTTP_NOT_FOUND,
+                        default
+                            => ResponseInterface::HTTP_UNPROCESSABLE_ENTITY,
+                    }
+            )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $result['message']
+                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
     }

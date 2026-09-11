@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\JadwalGuruService;
+use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -10,23 +11,31 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class JadwalGuru extends BaseController
 {
     protected JadwalGuruService $jadwalService;
+    protected MasterPaginationService $paginationService;
 
     public function __construct()
     {
         $this->jadwalService = new JadwalGuruService();
+        $this->paginationService = new MasterPaginationService();
     }
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $filter = $this->filters();
 
         if ($this->isJsonRequest()) {
+            $paging = $this->paginationService->normalizePaging(
+                $this->request->getGet()
+            );
+
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->jadwalService->getList(
+                'data' => $this->paginationService->pageJadwal(
                     $filter,
-                    $userId
+                    $userId,
+                    $paging['limit'],
+                    $paging['offset']
                 ),
             ]);
         }
@@ -47,7 +56,7 @@ class JadwalGuru extends BaseController
 
     public function options()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
         $idGuru = (int) $this->request->getGet('id_guru');
 
         return $this->respondResult(
@@ -74,7 +83,8 @@ class JadwalGuru extends BaseController
         return $this->respondResult(
             $this->jadwalService->importJadwal(
                 $file,
-                (int) $this->request->getPost('id_tahun')
+                (int) $this->request->getPost('id_tahun'),
+                $this->currentActorUserId()
             )
         );
     }
@@ -84,7 +94,7 @@ class JadwalGuru extends BaseController
         return $this->respondResult(
             $this->jadwalService->delete(
                 (int) $id,
-                (int) session()->get('user_id')
+                $this->currentActorUserId()
             )
         );
     }
@@ -97,7 +107,7 @@ class JadwalGuru extends BaseController
 
         $sheet->fromArray([
             [
-                'NIP_GURU',
+                'IDENTITAS_GURU',
                 'NAMA_KELAS',
                 'KODE_MAPEL',
                 'HARI',
@@ -112,6 +122,15 @@ class JadwalGuru extends BaseController
                 'Senin',
                 '07:30',
                 '09:00',
+                'Sesi Awal',
+            ],
+            [
+                '3517012345670001',
+                '7-B',
+                'BIN',
+                'Selasa',
+                '07:30',
+                '08:50',
                 'Sesi Awal',
             ],
         ], null, 'A1');
@@ -137,7 +156,7 @@ class JadwalGuru extends BaseController
 
     public function export()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
 
         if (!$this->jadwalService->canManage($userId)) {
             return $this->response
@@ -159,7 +178,7 @@ class JadwalGuru extends BaseController
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
         $sheet->fromArray([[
-            'NIP',
+            'IDENTITAS GURU',
             'NAMA GURU',
             'KELAS',
             'KODE MAPEL',
@@ -178,7 +197,7 @@ class JadwalGuru extends BaseController
 
         foreach ($data as $jadwal) {
             $sheet->fromArray([[
-                $jadwal['nip'],
+                $this->guruIdentifier($jadwal),
                 $jadwal['nama_guru'],
                 $jadwal['nama_kelas'],
                 $jadwal['kode_mapel'],
@@ -195,7 +214,7 @@ class JadwalGuru extends BaseController
 
             $sheet->setCellValueExplicit(
                 'A' . $row,
-                (string) $jadwal['nip'],
+                $this->guruIdentifier($jadwal),
                 DataType::TYPE_STRING
             );
 
@@ -220,6 +239,25 @@ class JadwalGuru extends BaseController
             ->setFileName(
                 'jadwal_guru_' . date('Ymd_His') . '.xlsx'
             );
+    }
+
+    private function guruIdentifier(array $jadwal): string
+    {
+        $nip = preg_replace(
+            '/\D+/',
+            '',
+            (string) ($jadwal['nip'] ?? '')
+        ) ?? '';
+
+        if ($nip !== '') {
+            return $nip;
+        }
+
+        return preg_replace(
+            '/\D+/',
+            '',
+            (string) ($jadwal['nik'] ?? '')
+        ) ?? '';
     }
 
     protected function filters(): array
@@ -249,9 +287,21 @@ class JadwalGuru extends BaseController
         int $successCode = 200
     ) {
         $success = (bool) ($result['success'] ?? false);
+        $code = (string) ($result['code'] ?? '');
+
+        $errorCode = match ($code) {
+            'FORBIDDEN' => 403,
+            'NOT_FOUND' => 404,
+            'SCHEDULE_CONFLICT' => 409,
+            default => 422,
+        };
 
         return $this->response
-            ->setStatusCode($success ? $successCode : 422)
+            ->setStatusCode(
+                $success
+                    ? $successCode
+                    : $errorCode
+            )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
                 'message' => $result['message']

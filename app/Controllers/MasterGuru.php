@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\GuruService;
+use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -10,10 +11,12 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class MasterGuru extends BaseController
 {
     protected GuruService $guruService;
+    protected MasterPaginationService $paginationService;
 
     public function __construct()
     {
         $this->guruService = new GuruService();
+        $this->paginationService = new MasterPaginationService();
     }
 
     public function index()
@@ -21,9 +24,17 @@ class MasterGuru extends BaseController
         $filter = $this->filters();
 
         if ($this->isJsonRequest()) {
+            $paging = $this->paginationService->normalizePaging(
+                $this->request->getGet()
+            );
+
             return $this->response->setJSON([
                 'status' => 'success',
-                'data' => $this->guruService->getList($filter),
+                'data' => $this->paginationService->pageGuru(
+                    $filter,
+                    $paging['limit'],
+                    $paging['offset']
+                ),
             ]);
         }
 
@@ -146,7 +157,11 @@ class MasterGuru extends BaseController
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        return $this->downloadSpreadsheet($spreadsheet, 'template_import_guru.xlsx', 'sisfour_guru_template_');
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'template_import_guru.xlsx',
+            'sisfour_guru_template_'
+        );
     }
 
     public function export()
@@ -248,8 +263,11 @@ class MasterGuru extends BaseController
             ]);
     }
 
-    private function downloadSpreadsheet(Spreadsheet $spreadsheet, string $filename, string $prefix)
-    {
+    private function downloadSpreadsheet(
+        Spreadsheet $spreadsheet,
+        string $filename,
+        string $prefix
+    ) {
         $tempFile = tempnam(sys_get_temp_dir(), $prefix);
         (new Xlsx($spreadsheet))->save($tempFile);
 
@@ -259,6 +277,8 @@ class MasterGuru extends BaseController
             }
         });
 
-        return $this->response->download($tempFile, null)->setFileName($filename);
+        return $this->response
+            ->download($tempFile, null)
+            ->setFileName($filename);
     }
 }

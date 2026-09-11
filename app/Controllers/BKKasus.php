@@ -19,11 +19,14 @@ class BKKasus extends BaseController
 
     public function index()
     {
-        $userId = (int) session()->get('user_id');
+        $userId = $this->currentActorUserId();
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respond(
-                $this->service->getKasusPage($userId, $this->request->getGet())
+                $this->service->getKasusPage(
+                    $userId,
+                    $this->request->getGet()
+                )
             );
         }
 
@@ -40,7 +43,7 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->getKasusDetail(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id
             )
         );
@@ -48,9 +51,11 @@ class BKKasus extends BaseController
 
     public function top()
     {
-        $result = $this->service->getTop20((int) session()->get('user_id'));
+        $result = $this->service->getTop20(
+            $this->currentActorUserId()
+        );
 
-        if ($this->wantsJson()) {
+        if ($this->requestWantsJson()) {
             return $this->respond($result);
         }
 
@@ -66,8 +71,8 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->createKasus(
-                (int) session()->get('user_id'),
-                $this->request->getPost()
+                $this->currentActorUserId(),
+                $this->getPayload()
             )
         );
     }
@@ -76,9 +81,9 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->updateKasus(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id,
-                $this->request->getJSON(true) ?: $this->request->getRawInput()
+                $this->getPayload()
             )
         );
     }
@@ -87,7 +92,7 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->deleteKasus(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id
             )
         );
@@ -97,9 +102,9 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->createTindakLanjut(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $idKasus,
-                $this->request->getPost()
+                $this->getPayload()
             )
         );
     }
@@ -108,17 +113,20 @@ class BKKasus extends BaseController
     {
         return $this->respond(
             $this->service->updateTindakLanjut(
-                (int) session()->get('user_id'),
+                $this->currentActorUserId(),
                 (int) $id,
-                $this->request->getJSON(true) ?: $this->request->getRawInput()
+                $this->getPayload()
             )
         );
     }
 
     public function export()
     {
-        $userId = (int) session()->get('user_id');
-        $data = $this->service->getKasusExport($userId, $this->request->getGet());
+        $userId = $this->currentActorUserId();
+        $data = $this->service->getKasusExport(
+            $userId,
+            $this->request->getGet()
+        );
 
         if (! $data['success']) {
             return $this->respond($data);
@@ -130,29 +138,44 @@ class BKKasus extends BaseController
             return $this->respond($file);
         }
 
-        return $this->downloadAndCleanup($file['path'], $file['filename']);
+        return $this->downloadAndCleanup(
+            $file['path'],
+            $file['filename']
+        );
+    }
+
+    private function getPayload(): array
+    {
+        $json = $this->request->getJSON(true);
+
+        if (is_array($json) && $json !== []) {
+            return $json;
+        }
+
+        $raw = $this->request->getRawInput();
+
+        if (is_array($raw) && $raw !== []) {
+            return $raw;
+        }
+
+        $post = $this->request->getPost();
+
+        return is_array($post) ? $post : [];
     }
 
     private function downloadAndCleanup(string $path, string $filename)
     {
-        register_shutdown_function(static function () use ($path): void {
-            if (is_file($path)) {
-                @unlink($path);
+        register_shutdown_function(
+            static function () use ($path): void {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
             }
-        });
+        );
 
         return $this->response
             ->download($path, null)
             ->setFileName($filename);
-    }
-
-    private function wantsJson(): bool
-    {
-        $path = rtrim($this->request->getUri()->getPath(), '/');
-
-        return $this->request->getGet('format') === 'json'
-            || $this->request->isAJAX()
-            || str_ends_with($path, '/json');
     }
 
     private function respond(array $result)
@@ -167,7 +190,8 @@ class BKKasus extends BaseController
             )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $result['message']
+                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
     }
