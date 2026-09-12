@@ -1,0 +1,387 @@
+/*
+ * SisisFour Dashboard UI
+ * Compact, mobile-first dashboard primitives.
+ * Semua selector dibatasi di .sisfour-dashboard agar tidak mengubah modul lain.
+ */
+
+.sisfour-dashboard {
+  --sf-dashboard-gap: .75rem;
+  --sf-dashboard-radius: .75rem;
+}
+
+.sisfour-dashboard .sf-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.sisfour-dashboard .sf-dashboard-header h4 {
+  margin-bottom: .2rem;
+}
+
+.sisfour-dashboard .sf-dashboard-header p {
+  margin-bottom: 0;
+  font-size: .875rem;
+}
+
+.sisfour-dashboard .sf-year-badge {
+  font-size: .75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sisfour-dashboard .sf-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sf-dashboard-gap);
+  margin-bottom: 1rem;
+}
+
+.sisfour-dashboard .sf-stat-card {
+  min-width: 0;
+  padding: .7rem .8rem;
+  border: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+  border-radius: var(--sf-dashboard-radius);
+  background: var(--bs-body-bg, #fff);
+  box-shadow: 0 .1rem .25rem rgba(67, 89, 113, .04);
+}
+
+.sisfour-dashboard .sf-stat-card__label {
+  display: block;
+  margin-bottom: .2rem;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: .72rem;
+  line-height: 1.2;
+}
+
+.sisfour-dashboard .sf-stat-card__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sisfour-dashboard .sf-section-card {
+  margin-bottom: 1rem;
+  border-radius: var(--sf-dashboard-radius);
+}
+
+.sisfour-dashboard .sf-section-card > .card-header {
+  min-height: auto;
+  padding: .75rem 1rem;
+}
+
+.sisfour-dashboard .sf-section-card > .card-body {
+  padding: .85rem 1rem;
+}
+
+.sisfour-dashboard .sf-section-card .card-header h5,
+.sisfour-dashboard .sf-section-title {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.sisfour-dashboard .sf-agenda {
+  border-top: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+}
+
+.sisfour-dashboard .sf-agenda-row {
+  display: grid;
+  grid-template-columns: 8.25rem minmax(0, 1fr) minmax(13rem, auto);
+  gap: .75rem;
+  align-items: center;
+  padding: .7rem 1rem;
+  border-bottom: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+}
+
+.sisfour-dashboard .sf-agenda-row:last-child {
+  border-bottom: 0;
+}
+
+.sisfour-dashboard .sf-agenda-time {
+  font-size: .8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sisfour-dashboard .sf-agenda-class {
+  font-size: .85rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.sisfour-dashboard .sf-agenda-mapel {
+  margin-top: .1rem;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: .78rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.sisfour-dashboard .sf-agenda-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.sisfour-dashboard .sf-agenda-actions .btn,
+.sisfour-dashboard .sf-agenda-actions .badge {
+  font-size: .72rem;
+  white-space: nowrap;
+}
+
+.sisfour-dashboard .sf-attendance-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .55rem;
+}
+
+.sisfour-dashboard .sf-attendance-item {
+  min-width: 0;
+  padding: .55rem .45rem;
+  border: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+  border-radius: .6rem;
+  text-align: center;
+}
+
+.sisfour-dashboard .sf-attendance-item small {
+  display: block;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: .68rem;
+  line-height: 1.1;
+}
+
+.sisfour-dashboard .sf-attendance-item strong {
+  display: block;
+  margin-top: .15rem;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.sisfour-dashboard .sf-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .55rem;
+}
+
+.sisfour-dashboard .sf-action-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .45rem;
+  padding: .55rem .65rem;
+  border: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+  border-radius: .6rem;
+  color: inherit;
+  font-size: .76rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+
+.sisfour-dashboard .sf-action-tile:hover {
+  border-color: var(--bs-primary, #696cff);
+  background: rgba(105, 108, 255, .06);
+  color: var(--bs-primary, #696cff);
+}
+
+.sisfour-dashboard .sf-action-tile i {
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+}
+
+.sisfour-dashboard .sf-wali-card {
+  border: 1px solid rgba(105, 108, 255, .28);
+}
+
+.sisfour-dashboard .sf-wali-meta,
+.sisfour-dashboard .sf-student-class-meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem .8rem;
+  flex-wrap: wrap;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: .76rem;
+}
+
+.sisfour-dashboard .sf-primary-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--bs-border-color, rgba(67, 89, 113, .12));
+}
+
+.sisfour-dashboard .sf-status-line {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+  margin-top: .55rem;
+  font-size: .75rem;
+}
+
+.sisfour-dashboard .sf-student-top-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sf-dashboard-gap);
+  margin-bottom: 1rem;
+}
+
+.sisfour-dashboard .sf-student-top-card {
+  min-width: 0;
+}
+
+.sisfour-dashboard .sf-student-top-card .card-body {
+  padding: .85rem 1rem;
+}
+
+.sisfour-dashboard .sf-student-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.sisfour-dashboard .sf-student-status__title,
+.sisfour-dashboard .sf-student-class__name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.sisfour-dashboard .sf-phone-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .45rem;
+  font-size: .78rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sisfour-dashboard .sf-compact-list .list-group-item {
+  padding: .7rem 1rem;
+}
+
+.sisfour-dashboard .sf-compact-table > :not(caption) > * > * {
+  padding: .55rem .75rem;
+}
+
+@media (max-width: 991.98px) {
+  .sisfour-dashboard .sf-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sisfour-dashboard .sf-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sisfour-dashboard .sf-agenda-row {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+  }
+
+  .sisfour-dashboard .sf-agenda-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .sisfour-dashboard {
+    --sf-dashboard-gap: .55rem;
+  }
+
+  .sisfour-dashboard .sf-dashboard-header {
+    margin-bottom: .75rem;
+  }
+
+  .sisfour-dashboard .sf-dashboard-header h4 {
+    font-size: 1.1rem;
+  }
+
+  .sisfour-dashboard .sf-stat-card {
+    padding: .55rem .65rem;
+  }
+
+  .sisfour-dashboard .sf-stat-card__label {
+    font-size: .66rem;
+  }
+
+  .sisfour-dashboard .sf-stat-card__value {
+    font-size: 1.15rem;
+  }
+
+  .sisfour-dashboard .sf-section-card > .card-header,
+  .sisfour-dashboard .sf-section-card > .card-body {
+    padding: .7rem .75rem;
+  }
+
+  .sisfour-dashboard .sf-agenda-row {
+    grid-template-columns: 1fr;
+    gap: .25rem;
+    padding: .65rem .75rem;
+  }
+
+  .sisfour-dashboard .sf-agenda-actions {
+    grid-column: 1;
+    justify-content: flex-start;
+    margin-top: .2rem;
+  }
+
+  .sisfour-dashboard .sf-agenda-actions .btn,
+  .sisfour-dashboard .sf-agenda-actions .badge {
+    padding: .35rem .5rem;
+  }
+
+  .sisfour-dashboard .sf-attendance-strip {
+    gap: .35rem;
+  }
+
+  .sisfour-dashboard .sf-attendance-item {
+    padding: .45rem .2rem;
+  }
+
+  .sisfour-dashboard .sf-attendance-item small {
+    font-size: .62rem;
+  }
+
+  .sisfour-dashboard .sf-attendance-item strong {
+    font-size: 1rem;
+  }
+
+  .sisfour-dashboard .sf-action-grid {
+    gap: .4rem;
+  }
+
+  .sisfour-dashboard .sf-action-tile {
+    min-height: 2.55rem;
+    padding: .45rem .55rem;
+    font-size: .7rem;
+  }
+
+  .sisfour-dashboard .sf-primary-action {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sisfour-dashboard .sf-primary-action .btn {
+    width: 100%;
+  }
+
+  .sisfour-dashboard .sf-student-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sisfour-dashboard .sf-student-top-card .card-body {
+    padding: .7rem .75rem;
+  }
+}
