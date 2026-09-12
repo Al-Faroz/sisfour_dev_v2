@@ -1,19 +1,18 @@
 # Pola Pengerjaan — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 12 September 2026
+**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
+**Baseline Database:** `sisfour_dev_v2 (33).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
+> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
 
----
 
-# 1. Fungsi Dokumen Acuan
+## 1. Kedudukan Folder `docs/`
 
-Folder `docs/` adalah kontrak utama pengembangan, audit, testing, dan pemeliharaan SisisFour.
+`docs/` adalah **Single Source of Truth (SSOT)** untuk kontrak bisnis, arsitektur, authorization, database, route, release gate, dan deployment SisisFour.
 
-Urutan dokumen:
+Urutan baca:
 
 ```text
 00_POLA_PENGERJAAN
@@ -26,98 +25,105 @@ Urutan dokumen:
 07_BK_PRESTASI_KARTU
 08_DASHBOARD_SETTINGS_BACKUP
 09_PROFILE
+10_DEPLOYMENT_PRODUCTION
 15_TESTING_POLISH
+16_MOBILE_CORDOVA
+Routes Final
+Tree Structure
 ```
 
-Jika dokumen, database, route, dan implementasi tidak selaras, konflik harus ditemukan dan diputuskan secara eksplisit. Tidak boleh diselesaikan dengan asumsi diam-diam.
+Jika dokumen, source, route, dan database berbeda, konflik harus diidentifikasi dan diputuskan eksplisit.
 
-# 2. Sumber Kebenaran
-
-Baseline teknis harus diverifikasi terhadap:
+## 2. Sumber Kebenaran Teknis
 
 ```text
-Database   → dump database resmi terbaru
-Route      → app/Config/Routes.php
-Auth/RBAC  → users, user_roles, permissions, role_permissions
-Menu       → menus, role_menus + MenuService
-Business   → Service modul
-UI         → View + JavaScript
+Database    -> dump SQL resmi terbaru + SHOW CREATE TABLE bila perlu
+Route       -> app/Config/Routes.php
+Auth/RBAC   -> users, user_roles, permissions, role_permissions
+Menu        -> menus, role_menus, MenuService
+Business    -> Service modul
+Persistence -> Model / Query Builder
+UI          -> View + Vanilla JS
+Deployment  -> 10_DEPLOYMENT_PRODUCTION
 ```
 
-Database dan kode tidak boleh mengandung kontrak tersembunyi yang bertentangan dengan dokumen.
+`PermissionFilter` hanya route gate. **Service adalah security/business boundary** untuk target data, scope, transaksi, lifecycle, dan side effect.
 
-# 3. Aturan Full File
+## 3. Aturan Full File
 
-Setiap file baru atau revisi diserahkan sebagai **file utuh**, bukan snippet/diff.
+Setiap revisi atau file baru diserahkan sebagai **file utuh**, bukan snippet/diff.
 
-Berlaku untuk:
-
-```text
-docs/*.md
-app/Config/*.php
-app/Models/*.php
-app/Services/*.php
-app/Filters/*.php
-app/Controllers/*.php
-app/Views/*.php
-assets/js/*.js
-SQL
-script utilitas
-```
-
-Jika beberapa file berubah, paket ZIP boleh digunakan.
-
-# 4. Urutan Pengerjaan Modul
+Urutan pengerjaan:
 
 ```text
 Model
-→ Service
-→ Filter bila diperlukan
-→ Controller
-→ View
-→ JavaScript
-→ Routes
-→ Static Check
-→ Runtime Checkpoint
+-> Service
+-> Filter bila diperlukan
+-> Controller
+-> View
+-> JavaScript
+-> Routes bila benar-benar perlu
+-> Static Check
+-> Runtime Checkpoint
+-> Dokumentasi Canonical
 ```
 
-Service adalah pusat:
+`Routes.php` tidak diubah bila tidak ada kebutuhan route nyata.
 
-- authorization data-level;
-- transaction;
-- business rule;
-- validasi relasi;
-- lifecycle;
-- side effect antar tabel;
-- histori;
-- duplicate prevention.
-
-Controller fokus request/response. View dan JavaScript bukan security boundary.
-
-# 5. Stack
+## 4. Stack Resmi
 
 ```text
 Framework        CodeIgniter 4
 PHP              8.2+
-Database         MariaDB/MySQL
+Database         MariaDB / MySQL
 Development      XAMPP
-UI               Sneat Free + Bootstrap 5
+UI               Sneat + Bootstrap 5
 Business JS      Vanilla JavaScript
 HTTP Frontend    Fetch API
 Chart            ApexCharts
-Excel            PhpSpreadsheet
+Spreadsheet      PhpSpreadsheet
 PDF              Dompdf
 QR               endroid/qr-code
-Session Web      Database
-Auth API         JWT / api_tokens
+Session Web      DatabaseHandler / ci_sessions
+Auth API         JWT + api_tokens
 Timezone         Asia/Jakarta
 ```
 
-jQuery boleh dimuat sebagai dependency template/vendor, tetapi business JavaScript tidak bergantung pada jQuery.
+jQuery boleh ada sebagai dependency template/vendor, tetapi business JavaScript tidak bergantung pada jQuery.
 
-# 6. Document Root
+## 5. Arsitektur Request
 
-Project root adalah web root.
+```text
+Browser / WebView / API Client
+        |
+        v
+Routes
+        |
+        v
+Global Filter (Maintenance/CSRF)
+        |
+        v
+AuthFilter
+        |
+        v
+PermissionFilter
+        |
+        v
+Controller
+        |
+        v
+Service
+        |
+        v
+Model / Query Builder
+        |
+        v
+MariaDB/MySQL
+```
+
+## 6. Document Root
+
+SisisFour menggunakan **project root sebagai Web root**, bukan folder `public/`.
 
 ```text
 sisfour_dev_v2/
@@ -125,66 +131,32 @@ sisfour_dev_v2/
 ├── .htaccess
 ├── app/
 ├── assets/
+├── public/
 ├── uploads/
-├── writable/
 ├── vendor/
+├── writable/
 └── docs/
 ```
 
-Runtime tidak menggunakan `public/` sebagai document root.
+`.htaccess` root wajib melindungi file/folder internal seperti `.env`, `app/`, `vendor/`, `writable/`, `docs/`, `database/`, dan repository metadata.
 
-# 7. Path File Runtime
+## 7. Database-First
 
-```text
-uploads/foto_guru/
-uploads/foto_siswa/
-uploads/settings/branding/
-uploads/settings/kartu/
-assets/kartu/default/
-writable/backups/
-```
-
-File upload harus:
-
-- tipe eksplisit;
-- benar-benar image bila image;
-- re-encode;
-- nama aman/random;
-- tidak executable;
-- tidak memakai nama mentah dari client.
-
-# 8. Database-First
-
-Untuk dataset besar:
-
-```text
-presensi
-presensi_mengajar
-log_activity
-laporan
-dashboard
-histori
-```
-
-operasi berikut dikerjakan database:
+Untuk dataset besar, filtering/agregasi utama dilakukan database:
 
 ```text
 WHERE
 JOIN
 GROUP BY
-COUNT
-SUM
-MIN / MAX
+COUNT / SUM
 HAVING
 ORDER BY
 LIMIT / OFFSET
 ```
 
-Dilarang mengambil seluruh dataset besar lalu melakukan agregasi utama di PHP.
+Dilarang memuat seluruh data besar lalu mengagregasi utama di PHP. Pivot ringan diperbolehkan setelah dataset dibatasi.
 
-Pivot ringan diperbolehkan setelah dataset dibatasi, misalnya satu kelas × satu bulan.
-
-# 9. Auth dan Scope
+## 8. Authorization
 
 Effective role:
 
@@ -205,7 +177,7 @@ guru
 siswa
 ```
 
-Wali Kelas bukan role.
+Tidak ada role `pegawai`. Wali Kelas juga **bukan role**; status Wali di-resolve dinamis dari `mapping_wali_kelas` pada tahun aktif.
 
 Scope:
 
@@ -217,62 +189,47 @@ DIRI_SENDIRI
 TIDAK_ADA
 ```
 
-# 10. Web Security
+## 9. Security Baseline
 
-- session Web disimpan di database;
-- CSRF aktif;
-- mutation Fetch memakai `assets/js/csrf-fetch.js`;
-- actor berasal dari session;
-- target/scope divalidasi ulang server;
-- output teks menggunakan escaping;
-- credential/token/hash tidak masuk log.
+- Web menggunakan database session.
+- CSRF aktif untuk Web.
+- Mutation Fetch menggunakan `assets/js/csrf-fetch.js`.
+- API `/api/*` memakai Bearer token/JWT dan tidak memakai CSRF Web.
+- Actor Web berasal dari session; actor API dari token tervalidasi.
+- `auth_version` adalah invalidation token keamanan; **login normal tidak menaikkannya**.
+- Output teks di-escape.
+- Password/hash/token/cookie/session id tidak ditulis ke log bisnis.
+- Upload user divalidasi tipe, ukuran, isi, path, dan nama.
+- Dokumen Personalia disimpan non-public di `writable/uploads/personalia/`.
 
-# 11. API Security
-
-- API berada di prefix `/api`;
-- actor berasal dari token valid;
-- token dapat direvoke;
-- API tidak memakai CSRF Web;
-- API tetap tunduk permission/scope yang sama.
-
-# 12. Static Check
-
-PHP:
+## 10. Static Gate
 
 ```powershell
 php -l path\file.php
-```
-
-JavaScript:
-
-```powershell
 node --check path\file.js
+php spark routes
+git diff --check
+git status --short
 ```
 
-# 13. Runtime Checkpoint
+## 11. Runtime Gate Minimum
 
-Setiap modul minimal harus bebas dari:
+Tidak boleh ada:
 
-- 404 route tidak sengaja;
+- 404 route tidak disengaja;
 - 500;
 - 403 palsu;
-- CSRF gagal pada mutation sah;
-- privilege escalation;
-- duplicate akibat race;
+- CSRF failure pada mutation sah;
+- privilege escalation/IDOR;
+- duplicate akibat double-submit/race;
 - partial transaction;
 - histori putus;
-- uncaught browser error.
+- session/API actor salah;
+- uncaught browser error;
+- resource internal dapat diakses public.
 
-# 14. Status Fase Baseline
+## 12. Baseline Release
 
-Pengerjaan fitur utama telah mencapai finalisasi dan selanjutnya masuk **Testing & Polish**.
+Baseline ini adalah release candidate setelah STEP 06: UI/UX sweep, authorization consistency, RequestContext API, signage, session recovery, pagination, maintenance, Kartu performance, hosting hardening, dan final regression.
 
-Baseline mempunyai satu blocker implementasi yang harus diselesaikan sebelum rilis:
-
-```text
-Route + permission Profile tersedia,
-tetapi Controller ProfileGuru/ProfileSiswa
-tidak ditemukan pada repo baseline.
-```
-
-Rinciannya berada di `09_PROFILE` dan `15_TESTING_POLISH`.
+Deployment production dilakukan secara **manual upload** ke Hostinger dan dikontrol oleh `10_DEPLOYMENT_PRODUCTION — SisisFour.md`.

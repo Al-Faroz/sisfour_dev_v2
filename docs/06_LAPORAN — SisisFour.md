@@ -1,25 +1,22 @@
 # Laporan & Export — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 12 September 2026
+**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
+**Baseline Database:** `sisfour_dev_v2 (33).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
+> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
 
----
 
-# 1. Sumber Resmi
-
-Perhitungan Presensi resmi:
+## 1. Sumber Resmi
 
 ```text
-presensi.sesi = Sesi Awal
+presensi.sesi = 'Sesi Awal'
 ```
 
 Sesi Akhir tidak masuk total resmi.
 
-# 2. Permission
+## 2. Permission
 
 ```text
 laporan_matrix.view
@@ -28,25 +25,7 @@ laporan_jurnal.view
 laporan_jurnal.export
 ```
 
-# 3. Scope
-
-Matrix/Export Presensi:
-
-```text
-SEMUA
-KELAS_DIAMPU
-```
-
-Laporan Jurnal:
-
-```text
-SEMUA
-DIRI_SENDIRI
-```
-
-# 4. Matrix
-
-Route:
+## 3. Matrix Presensi
 
 ```text
 GET /laporan/presensi/matrix
@@ -63,44 +42,28 @@ Total H/S/I/A
 Tanggal 01..31
 ```
 
-Tanda `-` tidak otomatis berarti Alpha.
+Tidak adanya record tidak boleh otomatis dianggap Alpha tanpa melihat membership/histori.
 
-# 5. Membership Historis
+## 4. Membership Historis
 
-Tanggal sebelum masuk kelas atau setelah keluar dari kelas tidak boleh dihitung Alpha untuk kelas tersebut.
+`riwayat_siswa` menentukan apakah siswa memang menjadi anggota pada tanggal laporan.
 
-Sumber histori:
-
-```text
-riwayat_siswa
-```
-
-# 6. Export Presensi
-
-Route:
+## 5. Export Presensi
 
 ```text
 /laporan/presensi/export
-/laporan/presensi/export/bulanan
+/laporan/presensi/export/bulan
 /laporan/presensi/export/semester
 ```
 
-Format utama: XLSX.
-
-Total H/S/I/A hanya Sesi Awal.
-
-# 7. Semester
+Format utama XLSX.
 
 ```text
-Ganjil → Juli–Desember
-Genap  → Januari–Juni
+Ganjil -> Juli–Desember
+Genap  -> Januari–Juni
 ```
 
-Siswa Pindah/Keluar/Lulus tetap dapat muncul jika memiliki data pada periode.
-
-# 8. Laporan Jurnal
-
-Route:
+## 6. Laporan Jurnal
 
 ```text
 /laporan/jurnal
@@ -114,7 +77,6 @@ Kolom utama:
 Tanggal
 Hari
 Jam
-NIP
 Guru
 Kelas
 Mapel
@@ -125,53 +87,32 @@ Tahun
 Semester
 ```
 
-# 9. Histori Jadwal
+Jadwal nonaktif tidak menghapus histori jurnal.
 
-Laporan Jurnal tidak menghilangkan row karena Jadwal kini Nonaktif.
-
-# 10. Database-First
-
-Pola Matrix:
+## 7. Database-First
 
 ```text
-1 query membership kelas
+query membership/history bounded
 +
-1 query Presensi kelas untuk satu bulan
-→ pivot PHP ringan
+query presensi periode bounded
++
+pivot ringan PHP
 ```
 
-Dilarang query per siswa per tanggal.
+Dilarang N+1 per siswa × tanggal.
 
-# 11. Privasi
+## 8. Role
 
-Tidak mengekspor:
+- Admin/Operator sesuai permission SEMUA.
+- Pimpinan supervisi/read-only.
+- Wali kelas wali bila scope diberikan.
+- Guru biasa tidak mempunyai laporan kelas hanya karena mengajar.
+- Siswa tidak mendapat laporan kelas global.
 
-- password/hash;
-- token;
-- biodata keluarga yang tidak relevan;
-- data BK dalam laporan Presensi.
+## 9. Privasi
 
-# 12. Audit
+Laporan tidak mengekspor password/hash/token, credential, data BK yang tidak relevan, atau dokumen personalia mentah.
 
-Export penting dicatat ke `log_activity` bila logger modul digunakan.
+## 10. Error
 
-# 13. Error Rule
-
-Server menolak:
-
-- kelas di luar scope;
-- tahun invalid;
-- periode invalid;
-- Wali meminta kelas lain;
-- Guru meminta Jurnal Guru lain;
-- export tanpa permission.
-
-# 14. Checkpoint
-
-- Matrix;
-- membership historis;
-- export bulanan;
-- export semester;
-- Laporan/Export Jurnal;
-- scope;
-- EXPLAIN query besar.
+Server menolak kelas di luar scope, periode/tahun invalid, Wali kelas lain, Guru data Guru lain tanpa hak, dan export tanpa permission.

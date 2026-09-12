@@ -1,34 +1,18 @@
 # Presensi Siswa & Presensi Mengajar — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 12 September 2026
+**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
+**Baseline Database:** `sisfour_dev_v2 (33).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
+> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
 
----
 
-# 1. Prinsip
+## 1. Waktu dan Tahun Aktif
 
-Sumber:
+Seluruh keputusan waktu menggunakan `Asia/Jakarta`.
 
-```text
-siswa
-anggota_kelas
-riwayat_siswa
-kelas
-tahun_ajaran
-mapping_wali_kelas
-jadwal_guru
-mata_pelajaran
-users/RBAC
-setting_sistem
-```
-
-Authorization waktu menggunakan server `Asia/Jakarta`.
-
-# 2. Presensi Siswa
+## 2. Presensi Siswa
 
 Tabel:
 
@@ -52,60 +36,39 @@ Sesi Awal
 Sesi Akhir
 ```
 
-# 3. Sesi Awal
+### Sesi Awal
 
-Sumber resmi:
+Sumber resmi laporan, Matrix, EWS, Signage, dan statistik.
 
-- laporan;
-- Matrix;
-- EWS;
-- statistik H/S/I/A.
+### Sesi Akhir
 
-# 4. Sesi Akhir
+Dokumentasi tambahan. Tidak masuk rekap resmi/EWS/Signage ranking.
 
-Dokumentasi tambahan dan tidak masuk total resmi/EWS.
+## 3. Pola Input Guru
 
-# 5. Unique
+Default UI seluruh siswa = **Hadir**. Guru hanya mengubah siswa Sakit/Izin/Alpha.
 
-```text
-UNIQUE(id_kelas,tanggal,sesi,id_siswa)
-```
+Semua status tetap disimpan (Model A).
 
-# 6. Actor
+## 4. Actor
 
 | Actor | Input | Revisi | View |
 |---|---|---|---|
 | Admin | Semua | Semua | Semua |
 | Operator | Semua | Semua | Semua |
-| Pimpinan | Tidak | Tidak | Semua |
-| Guru Terjadwal | Ya | Tidak | workflow terbatas |
-| Wali | kelas Wali | kelas Wali | kelas Wali |
-| BK | Tidak | Tidak | EWS melalui permission |
+| Pimpinan | Tidak | Tidak | laporan sesuai permission |
+| Guru terjadwal | sesuai Jadwal | Tidak | workflow sendiri |
+| Wali | kelas wali | kelas wali | kelas wali |
+| BK | Tidak | Tidak | EWS/BK sesuai permission |
 | Siswa | Tidak | Tidak | diri |
 
-# 7. Dual Guru + Wali
+## 5. Dual Guru + Wali
 
-Urutan:
+Akun Guru yang juga Wali mempertahankan kedua context.
 
-1. jadwal cocok + time-window valid → `GURU_TERJADWAL`;
-2. tidak ada jadwal cocok atau jadwal selesai → fallback `WALI`;
-3. sebelum jadwal mulai → Wali tidak boleh bypass;
-4. kelas lain yang bukan kelas Wali → aturan Guru;
-5. histori tahun aktif → Wali aktif dapat memakai konteks Wali.
+Service menentukan context berdasarkan jadwal, mapping wali, target kelas, waktu, dan permission.
 
-# 8. Time Window
-
-```text
-jam_mulai <= now <= jam_selesai + 15 menit
-```
-
-Berlaku untuk Guru Terjadwal.
-
-Admin/Operator dan fallback Wali kelas sendiri bebas time-window.
-
-# 9. Geofencing
-
-Key:
+## 6. Geofencing
 
 ```text
 geofencing_aktif
@@ -114,39 +77,17 @@ longitude_sekolah
 radius_geofencing
 ```
 
-Baseline radius:
+Validasi radius dilakukan server, bukan browser.
 
-```text
-500 meter
-```
+## 7. Bulk dan Transaction
 
-Geofence wajib pada jalur Guru yang ditentukan Service.
+Satu submit kelas diproses atomically.
 
-# 10. Bulk
+Server memvalidasi actor, scope, tahun, membership, kelas, sesi, jadwal/mapping, existing record, status, dan snapshot.
 
-Satu submit kelas atomic.
+## 8. Revisi
 
-Server me-resolve:
-
-- tahun aktif;
-- kelas;
-- membership;
-- actor;
-- scope;
-- mapping Wali;
-- Jadwal;
-- existing record;
-- snapshot.
-
-Satu target invalid → rollback batch.
-
-# 11. Snapshot
-
-Presensi menyimpan snapshot nama Siswa dan Guru input untuk menjaga histori.
-
-# 12. Revisi
-
-Revisi Presensi Siswa hanya:
+Revisi record tersimpan:
 
 ```text
 Admin
@@ -156,16 +97,36 @@ Wali aktif kelas target
 
 Guru biasa tidak merevisi record existing.
 
-# 13. EWS
+## 9. Rekap
+
+Ketidakhadiran resmi:
 
 ```text
-status = Alpha
-sesi = Sesi Awal
-jumlah >= 3
-periode = hari ini dan 13 hari sebelumnya
+Sakit
+Izin
+Alpha
 ```
 
-# 14. Presensi Mengajar / Jurnal
+`Hadir` tidak dihitung sebagai ketidakhadiran.
+
+Siswa tidak dianggap Alpha pada tanggal sebelum menjadi anggota kelas.
+
+## 10. EWS Internal
+
+EWS internal memakai Sesi Awal dan scope actor. Threshold internal mengikuti Service dan tidak boleh dicampur dengan Signage ranking.
+
+## 11. Digital Signage
+
+```text
+Top 20 Alpha 14 hari
+Top 20 Izin 14 hari
+Top 20 Sakit 14 hari
+Tidak Masuk Hari Ini (S/I/A)
+```
+
+Sumber hanya Sesi Awal.
+
+## 12. Presensi Mengajar / Jurnal
 
 Tabel:
 
@@ -173,62 +134,25 @@ Tabel:
 presensi_mengajar
 ```
 
-Unique:
+Satu record per jadwal/tanggal.
 
-```text
-UNIQUE(id_jadwal,tanggal)
-```
+Semua sesi Jadwal dapat mempunyai Jurnal termasuk `Non Sesi`.
 
-Status:
+Wali tidak mendapat hak Jurnal hanya karena menjadi Wali.
 
-```text
-Hadir
-Izin
-Sakit
-```
+## 13. Histori
 
-Materi wajib.
+Jadwal nonaktif tetap dapat dibaca untuk laporan historis.
 
-Semua sesi Jadwal dapat mempunyai Jurnal, termasuk `Non Sesi`.
-
-# 15. Scope Jurnal
-
-- Admin/Operator: seluruh sesuai permission;
-- Pimpinan: view semua, input diri bila identity/jadwal valid;
-- Guru/Wali: diri sendiri;
-- BK/Siswa: tidak.
-
-Wali tidak mendapat Jurnal kelas hanya karena status Wali.
-
-# 16. Histori Jurnal
-
-Jadwal Nonaktif tetap reportable.
-
-Status Jadwal Aktif hanya syarat input baru.
-
-# 17. Route Web
+## 14. Route Utama
 
 ```text
 /presensi/siswa
-/presensi/siswa/input/{id_kelas}
-/presensi/siswa/revisi/{id_kelas}
+/presensi/siswa/input/{kelas}
+/presensi/siswa/revisi/{kelas}
 /presensi/siswa/rekap
 /presensi/siswa/ews
-
 /presensi/mengajar
-/presensi/mengajar/input/{id_jadwal}
+/presensi/mengajar/input/{jadwal}
 /presensi/mengajar/laporan
 ```
-
-# 18. Checkpoint
-
-- time-window;
-- geofence;
-- dual Guru/Wali;
-- bulk rollback;
-- duplicate;
-- revisi;
-- Sesi Awal/Akhir;
-- Jurnal Non Sesi;
-- snapshot histori;
-- scope direct URL.

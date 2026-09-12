@@ -1,25 +1,15 @@
-# 16 Mobile Cordova — SisisFour
+# Mobile Cordova — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Status:** Canonical Contract / Client Belum Dibangun
+**Tanggal Acuan:** 12 September 2026
+**Baseline Server:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
+**API Version:** `v1`
 
-Dokumen ini adalah **acuan utama** dan menggambarkan baseline aplikasi yang berlaku. Bagian yang belum tersedia di repo dinyatakan sebagai gap/blocker, bukan diasumsikan sudah selesai.
+> Server API core tersedia pada baseline. Project client Cordova belum menjadi bagian repository ini.
 
----
+## 1. Target
 
-# 1. Kedudukan Tahap Mobile
-
-Aplikasi mobile SisisFour direncanakan menggunakan **Apache Cordova** dengan WebView Android dan bersifat **online-only**.
-
-Tahap mobile dikerjakan setelah Web SisisFour melewati Testing & Polish.
-
-Baseline repo ini belum memuat project Cordova (`config.xml`, `www/`, `platforms/`, atau struktur client Cordova). Karena itu dokumen ini adalah kontrak implementasi mobile yang harus memakai API server yang benar-benar tersedia.
-
-# 2. Prinsip Client
-
-Frontend APK:
+Client Android direncanakan menggunakan Apache Cordova/WebView dan bersifat **online-only**.
 
 ```text
 HTML
@@ -29,244 +19,163 @@ Fetch API
 Cordova WebView
 ```
 
-Business JavaScript tidak menggunakan jQuery.
+Authorization/business rule tetap server-side.
 
-Client mobile tidak menjalankan business rule authorization. Permission dan scope tetap authoritative di server.
+## 2. Role Target Mobile
 
-# 3. Role Mobile
+Prioritas:
 
-Target utama:
+```text
+Pimpinan
+BK
+Guru/Wali
+Siswa
+```
 
-| Role | Mobile |
-|---|---|
-| Admin | bukan target utama |
-| Operator | bukan target utama |
-| Pimpinan | ya |
-| BK | ya |
-| Guru | ya |
-| Wali | ya sebagai konteks Guru |
-| Siswa | ya |
+Admin/Operator tetap lebih cocok menggunakan Web untuk pekerjaan administrasi berat, walaupun API permission tetap menentukan akses aktual.
 
-Admin/Operator tetap menggunakan Web untuk pekerjaan administratif berat seperti Master Data, Settings, Backup, dan pengelolaan user.
+## 3. API Base
 
-# 4. Authentication API
+Production:
 
-Endpoint public authentication:
+```text
+https://sisfour.mtsn4jombang.sch.id/api/
+```
 
-| Method | Endpoint | Controller |
-|---|---|---|
-| POST | `/api/auth/login` | `Auth::apiLogin` |
-| POST | `/api/auth/refresh` | `Auth::apiRefresh` |
-| GET | `/api/version` | `Api::version` |
+HTTPS wajib.
 
-Endpoint protected:
+## 4. Authentication
 
-| Method | Endpoint | Filter |
-|---|---|---|
-| POST | `/api/auth/logout` | `auth:api` |
-| GET | `/api/auth/me` | `auth:api` |
+Public:
 
-# 5. Token
+```text
+POST /api/auth/login
+POST /api/auth/refresh
+GET  /api/version
+```
 
-Server memakai `api_tokens`.
+Protected:
 
-Access dan refresh token diterbitkan oleh `JwtService`.
+```text
+GET  /api/auth/me
+POST /api/auth/logout
+```
 
-Mobile wajib:
+Server memakai JWT access token + opaque refresh token pada `api_tokens`.
 
-1. menyimpan token secara aman;
+Client wajib:
+
+1. menyimpan token pada secure storage yang sesuai Android;
 2. mengirim `Authorization: Bearer ...`;
-3. melakukan refresh saat access token expired;
+3. refresh saat access token expired;
 4. logout bila refresh gagal/revoked;
-5. tidak menyimpan password setelah login.
+5. tidak menyimpan password setelah login;
+6. tidak menulis token ke console/log.
 
-`auth_version` digunakan untuk invalidasi session/token lama.
+## 5. Server Version Endpoint
 
-# 6. API Bisnis yang Terdaftar
+`GET /api/version` runtime-ready melalui `Api::version`.
 
-Semua endpoint berikut berada dalam group `auth:api`.
-
-## Dashboard
-
-```text
-GET /api/dashboard
-GET /api/dashboard/data
-```
-
-Permission:
+Baseline response identity:
 
 ```text
-dashboard.view
+product        SisisFour
+server_version 0.5
+api_version    v1
+timezone       Asia/Jakarta
 ```
 
-## Presensi Siswa
+Client dapat menggunakan endpoint ini untuk compatibility/update notice. Tidak ada silent APK update dari server.
+
+## 6. RequestContext Server
+
+Authenticated API actor disimpan request-scoped dengan canonical keys:
 
 ```text
-GET  /api/presensi/siswa
-GET  /api/presensi/siswa/input/(:segment)
-POST /api/presensi/siswa/save
-GET  /api/presensi/siswa/revisi/(:segment)
-POST /api/presensi/siswa/revisi/save
-GET  /api/presensi/siswa/rekap
-GET  /api/presensi/siswa/ews
+api_user
+api_access_token
+api_token_row
+api_claims
 ```
 
-Permission sesuai route:
+Client tidak pernah mengirim atau menentukan effective role/scope sendiri.
+
+## 7. API Bisnis Tersedia
+
+Protected group `auth:api` meliputi kategori:
 
 ```text
-presensi_siswa.input
-presensi_siswa.revisi
-presensi_siswa.view
-ews_radar.view
+Dashboard
+Presensi Siswa
+Presensi Mengajar/Jurnal
+Laporan Matrix/Jurnal
+BK Kasus + Tindak Lanjut
+Prestasi
+Kartu preview/download
+Profile Guru
+Profile Pegawai
+Profile Siswa
 ```
 
-## Presensi Mengajar
+Endpoint aktual mengikuti `Routes Final — SisisFour.md` dan `app/Config/Routes.php`.
 
-```text
-GET  /api/presensi/mengajar
-GET  /api/presensi/mengajar/input/(:segment)
-POST /api/presensi/mengajar/save
-GET  /api/presensi/mengajar/laporan
-```
+## 8. Profile API
 
-## Laporan
-
-```text
-GET /api/laporan/presensi/matrix
-GET /api/laporan/jurnal
-```
-
-## BK
-
-```text
-GET    /api/bk/kasus
-GET    /api/bk/kasus/top
-POST   /api/bk/kasus/create
-PUT    /api/bk/kasus/update/(:segment)
-DELETE /api/bk/kasus/delete/(:segment)
-
-GET  /api/bk/prestasi
-POST /api/bk/prestasi/create
-```
-
-## Kartu Pelajar
-
-```text
-GET /api/kartu/preview/(:segment)
-GET /api/kartu/download/(:segment)
-```
-
-## Profile
+Runtime-ready:
 
 ```text
 GET  /api/profile/guru
 PUT  /api/profile/guru
 POST /api/profile/guru/foto
+
+GET  /api/profile/pegawai
+PUT  /api/profile/pegawai
+POST /api/profile/pegawai/foto
+
 GET  /api/profile/siswa
 ```
 
-# 7. Gap API Baseline
+Personalia/Portofolio self pada baseline masih terutama kontrak Web; jangan mengasumsikan route API Personalia sebelum ditambahkan eksplisit.
 
-## BLOCKER-MOBILE-API-01 — Version
+## 9. JSON dan HTTP
 
-Route:
+Client harus memeriksa **HTTP status dan body**, bukan hanya field pesan.
 
-```text
-GET /api/version → Api::version
-```
-
-terdaftar di `Routes.php`, tetapi file:
+Expected umum:
 
 ```text
-app/Controllers/Api.php
+200 success
+401 unauthenticated/token invalid
+403 forbidden/scope
+422 validation/business error
+503 maintenance
 ```
 
-tidak ditemukan pada baseline repo.
+Endpoint Web/API dual-surface harus menghasilkan JSON untuk path `/api`.
 
-Endpoint version belum boleh dianggap runtime-ready sampai Controller tersebut tersedia atau route disesuaikan.
+## 10. Maintenance
 
-## BLOCKER-MOBILE-PROFILE-01 — Profile
+Saat maintenance ON:
 
-Route API Profile terdaftar, tetapi:
+- non-Admin API menerima 503 JSON;
+- client menampilkan pesan maintenance;
+- client tidak melakukan retry tanpa batas;
+- effective Admin dapat tetap melakukan recovery sesuai server policy.
 
-```text
-app/Controllers/ProfileGuru.php
-app/Controllers/ProfileSiswa.php
-```
+## 11. Geolocation
 
-tidak ditemukan.
+Jika Presensi memerlukan geofence:
 
-Fitur Profile mobile belum runtime-ready.
-
-# 8. JSON Contract
-
-Endpoint API mobile harus menghasilkan JSON konsisten.
-
-Success minimum:
-
-```json
-{
-  "success": true,
-  "message": "Berhasil.",
-  "data": {}
-}
-```
-
-Error minimum:
-
-```json
-{
-  "success": false,
-  "message": "..."
-}
-```
-
-Untuk endpoint Controller yang juga melayani Web, request API tidak boleh menghasilkan halaman HTML sebagai response normal.
-
-# 9. Maintenance
-
-Saat Maintenance ON:
-
-- effective Admin dapat tetap akses;
-- user mobile non-Admin mendapat HTTP 503 JSON;
-- login non-Admin diblokir;
-- API response memakai code `MAINTENANCE`.
-
-Client harus menampilkan pesan maintenance dan tidak melakukan retry tanpa batas.
-
-# 10. Geolocation
-
-Presensi mobile yang memerlukan geofence harus:
-
-1. meminta izin lokasi perangkat;
-2. membaca latitude/longitude terkini;
-3. mengirim koordinat ke server;
+1. client meminta permission lokasi;
+2. ambil latitude/longitude aktual;
+3. kirim koordinat ke server;
 4. server menghitung validitas radius.
 
-Client tidak boleh menentukan sendiri hasil `inside/outside`.
+Client tidak boleh menentukan sendiri `inside/outside` sebagai keputusan final.
 
-Pesan login Web:
+## 12. Online Only
 
-```text
-Aktifkan lokasi di perangkat saat menggunakan aplikasi
-```
-
-juga relevan sebagai edukasi user mobile/Web.
-
-# 11. HTTPS
-
-Produksi wajib HTTPS.
-
-Tujuan:
-
-- melindungi token;
-- mendukung geolocation;
-- mencegah mixed content;
-- menjaga request API.
-
-# 12. Online Only
-
-Tidak ada queue offline untuk:
+Tidak ada offline queue canonical untuk:
 
 ```text
 Presensi
@@ -275,141 +184,86 @@ Kasus
 Prestasi
 ```
 
-Jika jaringan gagal, client harus memberi error jelas dan tidak mengklaim data tersimpan.
+Network failure harus tampil sebagai gagal/tertunda, bukan sukses palsu.
 
-# 13. Kartu Pelajar
+## 13. Kartu Pelajar
 
-APK dapat:
+Mobile dapat menggunakan:
 
 ```text
 preview kartu
 download PDF kartu
 ```
 
-sesuai scope actor.
+sesuai permission/scope actor.
 
-QR/public verification tetap mengarah pada endpoint public Web:
+QR verify tetap Web public:
 
 ```text
 /kartu/verify/{kode_verifikasi}
 ```
 
-# 14. Profile Mobile
+## 14. Cordova Security
 
-Setelah blocker Profile selesai:
+Ketika project client dibuat:
 
-Guru:
+- whitelist network hanya domain resmi;
+- external navigation dibatasi;
+- HTTPS only;
+- token tidak hardcoded;
+- password tidak disimpan;
+- cookie Web tidak dijadikan credential API;
+- debug logging sensitif dimatikan pada release.
 
-```text
-view diri
-edit field yang diizinkan
-upload foto
-NIP readonly
-```
-
-Siswa:
-
-```text
-view diri
-readonly
-```
-
-# 15. Security Client
-
-Dilarang menyimpan atau menampilkan:
-
-- password;
-- password hash;
-- refresh token di log console;
-- access token di UI;
-- cookie Web;
-- data role/scope buatan client.
-
-Token storage harus memakai storage yang sesuai untuk aplikasi Android, bukan hardcoded source.
-
-# 16. Cordova Configuration
-
-Project Cordova ketika dibuat minimal mempunyai:
-
-```text
-config.xml
-www/
-platforms/android/
-plugins/
-```
-
-Whitelist/network access hanya untuk domain API resmi.
-
-External navigation tidak boleh dibuka bebas.
-
-# 17. Plugin/Capability Minimum
-
-Capability yang dibutuhkan:
+## 15. Capability Minimum
 
 ```text
 Geolocation
-File/Download
+Secure token storage
 Network status
-Browser/external link terkontrol bila diperlukan
+File/download
+External browser/link terkontrol bila diperlukan
 ```
 
-Pemilihan plugin Cordova harus mengikuti versi Cordova/Android target pada saat build, bukan dikunci pada package yang sudah obsolete.
+Pemilihan plugin mengikuti versi Cordova/Android saat implementasi, bukan daftar package lama yang mungkin obsolete.
 
-# 18. Distribusi
+## 16. Distribusi
 
-Fase pengujian:
+Tahap uji:
 
 ```text
 APK sideload pada device Android nyata
 ```
 
-Fase produksi:
+Produksi:
 
 ```text
-Google Play / kanal distribusi resmi yang diputuskan sekolah
+kanal distribusi resmi yang diputuskan madrasah
 ```
 
-# 19. Mekanisme Versi
+## 17. Gate Sebelum Client Dinyatakan Final
 
-Setelah `Api::version` tersedia, client dapat membandingkan:
+- Web production stabil.
+- HTTPS production valid.
+- Auth login/me/refresh/logout API PASS.
+- `auth_version` invalidation PASS.
+- seluruh endpoint mobile menghasilkan JSON yang benar.
+- RBAC mobile role target PASS.
+- geolocation Android nyata PASS.
+- maintenance 503 PASS.
+- token storage aman.
+- download Kartu PASS.
+- build APK PASS.
+- multi-device test PASS.
+- kebijakan distribusi/update diputuskan.
+
+## 18. Status Saat Ini
 
 ```text
-versi aplikasi lokal
-vs
-versi server
+Server API core     tersedia
+/api/version        tersedia
+Profile API         tersedia
+JWT infrastructure  tersedia
+Cordova client      belum ada di repo
+APK production      belum menjadi baseline release Web ini
 ```
-
-Jika update tersedia, user diarahkan ke kanal update resmi.
-
-Tidak ada silent APK update dari server aplikasi.
-
-# 20. Checklist Tahap 16
-
-- [ ] Testing & Polish Web selesai.
-- [ ] `Api::version` tersedia dan diuji.
-- [ ] Profile API sinkron atau dikeluarkan dari scope mobile.
-- [ ] Auth JWT login/me/refresh/logout lulus.
-- [ ] auth_version invalidation lulus.
-- [ ] seluruh API mobile mengembalikan JSON.
-- [ ] RBAC mobile seluruh role lulus.
-- [ ] geolocation Android nyata lulus.
-- [ ] Maintenance JSON lulus.
-- [ ] project Cordova dibuat.
-- [ ] responsive mobile UI selesai.
-- [ ] token storage aman.
-- [ ] build APK berhasil.
-- [ ] sideload test beberapa device.
-- [ ] production HTTPS.
-- [ ] distribusi/update diputuskan.
-
-# 21. Status Baseline
-
-```text
-Server API core      → tersedia
-JWT infrastructure   → tersedia
-Cordova client       → belum ada di repo
-/api/version         → route ada, Controller Api tidak ditemukan
-Profile API          → route ada, Controller Profile tidak ditemukan
-```
-
-Tahap Mobile belum boleh dinyatakan FINAL sebelum blocker di atas selesai.

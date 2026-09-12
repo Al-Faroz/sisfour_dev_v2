@@ -1,23 +1,21 @@
 # Tree Structure — SisisFour
 
-**Versi Acuan:** v0.9 PHASE 3.2 FINAL POLISH  
-**Tanggal Acuan:** 09 September 2026  
-**Baseline Aplikasi:** `main` @ `c05466738012ea2da852fa3e878b6bbb897d6607` + paket Phase 3.2  
-**Baseline Database:** `sisfour_dev_v2 (29).sql`
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 12 September 2026
+**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
 
-Dokumen ini adalah acuan struktur repository SisisFour setelah implementasi Personalia/Portofolio dan final polish Phase 3.2.
+> Struktur ini menjelaskan boundary repository dan lokasi file penting. Ia tidak dimaksudkan menjadi daftar setiap file vendor/template.
 
----
+## 1. Root
 
-# 1. Prinsip Struktur
-
-Project menggunakan CodeIgniter 4 dengan **document root langsung di root repository**.
+SisisFour memakai **project root sebagai Web root**.
 
 ```text
 sisfour_dev_v2/
-├── index.php
 ├── .htaccess
 ├── .gitignore
+├── index.php
+├── spark
 ├── composer.json
 ├── composer.lock
 ├── phpunit.dist.xml
@@ -27,15 +25,28 @@ sisfour_dev_v2/
 ├── database/
 ├── docs/
 ├── postman/
+├── public/
 ├── tests/
 ├── uploads/
-├── vendor/                 # dependency lokal, tidak di-commit
-└── writable/               # runtime CI4
+├── vendor/          # runtime dependency, tidak di-commit
+└── writable/        # runtime CI4/non-public storage
 ```
 
-Folder `public/` **bukan** document root runtime proyek ini.
+Folder `public/` ada untuk aset/fallback tertentu, tetapi **bukan document root runtime** baseline.
 
-# 2. `app/`
+## 2. Security Root
+
+`.htaccess` root:
+
+- mematikan directory browsing;
+- meneruskan route ke `index.php`;
+- meneruskan Authorization header;
+- memblokir file sensitif;
+- memblokir direct access ke `app/`, `vendor/`, `writable/`, `tests/`, `database/`, `docs/`, Postman/repository metadata dan backup STEP.
+
+`robots.txt` production meminta `Disallow: /`.
+
+## 3. `app/`
 
 ```text
 app/
@@ -48,214 +59,232 @@ app/
 ├── Libraries/
 ├── Models/
 ├── Services/
+├── Support/
 ├── ThirdParty/
-├── Views/
-├── Common.php
-└── index.html
-```
-
-Pola implementasi bisnis:
-
-```text
-Route
-  -> Filter route gate
-  -> Controller
-  -> Service (authorization + business/data scope)
-  -> Model / Query DB
-  -> View / JSON
-```
-
-`PermissionFilter` bukan pengganti authorization pada Service.
-
-# 3. Personalia / Portofolio Phase 3
-
-File utama:
-
-```text
-app/
-├── Controllers/
-│   └── Personalia.php
-├── Models/
-│   ├── DokumenPersonaliaModel.php
-│   ├── RiwayatPangkatModel.php
-│   ├── RiwayatPendidikanModel.php
-│   └── RiwayatPenugasanModel.php
-├── Services/
-│   ├── PersonaliaService.php
-│   ├── PortfolioService.php
-│   └── UploadService.php
 └── Views/
-    ├── personalia/
-    │   ├── detail.php
-    │   └── portfolio.php
-    └── profile/
-        ├── guru.php
-        └── pegawai.php
-
-assets/js/
-└── personalia/
-    └── detail.js
 ```
 
-Dokumen mentah Personalia tidak ditempatkan pada `uploads/` public.
-
-# 4. Master Guru/Pegawai
-
-Core Guru dan Pegawai tetap terpisah:
+Alur bisnis:
 
 ```text
-app/Controllers/MasterGuru.php
-app/Controllers/MasterPegawai.php
-app/Models/GuruModel.php
-app/Models/PegawaiModel.php
-app/Services/GuruService.php
-app/Services/PegawaiService.php
-app/Views/master/guru.php
-app/Views/master/pegawai.php
-assets/js/master/guru.js
-assets/js/master/pegawai.js
+Routes
+ -> Filter
+ -> Controller
+ -> Service
+ -> Model / Query Builder
+ -> DB
+ -> View / JSON
 ```
 
-Tidak ada modul gabungan `sdm` dan tidak ada role baru `pegawai`.
+## 4. Config Penting
 
-# 5. Frontend
+```text
+app/Config/App.php
+app/Config/Database.php
+app/Config/Filters.php
+app/Config/Routes.php
+app/Config/Security.php
+app/Config/Session.php
+app/Config/Cookie.php
+```
+
+Environment-specific secret/config production ditempatkan di `.env`, bukan hardcode source.
+
+## 5. Auth / Authorization
+
+File utama mencakup:
+
+```text
+app/Controllers/Auth.php
+app/Services/AuthService.php
+app/Services/JwtService.php
+app/Filters/AuthFilter.php
+app/Filters/PermissionFilter.php
+app/Filters/MaintenanceFilter.php
+app/Support/RequestContext.php
+```
+
+RequestContext API memakai snake_case canonical keys.
+
+## 6. Master & Operasional
+
+Controller/Service dipisah per domain, termasuk:
+
+```text
+MasterGuru
+MasterPegawai
+MasterSiswa
+MasterKelas
+MasterTahunAjaran
+MasterMapel
+MappingWaliKelas
+JadwalGuru
+ManajemenSiswa
+PresensiSiswa
+PresensiMengajar
+LaporanPresensi
+LaporanJurnal
+BKKasus
+BKPelanggaran
+BKPrestasi
+KartuPelajar
+Dashboard
+Signage
+Settings*
+Backup
+LogActivity
+Profile*
+Personalia
+```
+
+## 7. Personalia / Portofolio
+
+```text
+app/Controllers/Personalia.php
+app/Models/DokumenPersonaliaModel.php
+app/Models/RiwayatPangkatModel.php
+app/Models/RiwayatPendidikanModel.php
+app/Models/RiwayatPenugasanModel.php
+app/Services/PersonaliaService.php
+app/Services/PortfolioService.php
+app/Services/UploadService.php
+app/Views/personalia/
+assets/js/personalia/
+```
+
+Raw document disimpan non-public pada `writable/uploads/personalia/`.
+
+## 8. Frontend
 
 ```text
 assets/
 ├── css/
 ├── img/
 ├── js/
+│   ├── bk/
 │   ├── components/
+│   ├── kartu/
 │   ├── master/
 │   ├── personalia/
+│   ├── presensi/
+│   ├── settings/
 │   ├── csrf-fetch.js
 │   └── main.js
 └── vendor/
 ```
 
-Business UI utama menggunakan **Vanilla JS + Fetch API**. DataTables/Select2 tidak dimuat global; searchable select internal dipakai untuk kebutuhan pencarian.
+Business JavaScript = Vanilla JS + Fetch API.
 
-# 6. Database Script
+Komponen umum seperti pagination/searchable select digunakan tanpa menjadikan client sebagai authorization boundary.
 
-```text
-database/
-├── ... script checkpoint sebelumnya ...
-└── 20260909_PHASE3_2_VERIFY_PERSONALIA_CHECKS.sql
-```
+## 9. Upload Public
 
-Script Phase 3.2 hanya melakukan verifikasi schema live; tidak mengubah data.
-
-Schema canonical didokumentasikan pada:
+Runtime public utama:
 
 ```text
-docs/02_DATABASE — SisisFour.md
+uploads/foto_siswa/
+uploads/foto_guru/
+uploads/foto_pegawai/
+uploads/settings/branding/
+uploads/settings/kartu/
 ```
 
-# 7. Dokumentasi Canonical
+Foto user dan dokumen personalia adalah runtime data. Khusus asset Settings, baseline `39da465` saat ini memang membawa beberapa branding/background Kartu sebagai tracked release asset; kebijakan jangka panjangnya perlu diseragamkan dengan `.gitignore`.
 
-File acuan utama menggunakan satu nama yang konsisten:
+### Catatan `.gitignore`
 
-```text
-docs/
-├── 00_POLA_PENGERJAAN___SisisFour.md
-├── 01_MASTERPLAN — SisisFour.md
-├── 02_DATABASE — SisisFour.md
-├── 03_AUTH_RBAC_MENU — SisisFour.md
-├── 04_MASTER_DATA — SisisFour.md
-├── 05_PRESENSI — SisisFour.md
-├── 06_LAPORAN — SisisFour.md
-├── 07_BK_PRESTASI_KARTU — SisisFour.md
-├── 08_DASHBOARD_SETTINGS_BACKUP — SisisFour.md
-├── 09_PROFILE — SisisFour.md
-├── 15_TESTING_POLISH — SisisFour.md
-├── 16_MOBILE_CORDOVA — SisisFour.md
-├── Routes Final — SisisFour.md
-├── Tree Structure — SisisFour.md
-├── PHASE3_1_INTEGRITY_HARDENING.md
-├── PHASE3_2_FINAL_POLISH.md
-└── _CATATAN_PERUBAHAN_20260909.md
-```
+Baseline `.gitignore` masih mempunyai pola path historis (`uploads/branding/`, `uploads/kartu_pelajar/`) sementara implementasi Settings final menulis ke `uploads/settings/...`. Pada release `39da465`, beberapa file di path final Settings sudah tracked. Karena itu setiap `git add -A` harus diaudit agar upload baru tidak ikut commit tanpa keputusan. Penyelarasan kebijakan asset Settings dan `.gitignore` dilakukan sebagai hygiene follow-up terpisah.
 
-Nama file encoding rusak seperti:
-
-```text
-09_PROFILE ΓÇö SisisFour.md
-15_TESTING_POLISH ΓÇö SisisFour.md
-```
-
-bukan file canonical dan harus dihapus.
-
-# 8. Upload Public
-
-```text
-uploads/
-├── branding/
-├── foto_siswa/
-├── foto_guru/
-├── foto_pegawai/
-└── kartu_pelajar/
-```
-
-Semua file runtime di folder tersebut diabaikan Git. File pengaman seperti `.htaccess`/`index.html` boleh dipertahankan bila ada.
-
-# 9. Upload Non-Public
-
-Dokumen Personalia:
+## 10. Upload Non-Public
 
 ```text
 writable/uploads/personalia/
-├── guru/{id}/...
-└── pegawai/{id}/...
 ```
 
-Boundary:
+File hanya dikirim melalui Controller setelah authorization Service.
 
-- tidak dapat diakses langsung melalui URL public;
-- file dikirim melalui endpoint `Personalia::file` setelah authorization Service;
-- path database divalidasi agar tidak keluar dari prefix owner;
-- seluruh file runtime `writable/uploads/` diabaikan Git.
-
-# 10. Runtime / Build yang Tidak Di-commit
+## 11. Runtime Writable
 
 ```text
+writable/cache/
+writable/logs/
+writable/backups/
+writable/debugbar/
+writable/uploads/
+```
+
+Database session menggunakan `ci_sessions`, bukan file session sebagai kontrak utama.
+
+## 12. Kartu Default Asset
+
+Fallback release:
+
+```text
+public/assets/kartu/default/background_kta_depan.jpg
+public/assets/kartu/default/background_kta_belakang.jpg
+```
+
+Runtime override berada di `uploads/settings/kartu/` dan direferensikan `setting_sistem`.
+
+## 13. Database Scripts
+
+`database/` berisi script utilitas/checkpoint schema yang pernah diperlukan. Schema live canonical tetap diverifikasi terhadap dump resmi terbaru dan `SHOW CREATE TABLE` bila perlu.
+
+Migrations bukan syarat awal deployment baseline bila database dibuat dari dump resmi.
+
+## 14. Dokumentasi Canonical
+
+Set fresh `docs/`:
+
+```text
+00_POLA_PENGERJAAN___SisisFour.md
+01_MASTERPLAN — SisisFour.md
+02_DATABASE — SisisFour.md
+03_AUTH_RBAC_MENU — SisisFour.md
+04_MASTER_DATA — SisisFour.md
+05_PRESENSI — SisisFour.md
+06_LAPORAN — SisisFour.md
+07_BK_PRESTASI_KARTU — SisisFour.md
+08_DASHBOARD_SETTINGS_BACKUP — SisisFour.md
+09_PROFILE — SisisFour.md
+10_DEPLOYMENT_PRODUCTION — SisisFour.md
+15_TESTING_POLISH — SisisFour.md
+16_MOBILE_CORDOVA — SisisFour.md
+Routes Final — SisisFour.md
+Tree Structure — SisisFour.md
+```
+
+Dokumen phase note/changelog/package note lama bukan bagian SSOT fresh.
+
+## 15. Tidak Di-commit
+
+Secara prinsip:
+
+```text
+.env
 vendor/
 build/
-writable/logs/*
-writable/session/*
-writable/cache/*
-writable/backups/*
-writable/debugbar/*
-writable/uploads/*
-uploads/foto_siswa/*
-uploads/foto_guru/*
-uploads/foto_pegawai/*
-uploads/branding/*
-uploads/kartu_pelajar/**/*
+backup STEP
+runtime logs/cache/backups/debugbar
+raw Personalia uploads
+foto/branding/background runtime
+secret/token/password
 ```
 
-`build/` berisi output PHPUnit seperti cache, JUnit, TestDox, dan coverage. Source test tetap berada di `tests/` dan boleh di-commit.
+## 16. Aturan Perubahan Struktur
 
-# 11. Tests
+- Business rule tetap di Service.
+- Controller tidak menjadi tempat agregasi rule domain besar.
+- JS page-specific ditempatkan per modul.
+- Route baru hanya ditambah bila endpoint memang diperlukan.
+- File upload publik/non-public tidak boleh tertukar boundary.
+- Dokumen canonical diperbarui setelah release contract berubah.
+
+
+## Canonical UI/UX Document
 
 ```text
-tests/
-└── unit/
-    └── PersonaliaHardeningTest.php
+docs/11_UI_UX_GURU_WALAS_SISWA — SisisFour.md
 ```
 
-Gate Phase 3.1/3.2:
-
-```powershell
-vendor\bin\phpunit tests\unit\PersonaliaHardeningTest.php
-```
-
-Hasil build test disimpan lokal sesuai `phpunit.dist.xml`, tetapi tidak menjadi source repository.
-
-# 12. Aturan Penambahan File
-
-- Source PHP mengikuti layer yang sudah ada; jangan menaruh business rule langsung di View/JS bila dapat dipusatkan pada Service.
-- JS modul ditempatkan page-specific dan memakai Vanilla JS + Fetch.
-- Upload user tidak boleh masuk repository.
-- File dokumen mentah Personalia harus tetap non-public.
-- Dokumen acuan tidak boleh mempunyai duplikat nama akibat encoding.
-- `Routes.php` hanya diubah bila route memang perlu berubah; Phase 3.2 tidak membutuhkan perubahan Routes.
+Dokumen ini menjadi SSOT khusus inventory dan guardrail redesign experience Guru, Guru+Wali, dan Siswa.

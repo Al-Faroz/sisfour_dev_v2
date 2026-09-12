@@ -1,205 +1,196 @@
 # Dashboard, Settings, Maintenance, Backup & Log Activity — SisisFour
 
-**Versi Acuan Utama:** v0.5 FINAL BASELINE  
-**Tanggal Acuan:** 08 September 2026  
-**Baseline Aplikasi:** `main` @ `b85b857e1a38b6eb1fd26ba2d9aa61ae5e679f55`  
-**Baseline Database:** `sisfour_dev_v2 (15).sql`
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 12 September 2026
+**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
+**Baseline Database:** `sisfour_dev_v2 (33).sql`
 
-Dokumen ini adalah **acuan utama** SisisFour. Isinya menyatakan kontrak dan kondisi baseline yang berlaku, bukan riwayat perubahan.
 
----
+> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog**.
 
-# A. Dashboard
+## A. Dashboard
 
-## 1. Prinsip
+### 1. Experience Role
 
-Dashboard bukan security boundary.
-
-Effective dashboard priority:
+Dashboard memakai effective role dan priority:
 
 ```text
-admin > operator > pimpinan > guru > bk > siswa
+admin > operator > pimpinan > bk > guru > siswa
 ```
 
-Wali = Dashboard Guru + contextual widget.
+BK berada di atas Guru karena akun BK dapat tetap mempunyai identity/secondary role Guru.
 
-## 2. Admin
+Wali Kelas bukan role. Dashboard Wali = Dashboard Guru + contextual data/quick links berdasarkan mapping Wali aktif dan permission yang dimiliki.
 
-Ringkasan utama:
+### 2. Admin
 
-- Master Data;
-- Presensi hari ini;
-- Jurnal;
-- EWS;
-- BK/Prestasi;
-- Kartu;
-- geofence;
-- maintenance;
-- tren;
-- aktivitas terakhir.
+Fokus ringkasan sistem, master, Presensi, Jurnal, EWS, BK/Prestasi, Kartu, status sistem dan log sesuai permission.
 
-## 3. Operator
+### 3. Operator
 
-Fokus operasional. Tidak mempunyai Settings/Backup pada baseline permission.
+Fokus administrasi operasional, master, Presensi, laporan, BK/Kartu sesuai permission. Operator tidak otomatis memperoleh Settings/Backup.
 
-Mempunyai `log_activity.view`.
+### 4. Pimpinan
 
-## 4. Pimpinan
+Fokus monitoring/supervisi readonly. Mutation hanya tersedia bila permission eksplisit memang diberikan.
 
-Supervisi readonly. Input Jurnal diri hanya jika identity/jadwal/permission valid.
+### 5. BK
 
-## 5. Guru/Wali
+Fokus EWS, Kasus, Pelanggaran, dan Prestasi.
 
-Guru berorientasi tugas Jadwal hari ini. Wali mendapat tambahan data kelas Wali sesuai scope.
+### 6. Guru
 
-## 6. BK
+Dashboard Guru baseline menampilkan:
 
-Fokus EWS, Kasus, Pelanggaran, Prestasi.
+```text
+Tahun Ajaran aktif
+Jadwal hari ini
+Task summary Presensi/Jurnal
+Riwayat Jurnal terakhir
+Akses Profile bila tersedia
+```
 
-## 7. Siswa
+Action Presensi/Jurnal pada jadwal mengikuti time-window dan status submission server-side.
 
-Data diri: Presensi, Kasus, Prestasi, Kartu, dan Profile bila implementasi tersedia.
+### 7. Guru + Wali Kelas
 
-## 8. Query
+Dashboard Wali adalah Dashboard Guru dengan tambahan contextual:
 
-Database-first. Top list bounded. EWS 14 hari.
+```text
+Kelas wali
+Jumlah siswa
+Presensi Sesi Awal hari ini (H/S/I/A)
+EWS kelas bila diizinkan
+Ketidakhadiran terbaru
+Quick links contextual
+```
 
-# B. Settings
+Quick links dapat mengarah ke Presensi Kelas, Rekap, Data Siswa, Matrix, EWS, Kasus, Prestasi, dan Kartu sesuai permission.
 
-## 9. Permission
+### 8. Siswa
+
+Dashboard Siswa readonly menampilkan data diri:
+
+```text
+Tahun Ajaran aktif
+Status kehadiran hari ini dari Sesi Awal
+Rekap Presensi bulan berjalan
+Presensi/ketidakhadiran terbaru
+Prestasi
+Pelanggaran/Kasus
+Kartu
+Profile
+```
+
+Tidak adanya row Sesi Awal bukan otomatis `Hadir`; UI membedakan data tersedia dan belum tersedia.
+
+### 9. Redesign UI/UX
+
+Fokus redesign aktif adalah Guru, Guru+Wali, dan Siswa. Mockup visual yang dibuat selama diskusi tidak menjadi runtime contract sebelum source diimplementasikan dan lolos regression.
+
+Detail: `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md`.
+
+## B. Settings User
+
+Permission:
 
 ```text
 settings_user.manage
+```
+
+Fitur:
+
+- create/update akun;
+- primary role;
+- secondary role;
+- aktif/nonaktif;
+- relasi Guru/Pegawai/Siswa;
+- reset password;
+- managed credential;
+- `auth_version` invalidation ketika state keamanan/kredensial berubah.
+
+Credential Guru/Pegawai yang dikelola Master mengikuti identifier NIP bila ada, selain itu NIK.
+
+UI mutation create/update/reset/delete memiliki busy guard.
+
+## C. Settings Menu
+
+Permission:
+
+```text
 settings_menu.manage
+```
+
+`role_menus` mengatur visibilitas navigasi. Menu **bukan authorization boundary**; direct URL tetap diperiksa filter dan Service.
+
+Sidebar harus:
+
+- membuang parent kosong;
+- hanya mempunyai satu active item paling spesifik;
+- membuka ancestor dari active item;
+- tidak menampilkan menu yang tidak berguna bagi effective role/context bila desain final sudah menetapkannya.
+
+## D. Settings Sistem
+
+Permission:
+
+```text
 settings_sistem.manage
 ```
 
-Baseline: Admin.
-
-## 10. User Management
-
-Mendukung:
-
-- create/update user;
-- aktif/nonaktif;
-- reset password;
-- primary role;
-- secondary roles;
-- relasi Guru/Pegawai/Siswa;
-- auth_version.
-
-Role NULL valid bagi Pegawai.
-
-## 11. Menu & Role
-
-Admin mengelola `role_menus`.
-
-Menu bukan authorization boundary.
-
-## 12. Setting Sistem
-
-Key baseline:
+Key utama:
 
 ```text
-geofencing_aktif
+nama_sekolah
+alamat_sekolah
+logo_sekolah
+icon_sekolah
 latitude_sekolah
 longitude_sekolah
 radius_geofencing
+geofencing_aktif
 maintenance_mode
 maintenance_message
-logo_sekolah
-icon_sekolah
 background_kta_depan
 background_kta_belakang
-nama_sekolah
-alamat_sekolah
 ```
 
-Branding upload:
+Upload branding:
 
 ```text
 uploads/settings/branding/
 ```
 
-KTA upload:
+Upload background Kartu:
 
 ```text
 uploads/settings/kartu/
 ```
 
-Logo login/sidebar = `logo_sekolah`.
+File image divalidasi dan di-reencode dengan GD. Maksimum input 5 MB. Background Kartu dinormalisasi ke 1011×638.
 
-Favicon = `icon_sekolah`.
+## E. Maintenance
 
-# C. Login & Footer
+Maintenance adalah global filter.
 
-## 13. Login
-
-```text
-SisFour Dev
-{nama_sekolah}
-```
-
-Logo berasal dari hasil upload Setting Sistem.
-
-Pesan:
+Saat ON:
 
 ```text
-Aktifkan lokasi di perangkat saat menggunakan aplikasi
+Effective Admin -> tetap dapat login dan mengakses Web/AJAX/API yang sah
+Non-Admin Web   -> HTTP 503 HTML
+Non-Admin AJAX  -> HTTP 503 JSON
+Non-Admin API   -> HTTP 503 JSON
 ```
 
-Responsive desktop/mobile.
+Login page/logout mempunyai exception yang diperlukan agar recovery tetap mungkin.
 
-## 14. Footer
+## F. Backup
 
-```text
-© {tahun} SisisFour · {nama_sekolah}
-By : LemahTeles
-```
-
-# D. Maintenance
-
-## 15. Behavior
-
-Maintenance ON:
-
-```text
-Admin effective  → tetap dapat login/akses
-non-Admin Web    → HTML 503
-non-Admin API    → JSON 503
-```
-
-Login page dan logout mempunyai exception exact route.
-
-POST login hanya dilewatkan bila username adalah effective Admin aktif; password tetap diverifikasi AuthService.
-
-Header:
-
-```text
-Retry-After: 300
-Cache-Control: no-store, no-cache, must-revalidate
-```
-
-# E. Backup
-
-## 16. Permission
+Permission:
 
 ```text
 backup.manage
 ```
-
-Baseline: Admin.
-
-## 17. Implementasi
-
-Pure PHP:
-
-- tanpa exec/shell/system/passthru;
-- `SHOW CREATE TABLE`;
-- INSERT data;
-- consistent snapshot;
-- `.part`;
-- atomic rename.
 
 Lokasi:
 
@@ -207,25 +198,26 @@ Lokasi:
 writable/backups/
 ```
 
-Filename:
+Format:
 
 ```text
 backup_YYYYMMDD_HHMMSS.sql
 ```
 
-Download/delete memakai whitelist + realpath validation.
+Prinsip:
 
-# F. Log Activity
+- pure PHP, tidak mengandalkan shell database executable;
+- dump dibuat konsisten;
+- temporary `.part` lalu rename atomic;
+- download/delete memakai whitelist dan path validation;
+- folder harus writable di production.
 
-## 18. Schema
+## G. Log Activity
+
+Tabel:
 
 ```text
-id
-id_user
-aksi
-modul
-keterangan
-waktu
+log_activity
 ```
 
 Permission:
@@ -234,51 +226,4 @@ Permission:
 log_activity.view
 ```
 
-Baseline: Admin + Operator.
-
-## 19. Viewer
-
-```text
-/log/activity
-/log/activity/json
-/log/activity/export
-```
-
-Fitur:
-
-- DB-side filter/search;
-- pagination;
-- filter modul/aksi/tanggal;
-- CSV UTF-8 BOM;
-- max 10.000 row export.
-
-## 20. Producer
-
-`ActivityLogService` menyediakan writer umum.
-
-Auth mencatat:
-
-```text
-LOGIN Web
-LOGOUT Web
-LOGIN API
-LOGOUT API
-```
-
-Backup mencatat create/download/delete.
-
-Log tidak menyimpan password/hash/token/cookie/session id.
-
-## 21. Menu Operator
-
-Operator authorized untuk `/log/activity` tetapi sidebar baseline tidak menampilkan menu tersebut karena `role_menus` tidak memasukkannya. Ini adalah item Polish, bukan kegagalan permission.
-
-# G. Checkpoint
-
-- dashboard seluruh role;
-- dynamic branding;
-- responsive login/footer;
-- maintenance;
-- backup;
-- Log Activity;
-- menu Operator diputuskan.
+Log tidak boleh menyimpan password/hash/token/cookie/session id/secret `.env`.
