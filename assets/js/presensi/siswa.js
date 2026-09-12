@@ -21,6 +21,7 @@
     const revisionBadge = document.getElementById('presensiRevisionBadge');
     const geoNote = document.getElementById('presensiGeoNote');
     const tbody = document.getElementById('presensiTableBody');
+    const initialResultElement = document.getElementById('presensiInitialResult');
 
     const state = {
         items: [],
@@ -220,6 +221,35 @@
         }
     };
 
+    const hydrateInitialResult = () => {
+        if (!initialResultElement) {
+            return false;
+        }
+
+        let result = null;
+
+        try {
+            result = JSON.parse(initialResultElement.textContent || 'null');
+        } catch (error) {
+            showInfo('Data awal Presensi tidak dapat dibaca. Gunakan tombol Muat untuk mencoba kembali.', 'warning');
+            return false;
+        }
+
+        if (!result || typeof result !== 'object') {
+            return false;
+        }
+
+        if (result.success === true) {
+            renderContext(result);
+            showInfo(result.message || 'Daftar Presensi siap diisi.', 'success');
+            return true;
+        }
+
+        card.classList.add('d-none');
+        showInfo(result.message || 'Data Presensi tidak dapat dibuka.', 'danger');
+        return true;
+    };
+
     const getLocation = () => new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             reject(new Error('Browser tidak mendukung geolocation.'));
@@ -372,4 +402,6 @@
     if (app.dataset.selectedSesi) {
         elSesi.value = app.dataset.selectedSesi;
     }
+
+    hydrateInitialResult();
 })();
