@@ -2,6 +2,13 @@
 
 <?= $this->section('content') ?>
 
+<?php
+$isDirectScheduledTeacher = isset($initialResult)
+    && is_array($initialResult)
+    && !empty($initialResult['success'])
+    && ($initialResult['capability'] ?? '') === 'GURU_TERJADWAL';
+?>
+
 <div
     id="presensiSiswaApp"
     data-base-url="<?= esc(base_url()) ?>"
@@ -35,12 +42,13 @@
                         class="form-control"
                         id="presensiTanggal"
                         value="<?= esc($tanggal ?? '') ?>"
+                        <?= $isDirectScheduledTeacher ? 'disabled' : '' ?>
                     >
                 </div>
 
                 <div class="col-12 col-md-4">
                     <label class="form-label" for="presensiKelas">Kelas</label>
-                    <select class="form-select" id="presensiKelas">
+                    <select class="form-select" id="presensiKelas" <?= $isDirectScheduledTeacher ? 'disabled' : '' ?>>
                         <option value="">Pilih kelas</option>
                         <?php foreach (($kelasOptions ?? []) as $kelas): ?>
                             <option
@@ -55,18 +63,25 @@
 
                 <div class="col-12 col-md-2">
                     <label class="form-label" for="presensiSesi">Sesi</label>
-                    <select class="form-select" id="presensiSesi">
+                    <select class="form-select" id="presensiSesi" <?= $isDirectScheduledTeacher ? 'disabled' : '' ?>>
                         <option value="Sesi Awal" <?= ($selectedSesi ?? 'Sesi Awal') === 'Sesi Awal' ? 'selected' : '' ?>>Sesi Awal</option>
                         <option value="Sesi Akhir" <?= ($selectedSesi ?? '') === 'Sesi Akhir' ? 'selected' : '' ?>>Sesi Akhir</option>
                     </select>
                 </div>
 
-                <div class="col-12 col-md-2 d-grid">
+                <div class="col-12 col-md-2 d-grid <?= $isDirectScheduledTeacher ? 'd-none' : '' ?>">
                     <button type="button" class="btn btn-primary" id="btnMuatPresensi">
                         <i class="bx bx-search-alt me-1"></i> Muat
                     </button>
                 </div>
             </div>
+
+            <?php if ($isDirectScheduledTeacher): ?>
+                <div class="small text-muted mt-3">
+                    <i class="bx bx-lock-alt me-1"></i>
+                    Tanggal, kelas, dan sesi mengikuti jadwal mengajar yang dipilih dari Dashboard.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
