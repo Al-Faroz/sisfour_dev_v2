@@ -42,6 +42,7 @@ if (
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/demo.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/searchable-select.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-ui.css') ?>" />
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/dashboard.css') ?>" />
 
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/apex-charts/apex-charts.css') ?>" />
