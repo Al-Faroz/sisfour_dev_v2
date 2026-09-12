@@ -56,6 +56,57 @@ $jurnalLabels = [
     <?php endforeach; ?>
   </div>
 
+  <div class="card sf-section-card">
+    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+      <h5 class="mb-0">Jadwal & Tugas Mengajar Hari Ini</h5>
+      <small class="text-muted d-none d-sm-inline">Context Wali dipisahkan dari tugas mengajar</small>
+    </div>
+
+    <?php if (empty($jadwalHariIni)): ?>
+      <div class="card-body text-center text-muted py-4">Tidak ada jadwal mengajar hari ini.</div>
+    <?php else: ?>
+      <div class="sf-agenda">
+        <?php foreach ($jadwalHariIni as $j): ?>
+          <?php
+          $ps = $j['presensi_state'] ?? '';
+          [$presensiLabel, $presensiColor, $presensiAction] = $presensiLabels[$ps] ?? ['Tidak tersedia', 'secondary', false];
+
+          $js = $j['jurnal_state'] ?? '';
+          [$jurnalLabel, $jurnalColor, $jurnalAction] = $jurnalLabels[$js] ?? ['Tidak tersedia', 'secondary', false];
+          ?>
+          <div class="sf-agenda-row">
+            <div class="sf-agenda-time">
+              <?= esc(substr((string) ($j['jam_mulai'] ?? ''), 0, 5)) ?>–<?= esc(substr((string) ($j['jam_selesai'] ?? ''), 0, 5)) ?>
+            </div>
+
+            <div>
+              <div class="sf-agenda-class"><?= esc($j['nama_kelas'] ?? '-') ?></div>
+              <div class="sf-agenda-mapel"><?= esc($j['nama_mapel'] ?? '-') ?></div>
+            </div>
+
+            <div class="sf-agenda-actions">
+              <?php if ($presensiAction && !empty($j['presensi_url'])): ?>
+                <a class="btn btn-sm btn-outline-<?= esc($presensiColor) ?>" href="<?= base_url($j['presensi_url']) ?>">
+                  <?= esc($presensiLabel) ?>
+                </a>
+              <?php else: ?>
+                <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
+              <?php endif; ?>
+
+              <?php if ($jurnalAction && !empty($j['jurnal_url'])): ?>
+                <a class="btn btn-sm btn-outline-<?= esc($jurnalColor) ?>" href="<?= base_url($j['jurnal_url']) ?>">
+                  <?= esc($jurnalLabel) ?>
+                </a>
+              <?php else: ?>
+                <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
+              <?php endif; ?>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+
   <?php if (!empty($wali)): ?>
     <div class="card sf-section-card sf-wali-card">
       <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -126,57 +177,6 @@ $jurnalLabels = [
       </div>
     </div>
   <?php endif; ?>
-
-  <div class="card sf-section-card">
-    <div class="card-header d-flex justify-content-between align-items-center gap-2">
-      <h5 class="mb-0">Jadwal & Tugas Mengajar Hari Ini</h5>
-      <small class="text-muted d-none d-sm-inline">Context Wali dipisahkan dari tugas mengajar</small>
-    </div>
-
-    <?php if (empty($jadwalHariIni)): ?>
-      <div class="card-body text-center text-muted py-4">Tidak ada jadwal mengajar hari ini.</div>
-    <?php else: ?>
-      <div class="sf-agenda">
-        <?php foreach ($jadwalHariIni as $j): ?>
-          <?php
-          $ps = $j['presensi_state'] ?? '';
-          [$presensiLabel, $presensiColor, $presensiAction] = $presensiLabels[$ps] ?? ['Tidak tersedia', 'secondary', false];
-
-          $js = $j['jurnal_state'] ?? '';
-          [$jurnalLabel, $jurnalColor, $jurnalAction] = $jurnalLabels[$js] ?? ['Tidak tersedia', 'secondary', false];
-          ?>
-          <div class="sf-agenda-row">
-            <div class="sf-agenda-time">
-              <?= esc(substr((string) ($j['jam_mulai'] ?? ''), 0, 5)) ?>–<?= esc(substr((string) ($j['jam_selesai'] ?? ''), 0, 5)) ?>
-            </div>
-
-            <div>
-              <div class="sf-agenda-class"><?= esc($j['nama_kelas'] ?? '-') ?></div>
-              <div class="sf-agenda-mapel"><?= esc($j['nama_mapel'] ?? '-') ?></div>
-            </div>
-
-            <div class="sf-agenda-actions">
-              <?php if ($presensiAction && !empty($j['presensi_url'])): ?>
-                <a class="btn btn-sm btn-outline-<?= esc($presensiColor) ?>" href="<?= base_url($j['presensi_url']) ?>">
-                  <?= esc($presensiLabel) ?>
-                </a>
-              <?php else: ?>
-                <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
-              <?php endif; ?>
-
-              <?php if ($jurnalAction && !empty($j['jurnal_url'])): ?>
-                <a class="btn btn-sm btn-outline-<?= esc($jurnalColor) ?>" href="<?= base_url($j['jurnal_url']) ?>">
-                  <?= esc($jurnalLabel) ?>
-                </a>
-              <?php else: ?>
-                <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
-              <?php endif; ?>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-  </div>
 
   <?php if (!empty($wali)): ?>
     <div class="row g-3 mb-3">
