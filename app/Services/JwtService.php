@@ -13,6 +13,7 @@ class JwtService
     private const ALGORITHM = 'HS256';
     private const ACCESS_TTL = 3600;
     private const REFRESH_TTL = 2592000;
+    private const REFRESH_RANDOM_BYTES = 64;
 
     protected BaseConnection $db;
 
@@ -54,14 +55,14 @@ class JwtService
             self::ALGORITHM
         );
 
-        $refreshToken = bin2hex(random_bytes(64));
+        $refreshToken = $this->makeRefreshToken($authVersion);
 
         $inserted = $this->db
             ->table('api_tokens')
             ->insert([
                 'id_user' => $userId,
-                'token' => $accessToken,
-                'refresh_token' => $refreshToken,
+                'token' => $this->hashToken($accessToken),
+                'refresh_token' => $this->hashToken($refreshToken),
                 'device_name' => $deviceName,
                 'expires_at' => date('Y-m-d H:i:s', $accessExp),
                 'refresh_expires_at' => date('Y-m-d H:i:s', $refreshExp),
@@ -110,7 +111,7 @@ class JwtService
 
         $tokenRow = $this->db
             ->table('api_tokens')
-            ->where('token', $accessToken)
+            ->where('token', $this->hashToken($accessToken))
             ->where('id_user', $userId)
             ->where('revoked_at IS NULL', null, false)
             ->where('expires_at >=', date('Y-m-d H:i:s'))
@@ -142,9 +143,15 @@ class JwtService
     public function revokeAccessToken(
         string $accessToken
     ): bool {
+        $accessToken = trim($accessToken);
+
+        if ($accessToken === '') {
+            return false;
+        }
+
         return $this->db
             ->table('api_tokens')
-            ->where('token', trim($accessToken))
+            ->where('token', $this->hashToken($accessToken))
             ->where('revoked_at IS NULL', null, false)
             ->update([
                 'revoked_at' => date('Y-m-d H:i:s'),
@@ -161,9 +168,17 @@ class JwtService
             throw new RuntimeException('Refresh token wajib diisi.');
         }
 
+        $refreshAuthVersion = $this->refreshTokenAuthVersion($refreshToken);
+
+        if ($refreshAuthVersion === null) {
+            throw new RuntimeException(
+                'Refresh token tidak valid atau sudah kedaluwarsa.'
+            );
+        }
+
         $row = $this->db
             ->table('api_tokens')
-            ->where('refresh_token', $refreshToken)
+            ->where('refresh_token', $this->hashToken($refreshToken))
             ->where('revoked_at IS NULL', null, false)
             ->where(
                 'refresh_expires_at >=',
@@ -185,15 +200,7 @@ class JwtService
             throw new RuntimeException('User tidak aktif.');
         }
 
-        $storedClaims = $this->verifiedStoredClaims(
-            (string) ($row['token'] ?? '')
-        );
-
-        if (
-            (int) ($storedClaims['uid'] ?? 0) !== $userId
-            || (int) ($storedClaims['av'] ?? -1)
-                !== (int) $user['auth_version']
-        ) {
+        if ($refreshAuthVersion !== (int) $user['auth_version']) {
             $this->db
                 ->table('api_tokens')
                 ->where('id', (int) $row['id'])
@@ -231,14 +238,16 @@ class JwtService
                 'revoked_at' => date('Y-m-d H:i:s'),
             ]);
 
-        $newRefreshToken = bin2hex(random_bytes(64));
+        $newRefreshToken = $this->makeRefreshToken(
+            (int) $user['auth_version']
+        );
 
         $inserted = $this->db
             ->table('api_tokens')
             ->insert([
                 'id_user' => (int) $user['id'],
-                'token' => $accessToken,
-                'refresh_token' => $newRefreshToken,
+                'token' => $this->hashToken($accessToken),
+                'refresh_token' => $this->hashToken($newRefreshToken),
                 'device_name' => $deviceName ?? $row['device_name'],
                 'expires_at' => date(
                     'Y-m-d H:i:s',
@@ -292,8 +301,8 @@ class JwtService
         $user = $this->db
             ->table('users')
             ->select(
-                'id, username, role, id_guru, id_siswa, id_pegawai, ' .
-                'auth_version, status_aktif'
+                'id, username, role, id_guru, id_siswa, id_pegawai, '
+                . 'auth_version, status_aktif'
             )
             ->where('id', $userId)
             ->get()
@@ -306,73 +315,23 @@ class JwtService
         return $user;
     }
 
-    private function verifiedStoredClaims(string $accessToken): array
+    private function makeRefreshToken(int $authVersion): string
     {
-        $parts = explode('.', trim($accessToken));
-
-        if (count($parts) !== 3) {
-            throw new RuntimeException(
-                'Refresh token tidak terikat pada access token yang valid.'
-            );
-        }
-
-        [$headerPart, $payloadPart, $signaturePart] = $parts;
-
-        $header = json_decode(
-            $this->base64UrlDecode($headerPart),
-            true
-        );
-
-        $payload = json_decode(
-            $this->base64UrlDecode($payloadPart),
-            true
-        );
-
-        if (
-            !is_array($header)
-            || !is_array($payload)
-            || ($header['alg'] ?? '') !== self::ALGORITHM
-        ) {
-            throw new RuntimeException(
-                'Refresh token tidak terikat pada access token yang valid.'
-            );
-        }
-
-        $expectedSignature = hash_hmac(
-            'sha256',
-            $headerPart . '.' . $payloadPart,
-            $this->getSecret(),
-            true
-        );
-
-        $actualSignature = $this->base64UrlDecode($signaturePart);
-
-        if (!hash_equals($expectedSignature, $actualSignature)) {
-            throw new RuntimeException(
-                'Refresh token tidak terikat pada access token yang valid.'
-            );
-        }
-
-        return $payload;
+        return 'v' . max(0, $authVersion)
+            . '.' . bin2hex(random_bytes(self::REFRESH_RANDOM_BYTES));
     }
 
-    private function base64UrlDecode(string $value): string
+    private function refreshTokenAuthVersion(string $refreshToken): ?int
     {
-        $remainder = strlen($value) % 4;
-
-        if ($remainder > 0) {
-            $value .= str_repeat('=', 4 - $remainder);
+        if (!preg_match('/^v(\d+)\.[a-f0-9]{128}$/', $refreshToken, $matches)) {
+            return null;
         }
 
-        $decoded = base64_decode(
-            strtr($value, '-_', '+/'),
-            true
-        );
+        return isset($matches[1]) ? (int) $matches[1] : null;
+    }
 
-        if ($decoded === false) {
-            throw new RuntimeException('Token tidak valid.');
-        }
-
-        return $decoded;
+    private function hashToken(string $token): string
+    {
+        return hash('sha256', trim($token));
     }
 }
