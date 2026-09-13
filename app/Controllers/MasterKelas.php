@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\KelasIntegrityService;
 use App\Services\KelasService;
 
 class MasterKelas extends BaseController
@@ -10,7 +11,7 @@ class MasterKelas extends BaseController
 
     public function __construct()
     {
-        $this->kelasService = new KelasService();
+        $this->kelasService = new KelasIntegrityService();
     }
 
     public function index()
