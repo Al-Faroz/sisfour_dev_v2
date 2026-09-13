@@ -8,9 +8,9 @@ use Throwable;
  * F14 lifecycle hardening untuk Manajemen Siswa.
  *
  * Anggota kelas merepresentasikan membership operasional per tahun. Saat siswa
- * masuk status terminal (Lulus/Pindah/Keluar), membership pada tahun yang
- * ditutup harus ikut dihapus dalam transaksi yang sama. Riwayat tetap disimpan
- * di riwayat_siswa sehingga histori kelas tidak hilang.
+ * masuk status terminal (Lulus/Pindah/Keluar), membership pada tahun aktif yang
+ * ditutup harus ikut dihapus dalam transaksi yang sama. Membership tahun lama
+ * tetap dipertahankan, sedangkan histori lifecycle disimpan di riwayat_siswa.
  */
 class KelasLifecycleService extends KelasService
 {
@@ -29,12 +29,28 @@ class KelasLifecycleService extends KelasService
             ];
         }
 
+        $idTahunAktif = $this->getActiveYearId();
+
+        if ($idTahunAktif <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Tahun ajaran aktif belum tersedia.',
+            ];
+        }
+
         $kelas = $this->kelasModel->find($idKelas);
 
         if ($kelas === null) {
             return [
                 'success' => false,
                 'message' => 'Kelas tidak ditemukan.',
+            ];
+        }
+
+        if ((int) $kelas['id_tahun'] !== $idTahunAktif) {
+            return [
+                'success' => false,
+                'message' => 'Kelulusan hanya dapat diproses dari kelas pada tahun ajaran yang sedang aktif.',
             ];
         }
 
@@ -59,12 +75,12 @@ class KelasLifecycleService extends KelasService
                 $anggota = $this->anggotaKelasModel
                     ->where('id_siswa', $idSiswa)
                     ->where('id_kelas', $idKelas)
-                    ->where('id_tahun', (int) $kelas['id_tahun'])
+                    ->where('id_tahun', $idTahunAktif)
                     ->first();
 
                 if ($anggota === null) {
                     throw new \RuntimeException(
-                        "Siswa ID {$idSiswa} bukan anggota kelas ini."
+                        "Siswa ID {$idSiswa} bukan anggota aktif kelas ini."
                     );
                 }
 
@@ -78,18 +94,18 @@ class KelasLifecycleService extends KelasService
 
                 $riwayatAktif = $this->riwayatSiswaModel->getRiwayatAktif(
                     $idSiswa,
-                    (int) $kelas['id_tahun']
+                    $idTahunAktif
                 );
 
                 if ($riwayatAktif === null) {
                     throw new \RuntimeException(
-                        "Histori aktif siswa ID {$idSiswa} pada tahun kelas tidak ditemukan."
+                        "Histori aktif siswa ID {$idSiswa} pada tahun aktif tidak ditemukan."
                     );
                 }
 
                 if (! $this->riwayatSiswaModel->tutupRiwayatAktif(
                     $idSiswa,
-                    (int) $kelas['id_tahun'],
+                    $idTahunAktif,
                     $tanggal
                 )) {
                     throw new \RuntimeException(
@@ -99,7 +115,7 @@ class KelasLifecycleService extends KelasService
 
                 if ($this->riwayatSiswaModel->insert([
                     'id_siswa' => $idSiswa,
-                    'id_tahun' => (int) $kelas['id_tahun'],
+                    'id_tahun' => $idTahunAktif,
                     'id_kelas' => $idKelas,
                     'status' => 'Lulus',
                     'tanggal_mulai' => $tanggal,
@@ -134,7 +150,7 @@ class KelasLifecycleService extends KelasService
                 'LULUSKAN',
                 'Manajemen Siswa',
                 sprintf(
-                    'Meluluskan %d siswa dari %s, menutup membership operasional, dan mempertahankan histori.',
+                    'Meluluskan %d siswa dari %s pada tahun aktif; membership operasional ditutup dan histori dipertahankan.',
                     count($daftarSiswaTerpilih),
                     $kelas['nama_kelas']
                 )
@@ -148,7 +164,7 @@ class KelasLifecycleService extends KelasService
 
             return [
                 'success' => true,
-                'message' => 'Kelulusan berhasil diproses. Membership kelas aktif ditutup dan histori tetap tersimpan.',
+                'message' => 'Kelulusan berhasil diproses. Membership kelas tahun aktif ditutup dan histori tetap tersimpan.',
                 'jumlah_diluluskan' => count($daftarSiswaTerpilih),
             ];
         } catch (Throwable $e) {
@@ -186,6 +202,15 @@ class KelasLifecycleService extends KelasService
             ];
         }
 
+        $idTahunAktif = $this->getActiveYearId();
+
+        if ($idTahunAktif <= 0) {
+            return [
+                'success' => false,
+                'message' => 'Tahun ajaran aktif belum tersedia.',
+            ];
+        }
+
         $siswa = $this->siswaModel->find($idSiswa);
 
         if ($siswa === null) {
@@ -203,32 +228,29 @@ class KelasLifecycleService extends KelasService
         }
 
         $anggota = $this->db
-            ->table('anggota_kelas ak')
-            ->select('ak.id, ak.id_kelas, ak.id_tahun, ta.status_aktif')
-            ->join('tahun_ajaran ta', 'ta.id = ak.id_tahun')
-            ->where('ak.id_siswa', $idSiswa)
-            ->orderBy('ta.status_aktif', 'DESC')
-            ->orderBy('ak.id_tahun', 'DESC')
-            ->orderBy('ak.id', 'DESC')
+            ->table('anggota_kelas')
+            ->select('id, id_kelas, id_tahun')
+            ->where('id_siswa', $idSiswa)
+            ->where('id_tahun', $idTahunAktif)
             ->get()
             ->getRowArray();
 
         if ($anggota === null) {
             return [
                 'success' => false,
-                'message' => 'Mutasi tidak dapat diproses karena siswa belum memiliki membership kelas.',
+                'message' => 'Mutasi tidak dapat diproses karena siswa belum memiliki membership kelas pada tahun ajaran aktif.',
             ];
         }
 
         $riwayatAktif = $this->riwayatSiswaModel->getRiwayatAktif(
             $idSiswa,
-            (int) $anggota['id_tahun']
+            $idTahunAktif
         );
 
         if ($riwayatAktif === null) {
             return [
                 'success' => false,
-                'message' => 'Mutasi tidak dapat diproses karena histori aktif siswa pada membership terpilih tidak ditemukan.',
+                'message' => 'Mutasi tidak dapat diproses karena histori aktif siswa pada tahun ajaran aktif tidak ditemukan.',
             ];
         }
 
@@ -238,7 +260,7 @@ class KelasLifecycleService extends KelasService
         try {
             if (! $this->riwayatSiswaModel->tutupRiwayatAktif(
                 $idSiswa,
-                (int) $anggota['id_tahun'],
+                $idTahunAktif,
                 $tanggal
             )) {
                 throw new \RuntimeException('Histori aktif siswa gagal ditutup.');
@@ -246,7 +268,7 @@ class KelasLifecycleService extends KelasService
 
             if ($this->riwayatSiswaModel->insert([
                 'id_siswa' => $idSiswa,
-                'id_tahun' => (int) $anggota['id_tahun'],
+                'id_tahun' => $idTahunAktif,
                 'id_kelas' => (int) $anggota['id_kelas'],
                 'status' => $statusBaru,
                 'tanggal_mulai' => $tanggal,
@@ -280,10 +302,10 @@ class KelasLifecycleService extends KelasService
                 'MUTASI',
                 'Manajemen Siswa',
                 sprintf(
-                    'Mutasi siswa ID %d menjadi %s; membership tahun ID %d ditutup dan histori dipertahankan. %s',
+                    'Mutasi siswa ID %d menjadi %s pada tahun aktif ID %d; membership operasional ditutup dan histori dipertahankan. %s',
                     $idSiswa,
                     $statusBaru,
-                    (int) $anggota['id_tahun'],
+                    $idTahunAktif,
                     $keterangan
                 )
             );
@@ -296,7 +318,7 @@ class KelasLifecycleService extends KelasService
 
             return [
                 'success' => true,
-                'message' => 'Mutasi siswa berhasil dicatat. Membership kelas operasional ditutup dan histori tetap tersimpan.',
+                'message' => 'Mutasi siswa berhasil dicatat. Membership kelas tahun aktif ditutup dan histori tetap tersimpan.',
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
@@ -306,6 +328,19 @@ class KelasLifecycleService extends KelasService
                 'message' => $e->getMessage(),
             ];
         }
+    }
+
+    private function getActiveYearId(): int
+    {
+        $row = $this->db
+            ->table('tahun_ajaran')
+            ->select('id')
+            ->where('status_aktif', 1)
+            ->where('deleted_at', null)
+            ->get()
+            ->getRowArray();
+
+        return isset($row['id']) ? (int) $row['id'] : 0;
     }
 
     private function canManageLifecycle(): bool
