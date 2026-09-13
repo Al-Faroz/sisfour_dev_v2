@@ -2,15 +2,15 @@
 
 namespace App\Controllers;
 
-use App\Services\ManajemenSiswaService;
+use App\Services\ManajemenSiswaIntegrityService;
 
 class ManajemenSiswa extends BaseController
 {
-    protected ManajemenSiswaService $service;
+    protected ManajemenSiswaIntegrityService $service;
 
     public function __construct()
     {
-        $this->service = new ManajemenSiswaService();
+        $this->service = new ManajemenSiswaIntegrityService();
     }
 
     public function kelas()
