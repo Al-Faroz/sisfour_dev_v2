@@ -12,6 +12,14 @@ class PegawaiIntegrityService extends PegawaiService
 {
     public function forceDelete(int $id): array
     {
+        if (! $this->canManageIntegrity()) {
+            return [
+                'success' => false,
+                'code' => 'FORBIDDEN',
+                'message' => 'Anda tidak memiliki hak mengelola Master Pegawai.',
+            ];
+        }
+
         $dependencies = $this->dependencies($id);
 
         if ($dependencies !== []) {
@@ -57,5 +65,16 @@ class PegawaiIntegrityService extends PegawaiService
         }
 
         return $found;
+    }
+
+    private function canManageIntegrity(): bool
+    {
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        return $userId > 0
+            && $this->authService->resolveScope(
+                'master_pegawai.manage',
+                $userId
+            ) === 'SEMUA';
     }
 }
