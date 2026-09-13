@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\MasterPaginationService;
 use App\Services\SiswaImportService;
+use App\Services\SiswaIntegrityService;
 use App\Services\SiswaService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
@@ -19,7 +20,7 @@ class MasterSiswa extends BaseController
 
     public function __construct()
     {
-        $this->siswaService = new SiswaService();
+        $this->siswaService = new SiswaIntegrityService();
         $this->siswaImportService = new SiswaImportService();
         $this->paginationService = new MasterPaginationService();
     }
