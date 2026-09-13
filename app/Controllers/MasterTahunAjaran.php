@@ -2,8 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\TahunAjaranIntegrityService;
-use App\Services\TahunAjaranService;
+use App\Services\TahunAjaranSemesterService;
 
 /**
  * MasterTahunAjaran
@@ -12,11 +11,11 @@ use App\Services\TahunAjaranService;
  */
 class MasterTahunAjaran extends BaseController
 {
-    protected TahunAjaranService $tahunService;
+    protected TahunAjaranSemesterService $tahunService;
 
     public function __construct()
     {
-        $this->tahunService = new TahunAjaranIntegrityService();
+        $this->tahunService = new TahunAjaranSemesterService();
     }
 
     public function index()
