@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\MappingWaliService;
+use App\Services\MappingWaliIntegrityService;
 
 /**
  * MappingWaliKelas
@@ -11,11 +11,11 @@ use App\Services\MappingWaliService;
  */
 class MappingWaliKelas extends BaseController
 {
-    protected MappingWaliService $mappingService;
+    protected MappingWaliIntegrityService $mappingService;
 
     public function __construct()
     {
-        $this->mappingService = new MappingWaliService();
+        $this->mappingService = new MappingWaliIntegrityService();
     }
 
     public function index()
