@@ -12,6 +12,14 @@ class TahunAjaranIntegrityService extends TahunAjaranService
 {
     public function forceDelete(int $id): array
     {
+        if (! $this->canManageIntegrity()) {
+            return [
+                'success' => false,
+                'code' => 'FORBIDDEN',
+                'message' => 'Anda tidak memiliki hak mengelola Master Tahun Ajaran.',
+            ];
+        }
+
         $dependencies = $this->getDependencies($id);
 
         if ($dependencies !== []) {
@@ -25,5 +33,16 @@ class TahunAjaranIntegrityService extends TahunAjaranService
         }
 
         return parent::forceDelete($id);
+    }
+
+    private function canManageIntegrity(): bool
+    {
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        return $userId > 0
+            && $this->authService->resolveScope(
+                'master_tahun_ajaran.manage',
+                $userId
+            ) === 'SEMUA';
     }
 }
