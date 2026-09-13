@@ -58,7 +58,7 @@
         icon: 'success',
         title: 'Berhasil',
         text: message,
-        timer: 1600,
+        timer: 2200,
         showConfirmButton: false,
     });
 
@@ -86,6 +86,8 @@
 
         tbody.innerHTML = rows.map((tahun, index) => {
             const aktif = Number(tahun.status_aktif) === 1;
+            const canPrepareGenap =
+                aktif && String(tahun.semester) === 'Ganjil';
 
             return `
                 <tr>
@@ -106,6 +108,22 @@
                     <td>${Number(tahun.jumlah_jadwal || 0)}</td>
                     <td>
                         <div class="d-flex flex-wrap gap-1">
+                            ${
+                                canPrepareGenap
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-info btn-prepare-semester"
+                                            data-id="${tahun.id}"
+                                            title="Siapkan Semester Genap"
+                                        >
+                                            <i class="bx bx-copy-alt me-1"></i>
+                                            Siapkan Genap
+                                        </button>
+                                    `
+                                    : ''
+                            }
+
                             ${
                                 aktif
                                     ? ''
@@ -192,6 +210,85 @@
         const aktifkan =
             event.target.closest('.btn-aktifkan');
         const hapus = event.target.closest('.btn-delete');
+        const prepareSemester =
+            event.target.closest('.btn-prepare-semester');
+
+        if (prepareSemester) {
+            const id = Number(prepareSemester.dataset.id);
+            const tahun = rows.find(
+                (item) => Number(item.id) === id
+            );
+
+            if (!tahun) {
+                return;
+            }
+
+            const confirmation = await Swal.fire({
+                icon: 'info',
+                title: 'Siapkan Semester Genap?',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-2">
+                            Sumber: <strong>${escapeHtml(tahun.nama_tahun)} - Ganjil</strong>
+                        </p>
+                        <p class="mb-2">
+                            Sistem akan membuat konteks <strong>${escapeHtml(tahun.nama_tahun)} - Genap</strong>
+                            dalam status Nonaktif, lalu menyalin kelas dan membership siswa aktif.
+                        </p>
+                        <p class="mb-0 text-muted">
+                            Presensi/Jurnal tidak disalin. Jadwal Guru Genap harus diimport atau direview sebelum aktivasi.
+                        </p>
+                    </div>
+                `,
+                input: 'checkbox',
+                inputValue: 1,
+                inputPlaceholder:
+                    'Salin Mapping Wali Kelas dari Semester Ganjil',
+                showCancelButton: true,
+                confirmButtonText: 'Siapkan Genap',
+                cancelButtonText: 'Batal',
+            });
+
+            if (!confirmation.isConfirmed) {
+                return;
+            }
+
+            try {
+                const payload = new FormData();
+                payload.append('mode', 'prepare_next_semester');
+                payload.append(
+                    'copy_wali',
+                    confirmation.value ? '1' : '0'
+                );
+
+                const response = await fetch(
+                    endpoint('master/tahun/create'),
+                    {
+                        method: 'POST',
+                        body: payload,
+                        headers: {
+                            'X-Requested-With':
+                                'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    }
+                );
+
+                const result = await parseResponse(response);
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Semester Genap disiapkan',
+                    text: result.message,
+                });
+
+                await loadData();
+            } catch (error) {
+                showError(error);
+            }
+
+            return;
+        }
 
         if (edit) {
             const id = Number(edit.dataset.id);
@@ -228,10 +325,30 @@
                 (item) => Number(item.id) === id
             );
 
+            const isGenap =
+                String(tahun?.semester || '') === 'Genap';
+
             const confirmation = await Swal.fire({
                 icon: 'question',
-                title: 'Aktifkan tahun ajaran?',
-                text: `${tahun?.nama_tahun || ''} - ${tahun?.semester || ''}. Tahun ajaran aktif sebelumnya akan otomatis dinonaktifkan.`,
+                title: isGenap
+                    ? 'Aktifkan Semester Genap?'
+                    : 'Aktifkan tahun ajaran?',
+                html: isGenap
+                    ? `
+                        <div class="text-start">
+                            <p>
+                                <strong>${escapeHtml(tahun?.nama_tahun || '')} - Genap</strong>
+                            </p>
+                            <p class="mb-0 text-muted">
+                                Sistem akan melakukan precheck kelas, membership, Mapping Wali,
+                                histori siswa, dan topology Jadwal. Aktivasi ditolak jika belum siap.
+                            </p>
+                        </div>
+                    `
+                    : undefined,
+                text: isGenap
+                    ? undefined
+                    : `${tahun?.nama_tahun || ''} - ${tahun?.semester || ''}. Tahun ajaran aktif sebelumnya akan otomatis dinonaktifkan.`,
                 showCancelButton: true,
                 confirmButtonText: 'Ya, aktifkan',
                 cancelButtonText: 'Batal',
