@@ -12,6 +12,14 @@ class SiswaIntegrityService extends SiswaService
 {
     public function forceDelete(int $id): array
     {
+        if (! $this->canManageIntegrity()) {
+            return [
+                'success' => false,
+                'code' => 'FORBIDDEN',
+                'message' => 'Anda tidak memiliki hak mengelola Master Siswa.',
+            ];
+        }
+
         $dependencies = $this->dependencies($id);
 
         if ($dependencies !== []) {
@@ -59,5 +67,16 @@ class SiswaIntegrityService extends SiswaService
         }
 
         return $found;
+    }
+
+    private function canManageIntegrity(): bool
+    {
+        $userId = (int) (session()->get('user_id') ?? 0);
+
+        return $userId > 0
+            && $this->authService->resolveScope(
+                'master_siswa.manage',
+                $userId
+            ) === 'SEMUA';
     }
 }
