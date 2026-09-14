@@ -1,9 +1,9 @@
 # Pola Pengerjaan — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 14 September 2026  
-**Development aktif:** G2 — Master Data & Student Lifecycle Fixing  
-**Branch aktif:** `fix/g2-master-data-20260913`  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 14 September 2026
+**Development aktif:** G2 — Master Data & Student Lifecycle Fixing
+**Branch aktif:** `fix/g2-master-data-20260913`
 **PR aktif:** #5, belum merge
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog dan tidak menyimpan narasi revisi lama.
