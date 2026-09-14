@@ -359,10 +359,13 @@ class JadwalGuruService
             );
         }
 
-        if ((int) $tahun['status_aktif'] !== 1) {
+        if (
+            (int) $tahun['status_aktif'] !== 1
+            && ! $this->isPreparedInactiveSemesterTarget($tahun)
+        ) {
             return $this->fail(
                 'INACTIVE_YEAR',
-                'Import jadwal hanya dapat dilakukan ke tahun ajaran/semester yang sedang Aktif.'
+                'Import jadwal hanya dapat dilakukan ke periode Aktif atau Semester Genap Nonaktif yang sudah disiapkan dari Semester Ganjil aktif pada tahun pelajaran yang sama.'
             );
         }
 
@@ -1010,6 +1013,94 @@ class JadwalGuruService
             ->getRowArray();
 
         return (int) ($row['id'] ?? 0);
+    }
+
+    private function isPreparedInactiveSemesterTarget(array $target): bool
+    {
+        if (
+            (string) ($target['semester'] ?? '') !== 'Genap'
+            || (int) ($target['status_aktif'] ?? 0) !== 0
+        ) {
+            return false;
+        }
+
+        $source = $this->db
+            ->table('tahun_ajaran')
+            ->select('id, nama_tahun, semester')
+            ->where('status_aktif', 1)
+            ->where('deleted_at', null)
+            ->get()
+            ->getRowArray();
+
+        if (
+            $source === null
+            || (string) ($source['semester'] ?? '') !== 'Ganjil'
+            || (string) ($source['nama_tahun'] ?? '') !== (string) ($target['nama_tahun'] ?? '')
+        ) {
+            return false;
+        }
+
+        $sourceId = (int) $source['id'];
+        $targetId = (int) $target['id'];
+
+        $sourceClassCount = $this->db
+            ->table('kelas')
+            ->where('id_tahun', $sourceId)
+            ->where('deleted_at', null)
+            ->countAllResults();
+        $targetClassCount = $this->db
+            ->table('kelas')
+            ->where('id_tahun', $targetId)
+            ->where('deleted_at', null)
+            ->countAllResults();
+
+        $sourceMemberCount = $this->db
+            ->table('anggota_kelas ak')
+            ->join('siswa s', 's.id = ak.id_siswa')
+            ->where('ak.id_tahun', $sourceId)
+            ->where('s.deleted_at', null)
+            ->where('s.status_aktif', 'Aktif')
+            ->countAllResults();
+        $targetMemberCount = $this->db
+            ->table('anggota_kelas ak')
+            ->join('siswa s', 's.id = ak.id_siswa')
+            ->where('ak.id_tahun', $targetId)
+            ->where('s.deleted_at', null)
+            ->where('s.status_aktif', 'Aktif')
+            ->countAllResults();
+
+        if (
+            $sourceClassCount <= 0
+            || $sourceClassCount !== $targetClassCount
+            || $sourceMemberCount <= 0
+            || $sourceMemberCount !== $targetMemberCount
+        ) {
+            return false;
+        }
+
+        if (
+            $this->db
+                ->table('riwayat_siswa')
+                ->where('id_tahun', $targetId)
+                ->where('status', 'Aktif')
+                ->where('tanggal_selesai', null)
+                ->countAllResults() > 0
+        ) {
+            return false;
+        }
+
+        foreach (['presensi', 'presensi_mengajar'] as $table) {
+            if (
+                $this->db
+                    ->table($table)
+                    ->where('id_tahun', $targetId)
+                    ->countAllResults() > 0
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function emptyOptions(string $scope): array
