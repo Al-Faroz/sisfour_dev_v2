@@ -7,39 +7,27 @@ $modules = $initial['modules'] ?? [];
 $actions = $initial['actions'] ?? [];
 ?>
 
-<div
-  id="logActivityApp"
-  data-base-url="<?= esc(base_url(), 'attr') ?>"
->
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-    <div>
+<div id="logActivityApp" data-base-url="<?= esc(base_url(), 'attr') ?>">
+  <div class="sisfour-page-header">
+    <div class="sisfour-page-header__copy">
       <h4 class="fw-bold mb-1">Log Activity</h4>
-      <p class="text-muted mb-0">
-        Audit aktivitas aplikasi untuk Admin dan Operator.
-      </p>
+      <p class="text-muted mb-0">Audit aktivitas aplikasi untuk Admin dan Operator.</p>
     </div>
 
-    <button
-      type="button"
-      id="btnExportLog"
-      class="btn btn-outline-primary"
-    >
-      <i class="bx bx-export me-1"></i>
-      Export CSV
-    </button>
+    <div class="sisfour-page-actions">
+      <button type="button" id="btnExportLog" class="btn btn-outline-success">
+        <i class="bx bx-export me-1"></i> Export CSV
+      </button>
+    </div>
   </div>
 
-  <div
-    id="logAlert"
-    class="alert d-none"
-    role="alert"
-  ></div>
+  <div id="logAlert" class="alert d-none" role="alert"></div>
 
-  <div class="card mb-4">
+  <div class="card sisfour-filter-card mb-4">
     <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label">Pencarian</label>
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="logSearch">Pencarian</label>
           <input
             type="search"
             id="logSearch"
@@ -49,78 +37,52 @@ $actions = $initial['actions'] ?? [];
           >
         </div>
 
-        <div class="col-md-2">
-          <label class="form-label">Modul</label>
-          <select
-            id="logModule"
-            class="form-select"
-          >
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="logModule">Modul</label>
+          <select id="logModule" class="form-select" data-searchable-off="1">
             <option value="">Semua Modul</option>
             <?php foreach ($modules as $module): ?>
-              <option value="<?= esc($module, 'attr') ?>">
-                <?= esc($module) ?>
-              </option>
+              <option value="<?= esc($module, 'attr') ?>"><?= esc($module) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
 
-        <div class="col-md-2">
-          <label class="form-label">Aksi</label>
-          <select
-            id="logAction"
-            class="form-select"
-          >
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="logAction">Aksi</label>
+          <select id="logAction" class="form-select" data-searchable-off="1">
             <option value="">Semua Aksi</option>
             <?php foreach ($actions as $action): ?>
-              <option value="<?= esc($action, 'attr') ?>">
-                <?= esc($action) ?>
-              </option>
+              <option value="<?= esc($action, 'attr') ?>"><?= esc($action) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
 
-        <div class="col-md-2">
-          <label class="form-label">Tanggal Mulai</label>
-          <input
-            type="date"
-            id="logStart"
-            class="form-control"
-          >
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="logStart">Tanggal Mulai</label>
+          <input type="date" id="logStart" class="form-control">
         </div>
 
-        <div class="col-md-2">
-          <label class="form-label">Tanggal Selesai</label>
-          <input
-            type="date"
-            id="logEnd"
-            class="form-control"
-          >
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="logEnd">Tanggal Selesai</label>
+          <input type="date" id="logEnd" class="form-control">
         </div>
-      </div>
 
-      <div class="d-flex gap-2 mt-3">
-        <button
-          type="button"
-          id="btnFilterLog"
-          class="btn btn-primary"
-        >
-          Terapkan
-        </button>
-
-        <button
-          type="button"
-          id="btnResetLog"
-          class="btn btn-outline-secondary"
-        >
-          Reset
-        </button>
+        <div class="col-12 sisfour-filter-actions">
+          <button type="button" id="btnResetLog" class="btn btn-outline-secondary">Reset</button>
+          <button type="button" id="btnFilterLog" class="btn btn-primary">
+            <i class="bx bx-filter-alt me-1"></i> Terapkan
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card sisfour-table-card">
+    <div class="card-header">
+      <h5 class="mb-0">Riwayat Aktivitas</h5>
+    </div>
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table table-hover align-middle mb-0" id="tableLogActivity">
         <thead>
           <tr>
             <th style="min-width:150px">Waktu</th>
@@ -132,13 +94,8 @@ $actions = $initial['actions'] ?? [];
         </thead>
         <tbody id="logBody">
           <?php if ($initialRows === []): ?>
-            <tr>
-              <td
-                colspan="5"
-                class="text-center text-muted py-4"
-              >
-                Belum ada log activity.
-              </td>
+            <tr class="sisfour-empty-row">
+              <td colspan="5" class="text-muted">Belum ada log activity.</td>
             </tr>
           <?php else: ?>
             <?php foreach ($initialRows as $row): ?>
@@ -147,52 +104,17 @@ $actions = $initial['actions'] ?? [];
                 <td>
                   <?= esc(
                       $row['username']
-                          ?? (
-                              $row['id_user'] !== null
-                                  ? 'User #' . $row['id_user']
-                                  : 'System'
-                          )
+                          ?? ($row['id_user'] !== null ? 'User #' . $row['id_user'] : 'System')
                   ) ?>
                 </td>
-                <td>
-                  <span class="badge bg-label-primary">
-                    <?= esc($row['aksi']) ?>
-                  </span>
-                </td>
+                <td><span class="badge bg-label-primary"><?= esc($row['aksi']) ?></span></td>
                 <td><?= esc($row['modul']) ?></td>
-                <td class="text-wrap">
-                  <?= esc($row['keterangan'] ?? '-') ?>
-                </td>
+                <td class="text-wrap"><?= esc($row['keterangan'] ?? '-') ?></td>
               </tr>
             <?php endforeach; ?>
           <?php endif; ?>
         </tbody>
       </table>
-    </div>
-
-    <div class="card-footer d-flex flex-wrap align-items-center justify-content-between gap-3">
-      <div
-        id="logInfo"
-        class="text-muted small"
-      ></div>
-
-      <div class="d-flex gap-2">
-        <button
-          type="button"
-          id="logPrev"
-          class="btn btn-sm btn-outline-secondary"
-        >
-          Sebelumnya
-        </button>
-
-        <button
-          type="button"
-          id="logNext"
-          class="btn btn-sm btn-outline-secondary"
-        >
-          Berikutnya
-        </button>
-      </div>
     </div>
   </div>
 </div>
