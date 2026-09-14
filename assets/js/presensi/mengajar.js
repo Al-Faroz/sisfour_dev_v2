@@ -27,12 +27,6 @@
         return `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
     }
 
-    function escapeHtml(value) {
-        const div = document.createElement('div');
-        div.textContent = value == null ? '' : String(value);
-        return div.innerHTML;
-    }
-
     function showInfo(message, type = 'info') {
         info.className = `alert alert-${type}`;
         info.textContent = message;
@@ -49,67 +43,6 @@
         card.classList.add('d-none');
         materiInput.value = '';
         setStatus('Hadir');
-    }
-
-    function enhanceGuruSearch() {
-        if (!guruSelect || document.getElementById('jurnalGuruSearch')) return;
-
-        const sourceOptions = Array.from(guruSelect.options).map((option) => ({
-            value: option.value,
-            text: option.textContent || '',
-        }));
-
-        const search = document.createElement('input');
-        search.type = 'search';
-        search.id = 'jurnalGuruSearch';
-        search.className = 'form-control mb-2';
-        search.placeholder = 'Ketik nama atau NIP Guru...';
-        search.autocomplete = 'off';
-        search.setAttribute('aria-label', 'Cari Nama atau NIP Guru');
-
-        const helper = document.createElement('div');
-        helper.className = 'form-text mt-1';
-        helper.textContent = 'Ketik nama/NIP untuk menyaring daftar Guru, lalu pilih Guru.';
-
-        guruSelect.insertAdjacentElement('beforebegin', search);
-        guruSelect.insertAdjacentElement('afterend', helper);
-
-        const applySearch = () => {
-            const query = search.value.trim().toLocaleLowerCase('id-ID');
-            const selected = guruSelect.value;
-            const matches = sourceOptions.filter((item, index) => {
-                if (index === 0 || item.value === '') return true;
-                return query === '' || item.text.toLocaleLowerCase('id-ID').includes(query);
-            });
-
-            guruSelect.innerHTML = '';
-            matches.forEach((item) => {
-                const option = document.createElement('option');
-                option.value = item.value;
-                option.textContent = item.text;
-                guruSelect.appendChild(option);
-            });
-
-            if (selected && matches.some((item) => item.value === selected)) {
-                guruSelect.value = selected;
-            } else if (selected) {
-                guruSelect.value = '';
-                jadwalSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
-                jadwalSelect.disabled = true;
-                resetForm();
-            }
-        };
-
-        search.addEventListener('input', applySearch);
-        search.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter') return;
-            event.preventDefault();
-            const available = Array.from(guruSelect.options).filter((option) => option.value);
-            if (available.length === 1) {
-                guruSelect.value = available[0].value;
-                guruSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
     }
 
     function setStatus(status) {
@@ -351,7 +284,6 @@
         }
     }
 
-    enhanceGuruSearch();
     guruSelect?.addEventListener('change', loadSchedulesForGuru);
     btnMuat?.addEventListener('click', loadJournal);
     btnSimpan?.addEventListener('click', saveJournal);
