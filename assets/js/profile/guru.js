@@ -8,6 +8,32 @@
   const form = document.getElementById('formProfileGuru');
   const fotoForm = document.getElementById('formFotoProfileGuru');
 
+  const addResponsiveTabs = () => {
+    if (document.getElementById('profileGuruTabs')) return;
+
+    const header = app.firstElementChild;
+    if (!header) return;
+
+    const nav = document.createElement('nav');
+    nav.id = 'profileGuruTabs';
+    nav.className = 'mb-4 overflow-auto';
+    nav.setAttribute('aria-label', 'Navigasi Profile Guru');
+    nav.innerHTML = `
+      <div class="nav nav-pills flex-nowrap gap-2 text-nowrap pb-1">
+        <a class="nav-link active" href="${base}/profile/guru" aria-current="page">
+          <i class="bx bx-user me-1"></i>Biodata
+        </a>
+        <a class="nav-link" href="${base}/profile/guru/personalia">
+          <i class="bx bx-history me-1"></i>Riwayat Personalia
+        </a>
+        <a class="nav-link" href="${base}/profile/guru/portofolio" target="_blank" rel="noopener">
+          <i class="bx bx-file me-1"></i>Portofolio PDF
+        </a>
+      </div>
+    `;
+    header.insertAdjacentElement('afterend', nav);
+  };
+
   const notify = async (text, error = false) => {
     if (window.Swal) {
       await Swal.fire({ icon: error ? 'error' : 'success', text, confirmButtonText: 'OK' });
@@ -75,4 +101,6 @@
       setBusy(fotoForm, false);
     }
   });
+
+  addResponsiveTabs();
 })();
