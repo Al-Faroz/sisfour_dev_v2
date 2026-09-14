@@ -6,6 +6,19 @@ $settings = $initial['settings'] ?? [];
 $getSetting = static function (string $key, string $default = '') use ($settings): string {
     return (string) ($settings[$key]['setting_value'] ?? $default);
 };
+
+$brandingItems = [
+    'logo' => [
+        'label' => 'Logo Sekolah',
+        'key' => 'logo_sekolah',
+        'hint' => 'Digunakan pada identitas aplikasi dan halaman login.',
+    ],
+    'icon' => [
+        'label' => 'Icon / Favicon',
+        'key' => 'icon_sekolah',
+        'hint' => 'Digunakan sebagai favicon browser dan touch icon.',
+    ],
+];
 ?>
 
 <div id="settingsSistemApp" data-base-url="<?= esc(base_url()) ?>">
@@ -73,22 +86,77 @@ $getSetting = static function (string $key, string $default = '') use ($settings
     </div>
 
     <div class="card mb-4">
-        <div class="card-header"><h5 class="mb-0">Branding</h5></div>
+        <div class="card-header">
+            <h5 class="mb-1">Branding</h5>
+            <div class="small text-muted">Preview menunjukkan file yang benar-benar tersedia dan sedang digunakan.</div>
+        </div>
         <div class="card-body">
             <div class="row g-4">
-                <?php foreach (['logo' => 'Logo Sekolah', 'icon' => 'Icon/Favicon'] as $type => $label): ?>
-                <div class="col-md-6">
-                    <form class="branding-form border rounded p-3 h-100" data-type="<?= esc($type) ?>">
-                        <label class="form-label"><?= esc($label) ?></label>
-                        <input type="file" name="file" accept="image/png,image/jpeg,image/webp" class="form-control" required>
-                        <button class="btn btn-outline-primary mt-3" type="submit">
-                            <i class="bx bx-upload me-1"></i> Upload <?= esc($label) ?>
-                        </button>
-                    </form>
-                </div>
+                <?php foreach ($brandingItems as $type => $meta): ?>
+                    <?php
+                    $current = trim($getSetting($meta['key']));
+                    $relative = ltrim($current, '/\\');
+                    $absolute = $relative !== '' ? FCPATH . $relative : '';
+                    $exists = $absolute !== '' && is_file($absolute);
+                    $version = $exists ? @filemtime($absolute) : false;
+                    $previewUrl = $exists
+                        ? base_url($relative) . ($version ? '?v=' . $version : '')
+                        : '';
+                    ?>
+                    <div class="col-12 col-md-6">
+                        <form class="branding-form border rounded p-3 h-100" data-type="<?= esc($type) ?>">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div
+                                    class="border rounded d-flex align-items-center justify-content-center bg-light"
+                                    style="width:72px;height:72px;flex:0 0 72px;overflow:hidden"
+                                >
+                                    <?php if ($exists): ?>
+                                        <img
+                                            src="<?= esc($previewUrl, 'attr') ?>"
+                                            alt="<?= esc($meta['label'], 'attr') ?>"
+                                            style="max-width:100%;max-height:100%;object-fit:contain"
+                                        >
+                                    <?php else: ?>
+                                        <i class="bx <?= $type === 'icon' ? 'bx-image-alt' : 'bx-buildings' ?> fs-2 text-muted"></i>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="min-w-0">
+                                    <h6 class="mb-1"><?= esc($meta['label']) ?></h6>
+                                    <div class="small text-muted mb-1"><?= esc($meta['hint']) ?></div>
+                                    <code class="small text-break">
+                                        <?= esc($current !== '' ? $current : 'Belum di-upload') ?>
+                                    </code>
+                                </div>
+                            </div>
+
+                            <?php if ($current !== '' && !$exists): ?>
+                                <div class="alert alert-warning sisfour-compact-note small">
+                                    Setting menyimpan path ini, tetapi file fisiknya tidak ditemukan. Sistem akan memakai fallback sampai file di-upload ulang.
+                                </div>
+                            <?php endif; ?>
+
+                            <label class="form-label" for="brandingFile<?= esc(ucfirst($type), 'attr') ?>">
+                                Upload <?= esc($meta['label']) ?> Baru
+                            </label>
+                            <input
+                                id="brandingFile<?= esc(ucfirst($type), 'attr') ?>"
+                                type="file"
+                                name="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                class="form-control"
+                                required
+                            >
+                            <button class="btn btn-outline-primary mt-3" type="submit">
+                                <i class="bx bx-upload me-1"></i> Upload <?= esc($meta['label']) ?>
+                            </button>
+                        </form>
+                    </div>
                 <?php endforeach; ?>
             </div>
-            <div class="form-text mt-3">File akan divalidasi sebagai image dan di-re-encode sebelum disimpan.</div>
+            <div class="form-text mt-3">
+                File divalidasi sebagai image dan di-re-encode menjadi PNG. Setelah upload berhasil halaman dimuat ulang agar branding baru langsung digunakan.
+            </div>
         </div>
     </div>
 
