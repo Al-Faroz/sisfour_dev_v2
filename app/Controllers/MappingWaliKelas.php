@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\MappingWaliIntegrityService;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -224,13 +225,18 @@ class MappingWaliKelas extends BaseController
         $row = 4;
         foreach ($rows as $mapping) {
             $sheet->fromArray([[
-                $mapping['nip'] ?? '',
+                '',
                 $mapping['nama_guru'] ?? '',
                 $mapping['nama_kelas'] ?? '',
                 $mapping['nama_tahun'] ?? '',
                 $mapping['semester'] ?? '',
                 (int) ($mapping['tahun_aktif'] ?? 0) === 1 ? 'Aktif' : 'Nonaktif',
             ]], null, 'A' . $row);
+            $sheet->setCellValueExplicit(
+                'A' . $row,
+                (string) ($mapping['nip'] ?? ''),
+                DataType::TYPE_STRING
+            );
             $row++;
         }
 
