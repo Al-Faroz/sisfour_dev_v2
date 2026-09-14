@@ -2,10 +2,7 @@
     'use strict';
 
     const app = document.getElementById('presensiMengajarApp');
-
-    if (!app) {
-        return;
-    }
+    if (!app) return;
 
     const baseUrl = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
     const tanggalInput = document.getElementById('jurnalTanggal');
@@ -54,39 +51,89 @@
         setStatus('Hadir');
     }
 
+    function enhanceGuruSearch() {
+        if (!guruSelect || document.getElementById('jurnalGuruSearch')) return;
+
+        const sourceOptions = Array.from(guruSelect.options).map((option) => ({
+            value: option.value,
+            text: option.textContent || '',
+        }));
+
+        const search = document.createElement('input');
+        search.type = 'search';
+        search.id = 'jurnalGuruSearch';
+        search.className = 'form-control mb-2';
+        search.placeholder = 'Ketik nama atau NIP Guru...';
+        search.autocomplete = 'off';
+        search.setAttribute('aria-label', 'Cari Nama atau NIP Guru');
+
+        const helper = document.createElement('div');
+        helper.className = 'form-text mt-1';
+        helper.textContent = 'Ketik nama/NIP untuk menyaring daftar Guru, lalu pilih Guru.';
+
+        guruSelect.insertAdjacentElement('beforebegin', search);
+        guruSelect.insertAdjacentElement('afterend', helper);
+
+        const applySearch = () => {
+            const query = search.value.trim().toLocaleLowerCase('id-ID');
+            const selected = guruSelect.value;
+            const matches = sourceOptions.filter((item, index) => {
+                if (index === 0 || item.value === '') return true;
+                return query === '' || item.text.toLocaleLowerCase('id-ID').includes(query);
+            });
+
+            guruSelect.innerHTML = '';
+            matches.forEach((item) => {
+                const option = document.createElement('option');
+                option.value = item.value;
+                option.textContent = item.text;
+                guruSelect.appendChild(option);
+            });
+
+            if (selected && matches.some((item) => item.value === selected)) {
+                guruSelect.value = selected;
+            } else if (selected) {
+                guruSelect.value = '';
+                jadwalSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
+                jadwalSelect.disabled = true;
+                resetForm();
+            }
+        };
+
+        search.addEventListener('input', applySearch);
+        search.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            const available = Array.from(guruSelect.options).filter((option) => option.value);
+            if (available.length === 1) {
+                guruSelect.value = available[0].value;
+                guruSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
+
     function setStatus(status) {
         selectedStatus = status;
 
         statusButtons.forEach((button) => {
             const value = button.dataset.status;
             const active = value === status;
-
             button.className = 'btn jurnal-status';
 
             if (active) {
-                if (value === 'Hadir') {
-                    button.classList.add('btn-success');
-                } else if (value === 'Izin') {
-                    button.classList.add('btn-warning');
-                } else {
-                    button.classList.add('btn-danger');
-                }
+                if (value === 'Hadir') button.classList.add('btn-success');
+                else if (value === 'Izin') button.classList.add('btn-warning');
+                else button.classList.add('btn-danger');
             } else {
-                if (value === 'Hadir') {
-                    button.classList.add('btn-outline-success');
-                } else if (value === 'Izin') {
-                    button.classList.add('btn-outline-warning');
-                } else {
-                    button.classList.add('btn-outline-danger');
-                }
+                if (value === 'Hadir') button.classList.add('btn-outline-success');
+                else if (value === 'Izin') button.classList.add('btn-outline-warning');
+                else button.classList.add('btn-outline-danger');
             }
         });
 
-        if (status === 'Hadir') {
-            geoNote.textContent = 'Status Hadir memerlukan geofence untuk Guru. Admin/Operator tidak dibatasi lokasi.';
-        } else {
-            geoNote.textContent = 'Status Izin/Sakit tidak memerlukan geofence, tetapi Guru tetap terikat time-window Jadwal.';
-        }
+        geoNote.textContent = status === 'Hadir'
+            ? 'Status Hadir memerlukan geofence untuk Guru. Admin/Operator tidak dibatasi lokasi.'
+            : 'Status Izin/Sakit tidak memerlukan geofence, tetapi Guru tetap terikat time-window Jadwal.';
     }
 
     function populateJadwal(rows) {
@@ -123,9 +170,7 @@
         jadwalSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
         jadwalSelect.disabled = true;
 
-        if (!idGuru || !tanggal) {
-            return;
-        }
+        if (!idGuru || !tanggal) return;
 
         showInfo('Memuat Jadwal Guru...', 'info');
 
@@ -169,7 +214,6 @@
         }
 
         hideInfo();
-
         const jadwal = result.jadwal || {};
         const existing = result.existing || null;
 
@@ -183,14 +227,11 @@
 
         capabilityBadge.textContent = result.capability || '-';
         revisionBadge.classList.toggle('d-none', !result.submitted);
-
         materiInput.value = existing?.materi || '';
         setStatus(existing?.status || 'Hadir');
-
         btnSimpan.innerHTML = result.submitted
             ? '<i class="bx bx-save me-1"></i> Simpan Revisi'
             : '<i class="bx bx-save me-1"></i> Simpan Jurnal';
-
         card.classList.remove('d-none');
     }
 
@@ -222,9 +263,7 @@
                     }
                 }
             );
-
             const json = await response.json();
-
             renderResult(json.data || {
                 success: false,
                 message: json.message || 'Gagal memuat Jurnal.'
@@ -265,7 +304,6 @@
         }
 
         const materi = materiInput.value.trim();
-
         if (!materi) {
             showInfo('Materi/keterangan wajib diisi.', 'warning');
             materiInput.focus();
@@ -276,7 +314,6 @@
 
         try {
             let location = { latitude: null, longitude: null };
-
             if (selectedStatus === 'Hadir' && current.capability !== 'SEMUA') {
                 showInfo('Memeriksa lokasi...', 'info');
                 location = await getLocation();
@@ -300,17 +337,13 @@
             });
 
             const json = await response.json();
-
             if (!response.ok || json.status !== 'success') {
                 showInfo(json.message || 'Jurnal gagal disimpan.', 'danger');
                 return;
             }
 
             showInfo(json.message || 'Jurnal berhasil disimpan.', 'success');
-
-            setTimeout(() => {
-                loadJournal();
-            }, 350);
+            setTimeout(() => loadJournal(), 350);
         } catch (error) {
             showInfo('Terjadi kesalahan saat menyimpan Jurnal.', 'danger');
         } finally {
@@ -318,6 +351,7 @@
         }
     }
 
+    enhanceGuruSearch();
     guruSelect?.addEventListener('change', loadSchedulesForGuru);
     btnMuat?.addEventListener('click', loadJournal);
     btnSimpan?.addEventListener('click', saveJournal);
@@ -330,7 +364,6 @@
 
     tanggalInput?.addEventListener('change', () => {
         const tanggal = tanggalInput.value;
-
         if (tanggal) {
             window.location.href = url(`presensi/mengajar?tanggal=${encodeURIComponent(tanggal)}`);
         }
@@ -339,11 +372,7 @@
     const initialGuru = Number(app.dataset.selectedGuru || 0);
     const initialJadwal = Number(app.dataset.selectedJadwal || 0);
 
-    if (initialGuru > 0 && initialJadwal === 0) {
-        loadSchedulesForGuru();
-    } else if (initialJadwal > 0) {
-        loadJournal();
-    } else {
-        setStatus('Hadir');
-    }
+    if (initialGuru > 0 && initialJadwal === 0) loadSchedulesForGuru();
+    else if (initialJadwal > 0) loadJournal();
+    else setStatus('Hadir');
 })();
