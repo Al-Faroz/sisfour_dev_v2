@@ -13,6 +13,7 @@
   ]);
 
   const instances = new WeakMap();
+  let generatedId = 0;
 
   class SearchableSelect {
     constructor(select) {
@@ -40,24 +41,71 @@
       this.wrapper = document.createElement('div');
       this.wrapper.className = 'sisfour-searchable';
 
+      const baseId = this.select.id
+        ? `${this.select.id}__search`
+        : `sisfourSearchable${++generatedId}`;
+
       this.input = document.createElement('input');
       this.input.type = 'text';
+      this.input.id = baseId;
       this.input.className = 'form-control sisfour-searchable__input';
       this.input.autocomplete = 'off';
       this.input.placeholder = this.placeholder;
       this.input.disabled = this.select.disabled;
       this.input.setAttribute('role', 'combobox');
       this.input.setAttribute('aria-expanded', 'false');
+      this.input.setAttribute('aria-autocomplete', 'list');
+      this.input.setAttribute('aria-haspopup', 'listbox');
 
       this.dropdown = document.createElement('div');
+      this.dropdown.id = `${baseId}__listbox`;
       this.dropdown.className = 'sisfour-searchable__dropdown d-none';
       this.dropdown.setAttribute('role', 'listbox');
+      this.input.setAttribute('aria-controls', this.dropdown.id);
 
       this.select.parentNode.insertBefore(this.wrapper, this.select);
       this.wrapper.appendChild(this.select);
       this.wrapper.appendChild(this.input);
       this.wrapper.appendChild(this.dropdown);
       this.select.classList.add('sisfour-searchable__native');
+      this.select.setAttribute('aria-hidden', 'true');
+      this.select.tabIndex = -1;
+
+      this.bindLabels();
+      this.syncControlState();
+    }
+
+    bindLabels() {
+      if (!this.select.id) return;
+
+      const labels = Array.from(document.querySelectorAll('label[for]'))
+        .filter((label) => label.getAttribute('for') === this.select.id);
+
+      if (!labels.length) return;
+
+      const labelIds = labels.map((label, index) => {
+        if (!label.id) {
+          label.id = `${this.input.id}__label${index + 1}`;
+        }
+        label.htmlFor = this.input.id;
+        return label.id;
+      });
+
+      this.input.setAttribute('aria-labelledby', labelIds.join(' '));
+    }
+
+    syncControlState() {
+      this.input.disabled = this.select.disabled;
+      this.input.setAttribute(
+        'aria-disabled',
+        this.select.disabled ? 'true' : 'false'
+      );
+
+      if (this.select.required) {
+        this.input.setAttribute('aria-required', 'true');
+      } else {
+        this.input.removeAttribute('aria-required');
+      }
     }
 
     bind() {
@@ -93,14 +141,14 @@
         if (!this.remoteUrl) {
           this.syncFromSelect();
         }
-        this.input.disabled = this.select.disabled;
+        this.syncControlState();
       });
 
       this.observer.observe(this.select, {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['disabled'],
+        attributeFilter: ['disabled', 'required'],
       });
 
       this.select.form?.addEventListener('reset', () => {
@@ -274,7 +322,7 @@
 
     syncFromSelect() {
       const selected = this.select.selectedOptions?.[0];
-      this.input.disabled = this.select.disabled;
+      this.syncControlState();
       this.input.value = selected && selected.value !== ''
         ? selected.textContent.trim()
         : '';
