@@ -3,13 +3,107 @@
  * Shared UI primitives only. Page-specific styling stays in the page/module.
  */
 
+/* ---------- Admin page foundation ---------- */
+.sisfour-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sisfour-page-header__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sisfour-page-header__copy > :last-child {
+  margin-bottom: 0;
+}
+
+.sisfour-page-header__copy p {
+  max-width: 80ch;
+}
+
+.sisfour-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.sisfour-filter-card .card-body {
+  min-width: 0;
+}
+
+.sisfour-filter-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sisfour-table-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sisfour-table-card > .card-header {
+  min-height: 3.5rem;
+}
+
+.sisfour-table-card .table-responsive > .table,
+.content-wrapper .table-responsive > .table {
+  margin-bottom: 0;
+}
+
+.sisfour-table-actions,
+.sisfour-row-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.sisfour-row-actions .btn.btn-sm {
+  min-width: 2rem;
+}
+
+.sisfour-compact-note {
+  padding: 0.75rem 1rem;
+}
+
+.sisfour-compact-note > :last-child {
+  margin-bottom: 0;
+}
+
+.sisfour-empty-row > td,
+.sisfour-loading-row > td,
+.sisfour-error-row > td {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  text-align: center;
+}
+
+.sisfour-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------- Pagination ---------- */
 .sisfour-pager {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--bs-border-color, rgba(67, 89, 113, 0.12));
+  padding: 0;
+  border-top: 0;
 }
 
 .sisfour-pager__summary {
@@ -40,6 +134,18 @@
   transition: transform 0.2s ease;
 }
 
+@media (max-width: 991.98px) {
+  .sisfour-page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sisfour-page-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
 @media (max-width: 767.98px) {
   .sisfour-pager {
     align-items: stretch;
@@ -59,6 +165,29 @@
     width: max-content;
     min-width: 100%;
     justify-content: center;
+  }
+
+  .sisfour-filter-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .sisfour-page-actions > .btn,
+  .sisfour-page-actions > a.btn {
+    flex: 1 1 auto;
+  }
+
+  .sisfour-filter-actions > .btn,
+  .sisfour-modal-actions > .btn {
+    flex: 1 1 auto;
+  }
+
+  .content-wrapper .card-body,
+  .content-wrapper .card-header,
+  .content-wrapper .card-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
