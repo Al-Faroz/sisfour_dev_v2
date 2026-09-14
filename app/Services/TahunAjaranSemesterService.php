@@ -14,11 +14,11 @@ class TahunAjaranSemesterService extends TahunAjaranIntegrityService
 {
     public function create(array $data): array
     {
-        if (($data['mode'] ?? '') === 'prepare_next_semester') {
-            if (! $this->canManageSemester()) {
-                return $this->forbiddenSemester();
-            }
+        if (! $this->canManageSemester()) {
+            return $this->forbiddenSemester();
+        }
 
+        if (($data['mode'] ?? '') === 'prepare_next_semester') {
             return (new SemesterTransitionService())
                 ->transitionFromActive();
         }
@@ -32,6 +32,10 @@ class TahunAjaranSemesterService extends TahunAjaranIntegrityService
 
     public function update(int $id, array $data): array
     {
+        if (! $this->canManageSemester()) {
+            return $this->forbiddenSemester();
+        }
+
         if ($this->isManualSameYearGenap($data)) {
             return $this->usePrepareGenap();
         }
