@@ -2,59 +2,38 @@
     'use strict';
 
     const app = document.getElementById('masterMapelApp');
-
-    if (!app) {
-        return;
-    }
+    if (!app) return;
 
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableMapel');
     const tbody = table.querySelector('tbody');
     const filterForm = document.getElementById('formFilterMapel');
+    const form = document.getElementById('formMapel');
+    const modal = new bootstrap.Modal(document.getElementById('modalMapel'));
+    const modalTitle = document.getElementById('modalMapelTitle');
 
     let rows = [];
-    let dataTable = null;
     let editingId = null;
+    const state = { limit: 25, offset: 0, total: 0 };
 
-    const modal = new bootstrap.Modal(
-        document.getElementById('modalMapel')
-    );
-
-    const form = document.getElementById('formMapel');
-    const modalTitle =
-        document.getElementById('modalMapelTitle');
-
-    const endpoint = (path) =>
-        `${baseUrl}/${path.replace(/^\/+/, '')}`;
-
+    const endpoint = (path) => `${baseUrl}/${path.replace(/^\/+/, '')}`;
     const escapeHtml = (value) => {
         const div = document.createElement('div');
         div.textContent = value ?? '';
         return div.innerHTML;
     };
-
     const parseResponse = async (response) => {
-        const data = await response
-            .json()
-            .catch(() => ({}));
-
+        const data = await response.json().catch(() => ({}));
         if (!response.ok || data.status === 'error') {
-            throw new Error(
-                data.message || 'Permintaan tidak dapat diproses.'
-            );
+            throw new Error(data.message || 'Permintaan tidak dapat diproses.');
         }
-
         return data;
     };
-
-    const showError = (error) => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal',
-            text: error?.message || 'Terjadi kesalahan.',
-        });
-    };
-
+    const showError = (error) => Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: error?.message || 'Terjadi kesalahan.',
+    });
     const showSuccess = (message) => Swal.fire({
         icon: 'success',
         title: 'Berhasil',
@@ -64,121 +43,97 @@
     });
 
     const filterParams = () => {
-        const params = new URLSearchParams(
-            new FormData(filterForm)
-        );
-
+        const params = new URLSearchParams(new FormData(filterForm));
         for (const [key, value] of [...params.entries()]) {
-            if (!String(value).trim()) {
-                params.delete(key);
-            }
+            if (!String(value).trim()) params.delete(key);
         }
-
         return params;
     };
 
-    const destroyDataTable = () => {
-        if (
-            dataTable
-            && typeof dataTable.destroy === 'function'
-        ) {
-            dataTable.destroy();
-            dataTable = null;
-        }
-    };
+    const pager = window.SisfourPagination?.mount(table, {
+        id: 'mapelPager',
+        label: 'mata pelajaran',
+        onChange: (next) => {
+            state.limit = next.limit;
+            state.offset = next.offset;
+            renderRows();
+        },
+    });
 
-    const initDataTable = () => {
-        if (typeof window.DataTable === 'function') {
-            dataTable = new window.DataTable(table, {
-                pageLength: 25,
-                lengthMenu: [10, 25, 50, 100],
-                order: [[1, 'asc']],
-            });
-        }
+    const normalizeOffset = () => {
+        const maxOffset = state.total > 0
+            ? Math.floor((state.total - 1) / state.limit) * state.limit
+            : 0;
+        state.offset = Math.min(state.offset, maxOffset);
     };
 
     const renderRows = () => {
-        destroyDataTable();
+        state.total = rows.length;
+        normalizeOffset();
+        const pageRows = rows.slice(state.offset, state.offset + state.limit);
 
-        tbody.innerHTML = rows.map((mapel, index) => {
-            const jumlahJadwal =
-                Number(mapel.jumlah_jadwal || 0);
-
+        tbody.innerHTML = pageRows.map((mapel, index) => {
+            const jumlahJadwal = Number(mapel.jumlah_jadwal || 0);
             return `
                 <tr>
-                    <td>${index + 1}</td>
-                    <td class="fw-semibold">
-                        ${escapeHtml(mapel.nama_mapel)}
-                    </td>
-                    <td>
-                        <span class="badge bg-label-primary font-monospace">
-                            ${escapeHtml(mapel.kode_mapel)}
-                        </span>
-                    </td>
-                    <td>
-                        ${
-                            jumlahJadwal > 0
-                                ? `<span class="badge bg-label-warning">${jumlahJadwal} jadwal</span>`
-                                : '<span class="badge bg-label-secondary">Belum digunakan</span>'
-                        }
-                    </td>
+                    <td>${state.offset + index + 1}</td>
+                    <td class="fw-semibold">${escapeHtml(mapel.nama_mapel)}</td>
+                    <td><span class="badge bg-label-primary font-monospace">${escapeHtml(mapel.kode_mapel)}</span></td>
+                    <td>${jumlahJadwal > 0
+                        ? `<span class="badge bg-label-warning">${jumlahJadwal} jadwal</span>`
+                        : '<span class="badge bg-label-secondary">Belum digunakan</span>'}</td>
                     <td>
                         <div class="d-flex gap-1">
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-primary btn-edit"
-                                data-id="${mapel.id}"
-                                title="Edit"
-                            >
-                                <i class="bx bx-edit"></i>
-                            </button>
-
-                            <button
-                                type="button"
-                                class="btn btn-sm btn-outline-danger btn-delete"
-                                data-id="${mapel.id}"
-                                title="Hapus"
-                                ${jumlahJadwal > 0 ? 'disabled' : ''}
-                            >
-                                <i class="bx bx-trash"></i>
-                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${mapel.id}" title="Edit"><i class="bx bx-edit"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${mapel.id}" title="Hapus" ${jumlahJadwal > 0 ? 'disabled' : ''}><i class="bx bx-trash"></i></button>
                         </div>
                     </td>
                 </tr>
             `;
-        }).join('');
+        }).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data Mata Pelajaran.</td></tr>';
 
-        initDataTable();
+        pager?.render(state);
     };
 
     const loadData = async () => {
         try {
             const params = filterParams();
-            const suffix = params.toString()
-                ? `?${params.toString()}`
-                : '';
-
-            const response = await fetch(
-                endpoint(`master/mapel/json${suffix}`),
-                {
-                    headers: {
-                        'X-Requested-With':
-                            'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                }
-            );
-
+            const suffix = params.toString() ? `?${params.toString()}` : '';
+            const response = await fetch(endpoint(`master/mapel/json${suffix}`), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
             const result = await parseResponse(response);
-
-            rows = Array.isArray(result.data)
-                ? result.data
-                : [];
-
+            rows = Array.isArray(result.data) ? result.data : [];
+            state.offset = 0;
             renderRows();
         } catch (error) {
             showError(error);
         }
+    };
+
+    const addExportButton = () => {
+        const addButton = document.getElementById('btnTambahMapel');
+        const header = addButton?.parentElement;
+        if (!header || document.getElementById('btnExportMapel')) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'd-flex flex-wrap gap-2';
+        addButton.replaceWith(wrapper);
+
+        const exportButton = document.createElement('button');
+        exportButton.type = 'button';
+        exportButton.id = 'btnExportMapel';
+        exportButton.className = 'btn btn-outline-success';
+        exportButton.innerHTML = '<i class="bx bx-export me-1"></i> Export';
+        exportButton.addEventListener('click', () => {
+            const params = filterParams();
+            params.set('export', '1');
+            window.location.href = endpoint(`master/mapel?${params.toString()}`);
+        });
+
+        wrapper.appendChild(exportButton);
+        wrapper.appendChild(addButton);
     };
 
     filterForm.addEventListener('submit', (event) => {
@@ -186,27 +141,22 @@
         loadData();
     });
 
-    document
-        .getElementById('btnResetFilter')
-        .addEventListener('click', () => {
-            filterForm.reset();
-            loadData();
-        });
+    document.getElementById('btnResetFilter').addEventListener('click', () => {
+        filterForm.reset();
+        loadData();
+    });
 
     const resetForm = () => {
         editingId = null;
         form.reset();
         document.getElementById('mapelId').value = '';
-        modalTitle.textContent =
-            'Tambah Mata Pelajaran';
+        modalTitle.textContent = 'Tambah Mata Pelajaran';
     };
 
-    document
-        .getElementById('btnTambahMapel')
-        .addEventListener('click', () => {
-            resetForm();
-            modal.show();
-        });
+    document.getElementById('btnTambahMapel').addEventListener('click', () => {
+        resetForm();
+        modal.show();
+    });
 
     tbody.addEventListener('click', async (event) => {
         const edit = event.target.closest('.btn-edit');
@@ -214,80 +164,39 @@
 
         if (edit) {
             const id = Number(edit.dataset.id);
-            const mapel = rows.find(
-                (item) => Number(item.id) === id
-            );
-
-            if (!mapel) {
-                return;
-            }
+            const mapel = rows.find((item) => Number(item.id) === id);
+            if (!mapel) return;
 
             editingId = id;
-            modalTitle.textContent =
-                'Edit Mata Pelajaran';
-
-            document.getElementById(
-                'mapelId'
-            ).value = String(id);
-
-            document.getElementById(
-                'nama_mapel'
-            ).value = mapel.nama_mapel;
-
-            document.getElementById(
-                'kode_mapel'
-            ).value = mapel.kode_mapel;
-
+            modalTitle.textContent = 'Edit Mata Pelajaran';
+            document.getElementById('mapelId').value = String(id);
+            document.getElementById('nama_mapel').value = mapel.nama_mapel;
+            document.getElementById('kode_mapel').value = mapel.kode_mapel;
             modal.show();
             return;
         }
 
         if (hapus && !hapus.disabled) {
             const id = Number(hapus.dataset.id);
-            const mapel = rows.find(
-                (item) => Number(item.id) === id
-            );
-
+            const mapel = rows.find((item) => Number(item.id) === id);
             const confirmation = await Swal.fire({
                 icon: 'warning',
                 title: 'Hapus mata pelajaran?',
-                html: `
-                    <strong>
-                        ${escapeHtml(mapel?.nama_mapel || '')}
-                    </strong>
-                    <br>
-                    Kode: ${escapeHtml(mapel?.kode_mapel || '')}
-                    <br><br>
-                    Penghapusan bersifat permanen.
-                `,
+                html: `<strong>${escapeHtml(mapel?.nama_mapel || '')}</strong><br>Kode: ${escapeHtml(mapel?.kode_mapel || '')}<br><br>Penghapusan bersifat permanen.`,
                 showCancelButton: true,
                 confirmButtonText: 'Ya, hapus',
                 cancelButtonText: 'Batal',
                 confirmButtonColor: '#d33',
             });
-
-            if (!confirmation.isConfirmed) {
-                return;
-            }
+            if (!confirmation.isConfirmed) return;
 
             try {
-                const response = await fetch(
-                    endpoint(
-                        `master/mapel/delete/${id}`
-                    ),
-                    {
-                        method: 'DELETE',
-                        headers: {
-                            'X-Requested-With':
-                                'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                    }
-                );
-
-                const result =
-                    await parseResponse(response);
-
+                const response = await fetch(endpoint(`master/mapel/delete/${id}`), {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                const result = await parseResponse(response);
                 await showSuccess(result.message);
                 await loadData();
             } catch (error) {
@@ -298,71 +207,41 @@
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-
-        const button =
-            document.getElementById('btnSimpanMapel');
-
-        const spinner =
-            button.querySelector('.spinner-border');
-
+        const button = document.getElementById('btnSimpanMapel');
+        const spinner = button.querySelector('.spinner-border');
         button.disabled = true;
         spinner.classList.remove('d-none');
 
         try {
+            let response;
             if (editingId === null) {
-                const response = await fetch(
-                    endpoint('master/mapel/create'),
-                    {
-                        method: 'POST',
-                        body: new FormData(form),
-                        headers: {
-                            'X-Requested-With':
-                                'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                    }
-                );
-
-                const result =
-                    await parseResponse(response);
-
-                modal.hide();
-                await showSuccess(result.message);
-                await loadData();
+                response = await fetch(endpoint('master/mapel/create'), {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
             } else {
                 const payload = new URLSearchParams();
                 const formData = new FormData(form);
-
                 for (const [key, value] of formData.entries()) {
-                    if (key !== 'csrf_test_name') {
-                        payload.append(key, value);
-                    }
+                    if (key !== 'csrf_test_name') payload.append(key, value);
                 }
-
-                const response = await fetch(
-                    endpoint(
-                        `master/mapel/update/${editingId}`
-                    ),
-                    {
-                        method: 'PUT',
-                        body: payload,
-                        headers: {
-                            'Content-Type':
-                                'application/x-www-form-urlencoded;charset=UTF-8',
-                            'X-Requested-With':
-                                'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                    }
-                );
-
-                const result =
-                    await parseResponse(response);
-
-                modal.hide();
-                await showSuccess(result.message);
-                await loadData();
+                response = await fetch(endpoint(`master/mapel/update/${editingId}`), {
+                    method: 'PUT',
+                    body: payload,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
             }
+
+            const result = await parseResponse(response);
+            modal.hide();
+            await showSuccess(result.message);
+            await loadData();
         } catch (error) {
             showError(error);
         } finally {
@@ -371,5 +250,6 @@
         }
     });
 
+    addExportButton();
     loadData();
 })();
