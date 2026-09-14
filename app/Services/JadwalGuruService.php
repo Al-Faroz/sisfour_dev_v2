@@ -22,6 +22,7 @@ use Throwable;
  * - identitas import Guru menerima NIP (18 digit) atau NIK (16 digit).
  * - header lama NIP_GURU tetap diterima untuk kompatibilitas.
  * - replacement import hanya menonaktifkan jadwal pada tahun yang diimport.
+ * - prepared Semester Genap Nonaktif boleh menerima import sebelum aktivasi.
  */
 class JadwalGuruService
 {
@@ -77,21 +78,6 @@ class JadwalGuruService
             ->getResultArray();
     }
 
-    /**
-     * Opsi filter sesuai data-level scope.
-     *
-     * SEMUA:
-     * - seluruh Guru/Kelas/Tahun.
-     *
-     * DIRI_SENDIRI:
-     * - identitas Guru actor dan kelas/tahun dari jadwal dirinya.
-     *
-     * KELAS_DIAMPU:
-     * - kelas Wali aktif dan Guru/Tahun yang muncul pada jadwal kelas tersebut.
-     *
-     * Kombinasi DIRI_SENDIRI + KELAS_DIAMPU:
-     * - UNION kedua konteks. Hak Wali tidak menghapus hak jadwal diri sendiri.
-     */
     public function getOptions(
         int $userId,
         ?int $filterGuru = null
@@ -308,11 +294,6 @@ class JadwalGuruService
         ) === 'SEMUA';
     }
 
-    /**
-     * Import Excel replacement semantics untuk satu Tahun Ajaran.
-     *
-     * Actor wajib eksplisit agar Service tetap menjadi authorization boundary.
-     */
     public function importJadwal(
         UploadedFile $file,
         int $idTahun,
@@ -321,28 +302,17 @@ class JadwalGuruService
         $actorUserId = $userId;
 
         if ($actorUserId <= 0 || ! $this->canManage($actorUserId)) {
-            return $this->fail(
-                'FORBIDDEN',
-                'Anda tidak memiliki hak untuk mengimport jadwal.'
-            );
+            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak untuk mengimport jadwal.');
         }
 
         if (! $file->isValid()) {
-            return $this->fail(
-                'INVALID_FILE',
-                'File import tidak valid.'
-            );
+            return $this->fail('INVALID_FILE', 'File import tidak valid.');
         }
 
-        $extension = strtolower(
-            (string) $file->getClientExtension()
-        );
+        $extension = strtolower((string) $file->getClientExtension());
 
         if (! in_array($extension, ['xlsx', 'xls'], true)) {
-            return $this->fail(
-                'INVALID_FILE',
-                'File import harus berformat XLSX atau XLS.'
-            );
+            return $this->fail('INVALID_FILE', 'File import harus berformat XLSX atau XLS.');
         }
 
         $tahun = $this->db
@@ -353,10 +323,7 @@ class JadwalGuruService
             ->getRowArray();
 
         if ($tahun === null) {
-            return $this->fail(
-                'NOT_FOUND',
-                'Tahun ajaran tidak ditemukan.'
-            );
+            return $this->fail('NOT_FOUND', 'Tahun ajaran tidak ditemukan.');
         }
 
         if (
@@ -370,35 +337,18 @@ class JadwalGuruService
         }
 
         try {
-            $spreadsheet = IOFactory::load(
-                $file->getTempName()
-            );
-
-            $rows = $spreadsheet
-                ->getActiveSheet()
-                ->toArray(
-                    null,
-                    true,
-                    true,
-                    false
-                );
+            $spreadsheet = IOFactory::load($file->getTempName());
+            $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
         } catch (Throwable $e) {
-            return $this->fail(
-                'INVALID_FILE',
-                'File Excel tidak dapat dibaca.'
-            );
+            return $this->fail('INVALID_FILE', 'File Excel tidak dapat dibaca.');
         }
 
         if (count($rows) < 2) {
-            return $this->fail(
-                'EMPTY_IMPORT',
-                'File import tidak memiliki data jadwal.'
-            );
+            return $this->fail('EMPTY_IMPORT', 'File import tidak memiliki data jadwal.');
         }
 
         $header = array_map(
-            static fn ($value): string =>
-                strtoupper(trim((string) $value)),
+            static fn ($value): string => strtoupper(trim((string) $value)),
             array_slice($rows[0], 0, 7)
         );
 
@@ -412,14 +362,8 @@ class JadwalGuruService
         $prepared = [];
         $sourceRows = [];
 
-        for (
-            $i = 1,
-            $count = count($rows);
-            $i < $count;
-            $i++
-        ) {
+        for ($i = 1, $count = count($rows); $i < $count; $i++) {
             $excelRow = $i + 1;
-
             $rawIdentitasGuru = $rows[$i][0] ?? '';
 
             if (is_int($rawIdentitasGuru) || is_float($rawIdentitasGuru)) {
@@ -429,27 +373,13 @@ class JadwalGuruService
                 );
             }
 
-            $identitasGuru = $this->normalizeGuruIdentifier(
-                $rawIdentitasGuru
-            );
-            $namaKelas = strtoupper(
-                trim((string) ($rows[$i][1] ?? ''))
-            );
-            $kodeMapel = strtoupper(
-                trim((string) ($rows[$i][2] ?? ''))
-            );
-            $hari = $this->normalizeHari(
-                (string) ($rows[$i][3] ?? '')
-            );
-            $jamMulai = $this->normalizeJam(
-                $rows[$i][4] ?? null
-            );
-            $jamSelesai = $this->normalizeJam(
-                $rows[$i][5] ?? null
-            );
-            $sesi = $this->normalizeSesi(
-                (string) ($rows[$i][6] ?? '')
-            );
+            $identitasGuru = $this->normalizeGuruIdentifier($rawIdentitasGuru);
+            $namaKelas = strtoupper(trim((string) ($rows[$i][1] ?? '')));
+            $kodeMapel = strtoupper(trim((string) ($rows[$i][2] ?? '')));
+            $hari = $this->normalizeHari((string) ($rows[$i][3] ?? ''));
+            $jamMulai = $this->normalizeJam($rows[$i][4] ?? null);
+            $jamSelesai = $this->normalizeJam($rows[$i][5] ?? null);
+            $sesi = $this->normalizeSesi((string) ($rows[$i][6] ?? ''));
 
             if (
                 $identitasGuru === ''
@@ -486,32 +416,21 @@ class JadwalGuruService
             }
 
             if (! in_array($hari, self::HARI_VALID, true)) {
-                return $this->fail(
-                    'VALIDATION',
-                    "Import dihentikan pada baris {$excelRow}: hari '{$hari}' tidak valid."
-                );
+                return $this->fail('VALIDATION', "Import dihentikan pada baris {$excelRow}: hari '{$hari}' tidak valid.");
             }
 
             if (! in_array($sesi, self::SESI_VALID, true)) {
-                return $this->fail(
-                    'VALIDATION',
-                    "Import dihentikan pada baris {$excelRow}: sesi tidak valid."
-                );
+                return $this->fail('VALIDATION', "Import dihentikan pada baris {$excelRow}: sesi tidak valid.");
             }
 
-            if (
-                strtotime($jamMulai)
-                >= strtotime($jamSelesai)
-            ) {
+            if (strtotime($jamMulai) >= strtotime($jamSelesai)) {
                 return $this->fail(
                     'VALIDATION',
                     "Import dihentikan pada baris {$excelRow}: jam mulai harus lebih kecil dari jam selesai."
                 );
             }
 
-            $guru = $this->findGuruByIdentifier(
-                $identitasGuru
-            );
+            $guru = $this->findGuruByIdentifier($identitasGuru);
 
             if ($guru === null) {
                 return $this->fail(
@@ -571,16 +490,10 @@ class JadwalGuruService
         }
 
         if ($prepared === []) {
-            return $this->fail(
-                'EMPTY_IMPORT',
-                'Tidak ada baris jadwal yang dapat diimport.'
-            );
+            return $this->fail('EMPTY_IMPORT', 'Tidak ada baris jadwal yang dapat diimport.');
         }
 
-        $bentrok = $this->validateBentrok(
-            $prepared,
-            $sourceRows
-        );
+        $bentrok = $this->validateBentrok($prepared, $sourceRows);
 
         if (! $bentrok['valid']) {
             return [
@@ -595,30 +508,23 @@ class JadwalGuruService
         $this->db->transBegin();
 
         try {
-            // Replacement hanya berlaku pada Tahun Ajaran yang diimport.
             $this->db
                 ->table('jadwal_guru')
                 ->where('id_tahun', $idTahun)
                 ->where('status_jadwal', 'Aktif')
-                ->update([
-                    'status_jadwal' => 'Nonaktif',
-                ]);
+                ->update(['status_jadwal' => 'Nonaktif']);
 
             foreach ($prepared as $row) {
                 if ($this->jadwalModel->insert($row) === false) {
                     throw new \RuntimeException(
-                        implode(
-                            ' ',
-                            $this->jadwalModel->errors()
-                        ) ?: 'Salah satu baris jadwal gagal disimpan.'
+                        implode(' ', $this->jadwalModel->errors())
+                            ?: 'Salah satu baris jadwal gagal disimpan.'
                     );
                 }
             }
 
             if ($this->db->transStatus() === false) {
-                throw new \RuntimeException(
-                    'Transaksi import jadwal gagal.'
-                );
+                throw new \RuntimeException('Transaksi import jadwal gagal.');
             }
 
             $this->activityLog->write(
@@ -653,9 +559,6 @@ class JadwalGuruService
         }
     }
 
-    /**
-     * Pure overlap validation untuk baris hasil import.
-     */
     public function validateBentrok(
         array $rows,
         array $sourceRows = []
@@ -671,26 +574,19 @@ class JadwalGuruService
                     continue;
                 }
 
-                if (
-                    ! $this->isOverlap(
-                        $a['jam_mulai'],
-                        $a['jam_selesai'],
-                        $b['jam_mulai'],
-                        $b['jam_selesai']
-                    )
-                ) {
+                if (! $this->isOverlap(
+                    $a['jam_mulai'],
+                    $a['jam_selesai'],
+                    $b['jam_mulai'],
+                    $b['jam_selesai']
+                )) {
                     continue;
                 }
 
-                $rowA = $sourceRows[$i]['excel_row']
-                    ?? ($i + 2);
-                $rowB = $sourceRows[$j]['excel_row']
-                    ?? ($j + 2);
+                $rowA = $sourceRows[$i]['excel_row'] ?? ($i + 2);
+                $rowB = $sourceRows[$j]['excel_row'] ?? ($j + 2);
 
-                if (
-                    (int) $a['id_guru']
-                    === (int) $b['id_guru']
-                ) {
+                if ((int) $a['id_guru'] === (int) $b['id_guru']) {
                     $errors[] = sprintf(
                         'Bentrok Guru pada baris %d dan %d: hari %s, %s-%s bertabrakan dengan %s-%s.',
                         $rowA,
@@ -703,16 +599,12 @@ class JadwalGuruService
                     );
                 }
 
-                if (
-                    (int) $a['id_kelas']
-                    === (int) $b['id_kelas']
-                ) {
+                if ((int) $a['id_kelas'] === (int) $b['id_kelas']) {
                     $errors[] = sprintf(
                         'Bentrok Kelas pada baris %d dan %d: %s pada hari %s memiliki jadwal overlap (tidak ada team teaching).',
                         $rowA,
                         $rowB,
-                        $sourceRows[$i]['nama_kelas']
-                            ?? 'kelas yang sama',
+                        $sourceRows[$i]['nama_kelas'] ?? 'kelas yang sama',
                         $a['hari']
                     );
                 }
@@ -735,50 +627,30 @@ class JadwalGuruService
             && strtotime($mulaiB) < strtotime($selesaiA);
     }
 
-    public function delete(
-        int $id,
-        int $userId
-    ): array {
+    public function delete(int $id, int $userId): array
+    {
         if (! $this->canManage($userId)) {
-            return $this->fail(
-                'FORBIDDEN',
-                'Anda tidak memiliki hak untuk menghapus jadwal.'
-            );
+            return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak untuk menghapus jadwal.');
         }
 
         $jadwal = $this->db
             ->table('jadwal_guru jg')
-            ->select(
-                'jg.*, g.nama AS nama_guru, ' .
-                'k.nama_kelas, mp.nama_mapel'
-            )
+            ->select('jg.*, g.nama AS nama_guru, k.nama_kelas, mp.nama_mapel')
             ->join('guru g', 'g.id = jg.id_guru')
             ->join('kelas k', 'k.id = jg.id_kelas')
-            ->join(
-                'mata_pelajaran mp',
-                'mp.id = jg.id_mapel'
-            )
+            ->join('mata_pelajaran mp', 'mp.id = jg.id_mapel')
             ->where('jg.id', $id)
             ->get()
             ->getRowArray();
 
         if ($jadwal === null) {
-            return $this->fail(
-                'NOT_FOUND',
-                'Jadwal tidak ditemukan.'
-            );
+            return $this->fail('NOT_FOUND', 'Jadwal tidak ditemukan.');
         }
 
-        $deleted = $this->db
-            ->table('jadwal_guru')
-            ->where('id', $id)
-            ->delete();
+        $deleted = $this->db->table('jadwal_guru')->where('id', $id)->delete();
 
         if (! $deleted) {
-            return $this->fail(
-                'DELETE_FAILED',
-                'Jadwal gagal dihapus.'
-            );
+            return $this->fail('DELETE_FAILED', 'Jadwal gagal dihapus.');
         }
 
         $this->activityLog->write(
@@ -793,20 +665,9 @@ class JadwalGuruService
             )
         );
 
-        return [
-            'success' => true,
-            'message' => 'Jadwal berhasil dihapus.',
-        ];
+        return ['success' => true, 'message' => 'Jadwal berhasil dihapus.'];
     }
 
-    /**
-     * Terapkan data-level authorization Jadwal.
-     *
-     * DIRI_SENDIRI dan KELAS_DIAMPU harus menjadi UNION:
-     *   jadwal actor sendiri
-     *   OR
-     *   jadwal kelas Wali pada tahun aktif.
-     */
     protected function applyViewScope(
         BaseBuilder $builder,
         int $userId,
@@ -826,19 +687,9 @@ class JadwalGuruService
 
         $allowSelf = in_array('DIRI_SENDIRI', $scopes, true);
         $allowWali = in_array('KELAS_DIAMPU', $scopes, true);
-
-        $idTahun = $allowWali
-            ? $this->getIdTahunAktif()
-            : 0;
-
-        $kelas = (
-            $allowWali
-            && $idTahun > 0
-        )
-            ? $this->authService->getKelasDiampu(
-                $idGuru,
-                $idTahun
-            )
+        $idTahun = $allowWali ? $this->getIdTahunAktif() : 0;
+        $kelas = ($allowWali && $idTahun > 0)
+            ? $this->authService->getKelasDiampu($idGuru, $idTahun)
             : [];
 
         if (! $allowSelf && $kelas === []) {
@@ -854,13 +705,11 @@ class JadwalGuruService
                         ->whereIn($alias . '.id_kelas', $kelas)
                     ->groupEnd()
                 ->groupEnd();
-
             return true;
         }
 
         if ($allowSelf) {
             $builder->where($alias . '.id_guru', $idGuru);
-
             return true;
         }
 
@@ -871,44 +720,21 @@ class JadwalGuruService
         return true;
     }
 
-    /**
-     * @return string[]
-     */
     protected function resolveViewScopes(int $userId): array
     {
-        if (
-            $this->authService->resolveScope(
-                'jadwal_guru.manage',
-                $userId
-            ) === 'SEMUA'
-        ) {
+        if ($this->authService->resolveScope('jadwal_guru.manage', $userId) === 'SEMUA') {
             return ['SEMUA'];
         }
 
-        if (
-            $this->authService->resolveScope(
-                'jadwal_guru.view_all',
-                $userId
-            ) === 'SEMUA'
-        ) {
+        if ($this->authService->resolveScope('jadwal_guru.view_all', $userId) === 'SEMUA') {
             return ['SEMUA'];
         }
 
-        $raw = $this->authService->getPermissionScopes(
-            'jadwal_guru.view',
-            $userId
-        );
-
+        $raw = $this->authService->getPermissionScopes('jadwal_guru.view', $userId);
         $scopes = [];
 
         foreach ($raw as $scope) {
-            if (
-                in_array(
-                    $scope,
-                    ['DIRI_SENDIRI', 'KELAS_DIAMPU'],
-                    true
-                )
-            ) {
+            if (in_array($scope, ['DIRI_SENDIRI', 'KELAS_DIAMPU'], true)) {
                 $scopes[$scope] = $scope;
             }
         }
@@ -926,9 +752,7 @@ class JadwalGuruService
             ->get()
             ->getRowArray();
 
-        return isset($row['id_guru'])
-            ? (int) $row['id_guru']
-            : 0;
+        return isset($row['id_guru']) ? (int) $row['id_guru'] : 0;
     }
 
     private function baseListBuilder(): BaseBuilder
@@ -949,10 +773,8 @@ class JadwalGuruService
             ->join('tahun_ajaran ta', 'ta.id = jg.id_tahun');
     }
 
-    private function applyFilters(
-        BaseBuilder $builder,
-        array $filter
-    ): void {
+    private function applyFilters(BaseBuilder $builder, array $filter): void
+    {
         $idGuru = (int) ($filter['id_guru'] ?? 0);
         if ($idGuru > 0) {
             $builder->where('jg.id_guru', $idGuru);
@@ -973,9 +795,7 @@ class JadwalGuruService
             $builder->where('jg.hari', $hari);
         }
 
-        $status = trim(
-            (string) ($filter['status_jadwal'] ?? '')
-        );
+        $status = trim((string) ($filter['status_jadwal'] ?? ''));
         if (in_array($status, ['Aktif', 'Nonaktif'], true)) {
             $builder->where('jg.status_jadwal', $status);
         }
@@ -985,11 +805,7 @@ class JadwalGuruService
     {
         return $builder
             ->orderBy('ta.nama_tahun', 'DESC')
-            ->orderBy(
-                "FIELD(ta.semester,'Ganjil','Genap')",
-                '',
-                false
-            )
+            ->orderBy("FIELD(ta.semester,'Ganjil','Genap')", '', false)
             ->orderBy(
                 "FIELD(jg.hari,'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu')",
                 '',
@@ -1090,11 +906,10 @@ class JadwalGuruService
         }
 
         foreach (['presensi', 'presensi_mengajar'] as $table) {
-            if (
-                $this->db
-                    ->table($table)
-                    ->where('id_tahun', $targetId)
-                    ->countAllResults() > 0
+            if ($this->db
+                ->table($table)
+                ->where('id_tahun', $targetId)
+                ->countAllResults() > 0
             ) {
                 return false;
             }
@@ -1166,16 +981,12 @@ class JadwalGuruService
             return null;
         }
 
-        return $builder
-            ->get()
-            ->getRowArray() ?: null;
+        return $builder->get()->getRowArray() ?: null;
     }
 
-    protected function normalizeHari(
-        string $value
-    ): string {
+    protected function normalizeHari(string $value): string
+    {
         $value = strtolower(trim($value));
-
         $map = [
             'senin' => 'Senin',
             'selasa' => 'Selasa',
@@ -1190,15 +1001,10 @@ class JadwalGuruService
         return $map[$value] ?? trim($value);
     }
 
-    protected function normalizeSesi(
-        string $value
-    ): string {
+    protected function normalizeSesi(string $value): string
+    {
         $value = strtolower(
-            preg_replace(
-                '/\s+/',
-                ' ',
-                trim($value)
-            ) ?? ''
+            preg_replace('/\s+/', ' ', trim($value)) ?? ''
         );
 
         return match ($value) {
@@ -1209,18 +1015,15 @@ class JadwalGuruService
         };
     }
 
-    protected function normalizeJam(
-        $value
-    ): ?string {
+    protected function normalizeJam($value): ?string
+    {
         if ($value === null || $value === '') {
             return null;
         }
 
         if (is_numeric($value)) {
             try {
-                return ExcelDate::excelToDateTimeObject(
-                    (float) $value
-                )->format('H:i:s');
+                return ExcelDate::excelToDateTimeObject((float) $value)->format('H:i:s');
             } catch (Throwable $e) {
                 return null;
             }
@@ -1229,10 +1032,7 @@ class JadwalGuruService
         $value = trim((string) $value);
 
         foreach (['H:i:s', 'H:i', 'G:i'] as $format) {
-            $date = \DateTime::createFromFormat(
-                $format,
-                $value
-            );
+            $date = \DateTime::createFromFormat($format, $value);
 
             if ($date === false) {
                 continue;
@@ -1242,10 +1042,7 @@ class JadwalGuruService
 
             if (
                 $errors === false
-                || (
-                    $errors['warning_count'] === 0
-                    && $errors['error_count'] === 0
-                )
+                || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)
             ) {
                 return $date->format('H:i:s');
             }
@@ -1254,10 +1051,8 @@ class JadwalGuruService
         return null;
     }
 
-    private function fail(
-        string $code,
-        string $message
-    ): array {
+    private function fail(string $code, string $message): array
+    {
         return [
             'success' => false,
             'code' => $code,
