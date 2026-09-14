@@ -2,19 +2,29 @@
 <?= $this->section('content') ?>
 
 <div id="laporanExportApp" data-base-url="<?= esc(base_url()) ?>">
-    <div class="mb-4">
-        <h4 class="fw-bold mb-1">Export Presensi</h4>
-        <p class="text-muted mb-0">XLSX bulanan memuat Sesi Awal dan Sesi Akhir; total H/S/I/A tetap hanya Sesi Awal.</p>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
+            <h4 class="fw-bold mb-1">Export Presensi</h4>
+            <p class="text-muted mb-0">
+                XLSX bulanan memuat Sesi Awal dan Sesi Akhir; total H/S/I/A tetap hanya Sesi Awal.
+            </p>
+        </div>
     </div>
 
     <?php if (empty($options['success'])): ?>
-        <div class="alert alert-danger"><?= esc($options['message'] ?? 'Export tidak dapat dibuka.') ?></div>
+        <div class="alert alert-danger">
+            <?= esc($options['message'] ?? 'Export tidak dapat dibuka.') ?>
+        </div>
     <?php else: ?>
-        <div class="card">
+        <div class="card sisfour-filter-card">
+            <div class="card-header">
+                <h5 class="mb-1">Parameter Export</h5>
+                <div class="small text-muted">Pilih tahun ajaran, kelas, dan periode export.</div>
+            </div>
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <div class="col-12 col-md-4">
-                        <label class="form-label">Tahun Ajaran</label>
+                        <label class="form-label" for="exportTahun">Tahun Ajaran</label>
                         <select class="form-select" id="exportTahun">
                             <?php foreach (($options['tahun'] ?? []) as $tahun): ?>
                                 <option
@@ -28,7 +38,7 @@
                     </div>
 
                     <div class="col-12 col-md-4">
-                        <label class="form-label">Kelas</label>
+                        <label class="form-label" for="exportKelas">Kelas</label>
                         <select class="form-select" id="exportKelas">
                             <option value="">Pilih Kelas</option>
                             <?php foreach (($options['kelas'] ?? []) as $kelas): ?>
@@ -40,19 +50,17 @@
                     </div>
 
                     <div class="col-12 col-md-4">
-                        <label class="form-label">Bulan</label>
+                        <label class="form-label" for="exportBulan">Bulan</label>
                         <input type="month" class="form-control" id="exportBulan" value="<?= esc($bulan) ?>">
                     </div>
                 </div>
 
-                <hr>
-
-                <div class="d-flex flex-column flex-md-row gap-2">
+                <div class="sisfour-filter-actions mt-4">
                     <button type="button" class="btn btn-primary" id="btnExportBulanan">
-                        Export Bulanan XLSX
+                        <i class="bx bx-export me-1"></i> Export Bulanan XLSX
                     </button>
                     <button type="button" class="btn btn-outline-primary" id="btnExportSemester">
-                        Export Semester XLSX
+                        <i class="bx bx-export me-1"></i> Export Semester XLSX
                     </button>
                 </div>
 
