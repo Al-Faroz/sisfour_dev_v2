@@ -1,8 +1,8 @@
 # Global Standard — CodeIgniter 4 + Sneat Bootstrap 5
 
-**Status:** Canonical Global Reference  
-**Baseline vendor:** Sneat Bootstrap HTML Admin Template Free v3.0.0  
-**Bootstrap:** 5.3.3  
+**Status:** Canonical Global Reference
+**Baseline vendor:** Sneat Bootstrap HTML Admin Template Free v3.0.0
+**Bootstrap:** 5.3.3
 **Scope:** reusable untuk proyek CodeIgniter 4 + Sneat, tidak khusus SisisFour
 
 > Dokumen ini memisahkan **Vendor Baseline** dan **Application Standard**. Nilai vendor berasal dari Sneat v3 yang dipelajari; pola partial CI4 adalah konvensi aplikasi agar implementasi lintas proyek konsisten.

@@ -1,9 +1,9 @@
 # SisisFour Mobile & Cordova UI/UX Standard
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 14 September 2026  
-**Baseline UI:** Sneat Free v3 + Bootstrap 5.3.x + CodeIgniter 4  
-**Target utama:** Android portrait melalui browser mobile dan Cordova WebView  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 14 September 2026
+**Baseline UI:** Sneat Free v3 + Bootstrap 5.3.x + CodeIgniter 4
+**Target utama:** Android portrait melalui browser mobile dan Cordova WebView
 **Role prioritas:** Pimpinan, BK, Guru, Guru+Wali Kelas, Siswa
 
 > Dokumen ini adalah turunan khusus dari `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md` dan `11_UI_UX — SisisFour.md`. Bila aturan mobile di sini lebih ketat, dokumen ini yang berlaku untuk mobile/WebView.
