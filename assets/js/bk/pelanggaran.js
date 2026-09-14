@@ -7,10 +7,63 @@
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
   const form = document.getElementById('formPelanggaran');
   const modalEl = document.getElementById('modalPelanggaran');
+  const tbody = document.getElementById('pelanggaranBody');
+  const table = tbody?.closest('table');
 
-  if (!form || !modalEl) return;
+  if (!form || !modalEl || !tbody || !table) return;
 
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const state = { limit: 25, offset: 0, total: rows.length };
+
+  const pager = window.SisfourPagination?.mount(table, {
+    id: 'pelanggaranPager',
+    label: 'pelanggaran',
+    onChange: (next) => {
+      state.limit = next.limit;
+      state.offset = next.offset;
+      renderPage();
+    },
+  });
+
+  function renderPage() {
+    state.total = rows.length;
+    const maxOffset = state.total > 0
+      ? Math.floor((state.total - 1) / state.limit) * state.limit
+      : 0;
+    state.offset = Math.min(state.offset, maxOffset);
+
+    rows.forEach((row, index) => {
+      row.classList.toggle(
+        'd-none',
+        index < state.offset || index >= state.offset + state.limit
+      );
+    });
+
+    pager?.render(state);
+  }
+
+  function addExportButton() {
+    const addButton = document.getElementById('btnPelanggaranBaru');
+    const header = addButton?.parentElement;
+    if (!header || document.getElementById('btnExportPelanggaran')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex flex-wrap gap-2';
+    addButton.replaceWith(wrapper);
+
+    const exportButton = document.createElement('button');
+    exportButton.type = 'button';
+    exportButton.id = 'btnExportPelanggaran';
+    exportButton.className = 'btn btn-outline-success';
+    exportButton.innerHTML = '<i class="bx bx-export me-1"></i> Export';
+    exportButton.addEventListener('click', () => {
+      window.location.href = `${base}/bk/pelanggaran?export=1`;
+    });
+
+    wrapper.appendChild(exportButton);
+    wrapper.appendChild(addButton);
+  }
 
   function setButtonBusy(button, busy, label = 'Memproses...') {
     if (!button) return;
@@ -159,4 +212,7 @@
       setButtonBusy(submitButton, false);
     }
   });
+
+  addExportButton();
+  renderPage();
 })();
