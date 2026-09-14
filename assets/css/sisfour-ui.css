@@ -154,7 +154,8 @@
   transition: transform 0.2s ease;
 }
 
-@media (max-width: 991.98px) {
+/* Sneat desktop shell mulai pada xl (1200px). Page header ikut breakpoint yang sama. */
+@media (max-width: 1199.98px) {
   .sisfour-page-header {
     align-items: stretch;
     flex-direction: column;
