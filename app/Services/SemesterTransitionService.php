@@ -6,16 +6,12 @@ use Config\Database;
 use Throwable;
 
 /**
- * Workflow pergantian semester dalam tahun pelajaran yang sama.
+ * Atomic Ganjil -> Genap transition for the same academic year.
  *
- * Ganjil -> Genap bukan kenaikan kelas. Persiapan membuat konteks operasional
- * Semester Genap (kelas, membership siswa aktif, dan opsional mapping wali)
- * tanpa menyentuh data transaksi Semester Ganjil. Jadwal Genap tetap harus
- * diimport/review terpisah sebelum aktivasi.
- *
- * Aktivasi Semester Genap menutup riwayat Aktif Semester Ganjil dan membuka
- * riwayat Aktif Semester Genap secara atomik. Membership tahun/semester lama
- * tetap dipertahankan sebagai jejak per periode.
+ * One execution creates and activates Semester Genap while preserving all
+ * Semester Ganjil transactional history. Kelas, active-student membership,
+ * active Wali mapping, and active Guru schedules are copied as the new
+ * semester baseline. Presensi and Jurnal Mengajar are never copied.
  */
 class SemesterTransitionService
 {
@@ -28,10 +24,13 @@ class SemesterTransitionService
         $this->authService = new AuthService();
     }
 
-    public function prepareFromActive(bool $copyWali = true): array
+    public function transitionFromActive(): array
     {
+        $steps = $this->stepBlueprint();
+
         if (! $this->canManage()) {
-            return $this->failure(
+            return $this->precheckFailure(
+                $steps,
                 'FORBIDDEN',
                 'Anda tidak memiliki hak mengelola Master Tahun Ajaran.'
             );
@@ -40,16 +39,18 @@ class SemesterTransitionService
         $source = $this->getActiveYear();
 
         if ($source === null) {
-            return $this->failure(
+            return $this->precheckFailure(
+                $steps,
                 'NO_ACTIVE_YEAR',
                 'Tahun ajaran aktif belum tersedia.'
             );
         }
 
         if ((string) $source['semester'] !== 'Ganjil') {
-            return $this->failure(
+            return $this->precheckFailure(
+                $steps,
                 'INVALID_TRANSITION',
-                'Persiapan semester berikutnya hanya berlaku dari Semester Ganjil ke Semester Genap pada tahun pelajaran yang sama.'
+                'Siapkan Genap hanya dapat dijalankan ketika Semester Ganjil sedang aktif.'
             );
         }
 
@@ -60,137 +61,126 @@ class SemesterTransitionService
             ->get()
             ->getRowArray();
 
-        if ($targetAny !== null && ! empty($targetAny['deleted_at'])) {
-            return $this->failure(
-                'TARGET_IN_RECYCLE',
-                'Semester Genap untuk tahun pelajaran ini berada di Recycle Bin. Pulihkan data tersebut terlebih dahulu.'
+        if ($targetAny !== null) {
+            $message = ! empty($targetAny['deleted_at'])
+                ? 'Semester Genap untuk tahun pelajaran ini berada di Recycle Bin. Pulihkan atau selesaikan data tersebut sebelum menjalankan Siapkan Genap.'
+                : 'Semester Genap untuk tahun pelajaran ini sudah ada. Proses tidak dijalankan ulang agar data tidak terduplikasi.';
+
+            return $this->precheckFailure(
+                $steps,
+                'TARGET_EXISTS',
+                $message
             );
         }
 
-        $target = $targetAny;
+        $sourceId = (int) $source['id'];
+        $sourceClasses = $this->sourceClasses($sourceId);
+        $sourceMembers = $this->sourceActiveMemberships($sourceId);
+        $sourceWali = $this->sourceActiveWali($sourceId);
+        $sourceSchedules = $this->sourceActiveSchedules($sourceId);
 
-        if ($target !== null && (int) $target['status_aktif'] === 1) {
-            return $this->failure(
-                'TARGET_ALREADY_ACTIVE',
-                'Semester Genap tersebut sudah aktif.'
+        $precheckErrors = $this->sourcePrecheckErrors(
+            $sourceId,
+            $sourceClasses,
+            $sourceMembers,
+            $sourceWali,
+            $sourceSchedules
+        );
+
+        if ($precheckErrors !== []) {
+            return $this->precheckFailure(
+                $steps,
+                'SOURCE_NOT_READY',
+                implode(' ', $precheckErrors)
             );
         }
 
-        if ($target !== null && $this->hasOperationalData((int) $target['id'])) {
-            $prepared = $this->isPreparedStructure(
-                (int) $source['id'],
-                (int) $target['id'],
-                $copyWali
-            );
+        $steps = $this->markStep(
+            $steps,
+            'precheck',
+            'success',
+            null,
+            null,
+            sprintf(
+                'Sumber valid: %d kelas, %d siswa aktif, %d wali, %d jadwal aktif.',
+                count($sourceClasses),
+                count($sourceMembers),
+                count($sourceWali),
+                count($sourceSchedules)
+            )
+        );
 
-            if ($prepared) {
-                return [
-                    'success' => true,
-                    'code' => 'ALREADY_PREPARED',
-                    'message' => 'Semester Genap sudah pernah disiapkan. Review Mapping Wali dan import/review Jadwal Guru sebelum aktivasi.',
-                    'source' => $source,
-                    'target' => $target,
-                    'counts' => $this->transitionCounts(
-                        (int) $source['id'],
-                        (int) $target['id']
-                    ),
-                ];
-            }
+        $expected = [
+            'kelas' => count($sourceClasses),
+            'anggota' => count($sourceMembers),
+            'wali' => count($sourceWali),
+            'jadwal' => count($sourceSchedules),
+            'histori' => count($sourceMembers),
+        ];
 
-            return $this->failure(
-                'TARGET_NOT_EMPTY',
-                'Semester Genap sudah memiliki data operasional yang tidak identik dengan hasil persiapan otomatis. Jangan menimpa data tersebut; review data Semester Genap secara manual.'
-            );
-        }
-
-        $sourceClasses = $this->db
-            ->table('kelas')
-            ->select('id, tingkat, rombel, nama_kelas')
-            ->where('id_tahun', (int) $source['id'])
-            ->where('deleted_at', null)
-            ->orderBy('tingkat', 'ASC')
-            ->orderBy('rombel', 'ASC')
-            ->get()
-            ->getResultArray();
-
-        if ($sourceClasses === []) {
-            return $this->failure(
-                'NO_SOURCE_CLASS',
-                'Semester Ganjil aktif belum memiliki kelas yang dapat disalin.'
-            );
-        }
-
-        $sourceMembers = $this->sourceActiveMemberships((int) $source['id']);
-
-        if ($sourceMembers === []) {
-            return $this->failure(
-                'NO_SOURCE_MEMBERSHIP',
-                'Semester Ganjil aktif belum memiliki membership siswa aktif yang dapat disalin.'
-            );
-        }
-
-        $sourceWali = $this->db
-            ->table('mapping_wali_kelas')
-            ->select('id_guru, id_kelas')
-            ->where('id_tahun', (int) $source['id'])
-            ->where('deleted_at', null)
-            ->get()
-            ->getResultArray();
-
+        $steps = $this->setExpectedCounts($steps, $expected);
         $now = date('Y-m-d H:i:s');
+        $tanggal = date('Y-m-d');
+        $currentStep = 'create_year';
+        $targetId = 0;
+
         $this->db->transBegin();
 
         try {
-            if ($target === null) {
-                $inserted = $this->db
-                    ->table('tahun_ajaran')
-                    ->insert([
-                        'nama_tahun' => (string) $source['nama_tahun'],
-                        'semester' => 'Genap',
-                        'status_aktif' => 0,
-                        'deleted_at' => null,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-
-                if (! $inserted) {
-                    throw new \RuntimeException(
-                        'Semester Genap gagal dibuat.'
-                    );
-                }
-
-                $idTarget = (int) $this->db->insertID();
-            } else {
-                $idTarget = (int) $target['id'];
+            $currentStep = 'create_year';
+            if (! $this->db->table('tahun_ajaran')->insert([
+                'nama_tahun' => (string) $source['nama_tahun'],
+                'semester' => 'Genap',
+                'status_aktif' => 0,
+                'deleted_at' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ])) {
+                throw new \RuntimeException('Semester Genap gagal dibuat.');
             }
 
+            $targetId = (int) $this->db->insertID();
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                1,
+                1,
+                'Semester Genap berhasil dibuat sebagai bagian dari transaksi.'
+            );
+
+            $currentStep = 'copy_classes';
             $classMap = [];
-
             foreach ($sourceClasses as $kelas) {
-                $inserted = $this->db
-                    ->table('kelas')
-                    ->insert([
-                        'tingkat' => (string) $kelas['tingkat'],
-                        'rombel' => (string) $kelas['rombel'],
-                        'nama_kelas' => (string) $kelas['nama_kelas'],
-                        'id_tahun' => $idTarget,
-                        'deleted_at' => null,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-
-                if (! $inserted) {
+                if (! $this->db->table('kelas')->insert([
+                    'tingkat' => (string) $kelas['tingkat'],
+                    'rombel' => (string) $kelas['rombel'],
+                    'nama_kelas' => (string) $kelas['nama_kelas'],
+                    'id_tahun' => $targetId,
+                    'deleted_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])) {
                     throw new \RuntimeException(
-                        'Struktur kelas Semester Genap gagal dibuat.'
+                        'Gagal menyalin kelas ' . (string) $kelas['nama_kelas'] . '.'
                     );
                 }
 
                 $classMap[(int) $kelas['id']] = (int) $this->db->insertID();
             }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                count($classMap),
+                $expected['kelas'],
+                'Struktur kelas berhasil disalin.'
+            );
 
+            $currentStep = 'copy_members';
+            $memberCopied = 0;
             foreach ($sourceMembers as $anggota) {
                 $sourceClassId = (int) $anggota['id_kelas'];
-
                 if (! isset($classMap[$sourceClassId])) {
                     throw new \RuntimeException(
                         'Membership siswa mengacu ke kelas sumber yang tidak dapat dipetakan.'
@@ -200,201 +190,128 @@ class SemesterTransitionService
                 if (! $this->db->table('anggota_kelas')->insert([
                     'id_siswa' => (int) $anggota['id_siswa'],
                     'id_kelas' => $classMap[$sourceClassId],
-                    'id_tahun' => $idTarget,
+                    'id_tahun' => $targetId,
                 ])) {
                     throw new \RuntimeException(
-                        'Membership siswa Semester Genap gagal dibuat.'
+                        'Gagal menyalin membership siswa ID ' . (int) $anggota['id_siswa'] . '.'
                     );
                 }
+                $memberCopied++;
             }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                $memberCopied,
+                $expected['anggota'],
+                'Anggota kelas siswa Aktif berhasil disalin.'
+            );
 
+            $currentStep = 'copy_wali';
             $waliCopied = 0;
-
-            if ($copyWali) {
-                foreach ($sourceWali as $wali) {
-                    $sourceClassId = (int) $wali['id_kelas'];
-
-                    if (! isset($classMap[$sourceClassId])) {
-                        throw new \RuntimeException(
-                            'Mapping Wali mengacu ke kelas sumber yang tidak dapat dipetakan.'
-                        );
-                    }
-
-                    if (! $this->db->table('mapping_wali_kelas')->insert([
-                        'id_guru' => (int) $wali['id_guru'],
-                        'id_kelas' => $classMap[$sourceClassId],
-                        'id_tahun' => $idTarget,
-                        'deleted_at' => null,
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ])) {
-                        throw new \RuntimeException(
-                            'Mapping Wali Semester Genap gagal disalin.'
-                        );
-                    }
-
-                    $waliCopied++;
+            foreach ($sourceWali as $wali) {
+                $sourceClassId = (int) $wali['id_kelas'];
+                if (! isset($classMap[$sourceClassId])) {
+                    throw new \RuntimeException(
+                        'Mapping Wali mengacu ke kelas sumber yang tidak dapat dipetakan.'
+                    );
                 }
-            }
 
-            if ($this->db->transStatus() === false) {
+                if (! $this->db->table('mapping_wali_kelas')->insert([
+                    'id_guru' => (int) $wali['id_guru'],
+                    'id_kelas' => $classMap[$sourceClassId],
+                    'id_tahun' => $targetId,
+                    'deleted_at' => null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])) {
+                    throw new \RuntimeException(
+                        'Gagal menyalin Mapping Wali Guru ID ' . (int) $wali['id_guru'] . '.'
+                    );
+                }
+                $waliCopied++;
+            }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                $waliCopied,
+                $expected['wali'],
+                'Mapping Wali berhasil disalin.'
+            );
+
+            $currentStep = 'copy_schedule';
+            $scheduleCopied = 0;
+            foreach ($sourceSchedules as $jadwal) {
+                $sourceClassId = (int) $jadwal['id_kelas'];
+                if (! isset($classMap[$sourceClassId])) {
+                    throw new \RuntimeException(
+                        'Jadwal Guru mengacu ke kelas sumber yang tidak dapat dipetakan.'
+                    );
+                }
+
+                if (! $this->db->table('jadwal_guru')->insert([
+                    'id_guru' => (int) $jadwal['id_guru'],
+                    'id_kelas' => $classMap[$sourceClassId],
+                    'id_mapel' => (int) $jadwal['id_mapel'],
+                    'id_tahun' => $targetId,
+                    'hari' => (string) $jadwal['hari'],
+                    'jam_mulai' => (string) $jadwal['jam_mulai'],
+                    'jam_selesai' => (string) $jadwal['jam_selesai'],
+                    'sesi' => (string) $jadwal['sesi'],
+                    'status_jadwal' => 'Aktif',
+                ])) {
+                    throw new \RuntimeException(
+                        'Gagal menyalin Jadwal Guru ID ' . (int) $jadwal['id'] . '.'
+                    );
+                }
+                $scheduleCopied++;
+            }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                $scheduleCopied,
+                $expected['jadwal'],
+                'Jadwal Guru aktif berhasil disalin sebagai baseline Semester Genap.'
+            );
+
+            $memberIds = array_values(array_map(
+                static fn (array $row): int => (int) $row['id_siswa'],
+                $sourceMembers
+            ));
+
+            $currentStep = 'close_history';
+            $closed = $this->db
+                ->table('riwayat_siswa')
+                ->where('id_tahun', $sourceId)
+                ->where('status', 'Aktif')
+                ->where('tanggal_selesai', null)
+                ->whereIn('id_siswa', $memberIds)
+                ->update(['tanggal_selesai' => $tanggal]);
+
+            if (! $closed || $this->db->affectedRows() !== $expected['histori']) {
                 throw new \RuntimeException(
-                    'Transaksi persiapan Semester Genap gagal.'
+                    'Jumlah histori Aktif Ganjil yang ditutup tidak sesuai dengan jumlah siswa aktif.'
                 );
             }
-
-            $this->logActivity(
-                'SIAPKAN_SEMESTER',
-                sprintf(
-                    'Menyiapkan %s - Genap dari Semester Ganjil: %d kelas, %d membership siswa aktif, %d mapping wali. Jadwal Guru tidak disalin otomatis.',
-                    (string) $source['nama_tahun'],
-                    count($sourceClasses),
-                    count($sourceMembers),
-                    $waliCopied
-                )
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                $expected['histori'],
+                $expected['histori'],
+                'Histori Aktif Semester Ganjil berhasil ditutup.'
             );
 
-            $this->db->transCommit();
-
-            $target = $this->getYearById($idTarget);
-
-            return [
-                'success' => true,
-                'code' => 'PREPARED',
-                'message' => 'Semester Genap berhasil disiapkan dalam status Nonaktif. Kelas dan membership siswa aktif sudah disalin. Review Mapping Wali lalu import/review Jadwal Guru sebelum aktivasi.',
-                'source' => $source,
-                'target' => $target,
-                'counts' => [
-                    'kelas' => count($sourceClasses),
-                    'anggota' => count($sourceMembers),
-                    'wali' => $waliCopied,
-                    'jadwal' => 0,
-                ],
-            ];
-        } catch (Throwable $e) {
-            $this->db->transRollback();
-
-            return $this->failure(
-                'PREPARE_FAILED',
-                $e->getMessage()
-            );
-        }
-    }
-
-    /**
-     * Jika target bukan transisi Ganjil -> Genap tahun yang sama, return null
-     * agar caller dapat memakai mekanisme aktivasi umum yang sudah ada.
-     */
-    public function activateIfSemesterTransition(int $targetId): ?array
-    {
-        if (! $this->canManage()) {
-            return $this->failure(
-                'FORBIDDEN',
-                'Anda tidak memiliki hak mengelola Master Tahun Ajaran.'
-            );
-        }
-
-        $source = $this->getActiveYear();
-        $target = $this->getYearById($targetId);
-
-        if ($target === null) {
-            return $this->failure(
-                'NOT_FOUND',
-                'Tahun ajaran tujuan tidak ditemukan.'
-            );
-        }
-
-        if ($source === null) {
-            return null;
-        }
-
-        if (
-            (string) $source['semester'] !== 'Ganjil'
-            || (string) $target['semester'] !== 'Genap'
-            || (string) $source['nama_tahun'] !== (string) $target['nama_tahun']
-        ) {
-            return null;
-        }
-
-        if ((int) $target['status_aktif'] === 1) {
-            return [
-                'success' => true,
-                'message' => 'Semester Genap tersebut sudah aktif.',
-            ];
-        }
-
-        $check = $this->activationPrecheck(
-            (int) $source['id'],
-            (int) $target['id']
-        );
-
-        if (! $check['ready']) {
-            return [
-                'success' => false,
-                'code' => 'SEMESTER_NOT_READY',
-                'message' => 'Semester Genap belum siap diaktifkan: '
-                    . implode(' ', $check['errors']),
-                'precheck' => $check,
-            ];
-        }
-
-        $members = $this->sourceActiveMemberships((int) $target['id']);
-        $tanggal = date('Y-m-d');
-        $now = date('Y-m-d H:i:s');
-
-        $this->db->transBegin();
-
-        try {
-            foreach ($members as $anggota) {
-                $idSiswa = (int) $anggota['id_siswa'];
-
-                $activeSourceHistory = $this->db
-                    ->table('riwayat_siswa')
-                    ->select('id')
-                    ->where('id_siswa', $idSiswa)
-                    ->where('id_tahun', (int) $source['id'])
-                    ->where('status', 'Aktif')
-                    ->where('tanggal_selesai', null)
-                    ->get()
-                    ->getRowArray();
-
-                if ($activeSourceHistory === null) {
-                    throw new \RuntimeException(
-                        "Histori aktif siswa ID {$idSiswa} pada Semester Ganjil tidak ditemukan."
-                    );
-                }
-
-                $closed = $this->db
-                    ->table('riwayat_siswa')
-                    ->where('id', (int) $activeSourceHistory['id'])
-                    ->update([
-                        'tanggal_selesai' => $tanggal,
-                    ]);
-
-                if (! $closed) {
-                    throw new \RuntimeException(
-                        "Histori Semester Ganjil siswa ID {$idSiswa} gagal ditutup."
-                    );
-                }
-
-                $existingTargetHistory = $this->db
-                    ->table('riwayat_siswa')
-                    ->where('id_siswa', $idSiswa)
-                    ->where('id_tahun', (int) $target['id'])
-                    ->where('status', 'Aktif')
-                    ->where('tanggal_selesai', null)
-                    ->countAllResults();
-
-                if ($existingTargetHistory > 0) {
-                    throw new \RuntimeException(
-                        "Histori aktif Semester Genap siswa ID {$idSiswa} sudah ada."
-                    );
-                }
-
+            $currentStep = 'open_history';
+            $historyCreated = 0;
+            foreach ($sourceMembers as $anggota) {
+                $sourceClassId = (int) $anggota['id_kelas'];
                 if (! $this->db->table('riwayat_siswa')->insert([
-                    'id_siswa' => $idSiswa,
-                    'id_tahun' => (int) $target['id'],
-                    'id_kelas' => (int) $anggota['id_kelas'],
+                    'id_siswa' => (int) $anggota['id_siswa'],
+                    'id_tahun' => $targetId,
+                    'id_kelas' => $classMap[$sourceClassId],
                     'status' => 'Aktif',
                     'tanggal_mulai' => $tanggal,
                     'tanggal_selesai' => null,
@@ -404,41 +321,101 @@ class SemesterTransitionService
                     'created_at' => $now,
                 ])) {
                     throw new \RuntimeException(
-                        "Histori Semester Genap siswa ID {$idSiswa} gagal dibuat."
+                        'Gagal membuat histori Genap siswa ID ' . (int) $anggota['id_siswa'] . '.'
                     );
                 }
+                $historyCreated++;
             }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                $historyCreated,
+                $expected['histori'],
+                'Histori Aktif Semester Genap berhasil dibuat.'
+            );
 
-            $this->db
+            $currentStep = 'deactivate_source';
+            $deactivated = $this->db
                 ->table('tahun_ajaran')
+                ->where('id', $sourceId)
                 ->where('status_aktif', 1)
-                ->where('id !=', (int) $target['id'])
                 ->update([
                     'status_aktif' => 0,
                     'updated_at' => $now,
                 ]);
 
+            if (! $deactivated || $this->db->affectedRows() !== 1) {
+                throw new \RuntimeException('Semester Ganjil gagal dinonaktifkan.');
+            }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                1,
+                1,
+                'Semester Ganjil berhasil dinonaktifkan.'
+            );
+
+            $currentStep = 'activate_target';
             $activated = $this->db
                 ->table('tahun_ajaran')
-                ->where('id', (int) $target['id'])
+                ->where('id', $targetId)
+                ->where('status_aktif', 0)
                 ->where('deleted_at', null)
                 ->update([
                     'status_aktif' => 1,
                     'updated_at' => $now,
                 ]);
 
-            if (! $activated || $this->db->transStatus() === false) {
+            if (! $activated || $this->db->affectedRows() !== 1) {
+                throw new \RuntimeException('Semester Genap gagal diaktifkan.');
+            }
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                1,
+                1,
+                'Semester Genap berhasil diaktifkan.'
+            );
+
+            $currentStep = 'verify';
+            $verification = $this->finalVerification(
+                $sourceId,
+                $targetId,
+                $expected
+            );
+
+            if (! $verification['ready']) {
                 throw new \RuntimeException(
-                    'Aktivasi Semester Genap gagal.'
+                    'Verifikasi akhir gagal: ' . implode(' ', $verification['errors'])
                 );
             }
 
+            $steps = $this->markStep(
+                $steps,
+                $currentStep,
+                'success',
+                null,
+                null,
+                'Verifikasi akhir berhasil. Presensi dan Jurnal Genap tetap kosong.'
+            );
+
+            if ($this->db->transStatus() === false) {
+                throw new \RuntimeException('Transaksi pergantian semester gagal.');
+            }
+
             $this->logActivity(
-                'AKTIFKAN_SEMESTER',
+                'SIAPKAN_GENAP',
                 sprintf(
-                    'Mengaktifkan %s - Genap dan menutup histori Aktif Semester Ganjil untuk %d siswa.',
-                    (string) $target['nama_tahun'],
-                    count($members)
+                    'Pergantian atomic %s Ganjil -> Genap: %d kelas, %d anggota, %d wali, %d jadwal, %d histori ditutup/dibuka.',
+                    (string) $source['nama_tahun'],
+                    $expected['kelas'],
+                    $expected['anggota'],
+                    $expected['wali'],
+                    $expected['jadwal'],
+                    $expected['histori']
                 )
             );
 
@@ -446,249 +423,279 @@ class SemesterTransitionService
 
             return [
                 'success' => true,
-                'code' => 'SEMESTER_ACTIVATED',
-                'message' => 'Semester Genap berhasil diaktifkan. Semester Ganjil dinonaktifkan, histori Ganjil ditutup, dan histori Aktif Genap dibuat tanpa menghapus membership semester sebelumnya.',
-                'precheck' => $check,
+                'code' => 'SEMESTER_TRANSITION_COMPLETED',
+                'message' => sprintf(
+                    '%s - Genap berhasil disiapkan dan diaktifkan. Semester Ganjil menjadi Nonaktif.',
+                    (string) $source['nama_tahun']
+                ),
+                'rolled_back' => false,
+                'source' => [
+                    'id' => $sourceId,
+                    'nama_tahun' => (string) $source['nama_tahun'],
+                    'semester' => 'Ganjil',
+                ],
+                'target' => [
+                    'id' => $targetId,
+                    'nama_tahun' => (string) $source['nama_tahun'],
+                    'semester' => 'Genap',
+                ],
+                'counts' => $verification['counts'],
+                'steps' => array_values($steps),
             ];
         } catch (Throwable $e) {
             $this->db->transRollback();
 
-            return $this->failure(
-                'ACTIVATION_FAILED',
-                $e->getMessage()
-            );
+            $steps = $this->rollbackSteps($steps, $currentStep, $e->getMessage());
+
+            return [
+                'success' => false,
+                'code' => 'SEMESTER_TRANSITION_FAILED',
+                'message' => $e->getMessage(),
+                'rolled_back' => true,
+                'source' => [
+                    'id' => $sourceId,
+                    'nama_tahun' => (string) $source['nama_tahun'],
+                    'semester' => 'Ganjil',
+                ],
+                'target' => $targetId > 0 ? [
+                    'id' => $targetId,
+                    'nama_tahun' => (string) $source['nama_tahun'],
+                    'semester' => 'Genap',
+                ] : null,
+                'steps' => array_values($steps),
+            ];
         }
     }
 
-    private function activationPrecheck(
+    /**
+     * Compatibility alias for the existing controller/service contract.
+     */
+    public function prepareFromActive(bool $copyWali = true): array
+    {
+        return $this->transitionFromActive();
+    }
+
+    private function sourcePrecheckErrors(
         int $sourceId,
-        int $targetId
+        array $classes,
+        array $members,
+        array $wali,
+        array $schedules
     ): array {
         $errors = [];
 
-        $sourceClasses = $this->classNameSet($sourceId);
-        $targetClasses = $this->classNameSet($targetId);
-
-        if ($sourceClasses !== $targetClasses) {
-            $errors[] = 'Struktur kelas Semester Genap belum identik dengan Semester Ganjil.';
+        if ($classes === []) {
+            $errors[] = 'Semester Ganjil aktif belum memiliki kelas.';
         }
 
-        $sourceMembers = $this->membershipMap($sourceId);
-        $targetMembers = $this->membershipMap($targetId);
-
-        if ($sourceMembers !== $targetMembers) {
-            $errors[] = 'Membership siswa aktif Semester Genap belum identik dengan Semester Ganjil.';
+        if ($members === []) {
+            $errors[] = 'Semester Ganjil aktif belum memiliki membership siswa Aktif.';
         }
 
-        $sourceHistory = $this->activeHistoryStudentIds($sourceId);
-        $sourceMemberIds = array_keys($sourceMembers);
-        sort($sourceMemberIds);
-
-        if ($sourceHistory !== $sourceMemberIds) {
-            $errors[] = 'Histori Aktif Semester Ganjil tidak konsisten dengan membership siswa aktif.';
+        $classIds = [];
+        foreach ($classes as $kelas) {
+            $classIds[(int) $kelas['id']] = true;
         }
 
-        $targetActiveHistory = $this->activeHistoryStudentIds($targetId);
-
-        if ($targetActiveHistory !== []) {
-            $errors[] = 'Semester Genap sudah mempunyai histori Aktif sebelum proses aktivasi.';
-        }
-
-        $sourceWali = $this->activeWaliCount($sourceId);
-        $targetWali = $this->activeWaliCount($targetId);
-
-        if ($sourceWali > 0 && $targetWali !== $sourceWali) {
-            $errors[] = sprintf(
-                'Mapping Wali Semester Genap belum lengkap (%d/%d).',
-                $targetWali,
-                $sourceWali
-            );
-        }
-
-        $sourceScheduleCount = $this->activeScheduleCount($sourceId);
-        $targetScheduleCount = $this->activeScheduleCount($targetId);
-
-        if ($sourceScheduleCount > 0 && $targetScheduleCount === 0) {
-            $errors[] = 'Jadwal Guru Semester Genap belum tersedia. Import/review Jadwal Genap sebelum aktivasi.';
-        }
-
-        if ($targetScheduleCount > 0) {
-            $invalidGroups = $this->invalidScheduleGroupCount($targetId);
-
-            if ($invalidGroups > 0) {
-                $errors[] = sprintf(
-                    'Topology Sesi Jadwal Semester Genap belum valid pada %d kelompok kelas/hari.',
-                    $invalidGroups
-                );
+        foreach ($members as $row) {
+            if (! isset($classIds[(int) $row['id_kelas']])) {
+                $errors[] = 'Ada membership siswa yang mengacu ke kelas di luar Semester Ganjil aktif.';
+                break;
             }
+        }
+
+        foreach ($wali as $row) {
+            if (! isset($classIds[(int) $row['id_kelas']])) {
+                $errors[] = 'Ada Mapping Wali yang mengacu ke kelas di luar Semester Ganjil aktif.';
+                break;
+            }
+        }
+
+        foreach ($schedules as $row) {
+            if (! isset($classIds[(int) $row['id_kelas']])) {
+                $errors[] = 'Ada Jadwal Guru yang mengacu ke kelas di luar Semester Ganjil aktif.';
+                break;
+            }
+        }
+
+        $memberByStudent = [];
+        foreach ($members as $row) {
+            $memberByStudent[(int) $row['id_siswa']] = (int) $row['id_kelas'];
+        }
+        ksort($memberByStudent);
+
+        $historyRows = $this->db
+            ->table('riwayat_siswa')
+            ->select('id_siswa, id_kelas')
+            ->where('id_tahun', $sourceId)
+            ->where('status', 'Aktif')
+            ->where('tanggal_selesai', null)
+            ->get()
+            ->getResultArray();
+
+        $historyByStudent = [];
+        $duplicateHistory = false;
+        foreach ($historyRows as $row) {
+            $idSiswa = (int) $row['id_siswa'];
+            if (isset($historyByStudent[$idSiswa])) {
+                $duplicateHistory = true;
+                break;
+            }
+            $historyByStudent[$idSiswa] = (int) $row['id_kelas'];
+        }
+        ksort($historyByStudent);
+
+        if ($duplicateHistory || $memberByStudent !== $historyByStudent) {
+            $errors[] = 'Histori Aktif Semester Ganjil tidak identik dengan membership siswa Aktif.';
+        }
+
+        $scheduleErrors = $this->scheduleTopologyErrors($schedules);
+        if ($scheduleErrors !== []) {
+            $errors[] = $scheduleErrors[0];
+        }
+
+        return $errors;
+    }
+
+    private function finalVerification(
+        int $sourceId,
+        int $targetId,
+        array $expected
+    ): array {
+        $errors = [];
+
+        if ($this->classSignature($sourceId) !== $this->classSignature($targetId)) {
+            $errors[] = 'Struktur kelas Genap tidak identik dengan Ganjil.';
+        }
+
+        if ($this->membershipSignature($sourceId) !== $this->membershipSignature($targetId)) {
+            $errors[] = 'Membership siswa Aktif Genap tidak identik dengan Ganjil.';
+        }
+
+        if ($this->waliSignature($sourceId) !== $this->waliSignature($targetId)) {
+            $errors[] = 'Mapping Wali Genap tidak identik dengan Ganjil.';
+        }
+
+        if ($this->scheduleSignature($sourceId) !== $this->scheduleSignature($targetId)) {
+            $errors[] = 'Jadwal Guru Genap tidak identik dengan baseline Ganjil.';
+        }
+
+        $sourceOpenHistory = $this->openActiveHistoryCount($sourceId);
+        $targetOpenHistory = $this->openActiveHistoryCount($targetId);
+
+        if ($sourceOpenHistory !== 0) {
+            $errors[] = 'Masih ada histori Aktif Ganjil yang belum ditutup.';
+        }
+
+        if ($targetOpenHistory !== $expected['histori']) {
+            $errors[] = 'Jumlah histori Aktif Genap tidak sesuai jumlah siswa Aktif.';
+        }
+
+        $activeRows = $this->db
+            ->table('tahun_ajaran')
+            ->select('id')
+            ->where('status_aktif', 1)
+            ->where('deleted_at', null)
+            ->get()
+            ->getResultArray();
+
+        if (count($activeRows) !== 1 || (int) $activeRows[0]['id'] !== $targetId) {
+            $errors[] = 'Status semester aktif tidak tunggal pada Semester Genap.';
+        }
+
+        $presensi = $this->countByYear('presensi', $targetId);
+        $jurnal = $this->countByYear('presensi_mengajar', $targetId);
+
+        if ($presensi !== 0) {
+            $errors[] = 'Presensi Semester Genap seharusnya masih kosong.';
+        }
+
+        if ($jurnal !== 0) {
+            $errors[] = 'Jurnal Mengajar Semester Genap seharusnya masih kosong.';
+        }
+
+        $targetSchedules = $this->sourceActiveSchedules($targetId);
+        $scheduleErrors = $this->scheduleTopologyErrors($targetSchedules);
+        if ($scheduleErrors !== []) {
+            $errors[] = 'Topology Jadwal Genap tidak valid setelah penyalinan.';
         }
 
         return [
             'ready' => $errors === [],
             'errors' => $errors,
-            'counts' => $this->transitionCounts($sourceId, $targetId),
+            'counts' => [
+                'kelas' => count($this->sourceClasses($targetId)),
+                'anggota' => count($this->sourceActiveMemberships($targetId)),
+                'wali' => count($this->sourceActiveWali($targetId)),
+                'jadwal' => count($targetSchedules),
+                'histori_aktif_ganjil' => $sourceOpenHistory,
+                'histori_aktif_genap' => $targetOpenHistory,
+                'presensi_genap' => $presensi,
+                'jurnal_genap' => $jurnal,
+            ],
         ];
     }
 
-    private function isPreparedStructure(
-        int $sourceId,
-        int $targetId,
-        bool $copyWali
-    ): bool {
-        if ($this->classNameSet($sourceId) !== $this->classNameSet($targetId)) {
-            return false;
-        }
-
-        if ($this->membershipMap($sourceId) !== $this->membershipMap($targetId)) {
-            return false;
-        }
-
-        if ($this->activeHistoryStudentIds($targetId) !== []) {
-            return false;
-        }
-
-        if (
-            $copyWali
-            && $this->activeWaliCount($sourceId)
-                !== $this->activeWaliCount($targetId)
-        ) {
-            return false;
-        }
-
-        return $this->countByYear('presensi', $targetId) === 0
-            && $this->countByYear('presensi_mengajar', $targetId) === 0;
-    }
-
-    private function hasOperationalData(int $idTahun): bool
+    private function sourceClasses(int $idTahun): array
     {
-        foreach ([
-            'kelas',
-            'anggota_kelas',
-            'mapping_wali_kelas',
-            'jadwal_guru',
-            'riwayat_siswa',
-            'presensi',
-            'presensi_mengajar',
-        ] as $table) {
-            if ($this->countByYear($table, $idTahun) > 0) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function classNameSet(int $idTahun): array
-    {
-        $rows = $this->db
+        return $this->db
             ->table('kelas')
-            ->select('nama_kelas')
+            ->select('id, tingkat, rombel, nama_kelas')
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
-            ->orderBy('nama_kelas', 'ASC')
+            ->orderBy('tingkat', 'ASC')
+            ->orderBy('rombel', 'ASC')
+            ->orderBy('id', 'ASC')
             ->get()
             ->getResultArray();
-
-        return array_values(array_map(
-            static fn (array $row): string => (string) $row['nama_kelas'],
-            $rows
-        ));
-    }
-
-    private function membershipMap(int $idTahun): array
-    {
-        $rows = $this->db
-            ->table('anggota_kelas ak')
-            ->select('ak.id_siswa, k.nama_kelas')
-            ->join('kelas k', 'k.id = ak.id_kelas')
-            ->join('siswa s', 's.id = ak.id_siswa')
-            ->where('ak.id_tahun', $idTahun)
-            ->where('k.deleted_at', null)
-            ->where('s.deleted_at', null)
-            ->where('s.status_aktif', 'Aktif')
-            ->get()
-            ->getResultArray();
-
-        $map = [];
-
-        foreach ($rows as $row) {
-            $map[(int) $row['id_siswa']] = (string) $row['nama_kelas'];
-        }
-
-        ksort($map);
-
-        return $map;
     }
 
     private function sourceActiveMemberships(int $idTahun): array
     {
         return $this->db
             ->table('anggota_kelas ak')
-            ->select('ak.id_siswa, ak.id_kelas, ak.id_tahun')
+            ->select('ak.id_siswa, ak.id_kelas')
             ->join('siswa s', 's.id = ak.id_siswa')
             ->where('ak.id_tahun', $idTahun)
-            ->where('s.deleted_at', null)
             ->where('s.status_aktif', 'Aktif')
+            ->where('s.deleted_at', null)
             ->orderBy('ak.id_siswa', 'ASC')
             ->get()
             ->getResultArray();
     }
 
-    private function activeHistoryStudentIds(int $idTahun): array
-    {
-        $rows = $this->db
-            ->table('riwayat_siswa')
-            ->select('id_siswa')
-            ->where('id_tahun', $idTahun)
-            ->where('status', 'Aktif')
-            ->where('tanggal_selesai', null)
-            ->orderBy('id_siswa', 'ASC')
-            ->get()
-            ->getResultArray();
-
-        $ids = array_map(
-            static fn (array $row): int => (int) $row['id_siswa'],
-            $rows
-        );
-
-        sort($ids);
-
-        return $ids;
-    }
-
-    private function activeWaliCount(int $idTahun): int
+    private function sourceActiveWali(int $idTahun): array
     {
         return $this->db
             ->table('mapping_wali_kelas')
+            ->select('id_guru, id_kelas')
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
-            ->countAllResults();
+            ->orderBy('id_kelas', 'ASC')
+            ->get()
+            ->getResultArray();
     }
 
-    private function activeScheduleCount(int $idTahun): int
+    private function sourceActiveSchedules(int $idTahun): array
     {
         return $this->db
             ->table('jadwal_guru')
-            ->where('id_tahun', $idTahun)
-            ->where('status_jadwal', 'Aktif')
-            ->countAllResults();
-    }
-
-    private function invalidScheduleGroupCount(int $idTahun): int
-    {
-        $rows = $this->db
-            ->table('jadwal_guru')
-            ->select('id, id_kelas, hari, jam_mulai, jam_selesai, sesi')
+            ->select(
+                'id, id_guru, id_kelas, id_mapel, hari, jam_mulai, ' .
+                'jam_selesai, sesi, status_jadwal'
+            )
             ->where('id_tahun', $idTahun)
             ->where('status_jadwal', 'Aktif')
             ->orderBy('id_kelas', 'ASC')
             ->orderBy('hari', 'ASC')
             ->orderBy('jam_mulai', 'ASC')
-            ->orderBy('jam_selesai', 'ASC')
             ->orderBy('id', 'ASC')
             ->get()
             ->getResultArray();
+    }
 
+    private function scheduleTopologyErrors(array $rows): array
+    {
         $groups = [];
 
         foreach ($rows as $row) {
@@ -696,71 +703,147 @@ class SemesterTransitionService
             $groups[$key][] = $row;
         }
 
-        $invalid = 0;
+        $errors = [];
 
-        foreach ($groups as $items) {
+        foreach ($groups as $key => $items) {
+            usort($items, static function (array $a, array $b): int {
+                return [
+                    (string) $a['jam_mulai'],
+                    (string) $a['jam_selesai'],
+                    (int) $a['id'],
+                ] <=> [
+                    (string) $b['jam_mulai'],
+                    (string) $b['jam_selesai'],
+                    (int) $b['id'],
+                ];
+            });
+
             $count = count($items);
-
             if ($count < 2) {
-                $invalid++;
+                $errors[] = 'Topology Jadwal sumber tidak valid pada kelompok ' . $key . ': minimal dua slot diperlukan.';
                 continue;
             }
 
             if ((string) $items[0]['sesi'] !== 'Sesi Awal') {
-                $invalid++;
-                continue;
+                $errors[] = 'Topology Jadwal sumber tidak valid pada kelompok ' . $key . ': slot pertama bukan Sesi Awal.';
             }
 
             if ((string) $items[$count - 1]['sesi'] !== 'Sesi Akhir') {
-                $invalid++;
-                continue;
+                $errors[] = 'Topology Jadwal sumber tidak valid pada kelompok ' . $key . ': slot terakhir bukan Sesi Akhir.';
             }
 
             for ($i = 1; $i < $count - 1; $i++) {
                 if ((string) $items[$i]['sesi'] !== 'Non Sesi') {
-                    $invalid++;
+                    $errors[] = 'Topology Jadwal sumber tidak valid pada kelompok ' . $key . ': slot tengah wajib Non Sesi.';
                     break;
                 }
             }
         }
 
-        return $invalid;
+        return $errors;
     }
 
-    private function transitionCounts(int $sourceId, int $targetId): array
+    private function classSignature(int $idTahun): array
     {
-        return [
-            'source' => [
-                'kelas' => $this->countActiveClasses($sourceId),
-                'anggota' => count($this->membershipMap($sourceId)),
-                'wali' => $this->activeWaliCount($sourceId),
-                'jadwal' => $this->activeScheduleCount($sourceId),
-            ],
-            'target' => [
-                'kelas' => $this->countActiveClasses($targetId),
-                'anggota' => count($this->membershipMap($targetId)),
-                'wali' => $this->activeWaliCount($targetId),
-                'jadwal' => $this->activeScheduleCount($targetId),
-            ],
-        ];
+        $rows = $this->sourceClasses($idTahun);
+        $signature = array_map(
+            static fn (array $row): string => implode('|', [
+                (string) $row['tingkat'],
+                (string) $row['rombel'],
+                (string) $row['nama_kelas'],
+            ]),
+            $rows
+        );
+        sort($signature);
+        return $signature;
     }
 
-    private function countActiveClasses(int $idTahun): int
+    private function membershipSignature(int $idTahun): array
     {
-        return $this->db
-            ->table('kelas')
+        $rows = $this->db
+            ->table('anggota_kelas ak')
+            ->select('ak.id_siswa, k.nama_kelas')
+            ->join('kelas k', 'k.id = ak.id_kelas')
+            ->join('siswa s', 's.id = ak.id_siswa')
+            ->where('ak.id_tahun', $idTahun)
+            ->where('s.status_aktif', 'Aktif')
+            ->where('s.deleted_at', null)
+            ->where('k.deleted_at', null)
+            ->get()
+            ->getResultArray();
+
+        $signature = array_map(
+            static fn (array $row): string => (int) $row['id_siswa'] . '|' . (string) $row['nama_kelas'],
+            $rows
+        );
+        sort($signature);
+        return $signature;
+    }
+
+    private function waliSignature(int $idTahun): array
+    {
+        $rows = $this->db
+            ->table('mapping_wali_kelas mw')
+            ->select('mw.id_guru, k.nama_kelas')
+            ->join('kelas k', 'k.id = mw.id_kelas')
+            ->where('mw.id_tahun', $idTahun)
+            ->where('mw.deleted_at', null)
+            ->where('k.deleted_at', null)
+            ->get()
+            ->getResultArray();
+
+        $signature = array_map(
+            static fn (array $row): string => (int) $row['id_guru'] . '|' . (string) $row['nama_kelas'],
+            $rows
+        );
+        sort($signature);
+        return $signature;
+    }
+
+    private function scheduleSignature(int $idTahun): array
+    {
+        $rows = $this->db
+            ->table('jadwal_guru jg')
+            ->select(
+                'jg.id_guru, jg.id_mapel, jg.hari, jg.jam_mulai, ' .
+                'jg.jam_selesai, jg.sesi, k.nama_kelas'
+            )
+            ->join('kelas k', 'k.id = jg.id_kelas')
+            ->where('jg.id_tahun', $idTahun)
+            ->where('jg.status_jadwal', 'Aktif')
+            ->where('k.deleted_at', null)
+            ->get()
+            ->getResultArray();
+
+        $signature = array_map(
+            static fn (array $row): string => implode('|', [
+                (int) $row['id_guru'],
+                (string) $row['nama_kelas'],
+                (int) $row['id_mapel'],
+                (string) $row['hari'],
+                (string) $row['jam_mulai'],
+                (string) $row['jam_selesai'],
+                (string) $row['sesi'],
+            ]),
+            $rows
+        );
+        sort($signature);
+        return $signature;
+    }
+
+    private function openActiveHistoryCount(int $idTahun): int
+    {
+        return (int) $this->db
+            ->table('riwayat_siswa')
             ->where('id_tahun', $idTahun)
-            ->where('deleted_at', null)
+            ->where('status', 'Aktif')
+            ->where('tanggal_selesai', null)
             ->countAllResults();
     }
 
     private function countByYear(string $table, int $idTahun): int
     {
-        if (! $this->db->tableExists($table)) {
-            return 0;
-        }
-
-        return $this->db
+        return (int) $this->db
             ->table($table)
             ->where('id_tahun', $idTahun)
             ->countAllResults();
@@ -772,22 +855,136 @@ class SemesterTransitionService
             ->table('tahun_ajaran')
             ->where('status_aktif', 1)
             ->where('deleted_at', null)
+            ->orderBy('id', 'DESC')
             ->get()
             ->getRowArray();
 
         return $row ?: null;
     }
 
-    private function getYearById(int $id): ?array
+    private function stepBlueprint(): array
     {
-        $row = $this->db
-            ->table('tahun_ajaran')
-            ->where('id', $id)
-            ->where('deleted_at', null)
-            ->get()
-            ->getRowArray();
+        $labels = [
+            'precheck' => 'Validasi data Semester Ganjil',
+            'create_year' => 'Membuat Semester Genap',
+            'copy_classes' => 'Menyalin struktur Kelas',
+            'copy_members' => 'Menyalin Anggota Kelas siswa Aktif',
+            'copy_wali' => 'Menyalin Mapping Wali',
+            'copy_schedule' => 'Menyalin Jadwal Guru',
+            'close_history' => 'Menutup histori Aktif Ganjil',
+            'open_history' => 'Membuat histori Aktif Genap',
+            'deactivate_source' => 'Menonaktifkan Semester Ganjil',
+            'activate_target' => 'Mengaktifkan Semester Genap',
+            'verify' => 'Verifikasi akhir',
+        ];
 
-        return $row ?: null;
+        $steps = [];
+        foreach ($labels as $key => $label) {
+            $steps[$key] = [
+                'key' => $key,
+                'label' => $label,
+                'status' => 'pending',
+                'count' => null,
+                'expected' => null,
+                'message' => null,
+            ];
+        }
+        return $steps;
+    }
+
+    private function setExpectedCounts(array $steps, array $expected): array
+    {
+        $map = [
+            'copy_classes' => 'kelas',
+            'copy_members' => 'anggota',
+            'copy_wali' => 'wali',
+            'copy_schedule' => 'jadwal',
+            'close_history' => 'histori',
+            'open_history' => 'histori',
+        ];
+
+        foreach ($map as $stepKey => $countKey) {
+            $steps[$stepKey]['expected'] = $expected[$countKey] ?? null;
+        }
+        return $steps;
+    }
+
+    private function markStep(
+        array $steps,
+        string $key,
+        string $status,
+        ?int $count = null,
+        ?int $expected = null,
+        ?string $message = null
+    ): array {
+        if (! isset($steps[$key])) {
+            return $steps;
+        }
+
+        $steps[$key]['status'] = $status;
+        if ($count !== null) {
+            $steps[$key]['count'] = $count;
+        }
+        if ($expected !== null) {
+            $steps[$key]['expected'] = $expected;
+        }
+        if ($message !== null) {
+            $steps[$key]['message'] = $message;
+        }
+        return $steps;
+    }
+
+    private function rollbackSteps(array $steps, string $failedKey, string $message): array
+    {
+        foreach ($steps as $key => &$step) {
+            if ($key === 'precheck') {
+                continue;
+            }
+
+            if ($key === $failedKey) {
+                $step['status'] = 'failed';
+                $step['message'] = $message;
+                continue;
+            }
+
+            if ($step['status'] === 'success') {
+                $step['status'] = 'rolled_back';
+                $step['message'] = 'Dibatalkan karena transaksi di-rollback.';
+                continue;
+            }
+
+            if ($step['status'] === 'pending') {
+                $step['status'] = 'skipped';
+                $step['message'] = 'Tidak dijalankan karena langkah sebelumnya gagal.';
+            }
+        }
+        unset($step);
+        return $steps;
+    }
+
+    private function precheckFailure(
+        array $steps,
+        string $code,
+        string $message
+    ): array {
+        $steps['precheck']['status'] = 'failed';
+        $steps['precheck']['message'] = $message;
+
+        foreach ($steps as $key => &$step) {
+            if ($key !== 'precheck') {
+                $step['status'] = 'skipped';
+                $step['message'] = 'Tidak dijalankan karena validasi sumber gagal.';
+            }
+        }
+        unset($step);
+
+        return [
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+            'rolled_back' => false,
+            'steps' => array_values($steps),
+        ];
     }
 
     private function canManage(): bool
@@ -801,31 +998,16 @@ class SemesterTransitionService
             ) === 'SEMUA';
     }
 
-    private function logActivity(
-        string $aksi,
-        string $keterangan
-    ): void {
+    private function logActivity(string $aksi, string $keterangan): void
+    {
         $idUser = session()->get('user_id');
 
-        $this->db
-            ->table('log_activity')
-            ->insert([
-                'id_user' => $idUser ? (int) $idUser : null,
-                'aksi' => $aksi,
-                'modul' => 'Master Tahun Ajaran',
-                'keterangan' => $keterangan,
-                'waktu' => date('Y-m-d H:i:s'),
-            ]);
-    }
-
-    private function failure(
-        string $code,
-        string $message
-    ): array {
-        return [
-            'success' => false,
-            'code' => $code,
-            'message' => $message,
-        ];
+        $this->db->table('log_activity')->insert([
+            'id_user' => $idUser ? (int) $idUser : null,
+            'aksi' => $aksi,
+            'modul' => 'Master Tahun Ajaran',
+            'keterangan' => $keterangan,
+            'waktu' => date('Y-m-d H:i:s'),
+        ]);
     }
 }
