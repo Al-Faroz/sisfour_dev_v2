@@ -3,8 +3,8 @@
 <?= $this->section('content') ?>
 
 <div id="masterKelasApp" data-base-url="<?= esc(base_url()) ?>">
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Master Kelas</h4>
             <p class="text-muted mb-0">
                 Kelola definisi kelas. Penempatan siswa, kenaikan kelas, mutasi,
@@ -12,28 +12,31 @@
             </p>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
+        <div class="sisfour-page-actions">
             <a href="<?= base_url('master/kelas/recycle') ?>" class="btn btn-outline-secondary">
                 <i class="bx bx-trash me-1"></i> Recycle Bin
             </a>
+            <button type="button" class="btn btn-outline-success" id="btnExportKelas">
+                <i class="bx bx-export me-1"></i> Export
+            </button>
             <button type="button" class="btn btn-primary" id="btnTambahKelas">
                 <i class="bx bx-plus me-1"></i> Tambah Kelas
             </button>
         </div>
     </div>
 
-    <div class="alert alert-info">
+    <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Nama kelas dibuat otomatis dari <strong>Tingkat + Rombel</strong>,
         misalnya tingkat 7 dan rombel A menjadi <strong>7-A</strong>.
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
-            <form id="formFilterKelas" class="row g-3">
+            <form id="formFilterKelas" class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label" for="filterTingkat">Tingkat</label>
-                    <select class="form-select" id="filterTingkat" name="tingkat">
+                    <select class="form-select" id="filterTingkat" name="tingkat" data-searchable-off="1">
                         <option value="">Semua</option>
                         <option value="7">7</option>
                         <option value="8">8</option>
@@ -51,20 +54,20 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12 col-md-3 d-flex align-items-end gap-2">
+                <div class="col-12 col-md-3 sisfour-filter-actions">
+                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bx bx-filter-alt me-1"></i> Terapkan
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card sisfour-table-card">
         <div class="card-header"><h5 class="mb-0">Daftar Kelas</h5></div>
-        <div class="card-datatable table-responsive">
-            <table class="table table-hover align-middle" id="tableKelas">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="tableKelas">
                 <thead>
                     <tr>
                         <th style="width:56px;">No.</th>
@@ -94,7 +97,7 @@
                         <input type="hidden" id="kelasId">
                         <div class="mb-3">
                             <label class="form-label" for="tingkat">Tingkat</label>
-                            <select class="form-select" id="tingkat" name="tingkat" required>
+                            <select class="form-select" id="tingkat" name="tingkat" required data-searchable-off="1">
                                 <option value="">Pilih</option>
                                 <option value="7">7</option>
                                 <option value="8">8</option>
@@ -117,7 +120,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer sisfour-modal-actions">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                         <button type="submit" class="btn btn-primary" id="btnSimpanKelas">
                             <span class="spinner-border spinner-border-sm d-none me-1"></span>
