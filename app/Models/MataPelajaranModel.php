@@ -16,6 +16,9 @@ use CodeIgniter\Model;
  * Tabel mata_pelajaran menggunakan hard delete.
  * Penghapusan akan ditolak oleh FK RESTRICT/NO ACTION
  * bila mapel sudah digunakan pada jadwal_guru.
+ *
+ * Uniqueness kode_mapel dijaga oleh MataPelajaranService agar update dapat
+ * mengecualikan record yang sedang diedit secara eksplisit.
  */
 class MataPelajaranModel extends Model
 {
@@ -34,7 +37,7 @@ class MataPelajaranModel extends Model
 
     protected $validationRules = [
         'nama_mapel' => 'required|max_length[100]',
-        'kode_mapel' => 'required|max_length[10]|is_unique[mata_pelajaran.kode_mapel,id,{id}]',
+        'kode_mapel' => 'required|max_length[10]',
     ];
 
     protected $validationMessages = [
@@ -42,8 +45,7 @@ class MataPelajaranModel extends Model
             'required' => 'Nama mata pelajaran wajib diisi.',
         ],
         'kode_mapel' => [
-            'required'  => 'Kode mata pelajaran wajib diisi.',
-            'is_unique' => 'Kode mata pelajaran sudah digunakan.',
+            'required' => 'Kode mata pelajaran wajib diisi.',
         ],
     ];
 
