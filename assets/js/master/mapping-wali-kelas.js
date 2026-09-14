@@ -73,7 +73,7 @@
         tbody.innerHTML = pageRows.map((row, index) => {
             const tahun = `${escapeHtml(row.nama_tahun)} - ${escapeHtml(row.semester)} ${Number(row.tahun_aktif) === 1 ? '<span class="badge bg-label-success ms-1">Aktif</span>' : ''}`;
             const action = canManage
-                ? `<td><button type="button" class="btn btn-sm btn-outline-danger btn-nonaktifkan" data-id="${row.id}" title="Nonaktifkan wali"><i class="bx bx-user-x me-1"></i>Nonaktifkan</button></td>`
+                ? `<td><div class="sisfour-row-actions"><button type="button" class="btn btn-sm btn-outline-danger btn-nonaktifkan" data-id="${row.id}" title="Nonaktifkan wali" aria-label="Nonaktifkan wali"><i class="bx bx-user-x me-1"></i>Nonaktifkan</button></div></td>`
                 : '';
 
             return `
@@ -86,7 +86,7 @@
                     ${action}
                 </tr>
             `;
-        }).join('') || `<tr><td colspan="${colspan}" class="text-center text-muted py-4">Tidak ada Mapping Wali aktif.</td></tr>`;
+        }).join('') || `<tr class="sisfour-empty-row"><td colspan="${colspan}" class="text-muted">Tidak ada Mapping Wali aktif.</td></tr>`;
 
         pager?.render(state);
     };
@@ -108,24 +108,11 @@
         }
     };
 
-    const addExportButton = () => {
-        if (document.getElementById('btnExportWali')) return;
-        const assignButton = document.getElementById('btnAssignWali');
-        const actions = assignButton?.parentElement;
-        if (!actions) return;
-
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.id = 'btnExportWali';
-        button.className = 'btn btn-outline-success';
-        button.innerHTML = '<i class="bx bx-export me-1"></i> Export';
-        button.addEventListener('click', () => {
-            const params = filterParams();
-            params.set('export', '1');
-            window.location.href = endpoint(`master/wali-kelas?${params.toString()}`);
-        });
-        actions.insertBefore(button, assignButton);
-    };
+    document.getElementById('btnExportWali')?.addEventListener('click', () => {
+        const params = filterParams();
+        params.set('export', '1');
+        window.location.href = endpoint(`master/wali-kelas?${params.toString()}`);
+    });
 
     filterForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -134,6 +121,7 @@
 
     document.getElementById('btnResetFilter')?.addEventListener('click', () => {
         filterForm.reset();
+        window.SisfourSearchableSelect?.sync(document.getElementById('filterKelas'));
         loadData();
     });
 
@@ -150,6 +138,8 @@
             kelas.innerHTML = '<option value="">Pilih tahun ajaran terlebih dahulu</option>';
             guru.disabled = true;
             kelas.disabled = true;
+            window.SisfourSearchableSelect?.sync(guru);
+            window.SisfourSearchableSelect?.sync(kelas);
         };
 
         const loadOptions = async () => {
@@ -177,6 +167,9 @@
                 kelas.innerHTML = '<option value="">Pilih kelas</option>' + (data.kelas || []).map((item) => `<option value="${item.id}">${escapeHtml(item.nama_kelas)}</option>`).join('');
                 guru.disabled = false;
                 kelas.disabled = false;
+                window.SisfourSearchableSelect?.enhance(modalElement);
+                window.SisfourSearchableSelect?.sync(guru);
+                window.SisfourSearchableSelect?.sync(kelas);
             } catch (error) {
                 resetOptions();
                 showError(error);
@@ -248,6 +241,5 @@
         });
     }
 
-    addExportButton();
     loadData();
 })();
