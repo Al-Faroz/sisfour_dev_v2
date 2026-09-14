@@ -3,21 +3,23 @@
 <?= $this->section('content') ?>
 
 <div id="ewsPresensiSiswaApp" data-base-url="<?= esc(base_url()) ?>">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">EWS Presensi Siswa</h4>
             <p class="text-muted mb-0">Siswa dengan minimal 3 Alpha pada Sesi Awal dalam 14 hari.</p>
         </div>
 
         <?php if (!empty($tahunAktif)): ?>
-            <span class="badge bg-label-primary fs-6">
-                <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
-                <?= esc($tahunAktif['semester'] ?? '') ?>
-            </span>
+            <div class="sisfour-page-actions">
+                <span class="badge bg-label-primary fs-6">
+                    <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
+                    <?= esc($tahunAktif['semester'] ?? '') ?>
+                </span>
+            </div>
         <?php endif; ?>
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
             <form id="formFilterEws" class="row g-3 align-items-end">
                 <div class="col-6 col-md-3">
@@ -37,9 +39,12 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card sisfour-table-card">
+        <div class="card-header">
+            <h5 class="mb-0">Daftar Siswa EWS</h5>
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="tableEwsPresensi">
                 <thead>
                     <tr>
                         <th style="width: 60px;">No.</th>
@@ -48,7 +53,7 @@
                     </tr>
                 </thead>
                 <tbody id="ewsTableBody">
-                    <tr><td colspan="3" class="text-center text-muted py-4">Memuat data...</td></tr>
+                    <tr class="sisfour-loading-row"><td colspan="3" class="text-muted">Memuat data...</td></tr>
                 </tbody>
             </table>
         </div>
