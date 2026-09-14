@@ -1,232 +1,242 @@
-# Master Data — SisisFour
+# Master Data & Student Lifecycle — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 14 September 2026  
+**Development Stage:** G2
 
-> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
+> Dokumen ini menyatakan business contract Master Data dan Manajemen Siswa. UI detail mengikuti dokumen UI; authorization final tetap ditentukan Service + permission database.
 
-
-## 1. Modul
+## 1. Scope G2
 
 ```text
-Guru
-Pegawai
-Siswa
-Kelas
-Tahun Ajaran
-Mata Pelajaran
-Mapping Wali Kelas
-Jadwal Guru
-Manajemen Siswa
-Personalia Guru/Pegawai
+F06 Guru
+F07 Pegawai
+F08 Siswa
+F09 Kelas
+F10 Tahun Ajaran
+F11 Mata Pelajaran
+F12 Mapping Wali Kelas
+F13 Jadwal Guru
+F14 Manajemen Siswa
 ```
 
-## 2. Hak Akses Ringkas
+## 2. General Integrity Rule
 
-| Fitur | Admin | Operator | Pimpinan | BK | Guru/Wali | Siswa |
-|---|---|---|---|---|---|---|
-| Guru | Manage | Manage | View | - | - | - |
-| Pegawai | Manage | Manage | View | - | - | - |
-| Siswa | Manage | Manage | View | sesuai modul BK | Wali: kelas sendiri | diri melalui Profile |
-| Kelas | Manage | Manage | - | - | - | - |
-| Tahun Ajaran | Manage | Manage | - | - | - | - |
-| Mapel | Manage | Manage | - | - | - | - |
-| Mapping Wali | Manage | Manage | View all | - | Diri/context | - |
-| Jadwal | Manage | Manage | View all | - | Diri | - |
-| Kenaikan/Mutasi/Lulus | Manage | Manage | - | - | - | - |
-
-Detail final mengikuti permission database dan Service.
+- authorization diperiksa sebelum mutation;
+- hard/permanent delete ditolak bila dependency/histori penting ada;
+- import besar atomic bila kontrak modul menuntut;
+- identifier tidak boleh bentrok lintas entitas yang relevan;
+- history tidak dihapus hanya demi membersihkan current state;
+- perubahan UI tidak boleh bypass Service.
 
 ## 3. Guru
 
-Schema mempertahankan NIP/NIK nullable untuk legacy, tetapi Service business rule:
-
-- NIK wajib 16 digit pada create/edit/import baru;
-- NIP optional;
-- NIP/NIK tidak boleh bentrok antar Guru/Pegawai;
-- identifier login = NIP jika tersedia, selain itu NIK.
-
-Akun Guru managed:
+Business identifier:
 
 ```text
-role primary = guru
-id_guru = guru.id
-username = identifier
+NIK wajib 16 digit untuk create/edit/import baru
+NIP optional untuk legacy/real data
+login identifier = NIP bila tersedia, selain itu NIK
 ```
 
-Foto:
+NIP/NIK tidak boleh bentrok dengan identifier Guru/Pegawai lain sesuai Service.
 
-```text
-uploads/foto_guru/
-```
+Permanent delete diblok bila memiliki dependency akademik/personalia seperti Jadwal, Mapping Wali, Presensi/Jurnal input, BK/Prestasi input, atau history/dokumen personalia.
+
+UI operasional menonjolkan **nama lengkap**; NIP/NIK menjadi identifier search/verifikasi.
 
 ## 4. Pegawai
 
 Tidak ada role `pegawai`.
 
-Akun mengikat:
+Akun dihubungkan melalui `users.id_pegawai`, sedangkan role operasional berasal dari User Management.
 
-```text
-users.id_pegawai = pegawai.id
-```
+Permanent delete diblok bila masih mempunyai history/dokumen personalia yang harus dipertahankan.
 
-Role operasional diberikan melalui User Management.
-
-Foto:
-
-```text
-uploads/foto_pegawai/
-```
+UI menonjolkan nama + jabatan/context; NIP/NIK sekunder.
 
 ## 5. Siswa
 
 ```text
 NISN unique
-NIK 16 digit sesuai business validation
+NIK divalidasi sesuai Service
+status: Aktif / Lulus / Pindah / Keluar
 ```
 
-Akun:
+Akun managed:
 
 ```text
-username default = NISN
-role = siswa
+role siswa
 id_siswa = siswa.id
+username default = NISN
 ```
 
-Status lifecycle:
+Permanent delete diblok bila memiliki anggota kelas, riwayat, Presensi, kartu, kasus, atau prestasi.
 
-```text
-Aktif
-Lulus
-Pindah
-Keluar
-```
+UI operasional menonjolkan nama + kelas/context; NISN/NIK dipakai untuk search, pencocokan, detail dan administrasi.
 
-Foto:
+## 6. Kelas
 
-```text
-uploads/foto_siswa/
-```
+Current membership berada di `anggota_kelas` dan history di `riwayat_siswa`.
 
-Wali kelas tidak boleh mengubah NISN.
+Permanent delete kelas ditolak bila masih direferensikan oleh membership, Mapping Wali, Jadwal, history, Presensi Siswa, atau Presensi Mengajar.
 
-## 6. Kelas dan Histori
+## 7. Tahun Ajaran / Semester
 
-Current membership:
-
-```text
-anggota_kelas
-```
-
-Histori:
-
-```text
-riwayat_siswa
-```
-
-Satu siswa hanya satu kelas per tahun. Histori wajib dipertahankan saat pindah/naik/mutasi.
-
-## 7. Manajemen Siswa
-
-```text
-Penempatan/Pindah Kelas
-Kenaikan Kelas
-Mutasi
-Kelulusan
-```
-
-### Kenaikan
-
-- tutup histori lama;
-- buat histori tahun tujuan;
-- update membership;
-- status tetap Aktif.
-
-### Mutasi
-
-```text
-Pindah
-Keluar
-```
-
-Menutup histori dan menonaktifkan kartu Aktif.
-
-### Kelulusan
-
-Menutup histori, status Lulus, dan menonaktifkan kartu Aktif.
-
-## 8. Tahun Ajaran
+Format:
 
 ```text
 YYYY/YYYY
 Ganjil | Genap
 ```
 
-Hanya satu operasional aktif. Tahun aktif tidak boleh dihapus.
+Hanya satu periode operasional aktif.
 
-## 9. Mata Pelajaran
+### Ganjil → Genap tahun yang sama
+
+Gunakan workflow **Siapkan Genap**.
+
+Atomic steps:
 
 ```text
-kode_mapel
+1 precheck Ganjil aktif
+2 buat Genap
+3 copy Kelas
+4 copy anggota siswa aktif
+5 copy Mapping Wali aktif
+6 copy Jadwal aktif sebagai baseline
+7 tutup history Ganjil aktif
+8 buat history Genap aktif
+9 nonaktifkan Ganjil
+10 aktifkan Genap
+11 verifikasi state final
+```
+
+Presensi/Jurnal **tidak disalin**.
+
+Manual bypass create/update/activate Genap tahun yang sama saat Ganjil aktif ditolak; gunakan workflow Siapkan Genap.
+
+### Genap → Ganjil tahun berikutnya
+
+Gunakan Kenaikan Kelas/Kelulusan, bukan Siapkan Genap.
+
+## 8. Mata Pelajaran
+
+```text
+kode_mapel unique
 nama_mapel
 ```
 
-Kode unique. Delete ditolak bila dependency Jadwal ada.
+Delete ditolak bila ada dependency Jadwal.
 
-## 10. Mapping Wali
+## 9. Mapping Wali Kelas
 
 Wali bukan role.
 
 ```text
-1 Guru max 1 kelas per tahun
-1 Kelas max 1 Wali per tahun
+1 Guru maksimal 1 kelas aktif per tahun
+1 Kelas maksimal 1 Wali aktif per tahun
 ```
 
-Soft delete mempertahankan histori.
+Class harus berasal dari Tahun Ajaran target. Soft delete mempertahankan history. Permanent delete mapping historis dilindungi.
 
-## 11. Jadwal Guru
-
-Sumber bulk utama: import Excel.
-
-```text
-Guru
-Kelas
-Mapel
-Tahun
-Hari
-Jam Mulai
-Jam Selesai
-Sesi
-```
+## 10. Jadwal Guru
 
 Sesi:
 
 ```text
 Sesi Awal
-Sesi Akhir
 Non Sesi
+Sesi Akhir
 ```
 
-Import harus resolve referensi, validasi waktu, menolak overlap Guru/Kelas, dan atomic.
+Import wajib:
 
-## 12. Pagination
+- resolve Guru/Kelas/Mapel/Tahun;
+- validasi waktu;
+- menolak overlap Guru;
+- menolak overlap Kelas;
+- menjaga topology per kelas/hari;
+- transaction/rollback sesuai Service.
 
-Dataset besar memakai server-side pagination.
-
-Page-size umum:
+Topology aktif per kelas/hari:
 
 ```text
-25
-50
-100
+minimal 2 row
+row pertama = Sesi Awal
+row terakhir = Sesi Akhir
+row tengah = Non Sesi
 ```
 
-Jangan kembali ke load-all pada Siswa/Jadwal/manajemen besar tanpa alasan terukur.
+Delete Jadwal yang sudah direferensikan Jurnal/Presensi Mengajar dilindungi; historical row dapat dipertahankan nonaktif sesuai lifecycle.
 
-## 13. User Lifecycle
+## 11. Penempatan / Pindah Kelas
 
-Soft delete Guru/Pegawai/Siswa menonaktifkan account terkait.
+Hanya bekerja pada siswa/periode yang valid sesuai Service. Current membership dan history harus tetap konsisten.
 
-Perubahan identifier managed disinkronkan ke user melalui Service. Perubahan state keamanan yang menginvalidasi token/session menaikkan `auth_version`.
+## 12. Kenaikan Kelas
+
+Kenaikan adalah promotion antar Tahun Ajaran, bukan transisi Ganjil→Genap tahun yang sama.
+
+Target normal:
+
+```text
+kelas 7 → 8
+kelas 8 → 9
+```
+
+Level 9 tidak dinaikkan sebagai kelas biasa; kelulusan memiliki workflow tersendiri.
+
+## 13. Mutasi
+
+Terminal state:
+
+```text
+Pindah
+Keluar
+```
+
+Workflow transactional:
+
+- hanya siswa Aktif/current yang valid;
+- tutup history aktif;
+- buat/update terminal history sesuai kontrak;
+- update status/tanggal/keterangan;
+- lepaskan current membership periode aktif bila perlu;
+- nonaktifkan kartu Aktif;
+- history periode lama tetap dipertahankan.
+
+## 14. Kelulusan
+
+Hanya siswa Aktif tingkat akhir yang memenuhi context periode.
+
+Workflow transactional:
+
+- tutup history aktif;
+- catat terminal Lulus;
+- update status/tanggal/keterangan;
+- lepaskan current membership periode aktif;
+- nonaktifkan kartu Aktif;
+- akun tidak otomatis dimatikan kecuali policy alumni/login diputuskan eksplisit.
+
+## 15. Pagination & Export
+
+Dataset besar memakai bounded query/pagination. UI Admin mengikuti paginator canonical.
+
+Export identifier seperti NIP/NISN/kode diperlakukan sebagai text bila diperlukan agar spreadsheet tidak kehilangan digit/format.
+
+## 16. G2 Gate
+
+Sebelum G2 closed:
+
+```text
+repository hygiene
+static lint
+F06–F14 regression
+UI smoke untuk halaman yang disentuh
+canonical docs sync
+PR review
+explicit approval
+```
+
+Redesign mobile role bukan bagian scope dokumen implementasi G2; targetnya G3.
