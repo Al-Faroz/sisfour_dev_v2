@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id" class="layout-menu-fixed" data-assets-path="<?= base_url('assets/') ?>" data-template="vertical-menu-template-free">
+<html lang="id" class="layout-menu-fixed layout-compact" data-assets-path="<?= base_url('assets/') ?>" data-template="vertical-menu-template-free">
 <head>
   <?= $this->include('_header') ?>
 </head>
