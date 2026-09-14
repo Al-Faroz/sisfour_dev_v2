@@ -12,11 +12,12 @@
     const tanggalSelesai = document.getElementById('rekapTanggalSelesai');
     const sesi = document.getElementById('rekapSesi');
     const status = document.getElementById('rekapStatus');
+    const table = document.getElementById('tableRekapPresensi');
     const tbody = document.getElementById('rekapTableBody');
     const totalEl = document.getElementById('rekapTotal');
     const btnReset = document.getElementById('btnResetRekap');
 
-    if (!form || !tanggalMulai || !tanggalSelesai || !tbody || !totalEl) {
+    if (!form || !tanggalMulai || !tanggalSelesai || !table || !tbody || !totalEl) {
         return;
     }
 
@@ -26,7 +27,7 @@
         total: 0,
     };
 
-    const pager = window.SisfourPagination?.mount(tbody, {
+    const pager = window.SisfourPagination?.mount(table, {
         id: 'rekapPresensiPager',
         label: 'data presensi',
         onChange: (next) => {
@@ -53,26 +54,13 @@
     const buildParams = (withPaging = true) => {
         const params = new URLSearchParams();
 
-        if (tanggalMulai.value) {
-            params.set('tanggal_mulai', tanggalMulai.value);
-        }
-
-        if (tanggalSelesai.value) {
-            params.set('tanggal_selesai', tanggalSelesai.value);
-        }
+        if (tanggalMulai.value) params.set('tanggal_mulai', tanggalMulai.value);
+        if (tanggalSelesai.value) params.set('tanggal_selesai', tanggalSelesai.value);
 
         if (!selfView) {
-            if (kelas?.value) {
-                params.set('id_kelas', kelas.value);
-            }
-
-            if (sesi?.value) {
-                params.set('sesi', sesi.value);
-            }
-
-            if (status?.value) {
-                params.set('status', status.value);
-            }
+            if (kelas?.value) params.set('id_kelas', kelas.value);
+            if (sesi?.value) params.set('sesi', sesi.value);
+            if (status?.value) params.set('status', status.value);
         }
 
         if (withPaging) {
@@ -86,7 +74,6 @@
     const syncUrl = () => {
         const params = buildParams(true);
         const query = params.toString();
-
         window.history.replaceState(
             null,
             '',
@@ -112,22 +99,15 @@
 
         mapping.forEach(([key, element]) => {
             const value = params.get(key);
-
-            if (value !== null && element) {
-                element.value = value;
-            }
+            if (value !== null && element) element.value = value;
         });
+
+        if (kelas) window.SisfourSearchableSelect?.sync(kelas);
     };
 
     const renderRows = (rows) => {
         if (!rows.length) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-4">
-                        Tidak ada data pada filter ini.
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Tidak ada data pada filter ini.</td></tr>';
             return;
         }
 
@@ -136,28 +116,16 @@
                 <td>${escapeHtml(row.tanggal)}</td>
                 <td>${escapeHtml(row.nama_siswa_snapshot || '-')}</td>
                 <td>${escapeHtml(row.sesi)}</td>
-                <td>
-                    <span class="badge ${badgeClass(row.status)}">
-                        ${escapeHtml(row.status)}
-                    </span>
-                </td>
+                <td><span class="badge ${badgeClass(row.status)}">${escapeHtml(row.status)}</span></td>
             </tr>
         `).join('');
     };
 
     const load = async () => {
-        if (!tanggalMulai.value || !tanggalSelesai.value) {
-            return;
-        }
+        if (!tanggalMulai.value || !tanggalSelesai.value) return;
 
         if (!selfView && !kelas?.value) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-muted py-4">
-                        Pilih kelas terlebih dahulu.
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Pilih kelas terlebih dahulu.</td></tr>';
             state.total = 0;
             totalEl.textContent = '0 data';
             pager?.render(state);
@@ -166,22 +134,10 @@
         }
 
         const url = new URL('presensi/siswa/rekap/json', baseUrl);
-        const params = buildParams(true);
-
-        params.forEach((value, key) => {
-            url.searchParams.set(key, value);
-        });
+        buildParams(true).forEach((value, key) => url.searchParams.set(key, value));
 
         pager?.setDisabled(true);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center py-4">
-                    <span class="spinner-border spinner-border-sm me-2"></span>
-                    Memuat...
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr class="sisfour-loading-row"><td colspan="4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
 
         try {
             const response = await fetch(url.toString(), {
@@ -191,7 +147,6 @@
                 },
                 credentials: 'same-origin',
             });
-
             const payload = await response.json();
 
             if (!response.ok || payload.status === 'error') {
@@ -205,15 +160,8 @@
             state.limit = Number(data.limit || state.limit);
             state.offset = Number(data.offset ?? state.offset);
 
-            if (
-                rows.length === 0
-                && state.total > 0
-                && state.offset >= state.total
-            ) {
-                state.offset = Math.floor(
-                    (state.total - 1) / state.limit
-                ) * state.limit;
-
+            if (rows.length === 0 && state.total > 0 && state.offset >= state.total) {
+                state.offset = Math.floor((state.total - 1) / state.limit) * state.limit;
                 await load();
                 return;
             }
@@ -223,13 +171,7 @@
             pager?.render(state);
             syncUrl();
         } catch (error) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" class="text-center text-danger py-4">
-                        ${escapeHtml(error.message)}
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = `<tr class="sisfour-error-row"><td colspan="4" class="text-danger">${escapeHtml(error.message)}</td></tr>`;
         } finally {
             pager?.setDisabled(false);
         }
@@ -242,10 +184,12 @@
     });
 
     btnReset?.addEventListener('click', () => {
-        if (kelas) kelas.value = '';
+        if (kelas) {
+            kelas.value = '';
+            window.SisfourSearchableSelect?.sync(kelas);
+        }
         if (sesi) sesi.value = '';
         if (status) status.value = '';
-
         state.offset = 0;
 
         if (selfView) {
@@ -253,13 +197,7 @@
             return;
         }
 
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-center text-muted py-4">
-                    Pilih kelas dan gunakan filter untuk menampilkan data.
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Pilih kelas dan gunakan filter untuk menampilkan data.</td></tr>';
         state.total = 0;
         totalEl.textContent = '0 data';
         pager?.render(state);
@@ -268,9 +206,8 @@
 
     restoreState();
 
-    if (selfView || kelas?.value) {
-        load();
-    } else {
+    if (selfView || kelas?.value) load();
+    else {
         pager?.render(state);
         syncUrl();
     }
