@@ -83,14 +83,14 @@
                         ? `<span class="badge bg-label-warning">${jumlahJadwal} jadwal</span>`
                         : '<span class="badge bg-label-secondary">Belum digunakan</span>'}</td>
                     <td>
-                        <div class="d-flex gap-1">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${mapel.id}" title="Edit"><i class="bx bx-edit"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${mapel.id}" title="Hapus" ${jumlahJadwal > 0 ? 'disabled' : ''}><i class="bx bx-trash"></i></button>
+                        <div class="sisfour-row-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${mapel.id}" title="Edit" aria-label="Edit mata pelajaran"><i class="bx bx-edit"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${mapel.id}" title="Hapus" aria-label="Hapus mata pelajaran" ${jumlahJadwal > 0 ? 'disabled' : ''}><i class="bx bx-trash"></i></button>
                         </div>
                     </td>
                 </tr>
             `;
-        }).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada data Mata Pelajaran.</td></tr>';
+        }).join('') || '<tr class="sisfour-empty-row"><td colspan="5" class="text-muted">Tidak ada data Mata Pelajaran.</td></tr>';
 
         pager?.render(state);
     };
@@ -112,29 +112,11 @@
         }
     };
 
-    const addExportButton = () => {
-        const addButton = document.getElementById('btnTambahMapel');
-        const header = addButton?.parentElement;
-        if (!header || document.getElementById('btnExportMapel')) return;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'd-flex flex-wrap gap-2';
-        addButton.replaceWith(wrapper);
-
-        const exportButton = document.createElement('button');
-        exportButton.type = 'button';
-        exportButton.id = 'btnExportMapel';
-        exportButton.className = 'btn btn-outline-success';
-        exportButton.innerHTML = '<i class="bx bx-export me-1"></i> Export';
-        exportButton.addEventListener('click', () => {
-            const params = filterParams();
-            params.set('export', '1');
-            window.location.href = endpoint(`master/mapel?${params.toString()}`);
-        });
-
-        wrapper.appendChild(exportButton);
-        wrapper.appendChild(addButton);
-    };
+    document.getElementById('btnExportMapel')?.addEventListener('click', () => {
+        const params = filterParams();
+        params.set('export', '1');
+        window.location.href = endpoint(`master/mapel?${params.toString()}`);
+    });
 
     filterForm.addEventListener('submit', (event) => {
         event.preventDefault();
@@ -250,6 +232,5 @@
         }
     });
 
-    addExportButton();
     loadData();
 })();
