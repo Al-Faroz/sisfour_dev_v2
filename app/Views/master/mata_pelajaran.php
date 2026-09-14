@@ -6,33 +6,44 @@
     id="masterMapelApp"
     data-base-url="<?= esc(base_url()) ?>"
 >
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Master Mata Pelajaran</h4>
             <p class="text-muted mb-0">
                 Kelola nama dan kode mata pelajaran yang digunakan pada jadwal guru.
             </p>
         </div>
 
-        <button
-            type="button"
-            class="btn btn-primary"
-            id="btnTambahMapel"
-        >
-            <i class="bx bx-plus me-1"></i>
-            Tambah Mata Pelajaran
-        </button>
+        <div class="sisfour-page-actions">
+            <button
+                type="button"
+                class="btn btn-outline-success"
+                id="btnExportMapel"
+            >
+                <i class="bx bx-export me-1"></i>
+                Export
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                id="btnTambahMapel"
+            >
+                <i class="bx bx-plus me-1"></i>
+                Tambah Mata Pelajaran
+            </button>
+        </div>
     </div>
 
-    <div class="alert alert-info">
+    <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Kode mata pelajaran harus unik. Mata pelajaran yang sudah digunakan pada
         jadwal guru tidak dapat dihapus.
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
-            <form id="formFilterMapel" class="row g-3">
+            <form id="formFilterMapel" class="row g-3 align-items-end">
                 <div class="col-12 col-md-5">
                     <label
                         class="form-label"
@@ -68,15 +79,7 @@
                     >
                 </div>
 
-                <div class="col-12 col-md-3 d-flex align-items-end gap-2">
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-                        <i class="bx bx-filter-alt me-1"></i>
-                        Terapkan
-                    </button>
-
+                <div class="col-12 col-md-3 sisfour-filter-actions">
                     <button
                         type="button"
                         class="btn btn-outline-secondary"
@@ -84,19 +87,27 @@
                     >
                         Reset
                     </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        <i class="bx bx-filter-alt me-1"></i>
+                        Terapkan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card sisfour-table-card">
         <div class="card-header">
             <h5 class="mb-0">Daftar Mata Pelajaran</h5>
         </div>
 
-        <div class="card-datatable table-responsive">
+        <div class="table-responsive">
             <table
-                class="table table-hover align-middle"
+                class="table table-hover align-middle mb-0"
                 id="tableMapel"
             >
                 <thead>
@@ -188,7 +199,7 @@
                         </div>
                     </div>
 
-                    <div class="modal-footer">
+                    <div class="modal-footer sisfour-modal-actions">
                         <button
                             type="button"
                             class="btn btn-outline-secondary"
