@@ -40,13 +40,20 @@ $hasLogo = $logoPath !== ''
 $hasIcon = $iconPath !== ''
     && is_file($iconPath);
 
+$logoVersion = $hasLogo ? @filemtime($logoPath) : false;
+$iconVersion = $hasIcon ? @filemtime($iconPath) : false;
+
 $logoUrl = $hasLogo
     ? base_url(ltrim($logoSekolah, '/'))
+        . ($logoVersion ? '?v=' . $logoVersion : '')
     : null;
 
 $iconUrl = $hasIcon
     ? base_url(ltrim($iconSekolah, '/'))
+        . ($iconVersion ? '?v=' . $iconVersion : '')
     : base_url('assets/img/favicon/favicon.ico');
+
+$iconType = $hasIcon ? 'image/png' : 'image/x-icon';
 ?>
 <!doctype html>
 <html lang="id">
@@ -55,7 +62,7 @@ $iconUrl = $hasIcon
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
 
     <meta
@@ -69,9 +76,16 @@ $iconUrl = $hasIcon
 
     <link
         rel="icon"
-        type="image/png"
+        type="<?= esc($iconType, 'attr') ?>"
         href="<?= esc($iconUrl, 'attr') ?>"
     />
+
+    <?php if ($hasIcon): ?>
+        <link
+            rel="apple-touch-icon"
+            href="<?= esc($iconUrl, 'attr') ?>"
+        />
+    <?php endif; ?>
 
     <link
         rel="preconnect"
@@ -238,6 +252,18 @@ $iconUrl = $hasIcon
 
         .input-group-text {
             border-radius: 0 10px 10px 0;
+        }
+
+        .password-toggle-button {
+            min-width: 46px;
+            justify-content: center;
+            color: var(--login-muted);
+            background: transparent;
+        }
+
+        .password-toggle-button:focus-visible {
+            outline: 2px solid var(--login-primary);
+            outline-offset: 2px;
         }
 
         .btn-login {
@@ -426,7 +452,7 @@ $iconUrl = $hasIcon
                         />
                     </div>
 
-                    <div class="mb-4 form-password-toggle">
+                    <div class="mb-4">
                         <label
                             class="form-label"
                             for="password"
@@ -445,12 +471,16 @@ $iconUrl = $hasIcon
                                 required
                             />
 
-                            <span
-                                class="input-group-text cursor-pointer"
-                                aria-label="Tampilkan atau sembunyikan password"
+                            <button
+                                type="button"
+                                class="input-group-text cursor-pointer password-toggle-button"
+                                id="togglePassword"
+                                aria-label="Tampilkan password"
+                                aria-controls="password"
+                                aria-pressed="false"
                             >
-                                <i class="icon-base bx bx-hide"></i>
-                            </span>
+                                <i class="icon-base bx bx-hide" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -484,6 +514,35 @@ $iconUrl = $hasIcon
 <script src="<?= base_url('assets/vendor/libs/jquery/jquery.js') ?>"></script>
 <script src="<?= base_url('assets/vendor/libs/popper/popper.js') ?>"></script>
 <script src="<?= base_url('assets/vendor/js/bootstrap.js') ?>"></script>
-<script src="<?= base_url('assets/vendor/js/main.js') ?>"></script>
+<script>
+(() => {
+    'use strict';
+
+    const password = document.getElementById('password');
+    const toggle = document.getElementById('togglePassword');
+    const icon = toggle?.querySelector('i');
+
+    if (!password || !toggle || !icon) {
+        return;
+    }
+
+    toggle.addEventListener('click', () => {
+        const showing = password.type === 'text';
+        password.type = showing ? 'password' : 'text';
+
+        const visible = password.type === 'text';
+        toggle.setAttribute('aria-pressed', visible ? 'true' : 'false');
+        toggle.setAttribute(
+            'aria-label',
+            visible ? 'Sembunyikan password' : 'Tampilkan password'
+        );
+
+        icon.classList.toggle('bx-hide', !visible);
+        icon.classList.toggle('bx-show', visible);
+
+        password.focus({ preventScroll: true });
+    });
+})();
+</script>
 </body>
 </html>
