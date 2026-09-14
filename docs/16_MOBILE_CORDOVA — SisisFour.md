@@ -1,269 +1,315 @@
-# Mobile Cordova — SisisFour
+# Cordova Packaging & Integration — SisisFour
 
-**Status:** Canonical Contract / Client Belum Dibangun
-**Tanggal Acuan:** 12 September 2026
-**Baseline Server:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**API Version:** `v1`
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 14 September 2026  
+**Implementation Phase:** G4, setelah G3 Mobile UI selesai
 
-> Server API core tersedia pada baseline. Project client Cordova belum menjadi bagian repository ini.
+> SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
 
-## 1. Target
+## 1. Target Architecture
 
-Client Android direncanakan menggunakan Apache Cordova/WebView dan bersifat **online-only**.
+SisisFour tidak membangun ulang seluruh aplikasi menjadi SPA mobile kedua.
 
-```text
-HTML
-CSS
-Vanilla JavaScript
-Fetch API
-Cordova WebView
-```
-
-Authorization/business rule tetap server-side.
-
-## 2. Role Target Mobile
-
-Prioritas:
+Target:
 
 ```text
-Pimpinan
-BK
-Guru/Wali
-Siswa
+CI4/Sneat Web Application
+        ↓
+responsive mobile UI
+        ↓
+Cordova Android WebView wrapper
 ```
 
-Admin/Operator tetap lebih cocok menggunakan Web untuk pekerjaan administrasi berat, walaupun API permission tetap menentukan akses aktual.
+Server tetap menjadi source of truth untuk auth, RBAC, scope, business rule, validation, transaction dan persistence.
 
-## 3. API Base
-
-Production:
+## 2. Separation of Phases
 
 ```text
-https://sisfour.mtsn4jombang.sch.id/api/
+G2  Master Data/lifecycle fixing + stabilization
+G3  Mobile role UI + WebView readiness
+G4  Cordova integration + APK packaging
 ```
 
-HTTPS wajib.
+Cordova project/plugin tidak ditambahkan ke G2 hanya untuk persiapan dini.
 
-## 4. Authentication
+## 3. G4 Architecture Spike
 
-Public:
+Sebelum implementasi APK penuh, buat spike minimal untuk membuktikan:
 
 ```text
-POST /api/auth/login
-POST /api/auth/refresh
-GET  /api/version
+production/staging URL dapat dibuka aman dalam WebView
+session/login stabil
+redirect/login/logout normal
+Cordova deviceready tersedia sesuai architecture wrapper
+device back dapat dikontrol
+geolocation permission bekerja
+download/open/share dapat ditangani
+external link dapat diarahkan keluar WebView
 ```
 
-Protected:
+Hasil spike menentukan detail `config.xml`, allow-navigation, whitelist dan plugin final.
+
+Jangan mengunci plugin/version berdasarkan dokumentasi lama sebelum spike.
+
+## 4. Web Auth vs API Auth
+
+Web UI tetap menggunakan Web session/CSRF sesuai aplikasi CI4.
+
+API `/api/*` tetap memakai JWT/token sesuai kontrak API.
+
+Cordova wrapper **tidak otomatis mengganti seluruh Web auth dengan JWT**.
+
+Jika kemudian ada feature native/local yang memanggil `/api/*`, feature tersebut mengikuti API auth secara terpisah.
+
+## 5. Session Expiry UX
+
+Jika session Web berakhir saat AJAX/Fetch:
 
 ```text
-GET  /api/auth/me
-POST /api/auth/logout
+jangan render HTML login di dalam tabel/modal
+→ deteksi unauthenticated
+→ tampilkan pesan sesi berakhir
+→ arahkan ke login
 ```
 
-Server memakai JWT access token + opaque refresh token pada `api_tokens`.
+Setelah login, restore workflow hanya jika aman dan tidak menyebabkan mutation ulang.
 
-Client wajib:
+## 6. Cordova Mode
 
-1. menyimpan token pada secure storage yang sesuai Android;
-2. mengirim `Authorization: Bearer ...`;
-3. refresh saat access token expired;
-4. logout bila refresh gagal/revoked;
-5. tidak menyimpan password setelah login;
-6. tidak menulis token ke console/log.
+Setelah `deviceready`, wrapper dapat menambah class:
 
-## 5. Server Version Endpoint
+```html
+<html class="sisfour-cordova">
+```
 
-`GET /api/version` runtime-ready melalui `Api::version`.
+Digunakan hanya untuk perbedaan nyata WebView seperti safe-area/status bar/keyboard-specific behavior.
 
-Baseline response identity:
+Jangan membuat UI kedua di bawah `.sisfour-cordova`.
+
+## 7. Android Back
+
+Contract:
 
 ```text
-product        SisisFour
-server_version 0.5
-api_version    v1
-timezone       Asia/Jakarta
+Modal terbuka       → tutup modal
+Sidebar terbuka     → tutup sidebar
+Offcanvas/dropdown  → tutup layer
+Detail page         → history back
+Dirty form          → confirmation
+Dashboard/root      → exit confirmation/double-back sesuai keputusan final
 ```
 
-Client dapat menggunakan endpoint ini untuk compatibility/update notice. Tidak ada silent APK update dari server.
+Presensi/Jurnal yang belum tersimpan tidak boleh hilang hanya karena tombol Back.
 
-## 6. RequestContext Server
+## 8. Safe Area & Status Bar
 
-Authenticated API actor disimpan request-scoped dengan canonical keys:
+UI G3 sudah harus menggunakan safe-area token:
 
 ```text
-api_user
-api_access_token
-api_token_row
-api_claims
+env(safe-area-inset-top)
+env(safe-area-inset-right)
+env(safe-area-inset-bottom)
+env(safe-area-inset-left)
 ```
 
-Client tidak pernah mengirim atau menentukan effective role/scope sendiri.
+G4 memverifikasi behavior real device, status bar dan edge-to-edge configuration.
 
-## 7. API Bisnis Tersedia
+## 9. Soft Keyboard
 
-Protected group `auth:api` meliputi kategori:
+Uji device nyata:
+
+- input aktif tetap terlihat;
+- modal scroll normal;
+- sticky action tidak menutup field;
+- SearchableSelect/dropdown tidak tertutup keyboard;
+- textarea Jurnal/Kasus nyaman;
+- orientation change tidak merusak viewport.
+
+## 10. Geolocation
+
+Flow:
 
 ```text
-Dashboard
-Presensi Siswa
-Presensi Mengajar/Jurnal
-Laporan Matrix/Jurnal
-BK Kasus + Tindak Lanjut
-Prestasi
-Kartu preview/download
-Profile Guru
-Profile Pegawai
-Profile Siswa
+user menjalankan action yang butuh lokasi
+→ cek permission
+→ minta permission jika perlu
+→ ambil lokasi
+→ kirim koordinat ke server
+→ server menentukan validitas geofence
 ```
 
-Endpoint aktual mengikuti `Routes Final — SisisFour.md` dan `app/Config/Routes.php`.
+Jangan meminta lokasi saat dashboard load.
 
-## 8. Profile API
-
-Runtime-ready:
+UX harus membedakan:
 
 ```text
-GET  /api/profile/guru
-PUT  /api/profile/guru
-POST /api/profile/guru/foto
-
-GET  /api/profile/pegawai
-PUT  /api/profile/pegawai
-POST /api/profile/pegawai/foto
-
-GET  /api/profile/siswa
+permission denied
+GPS/service off
+position timeout
+akurasi buruk
+lokasi didapat
+di luar radius berdasarkan server response
 ```
 
-Personalia/Portofolio self pada baseline masih terutama kontrak Web; jangan mengasumsikan route API Personalia sebelum ditambahkan eksplisit.
+## 11. Network State
 
-## 9. JSON dan HTTP
+APK adalah online-first.
 
-Client harus memeriksa **HTTP status dan body**, bukan hanya field pesan.
-
-Expected umum:
+Saat offline:
 
 ```text
-200 success
-401 unauthenticated/token invalid
-403 forbidden/scope
-422 validation/business error
-503 maintenance
+jelaskan tidak ada koneksi
+mutation tidak dinyatakan sukses
+pertahankan input bila aman
+sediakan retry
 ```
 
-Endpoint Web/API dual-surface harus menghasilkan JSON untuk path `/api`.
+Tidak ada background/offline replay otomatis untuk Presensi/Jurnal/Kasus/Prestasi tanpa desain transaksi baru.
 
-## 10. Maintenance
+## 12. Mutation Safety
 
-Saat maintenance ON:
-
-- non-Admin API menerima 503 JSON;
-- client menampilkan pesan maintenance;
-- client tidak melakukan retry tanpa batas;
-- effective Admin dapat tetap melakukan recovery sesuai server policy.
-
-## 11. Geolocation
-
-Jika Presensi memerlukan geofence:
-
-1. client meminta permission lokasi;
-2. ambil latitude/longitude aktual;
-3. kirim koordinat ke server;
-4. server menghitung validitas radius.
-
-Client tidak boleh menentukan sendiri `inside/outside` sebagai keputusan final.
-
-## 12. Online Only
-
-Tidak ada offline queue canonical untuk:
+Cordova tidak mengubah contract server:
 
 ```text
-Presensi
-Jurnal
-Kasus
-Prestasi
+busy guard
+anti double-submit
+server-confirmed success
+transaction backend
+idempotency/duplicate guard sesuai domain
 ```
 
-Network failure harus tampil sebagai gagal/tertunda, bukan sukses palsu.
+## 13. File / Download / Share
 
-## 13. Kartu Pelajar
-
-Mobile dapat menggunakan:
+Feature yang perlu diuji khusus APK:
 
 ```text
-preview kartu
-download PDF kartu
+Kartu PDF
+file export yang memang tersedia untuk role
+preview document
+open external app
+share file bila diputuskan
 ```
 
-sesuai permission/scope actor.
+Browser behavior tidak boleh diasumsikan otomatis identik dengan Android WebView.
 
-QR verify tetap Web public:
+## 14. Navigation External
+
+Canonical intent:
 
 ```text
-/kartu/verify/{kode_verifikasi}
+internal SisisFour URL → tetap di WebView
+external website       → controlled external browser
+mailto/tel/maps/chat   → application intent bila didukung
 ```
 
-## 14. Cordova Security
+Whitelist/navigation policy hanya mengizinkan domain yang dibutuhkan.
 
-Ketika project client dibuat:
+## 15. Security
 
-- whitelist network hanya domain resmi;
-- external navigation dibatasi;
+APK release:
+
 - HTTPS only;
-- token tidak hardcoded;
-- password tidak disimpan;
-- cookie Web tidak dijadikan credential API;
-- debug logging sensitif dimatikan pada release.
+- tidak hardcode password/token/secret;
+- tidak log session/token/credential;
+- debug WebView dimatikan pada release;
+- domain/navigation dibatasi;
+- permission Android seminimal mungkin;
+- server tetap melakukan authorization;
+- file upload/download mengikuti validation server.
 
-## 15. Capability Minimum
+## 16. API
+
+API core tetap tersedia untuk integration/native feature:
 
 ```text
-Geolocation
-Secure token storage
-Network status
-File/download
-External browser/link terkontrol bila diperlukan
+/api/auth/*
+/api/version
+/api/dashboard
+/api/presensi/*
+/api/profile/*
+... sesuai Routes Final
 ```
 
-Pemilihan plugin mengikuti versi Cordova/Android saat implementasi, bukan daftar package lama yang mungkin obsolete.
+Jangan mengasumsikan endpoint API ada hanya karena Web route ada; lihat `Routes Final — SisisFour.md` dan source route aktual.
 
-## 16. Distribusi
+## 17. Branding APK
 
-Tahap uji:
+Icon/branding APK dan runtime branding sekolah adalah dua layer:
 
 ```text
-APK sideload pada device Android nyata
+APK launcher icon/splash = asset build Cordova
+runtime favicon/logo      = setting_sistem
+```
+
+Launcher icon dapat menggunakan identitas sekolah yang disepakati, tetapi perubahan runtime `icon_sekolah` tidak otomatis mengganti icon launcher APK yang sudah terinstall.
+
+## 18. Versioning
+
+APK memiliki app/build version sendiri. Server/API memiliki version sendiri.
+
+Client dapat mengecek endpoint version untuk compatibility/update notice, tetapi server tidak melakukan silent APK replacement.
+
+## 19. Distribution
+
+Tahap awal:
+
+```text
+APK debug/release untuk sideload internal device test
 ```
 
 Produksi:
 
 ```text
-kanal distribusi resmi yang diputuskan madrasah
+signed APK/AAB dan kanal distribusi yang diputuskan madrasah
 ```
 
-## 17. Gate Sebelum Client Dinyatakan Final
+Keystore/signing material tidak masuk repository publik/source biasa.
 
-- Web production stabil.
-- HTTPS production valid.
-- Auth login/me/refresh/logout API PASS.
-- `auth_version` invalidation PASS.
-- seluruh endpoint mobile menghasilkan JSON yang benar.
-- RBAC mobile role target PASS.
-- geolocation Android nyata PASS.
-- maintenance 503 PASS.
-- token storage aman.
-- download Kartu PASS.
-- build APK PASS.
-- multi-device test PASS.
-- kebijakan distribusi/update diputuskan.
+## 20. Device Test Matrix
 
-## 18. Status Saat Ini
+Minimum:
 
 ```text
-Server API core     tersedia
-/api/version        tersedia
-Profile API         tersedia
-JWT infrastructure  tersedia
-Cordova client      belum ada di repo
-APK production      belum menjadi baseline release Web ini
+Android kecil 360px
+Android umum 390/412px
+minimal 2 versi Android yang masih menjadi target deployment
+Wi-Fi stabil
+mobile data/lambat
+offline → online
+permission location allow/deny
+keyboard open/close
+back button
+file download/open
 ```
+
+Versi Android/Cordova/plugin final ditentukan pada saat G4 karena tooling dapat berubah.
+
+## 21. G4 Gate
+
+Cordova/APK dinyatakan siap bila:
+
+```text
+G3 mobile UI PASS
+architecture spike PASS
+login/session PASS
+Back PASS
+keyboard PASS
+safe-area PASS
+geolocation PASS
+network/offline state PASS
+file/download/share PASS
+external link PASS
+maintenance behavior PASS
+security config PASS
+signed build PASS
+multi-device regression PASS
+```
+
+## 22. Non-Goal
+
+G4 tidak digunakan untuk:
+
+- memperbaiki business rule Master Data yang seharusnya selesai di G2;
+- redesign besar dashboard/table yang seharusnya selesai di G3;
+- memindahkan authorization ke JavaScript/Cordova;
+- membuat offline academic mutation tanpa design khusus.
