@@ -165,6 +165,19 @@
     justify-content: flex-start;
     width: 100%;
   }
+
+  /* Compatibility untuk Master lama yang masih memakai utility flex-lg-row. */
+  #masterGuruApp > .d-flex.flex-column.flex-lg-row,
+  #masterPegawaiApp > .d-flex.flex-column.flex-lg-row {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  #masterGuruApp > .d-flex.flex-column.flex-lg-row > .d-flex,
+  #masterPegawaiApp > .d-flex.flex-column.flex-lg-row > .d-flex {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 @media (max-width: 767.98px) {
