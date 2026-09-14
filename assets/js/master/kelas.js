@@ -83,13 +83,13 @@
                 </td>
                 <td>${Number(row.jumlah_siswa || 0)} siswa</td>
                 <td>
-                    <div class="d-flex gap-1">
-                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${row.id}" title="Edit"><i class="bx bx-edit"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${row.id}" title="Hapus"><i class="bx bx-trash"></i></button>
+                    <div class="sisfour-row-actions">
+                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${row.id}" title="Edit" aria-label="Edit kelas"><i class="bx bx-edit"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${row.id}" title="Hapus" aria-label="Hapus kelas"><i class="bx bx-trash"></i></button>
                     </div>
                 </td>
             </tr>
-        `).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data Kelas.</td></tr>';
+        `).join('') || '<tr class="sisfour-empty-row"><td colspan="7" class="text-muted">Tidak ada data Kelas.</td></tr>';
 
         pager?.render(state);
     };
@@ -113,23 +113,11 @@
         }
     };
 
-    const addExportButton = () => {
-        const addButton = document.getElementById('btnTambahKelas');
-        const actions = addButton?.parentElement;
-        if (!actions || document.getElementById('btnExportKelas')) return;
-
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.id = 'btnExportKelas';
-        button.className = 'btn btn-outline-success';
-        button.innerHTML = '<i class="bx bx-export me-1"></i> Export';
-        button.addEventListener('click', () => {
-            const params = filterParams();
-            params.set('export', '1');
-            window.location.href = endpoint(`master/kelas?${params.toString()}`);
-        });
-        actions.insertBefore(button, addButton);
-    };
+    document.getElementById('btnExportKelas')?.addEventListener('click', () => {
+        const params = filterParams();
+        params.set('export', '1');
+        window.location.href = endpoint(`master/kelas?${params.toString()}`);
+    });
 
     document.getElementById('btnTambahKelas').addEventListener('click', () => {
         editingId = null;
@@ -198,6 +186,7 @@
             document.getElementById('tingkat').value = row.tingkat ?? '';
             document.getElementById('rombel').value = row.rombel ?? '';
             document.getElementById('id_tahun').value = row.id_tahun ?? '';
+            window.SisfourSearchableSelect?.sync(document.getElementById('id_tahun'));
             document.getElementById('modalKelasTitle').textContent = 'Edit Kelas';
             modal.show();
             return;
@@ -237,9 +226,9 @@
 
     document.getElementById('btnResetFilter').addEventListener('click', () => {
         filterForm.reset();
+        window.SisfourSearchableSelect?.sync(document.getElementById('filterTahun'));
         load();
     });
 
-    addExportButton();
     load();
 })();
