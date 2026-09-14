@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Services\MataPelajaranService;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -156,10 +157,15 @@ class MasterMapel extends BaseController
         $row = 4;
         foreach ($rows as $mapel) {
             $sheet->fromArray([[
-                $mapel['kode_mapel'] ?? '',
+                '',
                 $mapel['nama_mapel'] ?? '',
                 (int) ($mapel['jumlah_jadwal'] ?? 0),
             ]], null, 'A' . $row);
+            $sheet->setCellValueExplicit(
+                'A' . $row,
+                (string) ($mapel['kode_mapel'] ?? ''),
+                DataType::TYPE_STRING
+            );
             $row++;
         }
 
