@@ -1,11 +1,11 @@
-# Arsip Dokumen UI/UX Lama
+# Dokumen Nonaktif
 
-Dokumen ini tidak lagi menjadi SSOT aktif.
+Dokumen ini sengaja dipertahankan hanya sebagai compatibility stub pada history branch G2.
 
-Acuan canonical yang berlaku:
+SSOT aktif:
 
-- `docs/11_UI_UX — SisisFour.md`
-- `docs/11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`
-- `docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`
+- `11_UI_UX — SisisFour.md`
+- `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`
+- `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`
 
-File dipertahankan sementara hanya untuk kompatibilitas history repository dan akan dihapus pada housekeeping repository bila deletion tersedia.
+Jangan gunakan file ini sebagai acuan implementasi.
