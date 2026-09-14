@@ -1,6 +1,6 @@
 # Dashboard, Settings, Maintenance, Backup & Log — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
+**Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 14 September 2026
 
 ## 1. Dashboard by Experience

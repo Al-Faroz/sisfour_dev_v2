@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 14 September 2026  
-**Development aktif:** G2 Stabilization  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 14 September 2026
+**Development aktif:** G2 Stabilization
 **Target:** Web + Android Cordova
 
 ## 1. Sistem

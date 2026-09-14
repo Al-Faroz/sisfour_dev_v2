@@ -1,7 +1,7 @@
 # Master Data & Student Lifecycle — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 14 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 14 September 2026
 **Development Stage:** G2
 
 > Dokumen ini menyatakan business contract Master Data dan Manajemen Siswa. UI detail mengikuti dokumen UI; authorization final tetap ditentukan Service + permission database.

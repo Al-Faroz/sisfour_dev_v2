@@ -1,8 +1,8 @@
 # Audit UI/UX Admin — SisisFour
 
-**Status:** Current G2 Source Audit / Browser ACC Pending  
-**Tanggal Acuan:** 14 September 2026  
-**Branch:** `fix/g2-master-data-20260913`  
+**Status:** Current G2 Source Audit / Browser ACC Pending
+**Tanggal Acuan:** 14 September 2026
+**Branch:** `fix/g2-master-data-20260913`
 **Acuan:** `11_UI_UX — SisisFour.md` + `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`
 
 > Dokumen ini menyatakan kondisi source Admin saat ini dan gate yang masih perlu dibuktikan di browser. Ia bukan daftar bug historis.
