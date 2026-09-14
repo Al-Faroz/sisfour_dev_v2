@@ -5,51 +5,34 @@
 $rows = $initial['rows'] ?? [];
 ?>
 
-<div
-  id="backupApp"
-  data-base-url="<?= esc(base_url(), 'attr') ?>"
->
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-    <div>
+<div id="backupApp" data-base-url="<?= esc(base_url(), 'attr') ?>">
+  <div class="sisfour-page-header">
+    <div class="sisfour-page-header__copy">
       <h4 class="fw-bold mb-1">Backup Database</h4>
       <p class="text-muted mb-0">
-        Backup SQL disimpan aman di
-        <code>writable/backups/</code>.
+        Backup SQL disimpan aman di <code>writable/backups/</code>.
       </p>
     </div>
 
-    <button
-      type="button"
-      class="btn btn-primary"
-      id="btnCreateBackup"
-    >
-      <i class="bx bx-data me-1"></i>
-      Buat Backup
-    </button>
+    <div class="sisfour-page-actions">
+      <button type="button" class="btn btn-primary" id="btnCreateBackup">
+        <i class="bx bx-data me-1"></i> Buat Backup
+      </button>
+    </div>
   </div>
 
-  <div
-    id="backupAlert"
-    class="alert d-none"
-    role="alert"
-  ></div>
+  <div id="backupAlert" class="alert d-none" role="alert"></div>
 
-  <div class="card">
-    <div class="card-header d-flex align-items-center justify-content-between">
+  <div class="card sisfour-table-card">
+    <div class="card-header d-flex align-items-center justify-content-between gap-2">
       <h5 class="mb-0">Daftar Backup</h5>
-
-      <button
-        type="button"
-        class="btn btn-sm btn-outline-secondary"
-        id="btnReloadBackup"
-      >
-        <i class="bx bx-refresh me-1"></i>
-        Muat Ulang
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="btnReloadBackup">
+        <i class="bx bx-refresh me-1"></i> Muat Ulang
       </button>
     </div>
 
-    <div class="table-responsive text-nowrap">
-      <table class="table">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
         <thead>
           <tr>
             <th>Nama File</th>
@@ -60,52 +43,31 @@ $rows = $initial['rows'] ?? [];
         </thead>
         <tbody id="backupBody">
           <?php if ($rows === []): ?>
-            <tr>
-              <td
-                colspan="4"
-                class="text-center text-muted py-4"
-              >
-                Belum ada file backup.
-              </td>
+            <tr class="sisfour-empty-row">
+              <td colspan="4" class="text-muted">Belum ada file backup.</td>
             </tr>
           <?php else: ?>
             <?php foreach ($rows as $row): ?>
               <tr>
-                <td>
-                  <code><?= esc($row['filename']) ?></code>
-                </td>
-                <td>
-                  <?= number_format(
-                      ((int) $row['size']) / 1024,
-                      2,
-                      ',',
-                      '.'
-                  ) ?> KB
-                </td>
-                <td>
-                  <?= esc($row['created_at'] ?? '-') ?>
-                </td>
+                <td><code><?= esc($row['filename']) ?></code></td>
+                <td><?= number_format(((int) $row['size']) / 1024, 2, ',', '.') ?> KB</td>
+                <td><?= esc($row['created_at'] ?? '-') ?></td>
                 <td class="text-end">
-                  <a
-                    class="btn btn-sm btn-outline-primary"
-                    href="<?= base_url(
-                        'backup/download/'
-                        . rawurlencode($row['filename'])
-                    ) ?>"
-                  >
-                    Download
-                  </a>
-
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-danger btn-delete-backup"
-                    data-filename="<?= esc(
-                        $row['filename'],
-                        'attr'
-                    ) ?>"
-                  >
-                    Hapus
-                  </button>
+                  <div class="sisfour-row-actions justify-content-end">
+                    <a
+                      class="btn btn-sm btn-outline-primary"
+                      href="<?= base_url('backup/download/' . rawurlencode($row['filename'])) ?>"
+                    >
+                      <i class="bx bx-download me-1"></i> Download
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-danger btn-delete-backup"
+                      data-filename="<?= esc($row['filename'], 'attr') ?>"
+                    >
+                      <i class="bx bx-trash me-1"></i> Hapus
+                    </button>
+                  </div>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -115,10 +77,9 @@ $rows = $initial['rows'] ?? [];
     </div>
   </div>
 
-  <div class="alert alert-warning mt-4 mb-0">
+  <div class="alert alert-warning sisfour-compact-note mt-4 mb-0">
     <strong>Catatan:</strong>
-    Backup ini mencakup struktur tabel dan data database.
-    File upload, foto, logo, dan asset aplikasi tidak termasuk.
+    Backup ini mencakup struktur tabel dan data database. File upload, foto, logo, dan asset aplikasi tidak termasuk.
   </div>
 </div>
 
