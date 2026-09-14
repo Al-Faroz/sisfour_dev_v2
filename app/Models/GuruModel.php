@@ -10,6 +10,11 @@ use CodeIgniter\Model;
  * NIK adalah identitas wajib untuk record baru/perubahan administratif.
  * NIP adalah identitas kepegawaian resmi dan boleh kosong.
  * Record legacy yang belum mempunyai NIK tetap dapat dibaca sampai dilengkapi.
+ *
+ * Uniqueness NIK/NIP dijaga GuruService dengan awareness terhadap record yang
+ * sedang diedit, lalu tetap diproteksi UNIQUE KEY database. Model fokus pada
+ * validasi bentuk agar update tidak salah mendeteksi record sendiri sebagai
+ * duplikat.
  */
 class GuruModel extends Model
 {
@@ -43,8 +48,8 @@ class GuruModel extends Model
     ];
 
     protected $validationRules = [
-        'nik'                 => 'required|exact_length[16]|numeric|is_unique[guru.nik,id,{id}]',
-        'nip'                 => 'permit_empty|exact_length[18]|numeric|is_unique[guru.nip,id,{id}]',
+        'nik'                 => 'required|exact_length[16]|numeric',
+        'nip'                 => 'permit_empty|exact_length[18]|numeric',
         'nama'                => 'required|max_length[150]',
         'jenis_kelamin'       => 'required|in_list[L,P]',
         'tempat_lahir'        => 'permit_empty|max_length[100]',
@@ -62,12 +67,10 @@ class GuruModel extends Model
             'required'     => 'NIK wajib diisi.',
             'exact_length' => 'NIK harus 16 digit.',
             'numeric'      => 'NIK hanya boleh berisi angka.',
-            'is_unique'    => 'NIK sudah terdaftar pada data Guru.',
         ],
         'nip' => [
             'exact_length' => 'NIP harus 18 digit.',
             'numeric'      => 'NIP hanya boleh berisi angka.',
-            'is_unique'    => 'NIP sudah terdaftar pada data Guru.',
         ],
         'nama' => [
             'required' => 'Nama Guru wajib diisi.',
