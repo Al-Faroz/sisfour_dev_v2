@@ -1,295 +1,175 @@
 # Audit UI/UX Admin — SisisFour
 
-**Status:** Working Audit / berlaku terhadap branch G2  
-**Tanggal Audit:** 14 September 2026  
+**Status:** Current G2 Source Audit / Browser ACC Pending  
+**Tanggal Acuan:** 14 September 2026  
 **Branch:** `fix/g2-master-data-20260913`  
-**Standar Acuan:** `docs/11_UI_UX — SisisFour.md`
+**Acuan:** `11_UI_UX — SisisFour.md` + `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`
 
-> Audit ini adalah pemeriksaan source UI seluruh halaman Admin terhadap standar canonical. Status visual final tetap membutuhkan browser regression pada desktop/laptop/tablet/mobile setelah refactor selesai.
+> Dokumen ini menyatakan kondisi source Admin saat ini dan gate yang masih perlu dibuktikan di browser. Ia bukan daftar bug historis.
 
-## 1. Skala Status
+## 1. Kondisi Foundation
 
-```text
-BASE OK   = struktur utama sudah dekat standar; perlu migrasi class/foundation kecil
-MINOR     = ada deviasi visual/komponen tetapi tidak perlu redesign flow
-REFACTOR  = melanggar pola canonical atau berpotensi layout shift/inconsistency nyata
-N/A       = layout khusus/print, tidak dibandingkan langsung dengan Admin shell
-```
-
-## 2. Temuan Global P0
-
-### P0-01 — Page title tidak satu kontrak
-
-Controller umumnya mengirim `title`, sedangkan `_navbar.php` dan `_header.php` membaca `pageTitle`.
-
-Dampak:
-
-- navbar dapat tetap menampilkan `Dashboard` pada halaman lain;
-- browser `<title>` dapat tidak sesuai judul halaman;
-- screenshot user telah menunjukkan kasus ini pada Master Tahun Ajaran.
-
-Target:
+Source G2 saat ini sudah memiliki foundation berikut:
 
 ```text
-title dari controller
--> dinormalisasi sebagai pageTitle di BaseController/layout
--> navbar + <title> menggunakan nilai sama
-```
-
-### P0-02 — Belum ada primitive page layout bersama
-
-Saat audit, header/filter/table/modal ditulis ulang di banyak View memakai kombinasi Bootstrap yang mirip tetapi tidak identik.
-
-Target primitive:
-
-```text
+Sneat v3 layout-menu-fixed layout-compact
+container-xxl shell
+page title normalization
+viewport-fit=cover
 sisfour-page-header
 sisfour-page-actions
 sisfour-filter-card
 sisfour-filter-actions
 sisfour-table-card
-sisfour-table-actions
-sisfour-pager
-sisfour-empty-state
+sisfour-modal-actions
+SisfourPagination
+SisfourSearchableSelect
+SweetAlert2 confirmation pada flow yang sudah dinormalisasi
 ```
 
-### P0-03 — Layout utama masih dibentuk lewat JavaScript pada beberapa halaman
+Static control utama pada halaman yang telah dinormalisasi berada di View, bukan disisipkan setelah load melalui JavaScript.
 
-Ditemukan pola:
+## 2. Login & Branding
 
-- Export Master Kelas ditambahkan JS;
-- Export Master Mapel ditambahkan JS;
-- Export Mapping Wali ditambahkan JS;
-- Export Master Pelanggaran ditambahkan JS;
-- filter Tingkat Kenaikan Kelas ditambahkan JS;
-- navigation Profile Guru ditambahkan JS;
-- search Nama Guru Presensi Mengajar dibuat ad-hoc lewat JS.
+Source G2 menetapkan:
 
-Target: seluruh struktur ini pindah ke View. JS hanya behavior.
+- password visibility toggle login eksplisit dan tidak bergantung pada dashboard script;
+- `icon_sekolah` menjadi favicon login dan authenticated shell bila physical file tersedia;
+- favicon memakai cache-busting;
+- uploaded icon dapat menjadi apple-touch-icon;
+- Setting Sistem menampilkan preview/path branding;
+- branding reload setelah upload sukses.
 
-### P0-04 — Pagination belum satu komponen
+Status: **source ready, browser regression pending**.
 
-Ada tiga pola bersamaan:
+## 3. Admin Layout Contract
 
-1. `SisfourPagination` canonical;
-2. manual Prev/Next dalam card footer;
-3. client-side slice yang memasang `SisfourPagination` setelah data dimuat.
-
-Target: semua list pageable memakai `SisfourPagination` dengan summary + nomor halaman + limit.
-
-## 3. Temuan Foundation
-
-### UI-F01 — Paginator footer berpotensi double spacing
-
-`SisfourPagination.mount()` membuat/menempatkan container di `.card-footer`, sedangkan `.sisfour-pager` sendiri memiliki padding dan border-top.
-
-Target: satu layer yang mengontrol padding/border.
-
-### UI-F02 — SearchableSelect accessibility
-
-Native `<select>` disembunyikan dan input visual baru dibuat, tetapi label `for` masih menunjuk ke select tersembunyi.
-
-Target: label/aria diarahkan juga ke visible combobox.
-
-### UI-F03 — CSS legacy
-
-`assets/css/custom.css` masih berisi Select2/DataTables override, sedangkan business UI saat ini memakai komponen internal dan file tersebut tidak menjadi foundation aktif.
-
-Target: pola reusable hanya di `sisfour-ui.css`; legacy override tidak menjadi referensi implementation baru.
-
-### UI-F04 — Confirmation tidak seragam
-
-Sebagian modul memakai SweetAlert2, tetapi Master Pelanggaran masih memakai `confirm()` / `alert()`.
-
-Target: SweetAlert2 untuk flow business interaktif.
-
-### UI-F05 — Table bottom spacing
-
-Sebagian table memakai `mb-0`, sebagian tidak. Table tanpa `mb-0` dapat menyisakan area kosong di card.
-
-Target: seluruh data table dalam card menggunakan `mb-0`.
-
-## 4. Audit Semua Halaman Admin
-
-| # | Halaman | Status | Temuan Utama | Target Normalisasi |
-|---|---|---|---|---|
-| 1 | Dashboard | MINOR | Header mendekati standar, tetapi KPI mencampur `h3/h4`, bobot card tidak seragam | `sisfour-page-header`, KPI card canonical, typography konsisten |
-| 2 | Presensi Siswa | BASE OK | Header/filter/card cukup konsisten; table status memang lebar | Migrasi class foundation; pastikan mobile table scroll lokal |
-| 3 | Presensi Mengajar | REFACTOR | Search Nama Guru dibuat input tambahan lewat JS | Guru select memakai SearchableSelect dari markup View |
-| 4 | Rekap Presensi | REFACTOR | Footer masih manual Prev/Next + page info | Ganti dengan `SisfourPagination` |
-| 5 | EWS Radar | MINOR | Pager sudah canonical; table card tidak memiliki heading konsisten | Tambah table-card header/standard state |
-| 6 | Master Guru | MINOR | Struktur kuat; masih memakai kombinasi class manual dan table tanpa kontrak foundation penuh | Migrasi page/header/filter/table/action classes; `mb-0` |
-| 7 | Master Pegawai | MINOR | Pola sama dengan Guru | Migrasi ke foundation yang sama |
-| 8 | Master Siswa | MINOR | Pola dekat Guru/Pegawai | Migrasi ke foundation yang sama |
-| 9 | Master Kelas | REFACTOR | Tombol Export ditambahkan JS setelah render; table belum `mb-0` | Export statis di View + foundation |
-| 10 | Master Tahun Ajaran | MINOR | Struktur cukup rapi; info alert cukup dominan; legacy `card-datatable` | Foundation + compact rule notice; non-pageable tetap tanpa pager |
-| 11 | Master Mata Pelajaran | REFACTOR | Export/wrapper action dibuat JS | Export statis di View + foundation |
-| 12 | Mapping Wali Kelas | REFACTOR | Export dibuat JS; pagination baru dipasang client-side | Export statis + foundation + paginator canonical |
-| 13 | Master Jadwal Guru | MINOR | Header/action/filter baik; info alert panjang dan filter row belum `align-items-end` | Foundation, compact callout, standard filter alignment |
-| 14 | Penempatan / Pindah Kelas | MINOR | Header/filter/table cukup jelas tetapi belum foundation; workflow modal perlu responsive regression | Foundation + paginator/empty state konsisten |
-| 15 | Kenaikan Kelas | REFACTOR | Filter Tingkat dibuat dari JS dan disisipkan sebelum card | Filter statis dalam View + paginator canonical |
-| 16 | Mutasi Siswa | MINOR | Layout workflow sederhana tetapi belum foundation | Header/filter/table/modal standard |
-| 17 | Kelulusan | MINOR | Layout workflow sederhana tetapi belum foundation | Header/table/modal/confirmation standard |
-| 18 | Matrix Presensi | BASE OK | Filter grid dan table baik; perlu foundation dan empty state visual seragam | Foundation + table card canonical |
-| 19 | Export Presensi | MINOR | Halaman action/form khusus; hierarchy action perlu disamakan | Page header + form card standard |
-| 20 | Laporan Jurnal | MINOR | Filter/report mengikuti pola sendiri | Standard header/filter/table/export action |
-| 21 | Catatan Kasus | REFACTOR | Pagination manual Prev/Next; table/action/footer berbeda dari master | `SisfourPagination` + standard table card |
-| 22 | Master Pelanggaran | REFACTOR | Header sangat minimal, Export dibuat JS, confirm/alert native, table tanpa card header | Full list template canonical + SweetAlert2 |
-| 23 | Prestasi Siswa | MINOR | Struktur business cukup baik tetapi perlu penyamaan filter/table/pager | Foundation + paginator canonical bila pageable |
-| 24 | Kartu Pelajar | REFACTOR | Banyak kelompok action dalam satu card; manual Prev/Next; berisiko padat di mobile | Pisahkan filter/action secara visual + canonical pager/mobile actions |
-| 25 | Manajemen User | REFACTOR | Header tidak stack secara canonical; manual Prev/Next; modal form footer tidak punya Batal | Foundation + canonical pager + modal footer |
-| 26 | Menu & Role | REFACTOR | Tabel sangat lebar dan action per row; mobile hierarchy belum jelas | Standard header/table; responsive horizontal strategy; action sticky/nowrap bila perlu |
-| 27 | Setting Sistem | MINOR | Beberapa form card memakai tombol di body, spacing/action berbeda antar section | Standard form-card footer dan section heading |
-| 28 | Backup | MINOR | Header cukup baik; table `text-nowrap` dapat terlalu lebar di mobile; warning besar | Foundation + responsive table + compact warning |
-| 29 | Log Activity | REFACTOR | Manual Prev/Next; filter action terpisah dari row field | Canonical filter actions + `SisfourPagination` |
-| 30 | Profile Guru | REFACTOR | Navigation Biodata/Personalia/Portofolio ditambahkan JS setelah render | Tabs/navigation ditulis statis di View + CSS responsive canonical |
-
-## 5. Audit Layout Shell
-
-### Main
-
-`main.php` sudah benar memakai:
+Admin/Operator tetap memakai pola desktop/laptop sebagai surface utama:
 
 ```text
-layout-wrapper
-layout-container
-layout-page
-content-wrapper
-container-xxl flex-grow-1 container-p-y
+Page Header
+Filter/Form Card
+Data/Table Card
+Pagination
+Modal/Detail
 ```
 
-Tidak perlu mengganti shell Sneat.
+Admin table boleh menggunakan horizontal-scroll hanya bila data memang bersifat matrix/lebar dan tidak dapat direduksi tanpa kehilangan fungsi.
 
-### Navbar
+Aturan no-horizontal-table-scroll yang lebih ketat berlaku terutama pada role operasional mobile di G3, bukan alasan merombak seluruh Admin pada G2.
 
-Struktur user dropdown baik. Blocker utamanya adalah sinkronisasi title.
+## 4. Halaman Admin — Current Source Status
 
-### Sidebar
+| Area | Source State G2 | Gate sebelum G2 closed |
+|---|---|---|
+| Dashboard Admin | foundation diterapkan | browser hierarchy/spacing |
+| Presensi Siswa | canonical header/filter/card | fungsi + responsive smoke |
+| Presensi Mengajar | SearchableSelect Guru | search + jurnal regression |
+| Rekap Presensi | paginator canonical | filter/pager browser |
+| EWS | paginator/layout normalized | browser pagination |
+| Master Guru | responsive compatibility + existing master workflow | CRUD/import/export/browser |
+| Master Pegawai | responsive compatibility + existing master workflow | CRUD/import/export/browser |
+| Master Siswa | existing canonical master pattern | CRUD/import/export/browser |
+| Master Kelas | Export + pagination normalized | export/pager browser |
+| Tahun Ajaran | layout normalized | Siapkan Genap UI smoke |
+| Mapel | Export + pagination normalized | export/pager browser |
+| Mapping Wali | Export + pagination normalized | export/pager/browser |
+| Jadwal Guru | layout/filter/import normalized | F13 regression |
+| Penempatan/Pindah | foundation applied | F14 regression |
+| Kenaikan | filter Tingkat + pagination | F14 regression |
+| Mutasi | foundation applied | F14 regression |
+| Kelulusan | foundation applied | F14 regression |
+| Matrix Presensi | canonical structure | report browser |
+| Export Presensi | form/action normalized | export browser |
+| Laporan Jurnal | canonical table/pager | filter/export browser |
+| Catatan Kasus | canonical pager/layout | BK regression |
+| Master Pelanggaran | canonical layout/export/SweetAlert | CRUD/export browser |
+| Prestasi | canonical table/pager | CRUD/export browser |
+| Kartu Pelajar | hierarchy/pager normalized | preview/download browser |
+| Manajemen User | canonical header/filter/modal/pager | CRUD/reset browser |
+| Menu & Role | canonical shell | matrix browser |
+| Setting Sistem | canonical shell + branding preview | upload/favicon/maintenance |
+| Backup | canonical shell | create/download/delete |
+| Log Activity | canonical filter/pager | filter/export browser |
+| Profile Guru | mobile secondary nav statis | tabs/profile browser |
 
-Sidebar sudah data-driven dan bukan tempat hardcode role. Struktur dipertahankan.
+## 5. G2 UI Scope Boundary
 
-Perlu browser check:
+G2 hanya memperbaiki blocker/regression pada UI Admin yang sudah disentuh branch.
 
-- collapsed desktop;
-- long menu name;
-- active/open child;
-- mobile overlay.
-
-## 6. Audit Komponen
-
-### Pagination
-
-Status: **perlu konsolidasi**.
-
-Target satu API:
-
-```javascript
-window.SisfourPagination.mount(...)
-```
-
-Manual `Prev/Next` akan dimigrasikan bertahap.
-
-### Searchable Select
-
-Status: **fungsi dasar baik, accessibility perlu hardening**.
-
-Perlu:
-
-- id input visual;
-- label binding/aria-labelledby;
-- proper invalid/disabled mirroring;
-- tidak membuat ad-hoc search input per halaman.
-
-### Alert/Notification
-
-Status: **campuran**.
-
-Target:
-
-- SweetAlert2 untuk confirm/result mutation;
-- inline alert untuk error/loading area;
-- `form-text` untuk petunjuk biasa.
-
-### Modal
-
-Status: **campuran**.
-
-Target:
-
-- seluruh mutation modal punya `Batal + aksi utama`;
-- busy state;
-- `modal-dialog-scrollable` untuk modal panjang;
-- no horizontal overflow.
-
-## 7. Prioritas Refactor
-
-### Batch A — Foundation / P0
-
-1. normalisasi `title/pageTitle`;
-2. tambah primitive global CSS di `sisfour-ui.css`;
-3. perbaiki paginator double spacing;
-4. harden searchable-select label/accessibility;
-5. tetapkan table/action/modal classes.
-
-### Batch B — Hapus Layout Shift JS
-
-1. Master Kelas Export -> View;
-2. Master Mapel Export -> View;
-3. Mapping Wali Export -> View;
-4. Master Pelanggaran Export -> View;
-5. Kenaikan filter Tingkat -> View;
-6. Profile Guru tabs -> View;
-7. Presensi Mengajar search -> SearchableSelect.
-
-### Batch C — Pagination
-
-Migrasikan manual pager:
-
-- Rekap Presensi;
-- Catatan Kasus;
-- Kartu Pelajar;
-- Manajemen User;
-- Log Activity;
-- halaman lain yang masih Prev/Next manual setelah runtime sweep.
-
-### Batch D — Visual Sweep Semua Admin
-
-Urutan:
+Dilarang memperluas G2 menjadi:
 
 ```text
-Dashboard
-Presensi
-Master Data
-Manajemen Siswa
-Laporan
-BK/Prestasi
-Kartu
-Settings
-Backup/Log
-Profile
+redesign seluruh dashboard role
+adaptive table role operasional
+Cordova bridge
+Android Back handler
+APK packaging
 ```
 
-Setiap halaman harus lolos empat viewport canonical.
+Pekerjaan tersebut berada pada G3/G4.
 
-## 8. Acceptance Criteria
+## 6. Browser Regression Wajib G2
 
-UI Admin dinyatakan konsisten bila:
+Minimum viewport smoke:
 
-- seluruh page title navbar/browser cocok;
-- seluruh page header memakai pola yang sama;
-- tidak ada tombol/filter/tab utama yang baru muncul setelah JS load;
-- filter controls sejajar dan responsive;
-- data table memakai card/table/pager pattern yang sama;
-- manual Prev/Next tidak tersisa bila dataset pageable;
-- modal mutation punya Cancel + primary action;
-- SweetAlert2 menjadi confirmation standard;
-- search entity memakai SearchableSelect;
-- tidak ada overflow halaman pada 360 px;
-- table overflow terjadi hanya di `.table-responsive`;
-- loading/empty/error terlihat jelas;
-- tidak ada browser console error;
-- business rule, route, permission, dan database behavior tidak berubah oleh refactor visual.
+```text
+390×844
+1024×768
+1366×768
+```
 
-## 9. Batas Audit
+Untuk Admin, 360px juga dicek untuk body overflow dan critical action, tetapi matrix administratif boleh exception lokal.
 
-Audit ini memeriksa source aktual dan struktur seluruh halaman Admin pada branch G2. Pixel-level final tetap harus diuji di browser lokal karena CSS theme, panjang data aktual, viewport, browser, dan WebView dapat menghasilkan masalah yang tidak dapat dibuktikan hanya dari source.
+Per halaman yang diubah, cek:
+
+```text
+page title/navbar
+sidebar active/open
+header/action alignment
+filter
+pagination
+modal
+loading/empty/error
+console error
+primary mutation
+```
+
+## 7. Critical G2 UI Regression
+
+Wajib sebelum PR close:
+
+1. Login show/hide password.
+2. Favicon icon sekolah pada login dan authenticated page.
+3. Setting Sistem upload branding.
+4. Master Kelas/Mapel/Mapping Wali/Pelanggaran export.
+5. Presensi Mengajar Guru search.
+6. EWS/Rekap/Kenaikan pagination.
+7. Profile Guru tabs pada mobile.
+8. Page title/navbar tidak kembali ke Dashboard secara salah.
+
+## 8. G3 Mobile Re-audit
+
+Setelah G2 closed, seluruh surface Pimpinan/BK/Guru/Wali/Siswa diaudit ulang terhadap:
+
+```text
+14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
+```
+
+Audit G3 berbeda dengan audit Admin ini. Target G3 adalah no-horizontal-table-scroll, mobile density, touch target, adaptive information hierarchy, dan WebView readiness.
+
+## 9. Acceptance G2 Admin
+
+G2 Admin UI dianggap stabil bila:
+
+- tidak ada syntax/runtime blocker;
+- title dan navigation benar;
+- static action tidak muncul terlambat akibat JS;
+- paginator yang sudah dinormalisasi bekerja;
+- mutation modal/confirmation bekerja;
+- export yang ditambah menghasilkan file;
+- branding/login regression PASS;
+- tidak ada body horizontal overflow yang tidak disengaja;
+- business rule F06–F14 tetap benar.
+
+Pixel-level redesign role mobile **bukan gate merge G2**; itu gate G3.
