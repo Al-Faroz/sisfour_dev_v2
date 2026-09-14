@@ -7,8 +7,8 @@
     data-base-url="<?= esc(base_url()) ?>"
     data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
 >
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Mapping Wali Kelas</h4>
             <p class="text-muted mb-0">
                 Kelola penetapan wali kelas per tahun ajaran.
@@ -16,7 +16,7 @@
         </div>
 
         <?php if (!empty($canManage)): ?>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="sisfour-page-actions">
                 <a
                     href="<?= base_url('master/wali-kelas/recycle') ?>"
                     class="btn btn-outline-secondary"
@@ -24,6 +24,15 @@
                     <i class="bx bx-history me-1"></i>
                     Histori / Recycle Bin
                 </a>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-success"
+                    id="btnExportWali"
+                >
+                    <i class="bx bx-export me-1"></i>
+                    Export
+                </button>
 
                 <button
                     type="button"
@@ -37,16 +46,16 @@
         <?php endif; ?>
     </div>
 
-    <div class="alert alert-info">
+    <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Wali Kelas <strong>bukan role</strong>. Status Wali dibaca dinamis dari
         mapping aktif. Satu guru maksimal satu kelas aktif per tahun ajaran,
         dan satu kelas maksimal satu wali aktif per tahun ajaran.
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
-            <form id="formFilterWali" class="row g-3">
+            <form id="formFilterWali" class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label
                         class="form-label"
@@ -123,15 +132,7 @@
                     </select>
                 </div>
 
-                <div class="col-12 d-flex gap-2">
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-                        <i class="bx bx-filter-alt me-1"></i>
-                        Terapkan
-                    </button>
-
+                <div class="col-12 sisfour-filter-actions">
                     <button
                         type="button"
                         class="btn btn-outline-secondary"
@@ -139,13 +140,21 @@
                     >
                         Reset
                     </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        <i class="bx bx-filter-alt me-1"></i>
+                        Terapkan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card sisfour-table-card">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2">
             <h5 class="mb-0">Daftar Wali Kelas Aktif</h5>
 
             <?php if (empty($canManage)): ?>
@@ -155,9 +164,9 @@
             <?php endif; ?>
         </div>
 
-        <div class="card-datatable table-responsive">
+        <div class="table-responsive">
             <table
-                class="table table-hover align-middle"
+                class="table table-hover align-middle mb-0"
                 id="tableMappingWali"
             >
                 <thead>
@@ -203,7 +212,7 @@
                         </div>
 
                         <div class="modal-body">
-                            <div class="alert alert-warning">
+                            <div class="alert alert-warning sisfour-compact-note">
                                 Jika guru pernah menjadi wali pada tahun yang sama
                                 dan mapping lama sudah nonaktif, sistem akan
                                 <strong>restore</strong> row lama, bukan membuat
@@ -288,7 +297,7 @@
                             </div>
                         </div>
 
-                        <div class="modal-footer">
+                        <div class="modal-footer sisfour-modal-actions">
                             <button
                                 type="button"
                                 class="btn btn-outline-secondary"
