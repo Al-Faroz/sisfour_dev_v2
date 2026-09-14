@@ -7,13 +7,14 @@
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
   const form = document.getElementById('formPelanggaran');
   const modalEl = document.getElementById('modalPelanggaran');
+  const modalTitle = document.getElementById('modalPelanggaranTitle');
   const tbody = document.getElementById('pelanggaranBody');
-  const table = tbody?.closest('table');
+  const table = document.getElementById('tablePelanggaran');
 
   if (!form || !modalEl || !tbody || !table) return;
 
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
   const state = { limit: 25, offset: 0, total: rows.length };
 
   const pager = window.SisfourPagination?.mount(table, {
@@ -43,61 +44,36 @@
     pager?.render(state);
   }
 
-  function addExportButton() {
-    const addButton = document.getElementById('btnPelanggaranBaru');
-    const header = addButton?.parentElement;
-    if (!header || document.getElementById('btnExportPelanggaran')) return;
-
-    const wrapper = document.createElement('div');
-    wrapper.className = 'd-flex flex-wrap gap-2';
-    addButton.replaceWith(wrapper);
-
-    const exportButton = document.createElement('button');
-    exportButton.type = 'button';
-    exportButton.id = 'btnExportPelanggaran';
-    exportButton.className = 'btn btn-outline-success';
-    exportButton.innerHTML = '<i class="bx bx-export me-1"></i> Export';
-    exportButton.addEventListener('click', () => {
-      window.location.href = `${base}/bk/pelanggaran?export=1`;
-    });
-
-    wrapper.appendChild(exportButton);
-    wrapper.appendChild(addButton);
-  }
-
   function setButtonBusy(button, busy, label = 'Memproses...') {
     if (!button) return;
 
+    const spinner = button.querySelector('.spinner-border');
+
     if (busy) {
       if (button.dataset.busy === '1') return;
-
       button.dataset.busy = '1';
       button.dataset.busyHtml = button.innerHTML;
       button.disabled = true;
-      button.innerHTML = `
-        <span
-          class="spinner-border spinner-border-sm me-2"
-          role="status"
-          aria-hidden="true"
-        ></span>${label}
-      `;
+      if (spinner) {
+        spinner.classList.remove('d-none');
+      } else {
+        button.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${label}
+        `;
+      }
       return;
     }
 
     button.disabled = false;
-
     if (button.dataset.busyHtml !== undefined) {
       button.innerHTML = button.dataset.busyHtml;
     }
-
     delete button.dataset.busy;
     delete button.dataset.busyHtml;
   }
 
   function formSubmitButton(targetForm) {
-    return targetForm?.querySelector(
-      'button[type="submit"], input[type="submit"]'
-    ) || null;
+    return targetForm?.querySelector('button[type="submit"], input[type="submit"]') || null;
   }
 
   async function requestJson(url, options = {}) {
@@ -130,6 +106,7 @@
     form.reset();
     form.dataset.busy = '0';
     setButtonBusy(formSubmitButton(form), false);
+    modalTitle.textContent = row ? 'Edit Pelanggaran' : 'Tambah Pelanggaran';
     form.elements.id.value = row?.dataset.id || '';
     form.elements.nama_pelanggaran.value = row?.dataset.nama || '';
     form.elements.kategori.value = row?.dataset.kategori || 'Ringan';
@@ -137,45 +114,65 @@
     modal.show();
   }
 
-  document.getElementById('btnPelanggaranBaru')
-    ?.addEventListener('click', () => open());
-
-  document.querySelectorAll('.btn-edit').forEach((button) => {
-    button.addEventListener(
-      'click',
-      () => open(button.closest('tr'))
-    );
+  document.getElementById('btnExportPelanggaran')?.addEventListener('click', () => {
+    window.location.href = `${base}/bk/pelanggaran?export=1`;
   });
 
-  document.querySelectorAll('.btn-delete').forEach((button) => {
-    button.addEventListener('click', async () => {
-      if (button.dataset.busy === '1') return;
+  document.getElementById('btnPelanggaranBaru')?.addEventListener('click', () => open());
 
-      const id = button.closest('tr')?.dataset.id;
+  tbody.addEventListener('click', async (event) => {
+    const editButton = event.target.closest('.btn-edit');
+    if (editButton) {
+      open(editButton.closest('tr'));
+      return;
+    }
 
-      if (!id || !confirm('Hapus pelanggaran ini?')) {
-        return;
-      }
+    const deleteButton = event.target.closest('.btn-delete');
+    if (!deleteButton || deleteButton.dataset.busy === '1') return;
 
-      setButtonBusy(button, true, 'Menghapus...');
+    const row = deleteButton.closest('tr');
+    const id = row?.dataset.id;
+    if (!id) return;
 
-      try {
-        await requestJson(
-          `${base}/bk/pelanggaran/delete/${id}`,
-          { method: 'DELETE' }
-        );
-
-        window.location.reload();
-      } catch (error) {
-        window.alert(error.message || 'Gagal menghapus.');
-        setButtonBusy(button, false);
-      }
+    const confirmation = await Swal.fire({
+      icon: 'warning',
+      title: 'Hapus pelanggaran?',
+      html: `<strong>${row.dataset.nama || ''}</strong><br><br>Data yang sudah digunakan pada Catatan Kasus tidak dapat dihapus.`,
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#d33',
     });
+
+    if (!confirmation.isConfirmed) return;
+
+    setButtonBusy(deleteButton, true, 'Menghapus...');
+
+    try {
+      const payload = await requestJson(
+        `${base}/bk/pelanggaran/delete/${id}`,
+        { method: 'DELETE' }
+      );
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: payload.message || 'Master Pelanggaran berhasil dihapus.',
+        timer: 1400,
+        showConfirmButton: false,
+      });
+      window.location.reload();
+    } catch (error) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: error.message || 'Gagal menghapus.',
+      });
+      setButtonBusy(deleteButton, false);
+    }
   });
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-
     if (form.dataset.busy === '1') return;
 
     form.dataset.busy = '1';
@@ -204,15 +201,26 @@
     }
 
     try {
-      await requestJson(url, options);
+      const payload = await requestJson(url, options);
+      modal.hide();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: payload.message || 'Master Pelanggaran berhasil disimpan.',
+        timer: 1400,
+        showConfirmButton: false,
+      });
       window.location.reload();
     } catch (error) {
-      window.alert(error.message || 'Gagal menyimpan.');
+      await Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: error.message || 'Gagal menyimpan.',
+      });
       form.dataset.busy = '0';
       setButtonBusy(submitButton, false);
     }
   });
 
-  addExportButton();
   renderPage();
 })();
