@@ -11,6 +11,7 @@
         return;
     }
 
+    const baseUrl = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
     const activeYearId = String(app.dataset.activeYearId || '');
     const sourceOptions = Array.from(
         kelas.querySelectorAll('option[data-tahun]')
@@ -20,20 +21,19 @@
         tahun: String(option.dataset.tahun || ''),
     }));
 
-    const renderKelas = (preferredValue = '') => {
-        const selectedYear = String(tahun.value || '');
-        const current = String(preferredValue || '');
+    const endpoint = (path) =>
+        `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
 
+    const replaceKelasOptions = (items, preferredValue = '') => {
+        const current = String(preferredValue || '');
         kelas.innerHTML = '<option value="">Semua</option>';
 
-        sourceOptions
-            .filter((item) => item.tahun === selectedYear)
-            .forEach((item) => {
-                const option = document.createElement('option');
-                option.value = item.value;
-                option.textContent = item.label;
-                kelas.appendChild(option);
-            });
+        items.forEach((item) => {
+            const option = document.createElement('option');
+            option.value = String(item.value ?? item.id ?? '');
+            option.textContent = String(item.label ?? item.nama_kelas ?? '');
+            kelas.appendChild(option);
+        });
 
         if (
             current
@@ -44,6 +44,69 @@
             kelas.value = current;
         } else {
             kelas.value = '';
+        }
+
+        window.SisfourSearchableSelect?.sync(kelas);
+    };
+
+    const fallbackItems = (idTahun) => sourceOptions
+        .filter((item) => item.tahun === String(idTahun || ''));
+
+    const renderFallback = (idTahun, preferredValue = '') => {
+        replaceKelasOptions(fallbackItems(idTahun), preferredValue);
+    };
+
+    const loadKelas = async (idTahun, preferredValue = '') => {
+        const yearId = String(idTahun || '');
+        const fallback = fallbackItems(yearId);
+
+        renderFallback(yearId, preferredValue);
+
+        if (!yearId) {
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                id_tahun: yearId,
+                format: 'json',
+            });
+
+            const response = await fetch(
+                endpoint(`master/kelas/json?${params.toString()}`),
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }
+            );
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok || payload.status !== 'success') {
+                return;
+            }
+
+            const rows = Array.isArray(payload.data) ? payload.data : [];
+
+            // Jika endpoint kelas dibatasi oleh scope role, pertahankan fallback
+            // Master Siswa yang sudah disaring oleh permission-nya sendiri.
+            if (!rows.length && fallback.length) {
+                return;
+            }
+
+            replaceKelasOptions(
+                rows.map((row) => ({
+                    value: row.id,
+                    label: row.nama_kelas,
+                })),
+                preferredValue
+            );
+        } catch (error) {
+            // Fallback server-rendered tetap dipakai bila refresh live gagal.
+            console.warn('Refresh kelas Master Siswa gagal.', error);
         }
     };
 
@@ -63,16 +126,14 @@
         tahun.value = initialYear;
     }
 
-    if (requestedStatus !== null) {
-        status.value = requestedStatus;
-    } else {
-        status.value = 'Aktif';
-    }
+    status.value = requestedStatus !== null
+        ? requestedStatus
+        : 'Aktif';
 
-    renderKelas(requestedClass || '');
+    loadKelas(tahun.value, requestedClass || '');
 
     tahun.addEventListener('change', () => {
-        renderKelas('');
+        loadKelas(tahun.value, '');
     });
 
     form.addEventListener('reset', () => {
@@ -87,7 +148,7 @@
             }
 
             status.value = 'Aktif';
-            renderKelas('');
+            loadKelas(tahun.value, '');
         }, 0);
     });
 })();
