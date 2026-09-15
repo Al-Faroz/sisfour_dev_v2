@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\PresensiMengajarJurnalService;
 use CodeIgniter\I18n\Time;
+use Config\Database;
 
 /**
  * PresensiMengajar
@@ -137,8 +138,17 @@ class PresensiMengajar extends BaseController
         $userId = $this->currentActorUserId();
         $now = Time::now(self::TZ);
         $idJurnal = (int) $this->request->getGet('id_jurnal');
+        $wantsJson = $this->requestWantsJson();
 
-        if ($this->requestWantsJson() && $idJurnal > 0) {
+        if ($wantsJson && ! $this->jurnalSchemaReady()) {
+            return $this->respondService([
+                'success' => false,
+                'code' => 'SCHEMA_NOT_READY',
+                'message' => 'Schema Jurnal siswa belum tersedia. Jalankan migration terlebih dahulu.',
+            ]);
+        }
+
+        if ($wantsJson && $idJurnal > 0) {
             return $this->respondService(
                 $this->service->getHistoriDetail($userId, $idJurnal)
             );
@@ -169,7 +179,7 @@ class PresensiMengajar extends BaseController
             ? $statusRaw
             : null;
 
-        if ($this->requestWantsJson()) {
+        if ($wantsJson) {
             return $this->respondService(
                 $this->service->getHistori(
                     $userId,
@@ -204,6 +214,14 @@ class PresensiMengajar extends BaseController
         $post = $this->request->getPost();
 
         return is_array($post) ? $post : [];
+    }
+
+    private function jurnalSchemaReady(): bool
+    {
+        $db = Database::connect();
+
+        return $db->fieldExists('catatan', 'presensi_mengajar')
+            && $db->tableExists('presensi_mengajar_siswa');
     }
 
     private function respondService(array $result, int $successCode = 200)
