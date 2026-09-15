@@ -2,6 +2,37 @@
 
 <?= $this->section('content') ?>
 
+<style>
+    #presensiMengajarApp .jurnal-status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .5rem;
+        max-width: 28rem;
+    }
+
+    #presensiMengajarApp .jurnal-status {
+        min-height: 44px;
+    }
+
+    #presensiMengajarApp .jurnal-sticky-actions {
+        justify-content: space-between;
+    }
+
+    #presensiMengajarApp .jurnal-sticky-actions > small {
+        flex: 1 1 16rem;
+    }
+
+    @media (max-width: 575.98px) {
+        #presensiMengajarApp .jurnal-sticky-actions > .btn {
+            width: 100%;
+        }
+
+        #presensiMengajarApp #jurnalMateri {
+            min-height: 10rem;
+        }
+    }
+</style>
+
 <div
     id="presensiMengajarApp"
     data-base-url="<?= esc(base_url()) ?>"
@@ -87,7 +118,7 @@
                 </div>
 
                 <div class="col-12 sisfour-filter-actions justify-content-end">
-                    <button type="button" class="btn btn-primary" id="btnMuatJurnal">
+                    <button type="button" class="btn btn-primary sisfour-primary-action" id="btnMuatJurnal">
                         <i class="bx bx-search-alt me-1"></i> Muat Jurnal
                     </button>
                 </div>
@@ -95,7 +126,7 @@
         </div>
     </div>
 
-    <div id="jurnalInfo" class="alert alert-info d-none" role="alert"></div>
+    <div id="jurnalInfo" class="alert alert-info d-none" role="alert" aria-live="polite"></div>
 
     <div class="card d-none" id="jurnalCard">
         <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
@@ -103,35 +134,36 @@
                 <h5 class="mb-1" id="jurnalCardTitle">Jurnal Mengajar</h5>
                 <small class="text-muted" id="jurnalCardMeta"></small>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <span class="badge bg-label-secondary" id="jurnalCapability"></span>
                 <span class="badge bg-label-warning d-none" id="jurnalRevisionBadge">Mode Revisi</span>
             </div>
         </div>
 
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-12">
+            <div class="sisfour-mobile-form">
+                <div>
                     <label class="form-label">Status</label>
-                    <div class="d-flex flex-wrap gap-2" id="jurnalStatusGroup">
-                        <button type="button" class="btn btn-outline-success jurnal-status" data-status="Hadir">
+                    <div class="jurnal-status-grid" id="jurnalStatusGroup" role="group" aria-label="Status jurnal mengajar">
+                        <button type="button" class="btn btn-outline-success jurnal-status sisfour-touch-target" data-status="Hadir" aria-pressed="false">
                             Hadir
                         </button>
-                        <button type="button" class="btn btn-outline-warning jurnal-status" data-status="Izin">
+                        <button type="button" class="btn btn-outline-warning jurnal-status sisfour-touch-target" data-status="Izin" aria-pressed="false">
                             Izin
                         </button>
-                        <button type="button" class="btn btn-outline-danger jurnal-status" data-status="Sakit">
+                        <button type="button" class="btn btn-outline-danger jurnal-status sisfour-touch-target" data-status="Sakit" aria-pressed="false">
                             Sakit
                         </button>
                     </div>
                 </div>
 
-                <div class="col-12">
+                <div>
                     <label class="form-label" for="jurnalMateri">Materi / Keterangan</label>
                     <textarea
                         class="form-control"
                         id="jurnalMateri"
-                        rows="5"
+                        rows="6"
+                        autocomplete="off"
                         placeholder="Tuliskan materi pembelajaran. Untuk Izin/Sakit tetap wajib isi keterangan/tugas."
                     ></textarea>
                     <div class="form-text">
@@ -141,12 +173,12 @@
             </div>
         </div>
 
-        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div class="card-footer sisfour-sticky-actions jurnal-sticky-actions">
             <small class="text-muted" id="jurnalGeoNote">
                 Geofence hanya diwajibkan untuk Guru dengan status Hadir. Izin/Sakit tidak memerlukan lokasi.
             </small>
 
-            <button type="button" class="btn btn-success" id="btnSimpanJurnal">
+            <button type="button" class="btn btn-success sisfour-primary-action" id="btnSimpanJurnal">
                 <i class="bx bx-save me-1"></i> Simpan Jurnal
             </button>
         </div>
