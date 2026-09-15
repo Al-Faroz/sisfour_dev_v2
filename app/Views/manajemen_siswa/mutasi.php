@@ -189,39 +189,37 @@
     </div>
 
     <div class="modal fade" id="modalMutasi" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="formMutasi">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="idSiswaMutasi">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Proses Mutasi Siswa</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-dialog-scrollable">
+            <form id="formMutasi" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden" id="idSiswaMutasi">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Proses Mutasi Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body overflow-auto py-3">
+                    <div class="mb-3">
+                        <label class="form-label" for="namaSiswaMutasi">Siswa</label>
+                        <input type="text" class="form-control" id="namaSiswaMutasi" readonly>
                     </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label" for="namaSiswaMutasi">Siswa</label>
-                            <input type="text" class="form-control" id="namaSiswaMutasi" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="statusMutasi">Status</label>
-                            <select class="form-select" id="statusMutasi" name="status" required data-searchable-off="1">
-                                <option value="">Pilih</option>
-                                <option value="Pindah">Pindah Sekolah</option>
-                                <option value="Keluar">Keluar</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label" for="keteranganMutasi">Keterangan</label>
-                            <textarea class="form-control" id="keteranganMutasi" name="keterangan" rows="4" required></textarea>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="statusMutasi">Status</label>
+                        <select class="form-select" id="statusMutasi" name="status" required data-searchable-off="1">
+                            <option value="">Pilih</option>
+                            <option value="Pindah">Pindah Sekolah</option>
+                            <option value="Keluar">Keluar</option>
+                        </select>
                     </div>
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger">Proses Mutasi</button>
+                    <div>
+                        <label class="form-label" for="keteranganMutasi">Keterangan</label>
+                        <textarea class="form-control" id="keteranganMutasi" name="keterangan" rows="4" required></textarea>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Proses Mutasi</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
