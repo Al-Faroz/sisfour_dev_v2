@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <div class="card sisfour-table-card">
+    <div class="card sisfour-table-card mb-4">
         <div class="card-header"><h5 class="mb-0">Daftar Siswa Aktif</h5></div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableMutasiSiswa">
@@ -43,6 +43,61 @@
                     <tr><th style="width:56px;">No.</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>JK</th><th style="width:140px;">Aksi</th></tr>
                 </thead>
                 <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card sisfour-table-card">
+        <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <h5 class="mb-1">Riwayat Mutasi</h5>
+                <p class="text-muted small mb-0">Siswa yang sudah berstatus Pindah atau Keluar tetap ditampilkan sebagai histori dan tidak muncul lagi pada daftar siswa aktif.</p>
+            </div>
+            <span class="badge bg-label-secondary"><?= count($mutasiHistory ?? []) ?> data</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:56px;">No.</th>
+                        <th>Siswa</th>
+                        <th>Status</th>
+                        <th>Kelas Terakhir</th>
+                        <th>Periode</th>
+                        <th>Tanggal</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach (($mutasiHistory ?? []) as $index => $row): ?>
+                        <tr>
+                            <td><?= $index + 1 ?></td>
+                            <td>
+                                <div class="fw-semibold"><?= esc($row['nama'] ?? '-') ?></div>
+                                <small class="text-muted font-monospace"><?= esc($row['nisn'] ?? '-') ?></small>
+                            </td>
+                            <td>
+                                <span class="badge <?= ($row['status'] ?? '') === 'Pindah' ? 'bg-label-warning' : 'bg-label-secondary' ?>">
+                                    <?= esc($row['status'] ?? '-') ?>
+                                </span>
+                            </td>
+                            <td><?= esc($row['nama_kelas'] ?? '-') ?></td>
+                            <td>
+                                <?= esc($row['nama_tahun'] ?? '-') ?>
+                                <?php if (!empty($row['semester'])): ?>
+                                    <div class="small text-muted"><?= esc($row['semester']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= esc($row['tanggal_selesai'] ?? $row['tanggal_mutasi'] ?? '-') ?></td>
+                            <td><?= esc($row['keterangan'] ?? $row['keterangan_mutasi'] ?? '-') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (($mutasiHistory ?? []) === []): ?>
+                        <tr class="sisfour-empty-row">
+                            <td colspan="7" class="text-muted text-center py-4">Belum ada riwayat siswa Pindah/Keluar.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
             </table>
         </div>
     </div>
