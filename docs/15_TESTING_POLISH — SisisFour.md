@@ -1,7 +1,7 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 15 September 2026
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, dan Cordova tidak bercampur.
 
@@ -29,6 +29,7 @@ Login password toggle
 favicon/branding
 page title/navbar
 pagination/filter/export yang berubah
+active-year default/reset yang berubah
 Profile Guru tabs
 browser console
 ```
@@ -85,6 +86,8 @@ Jika Service transition tidak berubah setelah regression yang sudah PASS, tidak 
 ### F11 Mapel
 
 - kode unique;
+- edit nama dengan kode sendiri tetap valid;
+- edit ke kode lain yang sudah ada tetap ditolak;
 - dependency delete;
 - pagination/export.
 
@@ -93,6 +96,8 @@ Jika Service transition tidak berubah setelah regression yang sudah PASS, tidak 
 - class/year integrity;
 - 1 Guru/1 kelas aktif per tahun;
 - history protected;
+- Nonaktifkan → Assign baru sebagai workflow pergantian wali;
+- restore mapping historis sesuai guard;
 - pagination/export.
 
 ### F13 Jadwal Guru
@@ -103,15 +108,87 @@ Jika Service transition tidak berubah setelah regression yang sudah PASS, tidak 
 - linked journal/delete protection;
 - source cleanup memastikan tidak ada eksperimen inactive-Genap yang tersisa tanpa kebutuhan.
 
+Core integrity regression F13 telah PASS; positive import tetap diuji hanya dengan snapshot/isolated data bila diperlukan karena import mengganti baseline aktif periode target secara atomic.
+
 ### F14 Manajemen Siswa
+
+Wajib mencakup:
 
 - penempatan/pindah;
 - kenaikan antar tahun;
 - mutasi;
 - kelulusan;
-- transactional history/status/membership/card.
+- restore terminal lifecycle;
+- transactional history/status/membership/card;
+- anti-double-process;
+- partial promotion;
+- progress per kelas.
 
-## 3. G2 Browser Smoke
+Kenaikan contract:
+
+```text
+source aktif = Genap
+target        = Ganjil tahun ajaran berikutnya
+7 → 8
+8 → 9
+kelas 9 → Kelulusan, bukan kenaikan biasa
+```
+
+Restore contract:
+
+```text
+terminal latest event saja
+exact source period terminal masih aktif
+terminal history dipertahankan
+membership dipulihkan
+history Aktif baru dibuka
+status kembali Aktif
+```
+
+Status F14 per 15 September 2026: **PASS**.
+
+## 3. Default Tahun Ajaran — Regression Gate
+
+Surface selector Tahun Ajaran yang relevan harus mengikuti:
+
+```text
+initial load = periode aktif
+Reset        = periode aktif
+manual pilih histori tetap berfungsi bila halaman mendukung histori
+export/filter mengikuti periode yang sedang dipilih
+```
+
+Surface minimum:
+
+```text
+Master Siswa
+Master Kelas
+Mapping Wali
+Assign Wali
+Master Jadwal Guru
+Import Jadwal Guru
+Laporan Jurnal
+Matrix Presensi
+Export Presensi
+```
+
+Tidak perlu helper/alert seperti “Default menampilkan Tahun Ajaran yang sedang aktif.” Default harus terbaca dari control terpilih.
+
+Workflow current-state berikut tidak membutuhkan selector periode tambahan:
+
+```text
+Penempatan/Pindah
+Mutasi
+Kelulusan
+Kenaikan
+Presensi operasional
+Jurnal operasional
+Kartu Pelajar operasional
+```
+
+Focused regression active-year default/reset: **PASS**.
+
+## 4. G2 Browser Smoke
 
 Minimum:
 
@@ -126,6 +203,7 @@ Cek halaman yang berubah:
 - title/navbar;
 - sidebar;
 - action/filter;
+- active-year default/reset bila relevan;
 - paginator;
 - modal;
 - empty/loading/error;
@@ -134,7 +212,7 @@ Cek halaman yang berubah:
 
 Pixel-level mobile role redesign bukan gate G2.
 
-## 4. Auth Web/API Baseline
+## 5. Auth Web/API Baseline
 
 Web:
 
@@ -153,7 +231,7 @@ API:
 - effective permission/scope;
 - version/maintenance response.
 
-## 5. RBAC
+## 6. RBAC
 
 Minimum actor:
 
@@ -170,7 +248,7 @@ multi-role relevan
 
 Cek menu, direct URL, read, mutation, target scope, contextual Wali.
 
-## 6. Presensi & Jurnal
+## 7. Presensi & Jurnal
 
 Presensi Siswa:
 
@@ -192,11 +270,11 @@ Jurnal:
 - Non Sesi bila didukung;
 - history Jadwal.
 
-## 7. Laporan / BK / Kartu / Profile
+## 8. Laporan / BK / Kartu / Profile
 
 Tetap uji scope, filter, export, detail, lifecycle, ownership, file validation, dan busy guard sesuai dokumen domain.
 
-## 8. G3 Gate — Mobile Role UI
+## 9. G3 Gate — Mobile Role UI
 
 G3 tidak boleh dinyatakan ACC sebelum role Pimpinan/BK/Guru/Wali/Siswa lulus:
 
@@ -224,7 +302,7 @@ Acceptance:
 - network failure tidak menghapus input penting;
 - server-confirmed success untuk data akademik.
 
-## 9. G3 Critical Workflows
+## 10. G3 Critical Workflows
 
 Urutan test:
 
@@ -238,7 +316,7 @@ Dashboard Pimpinan
 Dashboard/flow Siswa
 ```
 
-## 10. G4 Gate — Cordova APK
+## 11. G4 Gate — Cordova APK
 
 Sebelum build final:
 
@@ -256,7 +334,7 @@ Sebelum build final:
 - maintenance behavior;
 - no sensitive debug logging.
 
-## 11. Cordova Mutation Safety
+## 12. Cordova Mutation Safety
 
 Tidak ada silent offline queue canonical untuk:
 
@@ -269,11 +347,11 @@ Prestasi
 
 Network failure = gagal/tertunda, bukan sukses palsu.
 
-## 12. Production Security
+## 13. Production Security
 
 Expected sensitive path tidak public. Uji CSRF, XSS, injection, IDOR, upload invalid, traversal, secret/log exposure, dan unauthorized API sesuai deployment contract.
 
-## 13. Performance
+## 14. Performance
 
 - bounded DB query;
 - index digunakan pada query besar;
@@ -283,7 +361,21 @@ Expected sensitive path tidak public. Uji CSRF, XSS, injection, IDOR, upload inv
 - mobile tidak merender ratusan row;
 - Kartu/PDF tetap dalam memory limit.
 
-## 14. Phase Release Rule
+## 15. Current G2 Closure Rule
+
+F14 sudah **PASS** dan focused active-year regression sudah **PASS**. G2 keseluruhan belum otomatis closed.
+
+Sebelum merge tetap wajib:
+
+```text
+remaining focused browser regression
+final docs/checklist sanity
+PR review
+repository hygiene recheck
+explicit user approval
+```
+
+## 16. Phase Release Rule
 
 ```text
 G2 PASS → boleh merge G2
