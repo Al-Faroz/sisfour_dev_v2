@@ -140,52 +140,50 @@ $guruIdentifier = static function (array $guru): string {
 
     <?php if (!empty($canManage)): ?>
         <div class="modal fade" id="modalImportJadwal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="formImportJadwal">
-                        <?= csrf_field() ?>
-                        <div class="modal-header">
-                            <h5 class="modal-title">Import Jadwal Guru</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            <div class="modal-dialog modal-dialog-scrollable">
+                <form id="formImportJadwal" class="modal-content">
+                    <?= csrf_field() ?>
+                    <div class="modal-header py-2">
+                        <h5 class="modal-title">Import Jadwal Guru</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+
+                    <div class="modal-body overflow-auto py-3">
+                        <div class="alert alert-warning sisfour-compact-note">
+                            Import bersifat <strong>atomic</strong>. Satu baris error atau bentrok akan membatalkan seluruh import.
+                        </div>
+                        <div class="alert alert-light border sisfour-compact-note">
+                            Kolom <strong>IDENTITAS_GURU</strong> menerima NIP 18 digit atau NIK 16 digit dan wajib disimpan sebagai <strong>Text</strong> di Excel.
                         </div>
 
-                        <div class="modal-body">
-                            <div class="alert alert-warning sisfour-compact-note">
-                                Import bersifat <strong>atomic</strong>. Satu baris error atau bentrok akan membatalkan seluruh import.
-                            </div>
-                            <div class="alert alert-light border sisfour-compact-note">
-                                Kolom <strong>IDENTITAS_GURU</strong> menerima NIP 18 digit atau NIK 16 digit dan wajib disimpan sebagai <strong>Text</strong> di Excel.
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="importTahun">Tahun Ajaran / Semester Aktif</label>
-                                <select class="form-select" id="importTahun" name="id_tahun" required>
-                                    <option value="">Pilih</option>
-                                    <?php foreach (($options['tahun'] ?? []) as $tahun): ?>
-                                        <?php if ((int) $tahun['status_aktif'] === 1): ?>
-                                            <option value="<?= (int) $tahun['id'] ?>">
-                                                <?= esc($tahun['nama_tahun'] . ' - ' . $tahun['semester'] . ' (Aktif)') ?>
-                                            </option>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="form-label" for="fileImportJadwal">File Excel</label>
-                                <input type="file" class="form-control" id="fileImportJadwal" name="file" accept=".xlsx,.xls" required>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="importTahun">Tahun Ajaran / Semester Aktif</label>
+                            <select class="form-select" id="importTahun" name="id_tahun" required>
+                                <option value="">Pilih</option>
+                                <?php foreach (($options['tahun'] ?? []) as $tahun): ?>
+                                    <?php if ((int) $tahun['status_aktif'] === 1): ?>
+                                        <option value="<?= (int) $tahun['id'] ?>">
+                                            <?= esc($tahun['nama_tahun'] . ' - ' . $tahun['semester'] . ' (Aktif)') ?>
+                                        </option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
-                        <div class="modal-footer sisfour-modal-actions">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary" id="btnProsesImportJadwal">
-                                <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
-                                Import
-                            </button>
+                        <div>
+                            <label class="form-label" for="fileImportJadwal">File Excel</label>
+                            <input type="file" class="form-control" id="fileImportJadwal" name="file" accept=".xlsx,.xls" required>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="modal-footer py-2 sisfour-modal-actions">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="btnProsesImportJadwal">
+                            <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
+                            Import
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     <?php endif; ?>
