@@ -1,43 +1,18 @@
 -- SisisFour G3.2 - Jurnal Student Exceptions
+-- FIX v2: target database eksplisit, tidak bergantung database aktif phpMyAdmin
 -- Target: HOSTING / production
+-- Database: u473908839_sisfour2026
 -- Tanggal: 2026-09-15
 --
 -- WAJIB: backup database hosting sebelum eksekusi.
---
--- Tujuan:
--- 1. Menambah presensi_mengajar.catatan bila belum ada.
--- 2. Membuat presensi_mengajar_siswa bila belum ada.
--- 3. Aman dijalankan ulang pada schema hosting yang saat ini sudah memiliki
---    sebagian/seluruh delta G3.2.
---
--- Script ini menggantikan mekanisme CodeIgniter migration untuk schema G3.2.
--- Dapat dijalankan melalui phpMyAdmin / MySQL CLI.
--- Tidak menghapus data dan tidak menyentuh tabel presensi siswa resmi.
 
-SET @sisfour_db := DATABASE();
+USE `u473908839_sisfour2026`;
 
--- ---------------------------------------------------------------------------
--- A. Parent Jurnal: catatan optional
--- ---------------------------------------------------------------------------
-SET @sisfour_sql := (
-    SELECT IF(
-        COUNT(*) = 0,
-        'ALTER TABLE `presensi_mengajar` ADD COLUMN `catatan` TEXT NULL AFTER `materi`',
-        'SELECT ''OK - presensi_mengajar.catatan sudah tersedia'' AS `sisfour_g32`'
-    )
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = @sisfour_db
-      AND TABLE_NAME = 'presensi_mengajar'
-      AND COLUMN_NAME = 'catatan'
-);
+-- 1) Tambahkan catatan jika belum ada.
+ALTER TABLE `presensi_mengajar`
+    ADD COLUMN IF NOT EXISTS `catatan` TEXT NULL AFTER `materi`;
 
-PREPARE sisfour_stmt FROM @sisfour_sql;
-EXECUTE sisfour_stmt;
-DEALLOCATE PREPARE sisfour_stmt;
-
--- ---------------------------------------------------------------------------
--- B. Child exception siswa per Jurnal
--- ---------------------------------------------------------------------------
+-- 2) Buat tabel child exception siswa per Jurnal jika belum ada.
 CREATE TABLE IF NOT EXISTS `presensi_mengajar_siswa` (
     `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `id_presensi_mengajar` int(10) UNSIGNED NOT NULL,
@@ -55,40 +30,24 @@ CREATE TABLE IF NOT EXISTS `presensi_mengajar_siswa` (
     CONSTRAINT `fk_pm_siswa_parent`
         FOREIGN KEY (`id_presensi_mengajar`)
         REFERENCES `presensi_mengajar` (`id`)
-        ON DELETE CASCADE ON UPDATE CASCADE,
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
     CONSTRAINT `fk_pm_siswa_siswa`
         FOREIGN KEY (`id_siswa`)
         REFERENCES `siswa` (`id`)
-        ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_general_ci;
 
--- ---------------------------------------------------------------------------
--- C. Verification - hasil yang diharapkan:
---    catatan = 1 row
---    presensi_mengajar_siswa = 1 row
---    unique/index/FK tampil pada SHOW CREATE TABLE
--- ---------------------------------------------------------------------------
-SELECT
-    TABLE_SCHEMA,
-    TABLE_NAME,
-    COLUMN_NAME,
-    COLUMN_TYPE,
-    IS_NULLABLE
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'presensi_mengajar'
-  AND COLUMN_NAME = 'catatan';
+-- 3) Verifikasi.
+SELECT DATABASE() AS `database_aktif`;
 
-SELECT
-    TABLE_SCHEMA,
-    TABLE_NAME,
-    ENGINE,
-    TABLE_COLLATION
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME = 'presensi_mengajar_siswa';
+SHOW COLUMNS FROM `presensi_mengajar` LIKE 'catatan';
 
 SHOW CREATE TABLE `presensi_mengajar_siswa`;
 
 SELECT
-    'PASS bila catatan dan presensi_mengajar_siswa tersedia; data production dipertahankan.' AS `sisfour_g32_hosting`;
+    'PASS jika database_aktif = u473908839_sisfour2026, kolom catatan tampil dan tabel child tampil'
+    AS `sisfour_g32_hosting`;
