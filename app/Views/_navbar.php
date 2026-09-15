@@ -28,27 +28,33 @@ if ($displayInitial === '') {
     id="layout-navbar"
 >
     <div class="layout-menu-toggle navbar-nav align-items-xl-center me-4 me-xl-0 d-xl-none">
-        <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
-            <i class="icon-base bx bx-menu icon-md"></i>
+        <a
+            class="nav-item nav-link px-0 me-xl-4 sisfour-navbar-toggle"
+            href="javascript:void(0)"
+            aria-label="Buka menu navigasi"
+            title="Buka menu navigasi"
+        >
+            <i class="icon-base bx bx-menu icon-md" aria-hidden="true"></i>
         </a>
     </div>
 
     <div
-        class="navbar-nav-right d-flex align-items-center justify-content-end"
+        class="navbar-nav-right d-flex align-items-center justify-content-end min-w-0"
         id="navbar-collapse"
     >
-        <div class="navbar-nav align-items-center me-auto">
-            <span class="fw-semibold"><?= esc($pageTitle ?? 'Dashboard') ?></span>
+        <div class="navbar-nav align-items-center me-auto min-w-0">
+            <span class="fw-semibold sisfour-navbar-title"><?= esc($pageTitle ?? 'Dashboard') ?></span>
         </div>
 
         <ul class="navbar-nav flex-row align-items-center ms-md-auto">
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a
-                    class="nav-link dropdown-toggle hide-arrow p-0"
+                    class="nav-link dropdown-toggle hide-arrow p-0 sisfour-navbar-user"
                     href="javascript:void(0);"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                     aria-label="Buka menu pengguna"
+                    title="Buka menu pengguna"
                 >
                     <div class="avatar avatar-online">
                         <span class="avatar-initial rounded-circle bg-label-primary">
