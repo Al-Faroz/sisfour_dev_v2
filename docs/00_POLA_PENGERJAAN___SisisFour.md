@@ -1,10 +1,10 @@
 # Pola Pengerjaan — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 15 September 2026
-**Development aktif:** G3.1 — Mobile Foundation
-**Branch aktif:** `feat/g3-mobile-foundation-20260915`
-**Baseline:** `main` setelah merge PR #5 / G2 CLOSED
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 15 September 2026  
+**Development aktif:** G3.2 — Guru/Wali Presensi & Jurnal  
+**Branch aktif:** `feat/g3-guru-wali-presensi-jurnal-20260915`  
+**Baseline:** `main` setelah merge PR #6 / G3.1 CLOSED
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog dan tidak menyimpan narasi revisi lama.
 
@@ -53,9 +53,9 @@ Jika ada aturan visual yang berbeda, gunakan prioritas:
 aturan khusus halaman bila terdokumentasi
 ```
 
-`14` meng-override aturan `11/13` pada mobile/WebView bila lebih ketat, misalnya larangan horizontal-scroll tabel operasional.
+`14` meng-override aturan `11/13` pada mobile/WebView bila lebih ketat, khususnya larangan horizontal-scroll pada tabel operasional role prioritas.
 
-Business rule tetap mengikuti dokumen domain dan Service; dokumen UI tidak boleh mengubah authorization atau lifecycle secara diam-diam.
+Business rule tetap mengikuti dokumen domain dan Service. View/JavaScript tidak boleh mengubah authorization atau lifecycle secara diam-diam.
 
 ## 3. Sumber Kebenaran Teknis
 
@@ -66,7 +66,7 @@ Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
 Menu        -> menus, role_menus, MenuService
 Business    -> Service modul
 Persistence -> Model / Query Builder
-UI          -> View + assets/css/sisfour-ui.css + Vanilla JS
+UI          -> View + assets/css/sisfour-ui.css + assets/css/sisfour-mobile.css + Vanilla JS
 Global UI   -> docs/13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md
 Mobile UI   -> docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
 Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
@@ -137,7 +137,7 @@ Urutan normal:
 12. sinkronkan docs canonical
 ```
 
-Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan datanya tidak berubah.
+Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah.
 
 ## 7. Aturan Full File dan Git
 
@@ -147,13 +147,11 @@ Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan datanya tidak 
 - Perubahan berurutan pada path yang sama harus memakai SHA terbaru.
 - Jangan merge/deploy sebelum static + runtime gate lulus.
 - Production DB tidak disentuh dalam regression development.
-- Setiap phase memakai branch terpisah.
+- Setiap sub-phase besar memakai branch/PR terpisah agar scope tidak bercampur.
 
 ## 8. G2 — CLOSED
 
 G2 resmi selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
-
-Status final:
 
 ```text
 G2.1 Repository Hygiene     PASS
@@ -170,13 +168,11 @@ Merge commit:
 375766c07f3856515a71ffdb07f3681c3047ca31
 ```
 
-Scope F06–F14 dan Admin stabilization tidak dibuka ulang di G3 tanpa blocker/regression baru yang terverifikasi.
+Scope F06–F14 tidak dibuka ulang di G3 tanpa blocker/regression baru yang terverifikasi.
 
-## 9. Phase Aktif — G3 Mobile Role UI
+## 9. G3 — Mobile Role UI
 
-G3 dimulai dari `main` setelah G2 merged.
-
-Tujuan:
+Tujuan G3:
 
 ```text
 Web UI mobile-first untuk role operasional
@@ -197,11 +193,11 @@ Siswa
 
 Admin/Operator tetap responsive, tetapi matrix administrasi berat boleh memiliki exception terdokumentasi.
 
-Urutan G3:
+Urutan:
 
 ```text
-G3.1 Mobile foundation
-G3.2 Guru/Wali — Presensi & Jurnal
+G3.1 Mobile foundation                  CLOSED / MERGED
+G3.2 Guru/Wali — Presensi & Jurnal      ACTIVE
 G3.3 Dashboard Guru/Wali
 G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
@@ -210,45 +206,77 @@ G3.7 global mobile sweep
 G3.8 viewport/WebView readiness regression
 ```
 
-G3 mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
+### G3.1 — CLOSED
 
-### G3.1 — Mobile Foundation
+G3.1 lulus static/browser smoke dan merged melalui PR #6.
 
-Scope foundation yang boleh dibuat reusable/global:
+Merge commit:
 
 ```text
+d10ced5d70ffc68642067aac44feeb6a91cacd29
+```
+
+Foundation canonical yang sekarang tersedia:
+
+```text
+role-aware shell classes
 safe-area tokens
-mobile page spacing/density
-touch target baseline
-compact mobile navbar/page header
-mobile form/filter primitives
-adaptive operational table primitives
-primary/meta cell primitives
-mobile row-action primitive
-fullscreen/scrollable modal compatibility
+mobile spacing/density tokens
+44px primary / 40px compact touch target
+adaptive operational table primitive
+name-first primary/meta cell
+mobile form/filter/action primitive
 sticky action primitive
-mobile pagination primitive
-empty/loading/error compact state
-WebView-friendly viewport/overflow baseline
+2×2 KPI primitive
+compact pagination/empty state
+navbar/sidebar/footer mobile-safe baseline
+body/layout overflow baseline
 ```
 
-G3.1 **tidak** melakukan redesign role page satu per satu dan **tidak** menambahkan Cordova project/plugin.
+G3.1 tidak menambah project/plugin Cordova.
 
-Acceptance awal G3.1:
+## 10. G3.2 — Guru/Wali Presensi & Jurnal
+
+G3.2 mengadaptasi workflow operasional yang paling sering dipakai Guru/Wali tanpa mengubah authorization atau business rule server.
+
+### Presensi Siswa
+
+Target UI:
 
 ```text
-360×800
-375×812
-390×844
-412×915
-768×1024
-1024×768
-1366×768
+Siswa              Status
+Ahmad Fulan        [H] [S] [I] [A]
 ```
 
-Tidak boleh ada body horizontal overflow dari foundation baru.
+Kontrak:
 
-## 10. Core Mobile Contract G3
+- Nama siswa menjadi identitas visual utama.
+- NISN bukan kolom rutin pada mobile; tetap tersedia pada desktop/audit bila dibutuhkan.
+- Status H/S/I/A memiliki target sentuh minimum 40px dan label aksesibel.
+- Tidak ada horizontal table scroll pada role operasional mobile.
+- Guru Terjadwal/Wali tetap mengikuti scope Service.
+- Geofence/time-window tetap server-authoritative.
+- Satu submit kelas tetap atomic.
+- Busy guard mencegah double submit.
+- Network failure tidak menghapus perubahan status yang belum tersimpan.
+- Success hanya setelah server mengonfirmasi.
+
+### Presensi Mengajar / Jurnal
+
+Kontrak:
+
+- Guru operasional tidak dipaksa memilih identitas dirinya sendiri bila hanya satu pilihan valid.
+- Jadwal dapat di-auto-load bila hanya satu Jadwal valid.
+- Status dan textarea nyaman pada layar 360–412px.
+- Save action mudah dijangkau dan mempertimbangkan safe-area.
+- Materi/keterangan tidak hilang pada network failure.
+- Busy guard mencegah mutation ganda.
+- Wali tidak mendapat hak Jurnal hanya karena context Wali; hak tetap berdasarkan Jadwal Guru.
+- Geofence/time-window/duplicate/revision tetap Service-authoritative.
+
+Tidak ada perubahan business rule F06–F14 pada G3.2.
+
+## 11. Core Mobile Contract G3
 
 Untuk role operasional prioritas:
 
@@ -262,13 +290,13 @@ Gunakan prioritas informasi, metadata, hidden secondary columns, detail/modal/of
 
 Identity canonical:
 
-> Search with Name + Identifier, display primarily by Name.
+> **Search with Name + Identifier, display primarily by Name.**
 
-Nama adalah identitas visual utama. NISN/NIP/NIK menjadi sekunder untuk search, verification, disambiguation, audit, import/export, dan integrasi.
+Nama adalah identitas visual utama. NISN/NIP/NIK sekunder untuk search, verification, disambiguation, audit, import/export, dan integrasi.
 
-Touch target utama mobile: 44–48px.
+Touch target utama mobile: 44–48px; compact interactive control minimum sekitar 40px.
 
-## 11. Phase Setelahnya — G4 Cordova APK
+## 12. Phase Setelahnya — G4 Cordova APK
 
 G4 dimulai setelah G3 Web/mobile stabil.
 
@@ -285,18 +313,18 @@ G4.9 real-device regression
 G4.10 signed APK/distribution
 ```
 
-Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail teknis ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT.
 
-## 12. Aturan Anti-Tabrakan Antar Phase
+## 13. Aturan Anti-Tabrakan Antar Phase
 
 - G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
 - G3 tidak menambahkan project/plugin Cordova.
 - G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
 - Cordova bridge/plugin tidak ditanam ke business Service.
-- CSS mobile reusable masuk foundation, bukan patch berulang per halaman.
+- CSS mobile reusable masuk foundation; adaptasi khusus halaman tetap scoped.
 - Page-specific exception harus terdokumentasi.
 
-## 13. Database-First
+## 14. Database-First
 
 Filtering/agregasi dataset besar dilakukan database:
 
@@ -306,7 +334,7 @@ WHERE / JOIN / GROUP BY / HAVING / ORDER BY / LIMIT / OFFSET
 
 Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
 
-## 14. Security Baseline
+## 15. Security Baseline
 
 - CSRF aktif untuk Web.
 - Mutation Fetch memakai helper CSRF project.
@@ -317,7 +345,7 @@ Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
 - Cordova tidak boleh memindahkan authorization ke client.
 - Credential/token tidak ditulis ke log.
 
-## 15. Static Gate Minimum
+## 16. Static Gate Minimum
 
 ```powershell
 php -l path\file.php
@@ -327,7 +355,7 @@ git diff --check
 git status --short
 ```
 
-## 16. Runtime Gate Minimum
+## 17. Runtime Gate Minimum
 
 Tidak boleh ada:
 
@@ -341,11 +369,12 @@ Tidak boleh ada:
 - uncaught browser error;
 - horizontal body overflow pada viewport wajib;
 - horizontal table scroll pada role operasional mobile;
+- input penting hilang hanya karena network failure;
 - data akademik dinyatakan sukses sebelum server mengonfirmasi.
 
-## 17. Definition of Done per Phase
+## 18. Definition of Done per Sub-phase
 
-Sebuah phase baru boleh dimulai jika phase sebelumnya:
+Sub-phase baru boleh ditutup/merge jika:
 
 ```text
 source stabil
