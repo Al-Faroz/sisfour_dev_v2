@@ -9,6 +9,9 @@ namespace App\Services;
  *   histori, status siswa, dan kartu diproses atomically.
  * - Kenaikan kelas dipisahkan tegas dari pergantian semester: hanya Genap tahun
  *   aktif -> Ganjil tahun pelajaran berikutnya dengan tingkat 7->8 atau 8->9.
+ * - Kenaikan bersifat idempotent pada level siswa: siswa yang sudah mempunyai
+ *   membership atau histori Aktif terbuka pada tahun tujuan tidak boleh diproses
+ *   ulang sehingga histori aktif ganda tidak dapat dibuat lewat workflow normal.
  */
 class ManajemenSiswaIntegrityService extends ManajemenSiswaService
 {
@@ -126,12 +129,104 @@ class ManajemenSiswaIntegrityService extends ManajemenSiswaService
             ];
         }
 
+        $selectedIds = array_values(array_unique(array_filter(
+            array_map('intval', $selected),
+            static fn (int $id): bool => $id > 0
+        )));
+
+        if ($selectedIds === []) {
+            return [
+                'success' => false,
+                'message' => 'Tidak ada siswa yang dipilih untuk dinaikkan.',
+            ];
+        }
+
+        foreach ($selectedIds as $idSiswa) {
+            $siswa = $this->db
+                ->table('siswa')
+                ->select('id, nama, nisn, status_aktif')
+                ->where('id', $idSiswa)
+                ->where('deleted_at', null)
+                ->get()
+                ->getRowArray();
+
+            if ($siswa === null || (string) $siswa['status_aktif'] !== 'Aktif') {
+                return [
+                    'success' => false,
+                    'code' => 'INVALID_STUDENT',
+                    'message' => "Siswa ID {$idSiswa} tidak ditemukan atau tidak berstatus Aktif.",
+                ];
+            }
+
+            $sourceMembershipCount = $this->db
+                ->table('anggota_kelas')
+                ->where('id_siswa', $idSiswa)
+                ->where('id_kelas', $idKelasAsal)
+                ->where('id_tahun', (int) $source['id_tahun'])
+                ->countAllResults();
+
+            if ($sourceMembershipCount !== 1) {
+                return [
+                    'success' => false,
+                    'code' => 'INVALID_SOURCE_MEMBERSHIP',
+                    'message' => sprintf(
+                        '%s tidak memiliki membership tunggal yang valid pada kelas asal.',
+                        (string) $siswa['nama']
+                    ),
+                ];
+            }
+
+            $targetMembershipCount = $this->db
+                ->table('anggota_kelas')
+                ->where('id_siswa', $idSiswa)
+                ->where('id_tahun', $idTahunBaru)
+                ->countAllResults();
+
+            $targetOpenHistoryCount = $this->db
+                ->table('riwayat_siswa')
+                ->where('id_siswa', $idSiswa)
+                ->where('id_tahun', $idTahunBaru)
+                ->where('status', 'Aktif')
+                ->where('tanggal_selesai', null)
+                ->countAllResults();
+
+            if ($targetMembershipCount > 0 || $targetOpenHistoryCount > 0) {
+                return [
+                    'success' => false,
+                    'code' => 'ALREADY_PROMOTED',
+                    'message' => sprintf(
+                        '%s sudah memiliki membership/histori aktif pada tahun pelajaran tujuan. Siswa tidak diproses ulang.',
+                        (string) $siswa['nama']
+                    ),
+                ];
+            }
+
+            $sourceOpenHistoryCount = $this->db
+                ->table('riwayat_siswa')
+                ->where('id_siswa', $idSiswa)
+                ->where('id_tahun', (int) $source['id_tahun'])
+                ->where('status', 'Aktif')
+                ->where('tanggal_selesai', null)
+                ->countAllResults();
+
+            if ($sourceOpenHistoryCount !== 1) {
+                return [
+                    'success' => false,
+                    'code' => 'INVALID_SOURCE_HISTORY',
+                    'message' => sprintf(
+                        'Histori aktif sumber %s tidak valid. Periksa integritas riwayat sebelum menjalankan kenaikan kelas.',
+                        (string) $siswa['nama']
+                    ),
+                ];
+            }
+        }
+
         return parent::naikKelas(
             $actorUserId,
             $idKelasAsal,
             $idKelasTujuan,
             $idTahunBaru,
-            $selected
+            $selectedIds
         );
     }
 
