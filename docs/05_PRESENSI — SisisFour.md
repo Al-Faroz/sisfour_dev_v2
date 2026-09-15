@@ -474,32 +474,33 @@ Permanent delete Siswa harus ditolak bila siswa pernah menjadi child pada `prese
 
 FK child ke parent memakai cascade delete untuk menjaga orphan safety bila parent Jurnal memang dihapus oleh maintenance yang sah. FK child ke Siswa bersifat restrict untuk mempertahankan histori.
 
-## 24. Schema Migration G3.2
+## 24. SQL Schema G3.2
 
-Migration canonical:
+Schema delta canonical tidak memakai CodeIgniter migration.
 
-```text
-app/Database/Migrations/2026-09-15-090000_AddJurnalStudentExceptions.php
-```
-
-`up()`:
+Localhost / development / UAT:
 
 ```text
-presensi_mengajar + catatan TEXT NULL
-create presensi_mengajar_siswa
-create unique/index/FK
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 ```
 
-`down()`:
+Hosting / production:
 
 ```text
-drop presensi_mengajar_siswa
-drop presensi_mengajar.catatan
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-Migration wajib dijalankan pada local/staging sebelum UAT fitur Jurnal baru.
+Kedua SQL:
 
-Production/hosting tidak dimigrasikan sebelum PR G3.2 lulus UAT dan ada approval deploy eksplisit.
+```text
+menambah presensi_mengajar.catatan TEXT NULL bila belum ada
+membuat presensi_mengajar_siswa bila belum ada
+membuat unique/index/FK pada saat tabel baru dibuat
+menyediakan verification query
+aman dijalankan ulang pada schema yang sudah memiliki delta G3.2
+```
+
+SQL localhost wajib diuji sebelum UAT fitur Jurnal baru. SQL hosting hanya dijalankan setelah backup production, PR G3.2 lulus UAT/merge/release disetujui, dan ada approval deploy eksplisit.
 
 ## 25. Route Utama
 
@@ -521,7 +522,7 @@ G3.2 tidak menambah route baru. Detail laporan memakai endpoint laporan existing
 Presensi/Jurnal Guru/Wali ACC bila:
 
 - business authorization tetap sama;
-- migration up/down tervalidasi;
+- SQL schema localhost/hosting tervalidasi dan verification query PASS;
 - no body/table horizontal overflow pada mobile role operasional;
 - Presensi name-first;
 - H/S/I/A Presensi nyaman pada 360–412px;
