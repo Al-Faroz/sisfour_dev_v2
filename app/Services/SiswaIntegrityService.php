@@ -10,6 +10,48 @@ namespace App\Services;
  */
 class SiswaIntegrityService extends SiswaService
 {
+    /**
+     * Admin/Operator dengan hak manage SEMUA harus selalu memperoleh seluruh
+     * kelas pada tahun ajaran aktif. Jangan menggantungkan dropdown operasional
+     * pada scope master_siswa.view karena permission manage adalah otoritas yang
+     * lebih kuat untuk workflow Master Siswa.
+     */
+    public function getKelasOptions(int $userId): array
+    {
+        if (
+            $userId > 0
+            && $this->authService->resolveScope(
+                'master_siswa.manage',
+                $userId
+            ) === 'SEMUA'
+        ) {
+            $tahunAktif = $this->db
+                ->table('tahun_ajaran')
+                ->select('id')
+                ->where('status_aktif', 1)
+                ->where('deleted_at', null)
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getRowArray();
+
+            if ($tahunAktif === null) {
+                return [];
+            }
+
+            return $this->db
+                ->table('kelas')
+                ->select('id, nama_kelas, tingkat, rombel')
+                ->where('id_tahun', (int) $tahunAktif['id'])
+                ->where('deleted_at', null)
+                ->orderBy('tingkat', 'ASC')
+                ->orderBy('rombel', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        return parent::getKelasOptions($userId);
+    }
+
     public function forceDelete(int $id): array
     {
         if (! $this->canManageIntegrity()) {
