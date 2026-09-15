@@ -2,24 +2,24 @@
 
 namespace App\Controllers;
 
-use App\Services\PresensiMengajarService;
+use App\Services\PresensiMengajarJurnalService;
 use CodeIgniter\I18n\Time;
 
 /**
  * PresensiMengajar
  *
  * Controller tipis untuk Presensi Mengajar / Jurnal.
- * Business rule dan data-level authorization berada di PresensiMengajarService.
+ * Business rule dan data-level authorization berada di Service.
  */
 class PresensiMengajar extends BaseController
 {
     private const TZ = 'Asia/Jakarta';
 
-    protected PresensiMengajarService $service;
+    protected PresensiMengajarJurnalService $service;
 
     public function __construct()
     {
-        $this->service = new PresensiMengajarService();
+        $this->service = new PresensiMengajarJurnalService();
     }
 
     public function index()
@@ -136,6 +136,13 @@ class PresensiMengajar extends BaseController
     {
         $userId = $this->currentActorUserId();
         $now = Time::now(self::TZ);
+        $idJurnal = (int) $this->request->getGet('id_jurnal');
+
+        if ($this->requestWantsJson() && $idJurnal > 0) {
+            return $this->respondService(
+                $this->service->getHistoriDetail($userId, $idJurnal)
+            );
+        }
 
         $tanggalMulai = trim(
             (string) $this->request->getGet('tanggal_mulai')
@@ -224,6 +231,7 @@ class PresensiMengajar extends BaseController
             'NO_GURU_IDENTITY',
             'OUTSIDE_SCHEDULE_DATE' => 403,
             'ALREADY_SUBMITTED' => 409,
+            'NOT_FOUND' => 404,
             default => 422,
         };
     }
