@@ -229,6 +229,14 @@ button.sisfour-touch-target--compact {
     padding-right: max(0.75rem, var(--sisfour-safe-right));
   }
 
+  body.sisfour-app #layout-menu .menu-inner {
+    padding-bottom: calc(0.5rem + var(--sisfour-safe-bottom)) !important;
+  }
+
+  body.sisfour-role-operational #layout-menu .menu-link {
+    min-height: var(--sisfour-touch-primary);
+  }
+
   body.sisfour-app .sisfour-navbar-toggle,
   body.sisfour-app .sisfour-navbar-user {
     min-width: var(--sisfour-touch-primary);
@@ -249,6 +257,10 @@ button.sisfour-touch-target--compact {
 
   body.sisfour-app .content-wrapper > .container-xxl.container-p-y {
     padding-top: var(--sisfour-mobile-page-pad);
+  }
+
+  body.sisfour-app .content-footer .footer-container {
+    padding-bottom: calc(0.75rem + var(--sisfour-safe-bottom)) !important;
   }
 
   body.sisfour-app .content-wrapper .card-body,
@@ -298,7 +310,8 @@ button.sisfour-touch-target--compact {
     min-height: var(--sisfour-touch-primary);
   }
 
-  body.sisfour-role-operational .sisfour-searchable__item {
+  body.sisfour-role-operational .sisfour-searchable__item,
+  body.sisfour-role-operational .dropdown-menu .dropdown-item {
     min-height: var(--sisfour-touch-primary);
     display: flex;
     align-items: center;
