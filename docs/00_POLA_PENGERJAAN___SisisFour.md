@@ -1,8 +1,8 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
-**Development aktif:** G2 — Master Data & Student Lifecycle Fixing
+**Tanggal Acuan:** 15 September 2026
+**Development aktif:** G2 — Regression Closure & Admin Browser Stabilization
 **Branch aktif:** `fix/g2-master-data-20260913`
 **PR aktif:** #5, belum merge
 
@@ -170,7 +170,7 @@ Login/branding bugfix yang terkait regression
 
 ### G2.0 — SSOT Sync
 
-Selesaikan dokumen canonical sebelum coding berikutnya:
+Canonical docs sudah ditetapkan dan terus disinkronkan terhadap state source final:
 
 - hierarki UI;
 - standar Sneat global;
@@ -189,6 +189,8 @@ Sebelum regression final:
 - pastikan `Routes.php` hanya berubah bila memang disengaja; target G2 saat ini tetap tidak memerlukannya;
 - `git diff --check`.
 
+Status hygiene utama sudah PASS dan tetap wajib direcheck sebelum closure.
+
 ### G2.2 — Static Gate
 
 ```text
@@ -199,9 +201,11 @@ git diff --check
 git status
 ```
 
+Static gate yang telah dijalankan tetap harus diulang secara focused setelah perubahan akhir sebelum merge.
+
 ### G2.3 — Business Regression F06–F14
 
-Urutan:
+Urutan canonical:
 
 ```text
 F06 Guru
@@ -217,6 +221,26 @@ F14 Manajemen Siswa
 
 F10 `Siapkan Genap` yang sudah lulus regression tidak perlu menjalankan destructive transition berulang bila Service terkait tidak berubah; lakukan targeted verification sesuai kebutuhan.
 
+**F14 Manajemen Siswa telah dinyatakan PASS** pada 15 September 2026, termasuk:
+
+```text
+Penempatan/Pindah
+Mutasi
+Kelulusan
+Restore lifecycle
+Kenaikan 7 → 8
+Kenaikan 8 → 9
+Partial promotion
+Promotion guards
+Anti-double-process
+Membership integrity
+History integrity
+Progress per kelas
+Year-aware Master Siswa
+```
+
+Kenaikan adalah Genap → Ganjil tahun ajaran berikutnya. Ganjil → Genap tahun yang sama tetap melalui `Siapkan Genap`.
+
 ### G2.4 — Browser Regression G2
 
 Uji hanya UI yang sudah menjadi bagian G2:
@@ -227,17 +251,35 @@ Uji hanya UI yang sudah menjadi bagian G2:
 - page title/navbar;
 - pagination/filter/export yang diubah;
 - Profile Guru mobile tabs;
+- default/reset Tahun Ajaran aktif pada selector yang relevan;
 - tidak ada console/runtime error.
+
+Focused smoke default Tahun Ajaran aktif sudah **PASS**.
+
+Contract selector Tahun Ajaran:
+
+```text
+initial load = periode aktif
+Reset        = periode aktif
+histori      = tetap selectable bila halaman mendukung histori
+```
+
+Tidak perlu helper/alert yang hanya menjelaskan default aktif. Master Tahun Ajaran tetap menampilkan seluruh periode; workflow current-state mengikuti periode aktif tanpa selector tambahan.
 
 **Jangan** melakukan redesign besar tabel role operasional pada tahap ini.
 
 ### G2.5 — G2 Closure
 
+Sisa sebelum G2 closed:
+
+- selesaikan remaining focused browser regression;
 - sinkronkan docs domain terhadap state final;
 - review PR #5;
 - pastikan tidak ada test data/temporary file ikut commit;
 - user memberi approval eksplisit;
 - merge hanya setelah approval.
+
+F14 PASS tidak otomatis berarti seluruh G2 sudah closed.
 
 ## 9. Phase Berikutnya — G3 Mobile Role UI
 
