@@ -60,7 +60,7 @@ Business rule tetap mengikuti dokumen domain dan Service. View/JavaScript tidak 
 ## 3. Sumber Kebenaran Teknis
 
 ```text
-Database    -> dump SQL resmi terbaru + schema live + migration delta yang belum dirilis
+Database    -> dump SQL resmi terbaru + schema live + SQL schema delta yang belum dirilis
 Route       -> app/Config/Routes.php
 Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
 Menu        -> menus, role_menus, MenuService
@@ -73,7 +73,7 @@ Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
 Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ```
 
-Migration yang masih berada pada branch development adalah **schema delta**, bukan bukti bahwa database production sudah berubah. `docs/02_DATABASE` baru dinaikkan menjadi baseline schema baru setelah migration lulus UAT dan masuk release yang disetujui.
+Schema delta development disimpan sebagai SQL eksplisit di `database/`, bukan CodeIgniter migration. SQL harus idempotent bila memungkinkan, memiliki query verifikasi, diuji pada localhost/staging copy lebih dulu, dan tidak diaplikasikan ke production tanpa backup + approval deploy eksplisit. `docs/02_DATABASE` baru dinaikkan menjadi baseline schema baru setelah SQL delta lulus UAT dan masuk release yang disetujui.
 
 `PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
 
@@ -139,7 +139,7 @@ Urutan normal:
 12. sinkronkan docs canonical
 ```
 
-Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah. Bila user menyetujui perluasan domain yang benar-benar memerlukan persistence baru, perubahan schema wajib memakai migration yang reversible, punya rollback, diuji pada local/staging lebih dulu, dan tidak diaplikasikan ke production tanpa approval deploy eksplisit.
+Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah. Bila user menyetujui perluasan domain yang benar-benar memerlukan persistence baru, perubahan schema wajib memakai SQL script eksplisit yang aman/idempotent sesuai kemampuan MySQL/MariaDB, memiliki verification query, diuji pada localhost/staging lebih dulu, dan tidak diaplikasikan ke production tanpa backup + approval deploy eksplisit.
 
 ## 7. Aturan Full File dan Git
 
@@ -292,13 +292,14 @@ Rule wajib:
 - laporan utama tetap `1 row = 1 Jurnal`, child hanya aggregate count dan detail lazy-load;
 - query listing tidak boleh N+1.
 
-Schema delta canonical selama branch G3.2:
+Schema delta canonical G3.2:
 
 ```text
-app/Database/Migrations/2026-09-15-090000_AddJurnalStudentExceptions.php
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-Migration ini hanya dijalankan pada local/staging untuk UAT. Production/hosting tidak disentuh sebelum G3.2 PASS, merge disetujui, dan ada approval deploy eksplisit.
+Tidak ada CodeIgniter migration untuk delta G3.2 ini. SQL localhost dipakai untuk development/UAT dan aman dijalankan ulang. SQL hosting hanya dijalankan setelah backup, G3.2 PASS/merge/release disetujui, dan ada approval deploy eksplisit.
 
 ## 11. Core Mobile Contract G3
 
@@ -342,7 +343,7 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT.
 ## 13. Aturan Anti-Tabrakan Antar Phase
 
 - G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
-- G3.2 hanya memiliki schema/business extension Jurnal yang tercatat eksplisit pada `docs/05_PRESENSI` dan migration branch.
+- G3.2 hanya memiliki schema/business extension Jurnal yang tercatat eksplisit pada `docs/05_PRESENSI` dan SQL schema delta di `database/`.
 - G3 tidak menambahkan project/plugin Cordova.
 - G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
 - Cordova bridge/plugin tidak ditanam ke business Service.
@@ -380,7 +381,7 @@ git diff --check
 git status --short
 ```
 
-Branch dengan migration juga wajib menjalankan migration pada database local/staging yang sesuai dan memverifikasi schema hasilnya sebelum runtime UAT.
+Branch dengan schema delta wajib menjalankan SQL localhost/staging copy yang sesuai dan memverifikasi schema hasilnya sebelum runtime UAT.
 
 ## 17. Runtime Gate Minimum
 
@@ -408,7 +409,7 @@ Sub-phase baru boleh ditutup/merge jika:
 ```text
 source stabil
 static gate PASS
-migration/schema gate PASS bila ada schema delta
+SQL/schema gate PASS bila ada schema delta
 runtime gate PASS
 canonical docs sinkron
 PR review selesai
