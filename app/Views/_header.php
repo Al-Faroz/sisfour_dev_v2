@@ -53,7 +53,6 @@ if ($iconSekolah !== '') {
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/demo.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/searchable-select.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-ui.css') ?>" />
-<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-modal.css') ?>" />
 
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css') ?>" />
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/vendor/libs/apex-charts/apex-charts.css') ?>" />
@@ -61,6 +60,9 @@ if ($iconSekolah !== '') {
 <?php if (isset($extraCss)): foreach ((array) $extraCss as $css): ?>
 <link rel="stylesheet" href="<?= sisfour_asset_url((string) $css) ?>" />
 <?php endforeach; endif; ?>
+
+<!-- Global modal safety loaded last so page-specific CSS cannot disable modal scrolling. -->
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-modal.css') ?>" />
 
 <script src="<?= sisfour_asset_url('assets/vendor/js/helpers.js') ?>"></script>
 <script src="<?= sisfour_asset_url('assets/js/config.js') ?>"></script>
