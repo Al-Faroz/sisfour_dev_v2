@@ -121,6 +121,7 @@
 
     document.getElementById('btnResetFilter')?.addEventListener('click', () => {
         filterForm.reset();
+        window.SisfourActiveYearDefault?.apply(filterForm);
         window.SisfourSearchableSelect?.sync(document.getElementById('filterKelas'));
         loadData();
     });
@@ -176,10 +177,12 @@
             }
         };
 
-        document.getElementById('btnAssignWali').addEventListener('click', () => {
+        document.getElementById('btnAssignWali').addEventListener('click', async () => {
             form.reset();
+            window.SisfourActiveYearDefault?.apply(form);
             resetOptions();
             modal.show();
+            await loadOptions();
         });
 
         tahun.addEventListener('change', loadOptions);
