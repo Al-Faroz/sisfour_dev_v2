@@ -13,7 +13,7 @@ Seluruh keputusan waktu menggunakan `Asia/Jakarta`.
 
 Workflow input Presensi/Jurnal current-state menggunakan Tahun Ajaran aktif sesuai Service.
 
-## 2. Presensi Siswa
+## 2. Presensi Siswa Resmi
 
 Tabel:
 
@@ -45,11 +45,11 @@ Sumber resmi laporan, Matrix, EWS, Signage, dan statistik.
 
 Dokumentasi tambahan. Tidak masuk rekap resmi/EWS/Signage ranking.
 
-## 3. Pola Input Guru
+## 3. Pola Input Presensi Guru
 
 Default UI seluruh siswa = **Hadir**. Guru hanya mengubah siswa Sakit/Izin/Alpha.
 
-Semua status tetap disimpan (Model A).
+Semua status tetap disimpan pada tabel `presensi`.
 
 Pada mobile, identitas visual utama siswa adalah **Nama**, bukan NISN.
 
@@ -62,7 +62,7 @@ Ahmad Fulan        [H] [S] [I] [A]
 
 NISN tetap tersedia untuk desktop/audit/search yang membutuhkan, tetapi tidak menjadi kolom rutin pada portrait mobile.
 
-## 4. Actor
+## 4. Actor Presensi Siswa
 
 | Actor | Input | Revisi | View |
 |---|---|---|---|
@@ -97,7 +97,7 @@ Validasi radius dilakukan server, bukan browser.
 
 Browser hanya memperoleh lokasi ketika workflow save memang membutuhkannya. Keputusan sah/tidak sah tetap milik server.
 
-## 7. Bulk dan Transaction
+## 7. Bulk dan Transaction Presensi
 
 Satu submit kelas diproses atomically.
 
@@ -114,7 +114,7 @@ input status tetap terlihat bila network/save gagal
 
 Tidak ada silent offline queue Presensi.
 
-## 8. Revisi
+## 8. Revisi Presensi
 
 Revisi record tersimpan:
 
@@ -128,7 +128,7 @@ Guru biasa tidak merevisi record existing.
 
 UI revisi tetap memakai Service yang sama dan tidak menghapus histori secara client-side.
 
-## 9. Rekap
+## 9. Rekap Presensi
 
 Ketidakhadiran resmi:
 
@@ -159,17 +159,17 @@ Sumber hanya Sesi Awal.
 
 ## 12. Presensi Mengajar / Jurnal
 
-Tabel:
+Parent table:
 
 ```text
 presensi_mengajar
 ```
 
-Satu record per jadwal/tanggal.
+Satu record per `id_jadwal + tanggal`.
 
 Semua sesi Jadwal dapat mempunyai Jurnal termasuk `Non Sesi`.
 
-Status Jurnal:
+Status Guru pada Jurnal:
 
 ```text
 Hadir
@@ -177,11 +177,135 @@ Izin
 Sakit
 ```
 
-Materi/keterangan wajib untuk seluruh status.
+Field utama G3.2:
+
+```text
+status
+materi      wajib
+catatan     optional
+```
+
+`catatan` adalah catatan tambahan Jurnal dan tidak menggantikan `materi`.
 
 Wali tidak mendapat hak Jurnal hanya karena menjadi Wali.
 
-## 13. Actor Jurnal
+## 13. Exception Siswa pada Jurnal
+
+G3.2 menambah child table:
+
+```text
+presensi_mengajar_siswa
+```
+
+Relasi:
+
+```text
+presensi_mengajar 1 --- N presensi_mengajar_siswa
+```
+
+Child menyimpan hanya exception siswa yang tidak mengikuti pembelajaran:
+
+```text
+Sakit
+Izin
+Alpha
+```
+
+Tidak ada status `Hadir` pada child. Siswa yang tidak memiliki row child berarti **tidak ada exception S/I/A yang dicatat pada Jurnal tersebut**, bukan klaim Presensi resmi bahwa siswa Hadir.
+
+Field child:
+
+```text
+id
+id_presensi_mengajar
+id_siswa
+nama_siswa_snapshot
+nisn_snapshot
+status
+created_at
+updated_at
+```
+
+Unique business key:
+
+```text
+UNIQUE(id_presensi_mengajar, id_siswa)
+```
+
+Snapshot nama/NISN dipertahankan untuk histori Jurnal.
+
+## 14. Pemisahan Presensi Resmi vs Jurnal
+
+Kontrak wajib:
+
+```text
+presensi
+= kehadiran resmi sekolah
+
+presensi_mengajar_siswa
+= exception kehadiran pada satu pembelajaran/Jurnal
+```
+
+S/I/A pada Jurnal:
+
+- tidak menulis atau mengubah tabel `presensi`;
+- tidak masuk Rekap Presensi resmi;
+- tidak masuk EWS Presensi;
+- tidak masuk Signage Presensi;
+- tidak mengubah Sesi Awal/Sesi Akhir;
+- boleh berbeda dari Presensi resmi pada hari yang sama.
+
+Contoh valid:
+
+```text
+Presensi Sesi Awal: Andi = Hadir
+Jurnal Matematika:  Andi = Alpha
+```
+
+Makna: Andi hadir ke sekolah tetapi tidak mengikuti pembelajaran Matematika yang dicatat Guru.
+
+## 15. Rule Siswa Jurnal
+
+Siswa yang dapat dipilih harus berasal dari roster kelas Jurnal pada **tanggal Jurnal**.
+
+Hari berjalan memakai current membership. Revisi historis memakai `riwayat_siswa` agar perpindahan kelas tidak merusak roster masa lalu.
+
+Server wajib menolak:
+
+```text
+siswa di luar roster kelas
+status selain Sakit/Izin/Alpha
+siswa yang sama dua kali pada satu Jurnal
+exception siswa ketika status Guru bukan Hadir
+```
+
+Jika status Guru `Izin` atau `Sakit`, daftar siswa S/I/A harus kosong.
+
+UI wajib meminta konfirmasi sebelum mengosongkan daftar siswa ketika user mengubah status Guru dari `Hadir` menjadi `Izin/Sakit`.
+
+## 16. Atomic Save / Revision Jurnal
+
+Parent Jurnal dan child siswa adalah satu mutation atomic:
+
+```text
+BEGIN
+save/update presensi_mengajar
+replace exact child presensi_mengajar_siswa
+write activity log
+COMMIT
+```
+
+Jika salah satu langkah gagal:
+
+```text
+ROLLBACK semua
+```
+
+Tidak boleh terjadi parent tersimpan tetapi daftar siswa hanya tersimpan sebagian.
+
+Revisi Admin/Operator mengganti daftar child menjadi exact state terbaru dalam transaksi yang sama.
+
+## 17. Actor Jurnal
 
 Rule server tetap:
 
@@ -194,7 +318,7 @@ Pada experience Guru mobile, jika hanya ada satu identitas Guru valid, UI boleh 
 
 Jika hanya ada satu Jadwal valid, UI boleh langsung memuat form Jurnal. Auto-selection tidak boleh melewati validasi Service.
 
-## 14. Geofence & Time Window Jurnal
+## 18. Geofence & Time Window Jurnal
 
 Status `Hadir` untuk Guru mengikuti geofence bila setting aktif.
 
@@ -202,7 +326,95 @@ Status `Izin/Sakit` tidak memerlukan lokasi, tetapi actor non-`SEMUA` tetap teri
 
 G3.2 tidak memindahkan validasi geofence atau time-window ke JavaScript.
 
-## 15. Mobile UX G3.2
+## 19. UX Input Jurnal G3.2
+
+Urutan form setelah Jadwal dimuat:
+
+```text
+Informasi Kelas / Mapel / Jam
+Status Guru
+Materi / Keterangan *
+Catatan
+Siswa Tidak Mengikuti Pembelajaran
+Simpan Jurnal
+```
+
+Bagian siswa memakai search roster kelas:
+
+```text
+Nama = primary
+NISN = secondary
+```
+
+UI tidak menampilkan seluruh roster sebagai form panjang. Guru mencari dan menambahkan hanya siswa exception.
+
+Setelah siswa ditambahkan, status wajib dipilih eksplisit:
+
+```text
+[S] [I] [A]
+```
+
+Tidak ada default S/I/A otomatis.
+
+Badge ringkas:
+
+```text
+S n
+I n
+A n
+```
+
+Pesan UI wajib menjelaskan bahwa status tersebut hanya tersimpan pada Jurnal dan tidak mengubah Presensi resmi.
+
+## 20. Laporan Jurnal
+
+Listing utama mempertahankan:
+
+```text
+1 row = 1 Jurnal
+```
+
+Kolom/summary utama:
+
+```text
+Tanggal
+Guru / Kelas
+Mapel / Jam / Sesi
+Status Guru
+Materi / Catatan
+Jumlah siswa S/I/A
+Detail
+```
+
+Daftar nama siswa tidak di-join sebagai row utama karena dapat menggandakan Jurnal.
+
+### Query strategy
+
+Per page:
+
+```text
+Query parent Jurnal paginated
++
+1 aggregate query child WHERE id_presensi_mengajar IN (...)
+```
+
+Tidak boleh N+1 query per Jurnal.
+
+Detail siswa dimuat on-demand saat user memilih `Detail`.
+
+Detail menampilkan:
+
+```text
+informasi Jurnal
+materi
+catatan
+summary S/I/A
+nama siswa + NISN + status
+```
+
+Child bersifat exception-only sehingga ukuran data jauh lebih kecil daripada menyimpan seluruh roster setiap Jurnal.
+
+## 21. Mobile UX G3.2
 
 ### Presensi Siswa
 
@@ -226,7 +438,9 @@ Wajib:
 
 ```text
 status control 44px+
-textarea nyaman pada keyboard mobile
+textarea Materi/Catatan nyaman pada keyboard mobile
+student search name-first
+S/I/A child controls reachable
 save busy state
 input dipertahankan saat network/server gagal
 action mudah dijangkau
@@ -235,7 +449,11 @@ Nama Guru tetap name-first; NIP hanya secondary search/disambiguation
 
 UI boleh mempertahankan desktop controls lengkap selama mobile tidak menjadi padat atau horizontal-scroll.
 
-## 16. Network Failure
+### Laporan
+
+Desktop dapat memakai table ringkas. Mobile memakai card/list tanpa horizontal table scroll.
+
+## 22. Network Failure
 
 Tidak ada mutation yang dinyatakan sukses sebelum response server sukses.
 
@@ -243,18 +461,47 @@ Jika network gagal saat save:
 
 ```text
 Presensi → pilihan status siswa dipertahankan di layar
-Jurnal   → status + materi/keterangan dipertahankan
+Jurnal   → status + materi + catatan + daftar siswa S/I/A dipertahankan
 ```
 
 User diberi pesan gagal dan dapat mencoba ulang. Tidak ada background replay otomatis.
 
-## 17. Histori
+## 23. Histori & Integrity
 
 Jadwal nonaktif tetap dapat dibaca untuk laporan historis sesuai Service.
 
-UI G3.2 tidak menghapus atau menyederhanakan history backend.
+Permanent delete Siswa harus ditolak bila siswa pernah menjadi child pada `presensi_mengajar_siswa`.
 
-## 18. Route Utama
+FK child ke parent memakai cascade delete untuk menjaga orphan safety bila parent Jurnal memang dihapus oleh maintenance yang sah. FK child ke Siswa bersifat restrict untuk mempertahankan histori.
+
+## 24. Schema Migration G3.2
+
+Migration canonical:
+
+```text
+app/Database/Migrations/2026-09-15-090000_AddJurnalStudentExceptions.php
+```
+
+`up()`:
+
+```text
+presensi_mengajar + catatan TEXT NULL
+create presensi_mengajar_siswa
+create unique/index/FK
+```
+
+`down()`:
+
+```text
+drop presensi_mengajar_siswa
+drop presensi_mengajar.catatan
+```
+
+Migration wajib dijalankan pada local/staging sebelum UAT fitur Jurnal baru.
+
+Production/hosting tidak dimigrasikan sebelum PR G3.2 lulus UAT dan ada approval deploy eksplisit.
+
+## 25. Route Utama
 
 ```text
 /presensi/siswa
@@ -267,19 +514,27 @@ UI G3.2 tidak menghapus atau menyederhanakan history backend.
 /presensi/mengajar/laporan
 ```
 
-G3.2 tidak membutuhkan route baru selama endpoint existing mencukupi.
+G3.2 tidak menambah route baru. Detail laporan memakai endpoint laporan existing dengan query `id_jurnal` dalam mode JSON.
 
-## 19. Acceptance G3.2
+## 26. Acceptance G3.2
 
 Presensi/Jurnal Guru/Wali ACC bila:
 
 - business authorization tetap sama;
+- migration up/down tervalidasi;
 - no body/table horizontal overflow pada mobile role operasional;
 - Presensi name-first;
-- H/S/I/A nyaman pada 360–412px;
+- H/S/I/A Presensi nyaman pada 360–412px;
 - Guru/Wali context benar;
 - Jurnal self-flow tidak meminta pilihan identitas berulang bila tidak perlu;
-- textarea/status usable dengan keyboard mobile;
+- Materi + Catatan usable dengan keyboard mobile;
+- search siswa hanya roster kelas/tanggal Jurnal;
+- S/I/A child tersimpan tanpa mengubah tabel `presensi`;
+- status Guru Izin/Sakit menolak child siswa;
+- parent + child save/revisi atomic;
+- laporan tetap 1 row per Jurnal;
+- aggregate laporan tidak N+1;
+- detail child lazy-load;
 - busy guard bekerja;
 - network failure tidak menghapus input;
 - geofence/time-window masih server-authoritative;
