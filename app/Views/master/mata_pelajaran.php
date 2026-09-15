@@ -130,98 +130,96 @@
         tabindex="-1"
         aria-hidden="true"
     >
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="formMapel">
-                    <?= csrf_field() ?>
+        <div class="modal-dialog modal-dialog-scrollable">
+            <form id="formMapel" class="modal-content">
+                <?= csrf_field() ?>
 
-                    <div class="modal-header">
-                        <h5
-                            class="modal-title"
-                            id="modalMapelTitle"
+                <div class="modal-header py-2">
+                    <h5
+                        class="modal-title"
+                        id="modalMapelTitle"
+                    >
+                        Tambah Mata Pelajaran
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Tutup"
+                    ></button>
+                </div>
+
+                <div class="modal-body overflow-auto py-3">
+                    <input
+                        type="hidden"
+                        id="mapelId"
+                    >
+
+                    <div class="mb-3">
+                        <label
+                            class="form-label"
+                            for="nama_mapel"
                         >
-                            Tambah Mata Pelajaran
-                        </h5>
+                            Nama Mata Pelajaran
+                        </label>
 
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Tutup"
-                        ></button>
-                    </div>
-
-                    <div class="modal-body">
                         <input
-                            type="hidden"
-                            id="mapelId"
+                            type="text"
+                            class="form-control"
+                            id="nama_mapel"
+                            name="nama_mapel"
+                            maxlength="100"
+                            required
                         >
-
-                        <div class="mb-3">
-                            <label
-                                class="form-label"
-                                for="nama_mapel"
-                            >
-                                Nama Mata Pelajaran
-                            </label>
-
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="nama_mapel"
-                                name="nama_mapel"
-                                maxlength="100"
-                                required
-                            >
-                        </div>
-
-                        <div>
-                            <label
-                                class="form-label"
-                                for="kode_mapel"
-                            >
-                                Kode Mata Pelajaran
-                            </label>
-
-                            <input
-                                type="text"
-                                class="form-control text-uppercase"
-                                id="kode_mapel"
-                                name="kode_mapel"
-                                maxlength="10"
-                                placeholder="Contoh: MTK"
-                                required
-                            >
-
-                            <div class="form-text">
-                                Maksimal 10 karakter. Huruf, angka, underscore, atau tanda minus.
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button
-                            type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal"
+                    <div>
+                        <label
+                            class="form-label"
+                            for="kode_mapel"
                         >
-                            Batal
-                        </button>
+                            Kode Mata Pelajaran
+                        </label>
 
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                            id="btnSimpanMapel"
+                        <input
+                            type="text"
+                            class="form-control text-uppercase"
+                            id="kode_mapel"
+                            name="kode_mapel"
+                            maxlength="10"
+                            placeholder="Contoh: MTK"
+                            required
                         >
-                            <span
-                                class="spinner-border spinner-border-sm d-none me-1"
-                                aria-hidden="true"
-                            ></span>
-                            Simpan
-                        </button>
+
+                        <div class="form-text">
+                            Maksimal 10 karakter. Huruf, angka, underscore, atau tanda minus.
+                        </div>
                     </div>
-                </form>
-            </div>
+                </div>
+
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal"
+                    >
+                        Batal
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="btnSimpanMapel"
+                    >
+                        <span
+                            class="spinner-border spinner-border-sm d-none me-1"
+                            aria-hidden="true"
+                        ></span>
+                        Simpan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
