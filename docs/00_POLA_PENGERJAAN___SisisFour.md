@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 15 September 2026
-**Development aktif:** G2 — Final Closure
-**Branch aktif:** `fix/g2-master-data-20260913`
-**PR aktif:** #5, belum merge
+**Development aktif:** G3.1 — Mobile Foundation
+**Branch aktif:** `feat/g3-mobile-foundation-20260915`
+**Baseline:** `main` setelah merge PR #5 / G2 CLOSED
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog dan tidak menyimpan narasi revisi lama.
 
@@ -147,161 +147,55 @@ Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan datanya tidak 
 - Perubahan berurutan pada path yang sama harus memakai SHA terbaru.
 - Jangan merge/deploy sebelum static + runtime gate lulus.
 - Production DB tidak disentuh dalam regression development.
+- Setiap phase memakai branch terpisah.
 
-## 8. Phase Aktif — G2
+## 8. G2 — CLOSED
 
-G2 adalah **fixing dan stabilization**, bukan fase redesign mobile penuh.
+G2 resmi selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
 
-Scope G2:
-
-```text
-F06 Guru
-F07 Pegawai
-F08 Siswa
-F09 Kelas
-F10 Tahun Ajaran / semester transition
-F11 Mata Pelajaran
-F12 Mapping Wali
-F13 Jadwal Guru
-F14 Manajemen Siswa
-Admin UI foundation/stabilization yang sudah masuk branch
-Login/branding bugfix yang terkait regression
-```
-
-### G2.0 — SSOT Sync
-
-Canonical docs sudah ditetapkan dan terus disinkronkan terhadap state source final:
-
-- hierarki UI;
-- standar Sneat global;
-- role experience;
-- Mobile & Cordova UI/UX;
-- testing gate;
-- urutan G2/G3/G4.
-
-### G2.1 — Repository Hygiene
-
-Sebelum regression final:
-
-- audit diff terhadap `main`;
-- kembalikan perubahan eksperimental yang tidak lagi diperlukan;
-- khusus `JadwalGuruService.php`, pastikan tidak membawa rewrite/relaksasi import Genap yang sudah tidak dibutuhkan workflow final;
-- pastikan `Routes.php` hanya berubah bila memang disengaja; target G2 saat ini tetap tidak memerlukannya;
-- `git diff --check`.
-
-Status hygiene utama sudah PASS dan wajib direcheck sekali lagi pada G2.5 sebelum merge.
-
-### G2.2 — Static Gate
+Status final:
 
 ```text
-PHP lint semua PHP yang berubah
-node --check semua JS yang berubah
-php spark routes
-git diff --check
-git status
+G2.1 Repository Hygiene     PASS
+G2.2 Static Gate            PASS
+G2.3 Business Regression    PASS
+G2.4 Browser Regression     PASS
+G2.5 Closure Review         PASS
+PR #5                       MERGED
 ```
 
-Static gate historis PASS. Focused lint/check setelah perubahan akhir tetap menjadi syarat final sebelum merge.
-
-### G2.3 — Business Regression F06–F14
-
-Urutan canonical:
+Merge commit:
 
 ```text
-F06 Guru
-F07 Pegawai
-F08 Siswa
-F09 Kelas
-F10 Tahun Ajaran
-F11 Mapel
-F12 Mapping Wali
-F13 Jadwal Guru
-F14 Manajemen Siswa
+375766c07f3856515a71ffdb07f3681c3047ca31
 ```
 
-Status G2.3: **PASS**.
+Scope F06–F14 dan Admin stabilization tidak dibuka ulang di G3 tanpa blocker/regression baru yang terverifikasi.
 
-F10 `Siapkan Genap` sudah lulus regression dan tidak perlu menjalankan destructive transition berulang bila Service terkait tidak berubah.
+## 9. Phase Aktif — G3 Mobile Role UI
 
-F11 final runtime retest sudah PASS: edit nama dengan kode Mapel sendiri berhasil dan duplicate code tetap ditolak.
-
-F14 Manajemen Siswa telah dinyatakan PASS, termasuk:
-
-```text
-Penempatan/Pindah
-Mutasi
-Kelulusan
-Restore lifecycle
-Kenaikan 7 → 8
-Kenaikan 8 → 9
-Partial promotion
-Promotion guards
-Anti-double-process
-Membership integrity
-History integrity
-Progress per kelas
-Year-aware Master Siswa
-```
-
-Kenaikan adalah Genap → Ganjil tahun ajaran berikutnya. Ganjil → Genap tahun yang sama tetap melalui `Siapkan Genap`.
-
-### G2.4 — Browser Regression G2
-
-Status G2.4: **PASS** pada 15 September 2026 menggunakan data aktual hosting.
-
-Cakupan focused browser regression:
-
-```text
-Login show/hide password              PASS
-Branding/Favicon                      PASS
-Title/Navbar                          PASS
-Filter/Pagination/Export              PASS
-Presensi Mengajar Guru Search         PASS
-Profile Guru mobile                   PASS
-Modal + responsive                    PASS
-Browser console                       PASS
-F11 edit Mapel kode sendiri           PASS
-Default/reset Tahun Ajaran aktif      PASS
-```
-
-Contract selector Tahun Ajaran:
-
-```text
-initial load = periode aktif
-Reset        = periode aktif
-histori      = tetap selectable bila halaman mendukung histori
-```
-
-Tidak perlu helper/alert yang hanya menjelaskan default aktif. Master Tahun Ajaran tetap menampilkan seluruh periode; workflow current-state mengikuti periode aktif tanpa selector tambahan.
-
-Pixel-level redesign besar role operasional tetap bukan bagian G2.
-
-### G2.5 — G2 Closure
-
-Sisa sebelum G2 closed/merge:
-
-- final repository hygiene recheck;
-- final docs/checklist sanity;
-- review PR #5 dan sinkronkan PR body dengan hasil regression final;
-- pastikan tidak ada SQL dump/test data/temporary/build artifact ikut commit;
-- focused static gate final pada head terakhir;
-- user memberi approval eksplisit;
-- merge hanya setelah approval.
-
-G2.3 dan G2.4 sudah PASS. Tidak ada merge otomatis.
-
-## 9. Phase Berikutnya — G3 Mobile Role UI
-
-G3 dimulai dari `main` setelah G2 selesai/merge.
+G3 dimulai dari `main` setelah G2 merged.
 
 Tujuan:
 
 ```text
-Web UI mobile-first
+Web UI mobile-first untuk role operasional
 Cordova/WebView ready
 satu source UI CI4/Sneat
 no duplicate mobile application UI
 ```
+
+Role prioritas:
+
+```text
+Pimpinan
+BK
+Guru
+Guru + Wali Kelas
+Siswa
+```
+
+Admin/Operator tetap responsive, tetapi matrix administrasi berat boleh memiliki exception terdokumentasi.
 
 Urutan G3:
 
@@ -313,41 +207,96 @@ G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
 G3.7 global mobile sweep
-G3.8 viewport/WebView regression
+G3.8 viewport/WebView readiness regression
 ```
 
 G3 mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
 
-## 10. Phase Setelahnya — G4 Cordova APK
+### G3.1 — Mobile Foundation
 
-Cordova packaging tidak dikerjakan di G2.
+Scope foundation yang boleh dibuat reusable/global:
 
-G4 dimulai setelah Web/mobile G3 stabil:
+```text
+safe-area tokens
+mobile page spacing/density
+touch target baseline
+compact mobile navbar/page header
+mobile form/filter primitives
+adaptive operational table primitives
+primary/meta cell primitives
+mobile row-action primitive
+fullscreen/scrollable modal compatibility
+sticky action primitive
+mobile pagination primitive
+empty/loading/error compact state
+WebView-friendly viewport/overflow baseline
+```
+
+G3.1 **tidak** melakukan redesign role page satu per satu dan **tidak** menambahkan Cordova project/plugin.
+
+Acceptance awal G3.1:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Tidak boleh ada body horizontal overflow dari foundation baru.
+
+## 10. Core Mobile Contract G3
+
+Untuk role operasional prioritas:
+
+```text
+body horizontal scroll   = DILARANG
+table horizontal scroll  = DILARANG
+nested horizontal scroll = DILARANG
+```
+
+Gunakan prioritas informasi, metadata, hidden secondary columns, detail/modal/offcanvas—bukan `min-width` besar atau font ekstrem kecil.
+
+Identity canonical:
+
+> Search with Name + Identifier, display primarily by Name.
+
+Nama adalah identitas visual utama. NISN/NIP/NIK menjadi sekunder untuk search, verification, disambiguation, audit, import/export, dan integrasi.
+
+Touch target utama mobile: 44–48px.
+
+## 11. Phase Setelahnya — G4 Cordova APK
+
+G4 dimulai setelah G3 Web/mobile stabil.
 
 ```text
 G4.1 Cordova architecture spike
 G4.2 Android project/config
 G4.3 session/auth strategy verification
-G4.4 back button / keyboard / safe-area
-G4.5 geolocation permission
-G4.6 network/offline state
-G4.7 file download/share/external links
-G4.8 device regression
-G4.9 signed APK/release distribution
+G4.4 Android Back
+G4.5 safe-area/status bar/keyboard
+G4.6 geolocation permission
+G4.7 network/offline state
+G4.8 file/download/share/external links
+G4.9 real-device regression
+G4.10 signed APK/distribution
 ```
 
-Detail teknis ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail teknis ada di `16_MOBILE_CORDOVA — SisisFour.md`.
 
-## 11. Aturan Anti-Tabrakan Antar Phase
+## 12. Aturan Anti-Tabrakan Antar Phase
 
-- G2 tidak menerima redesign mobile besar kecuali blocker regression.
 - G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
+- G3 tidak menambahkan project/plugin Cordova.
 - G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
 - Cordova bridge/plugin tidak ditanam ke business Service.
-- CSS mobile reusable masuk foundation, bukan patch per halaman.
-- Semua phase memakai branch terpisah dan regression gate sendiri.
+- CSS mobile reusable masuk foundation, bukan patch berulang per halaman.
+- Page-specific exception harus terdokumentasi.
 
-## 12. Database-First
+## 13. Database-First
 
 Filtering/agregasi dataset besar dilakukan database:
 
@@ -357,7 +306,7 @@ WHERE / JOIN / GROUP BY / HAVING / ORDER BY / LIMIT / OFFSET
 
 Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
 
-## 13. Security Baseline
+## 14. Security Baseline
 
 - CSRF aktif untuk Web.
 - Mutation Fetch memakai helper CSRF project.
@@ -368,7 +317,7 @@ Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
 - Cordova tidak boleh memindahkan authorization ke client.
 - Credential/token tidak ditulis ke log.
 
-## 14. Static Gate Minimum
+## 15. Static Gate Minimum
 
 ```powershell
 php -l path\file.php
@@ -378,7 +327,7 @@ git diff --check
 git status --short
 ```
 
-## 15. Runtime Gate Minimum
+## 16. Runtime Gate Minimum
 
 Tidak boleh ada:
 
@@ -391,9 +340,10 @@ Tidak boleh ada:
 - histori putus;
 - uncaught browser error;
 - horizontal body overflow pada viewport wajib;
+- horizontal table scroll pada role operasional mobile;
 - data akademik dinyatakan sukses sebelum server mengonfirmasi.
 
-## 16. Definition of Done per Phase
+## 17. Definition of Done per Phase
 
 Sebuah phase baru boleh dimulai jika phase sebelumnya:
 
