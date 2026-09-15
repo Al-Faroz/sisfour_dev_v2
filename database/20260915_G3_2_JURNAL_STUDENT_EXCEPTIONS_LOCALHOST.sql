@@ -5,9 +5,10 @@
 -- Tujuan:
 -- 1. Menambah presensi_mengajar.catatan bila belum ada.
 -- 2. Membuat presensi_mengajar_siswa bila belum ada.
--- 3. Aman dijalankan ulang tanpa menghapus data UAT yang sudah ada.
+-- 3. Membersihkan ledger migration G3.2 lama bila pernah dijalankan.
+-- 4. Aman dijalankan ulang tanpa menghapus data UAT yang sudah ada.
 --
--- Script ini menggantikan mekanisme CodeIgniter migration untuk schema G3.2.
+-- G3.2 sekarang memakai SQL schema eksplisit, bukan CodeIgniter migration.
 -- Jalankan pada database SisisFour yang dipilih di phpMyAdmin / MySQL CLI.
 -- Tidak menyentuh tabel presensi siswa resmi.
 
@@ -60,10 +61,30 @@ CREATE TABLE IF NOT EXISTS `presensi_mengajar_siswa` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ---------------------------------------------------------------------------
--- C. Verification - hasil yang diharapkan:
+-- C. Bersihkan ledger migration G3.2 lama bila tabel migrations tersedia.
+--    Tabel migrations generik CI4 TIDAK di-drop; hanya record G3.2 lama.
+-- ---------------------------------------------------------------------------
+SET @sisfour_sql := (
+    SELECT IF(
+        COUNT(*) > 0,
+        'DELETE FROM `migrations` WHERE `version` = ''2026-09-15-090000'' AND `class` LIKE ''%AddJurnalStudentExceptions''',
+        'SELECT ''OK - tabel migrations tidak ada; tidak ada ledger G3.2 yang perlu dibersihkan'' AS `sisfour_g32`'
+    )
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = @sisfour_db
+      AND TABLE_NAME = 'migrations'
+);
+
+PREPARE sisfour_stmt FROM @sisfour_sql;
+EXECUTE sisfour_stmt;
+DEALLOCATE PREPARE sisfour_stmt;
+
+-- ---------------------------------------------------------------------------
+-- D. Verification - hasil yang diharapkan:
 --    catatan = 1 row
 --    presensi_mengajar_siswa = 1 row
 --    unique/index/FK tampil pada SHOW CREATE TABLE
+--    legacy_g32_migration_rows = 0
 -- ---------------------------------------------------------------------------
 SELECT
     TABLE_SCHEMA,
@@ -87,5 +108,20 @@ WHERE TABLE_SCHEMA = DATABASE()
 
 SHOW CREATE TABLE `presensi_mengajar_siswa`;
 
+SET @sisfour_sql := (
+    SELECT IF(
+        COUNT(*) > 0,
+        'SELECT COUNT(*) AS `legacy_g32_migration_rows` FROM `migrations` WHERE `version` = ''2026-09-15-090000'' AND `class` LIKE ''%AddJurnalStudentExceptions''',
+        'SELECT 0 AS `legacy_g32_migration_rows`'
+    )
+    FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA = @sisfour_db
+      AND TABLE_NAME = 'migrations'
+);
+
+PREPARE sisfour_stmt FROM @sisfour_sql;
+EXECUTE sisfour_stmt;
+DEALLOCATE PREPARE sisfour_stmt;
+
 SELECT
-    'PASS bila catatan dan presensi_mengajar_siswa tersedia; data existing dipertahankan.' AS `sisfour_g32_localhost`;
+    'PASS bila catatan dan presensi_mengajar_siswa tersedia serta legacy_g32_migration_rows = 0.' AS `sisfour_g32_localhost`;
