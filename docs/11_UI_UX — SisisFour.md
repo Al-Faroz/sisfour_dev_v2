@@ -1,7 +1,7 @@
 # UI/UX Standard — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 15 September 2026
 **Stack:** CodeIgniter 4 + Sneat Free v3 + Bootstrap 5.3.x + Vanilla JavaScript
 
 > Dokumen ini menetapkan kontrak UI/UX SisisFour secara umum. Baseline vendor dan pola reusable CI4 ada di `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`. Aturan mobile/WebView yang lebih ketat ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
@@ -28,6 +28,7 @@ Partials          _header / _navbar / _sidebar / _footer / _scripts
 Foundation CSS    assets/css/sisfour-ui.css
 Search select     assets/js/components/searchable-select.js
 Pagination        assets/js/components/pagination.js
+Active year       assets/js/components/active-year-default.js
 Feature View      app/Views/<module>/...
 Feature JS        assets/js/<module>/...
 Vendor            assets/vendor/...
@@ -146,6 +147,36 @@ Canonical:
 - enum kecil boleh native select;
 - apply filter mengembalikan page ke awal;
 - mobile filter dapat collapse/offcanvas sesuai `14`.
+
+### Default Tahun Ajaran
+
+Pada halaman yang memiliki selector Tahun Ajaran untuk membaca data operasional/historis:
+
+```text
+initial value = Tahun Ajaran aktif
+Reset         = kembali ke Tahun Ajaran aktif
+manual select = periode historis tetap boleh bila scope mendukung
+```
+
+Default harus terlihat langsung dari option yang terpilih. Jangan menambah helper/alert yang hanya menjelaskan bahwa default adalah Tahun Ajaran aktif.
+
+Surface canonical yang mengikuti pola ini:
+
+```text
+Master Siswa
+Master Kelas
+Mapping Wali
+Assign Wali
+Master Jadwal Guru
+Import Jadwal Guru
+Laporan Jurnal
+Matrix Presensi
+Export Presensi
+```
+
+Workflow current-state yang business contract-nya memang selalu memakai periode aktif tidak perlu diberi selector Tahun Ajaran tambahan, antara lain Penempatan/Pindah, Mutasi, Kelulusan, Kenaikan, Presensi/Jurnal operasional, dan Kartu Pelajar operasional.
+
+Master Tahun Ajaran adalah pengecualian karena fungsi halaman tersebut adalah mengelola seluruh periode.
 
 ## 10. Forms
 
@@ -266,6 +297,8 @@ prompt()
 
 Inline alert tetap digunakan untuk state halaman yang perlu persistent.
 
+Informasi yang sudah jelas dari state control tidak perlu diulang sebagai alert/helper. Contoh: bila Tahun Ajaran aktif sudah terpilih, tidak perlu teks “Default menampilkan Tahun Ajaran yang sedang aktif.”
+
 ## 18. Loading / Empty / Error
 
 Setiap area async:
@@ -375,6 +408,8 @@ event handler
 
 JS tidak membuat page header/filter/tab/action statis setelah load.
 
+Default behavior lintas halaman yang benar-benar generic boleh masuk komponen reusable, misalnya `active-year-default.js`, selama tidak mengubah business authorization dan tidak menimpa pilihan eksplisit user/server.
+
 ## 26. Accessibility
 
 Minimum:
@@ -418,6 +453,9 @@ UI dinyatakan konsisten bila:
 - title sinkron;
 - tidak ada layout shift statis akibat JS;
 - header/filter/card/modal memakai pola canonical;
+- selector Tahun Ajaran yang relevan default ke periode aktif tanpa explanatory noise;
+- Reset mengembalikan selector Tahun Ajaran ke periode aktif;
+- pilihan histori tetap bekerja pada surface yang mendukung histori;
 - paginator konsisten;
 - search entity konsisten;
 - no body overflow;
