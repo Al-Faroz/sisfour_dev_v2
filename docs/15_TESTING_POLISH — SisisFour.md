@@ -34,6 +34,14 @@ Profile Guru tabs
 browser console
 ```
 
+Status:
+
+```text
+G2.3 Business Regression   PASS
+G2.4 Browser Regression    PASS
+G2.5 Closure               IN PROGRESS
+```
+
 ### F06 Guru
 
 - create/update/import/export;
@@ -90,6 +98,8 @@ Jika Service transition tidak berubah setelah regression yang sudah PASS, tidak 
 - edit ke kode lain yang sudah ada tetap ditolak;
 - dependency delete;
 - pagination/export.
+
+Final runtime retest F11 pada 15 September 2026: **PASS**.
 
 ### F12 Mapping Wali
 
@@ -198,17 +208,22 @@ Minimum:
 1366×768
 ```
 
-Cek halaman yang berubah:
+Final focused G2.4 result pada 15 September 2026 menggunakan data aktual hosting:
 
-- title/navbar;
-- sidebar;
-- action/filter;
-- active-year default/reset bila relevan;
-- paginator;
-- modal;
-- empty/loading/error;
-- console error;
-- mutation utama.
+```text
+Login                              PASS
+Branding/Favicon                   PASS
+Title/Navbar                       PASS
+Filter/Pagination/Export           PASS
+Presensi Mengajar Guru Search      PASS
+Profile Guru mobile                PASS
+Modal + responsive                 PASS
+Browser console                    PASS
+F11 edit Mapel kode sendiri        PASS
+Active-year default/reset          PASS
+```
+
+Status G2.4: **PASS**.
 
 Pixel-level mobile role redesign bukan gate G2.
 
@@ -363,22 +378,24 @@ Expected sensitive path tidak public. Uji CSRF, XSS, injection, IDOR, upload inv
 
 ## 15. Current G2 Closure Rule
 
-F14 sudah **PASS** dan focused active-year regression sudah **PASS**. G2 keseluruhan belum otomatis closed.
+G2.3 business regression dan G2.4 focused browser regression sudah **PASS**.
 
 Sebelum merge tetap wajib:
 
 ```text
-remaining focused browser regression
+final repository hygiene recheck
+final static gate pada head terakhir
 final docs/checklist sanity
-PR review
-repository hygiene recheck
+PR review + PR body sync
 explicit user approval
 ```
+
+Database hosting/dump yang dipakai sebagai referensi regression tidak boleh masuk repository atau commit.
 
 ## 16. Phase Release Rule
 
 ```text
-G2 PASS → boleh merge G2
+G2 PASS → boleh merge G2 setelah approval eksplisit
 G3 PASS → mobile/WebView UI dianggap siap
 G4 PASS → APK dapat masuk distribution gate
 ```
