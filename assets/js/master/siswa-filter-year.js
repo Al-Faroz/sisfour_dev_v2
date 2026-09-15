@@ -11,6 +11,10 @@
         return;
     }
 
+    // Filter Kelas berubah dinamis mengikuti Tahun Ajaran. Biarkan native select
+    // agar tidak ada cache visual dari SearchableSelect ketika option diganti.
+    kelas.dataset.searchableOff = '1';
+
     const baseUrl = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
     const activeYearId = String(app.dataset.activeYearId || '');
     const sourceOptions = Array.from(
