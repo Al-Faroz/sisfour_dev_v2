@@ -29,7 +29,7 @@ class PresensiMengajarJurnalService extends PresensiMengajarService
         if (! $this->schemaReady()) {
             return $this->failEnhanced(
                 'SCHEMA_NOT_READY',
-                'Schema Jurnal siswa belum tersedia. Jalankan migration terlebih dahulu.'
+                'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.'
             );
         }
 
@@ -66,7 +66,7 @@ class PresensiMengajarJurnalService extends PresensiMengajarService
         if (! $this->schemaReady()) {
             return $this->failEnhanced(
                 'SCHEMA_NOT_READY',
-                'Schema Jurnal siswa belum tersedia. Jalankan migration terlebih dahulu.'
+                'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.'
             );
         }
 
@@ -302,7 +302,7 @@ class PresensiMengajarJurnalService extends PresensiMengajarService
         if (! $this->schemaReady()) {
             return $this->failEnhanced(
                 'SCHEMA_NOT_READY',
-                'Schema Jurnal siswa belum tersedia. Jalankan migration terlebih dahulu.'
+                'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.'
             );
         }
 
