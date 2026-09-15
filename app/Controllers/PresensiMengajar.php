@@ -144,7 +144,7 @@ class PresensiMengajar extends BaseController
             return $this->respondService([
                 'success' => false,
                 'code' => 'SCHEMA_NOT_READY',
-                'message' => 'Schema Jurnal siswa belum tersedia. Jalankan migration terlebih dahulu.',
+                'message' => 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.',
             ]);
         }
 
@@ -229,13 +229,18 @@ class PresensiMengajar extends BaseController
         $success = (bool) ($result['success'] ?? false);
         $code = (string) ($result['code'] ?? '');
         $httpCode = $success ? $successCode : $this->httpCodeFor($code);
+        $message = $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.');
+
+        if (! $success && $code === 'SCHEMA_NOT_READY') {
+            $message = 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.';
+            $result['message'] = $message;
+        }
 
         return $this->response
             ->setStatusCode($httpCode)
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $message,
                 'data' => $result,
             ]);
     }
