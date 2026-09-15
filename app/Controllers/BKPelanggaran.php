@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use App\Services\BkService;
 use CodeIgniter\HTTP\ResponseInterface;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Throwable;
 
 class BKPelanggaran extends BaseController
@@ -17,6 +19,10 @@ class BKPelanggaran extends BaseController
 
     public function index()
     {
+        if ($this->request->getGet('export') === '1') {
+            return $this->exportFile();
+        }
+
         if ($this->wantsJson()) {
             return $this->response->setJSON([
                 'status' => 'success',
@@ -118,5 +124,50 @@ class BKPelanggaran extends BaseController
                 'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
+    }
+
+    private function exportFile()
+    {
+        $rows = $this->service->listPelanggaran();
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Master Pelanggaran');
+
+        $sheet->setCellValue('A1', 'MASTER PELANGGARAN SISISFOUR');
+        $sheet->mergeCells('A1:C1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->fromArray([[
+            'NAMA PELANGGARAN',
+            'KATEGORI',
+            'POIN',
+        ]], null, 'A3');
+        $sheet->getStyle('A3:C3')->getFont()->setBold(true);
+
+        $row = 4;
+        foreach ($rows as $pelanggaran) {
+            $sheet->fromArray([[
+                $pelanggaran['nama_pelanggaran'] ?? '',
+                $pelanggaran['kategori'] ?? '',
+                (int) ($pelanggaran['poin'] ?? 0),
+            ]], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'C') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'sisfour_pelanggaran_export_');
+        (new Xlsx($spreadsheet))->save($tempFile);
+
+        register_shutdown_function(static function () use ($tempFile): void {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        return $this->response
+            ->download($tempFile, null)
+            ->setFileName('master_pelanggaran_' . date('Ymd_His') . '.xlsx');
     }
 }

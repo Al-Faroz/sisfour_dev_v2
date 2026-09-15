@@ -2,7 +2,10 @@
 
 namespace App\Controllers;
 
+use App\Services\KelasIntegrityService;
 use App\Services\KelasService;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class MasterKelas extends BaseController
 {
@@ -10,12 +13,16 @@ class MasterKelas extends BaseController
 
     public function __construct()
     {
-        $this->kelasService = new KelasService();
+        $this->kelasService = new KelasIntegrityService();
     }
 
     public function index()
     {
-        $filter = $this->filters();
+        $filter = $this->filters(true);
+
+        if ($this->request->getGet('export') === '1') {
+            return $this->exportFile($filter);
+        }
 
         if ($this->isJsonRequest()) {
             return $this->response->setJSON([
@@ -24,11 +31,14 @@ class MasterKelas extends BaseController
             ]);
         }
 
+        $tahunOptions = $this->kelasService->getTahunOptions();
+
         return $this->response->setBody(
             $this->renderWithLayout('master/kelas', [
                 'title' => 'Master Kelas',
                 'filters' => $filter,
-                'tahunOptions' => $this->kelasService->getTahunOptions(),
+                'tahunOptions' => $tahunOptions,
+                'activeTahunId' => $this->activeTahunId($tahunOptions),
                 'extraJs' => ['assets/js/master/kelas.js'],
             ])
         );
@@ -69,7 +79,7 @@ class MasterKelas extends BaseController
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => $this->kelasService->getList(
-                    $this->filters(),
+                    $this->filters(false),
                     true
                 ),
             ]);
@@ -97,13 +107,22 @@ class MasterKelas extends BaseController
         );
     }
 
-    protected function filters(): array
+    protected function filters(bool $defaultActiveYear = true): array
     {
+        $yearRaw = $this->request->getGet('id_tahun');
+        $idTahun = (int) $yearRaw;
+
+        if ($defaultActiveYear && ($yearRaw === null || $idTahun <= 0)) {
+            $idTahun = $this->activeTahunId(
+                $this->kelasService->getTahunOptions()
+            );
+        }
+
         return [
             'tingkat' => trim(
                 (string) $this->request->getGet('tingkat')
             ),
-            'id_tahun' => (int) $this->request->getGet('id_tahun'),
+            'id_tahun' => $idTahun,
         ];
     }
 
@@ -130,5 +149,81 @@ class MasterKelas extends BaseController
                     ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
+    }
+
+    private function activeTahunId(array $tahunOptions): int
+    {
+        foreach ($tahunOptions as $tahun) {
+            if ((int) ($tahun['status_aktif'] ?? 0) === 1) {
+                return (int) ($tahun['id'] ?? 0);
+            }
+        }
+
+        return 0;
+    }
+
+    private function exportFile(array $filter)
+    {
+        $rows = $this->kelasService->getList($filter);
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Kelas');
+
+        $sheet->setCellValue('A1', 'DATA KELAS SISISFOUR');
+        $sheet->mergeCells('A1:G1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->fromArray([[
+            'NAMA KELAS',
+            'TINGKAT',
+            'ROMBEL',
+            'TAHUN AJARAN',
+            'SEMESTER',
+            'STATUS TAHUN',
+            'JUMLAH SISWA',
+        ]], null, 'A3');
+        $sheet->getStyle('A3:G3')->getFont()->setBold(true);
+
+        $row = 4;
+        foreach ($rows as $kelas) {
+            $sheet->fromArray([[
+                $kelas['nama_kelas'] ?? '',
+                $kelas['tingkat'] ?? '',
+                $kelas['rombel'] ?? '',
+                $kelas['nama_tahun'] ?? '',
+                $kelas['semester'] ?? '',
+                (int) ($kelas['tahun_aktif'] ?? 0) === 1 ? 'Aktif' : 'Nonaktif',
+                (int) ($kelas['jumlah_siswa'] ?? 0),
+            ]], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'G') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'data_kelas_' . date('Ymd_His') . '.xlsx',
+            'sisfour_kelas_export_'
+        );
+    }
+
+    private function downloadSpreadsheet(
+        Spreadsheet $spreadsheet,
+        string $filename,
+        string $prefix
+    ) {
+        $tempFile = tempnam(sys_get_temp_dir(), $prefix);
+        (new Xlsx($spreadsheet))->save($tempFile);
+
+        register_shutdown_function(static function () use ($tempFile): void {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        return $this->response
+            ->download($tempFile, null)
+            ->setFileName($filename);
     }
 }

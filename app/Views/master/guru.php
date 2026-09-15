@@ -121,102 +121,100 @@
 
     <?php if (! empty($canManage)): ?>
         <div class="modal fade" id="modalGuru" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
-                    <form id="formGuru">
-                        <?= csrf_field() ?>
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="modalGuruTitle">Tambah Guru</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                        </div>
-                        <div class="modal-body">
-                            <input type="hidden" id="guruId">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+                <form id="formGuru" class="modal-content">
+                    <?= csrf_field() ?>
+                    <div class="modal-header py-2">
+                        <h5 class="modal-title" id="modalGuruTitle">Tambah Guru</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body overflow-auto py-3">
+                        <input type="hidden" id="guruId">
 
-                            <h6 class="text-primary mb-3">Identitas</h6>
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-4">
-                                    <label class="form-label" for="nik">NIK <span class="text-danger">*</span></label>
-                                    <input type="text" inputmode="numeric" class="form-control" id="nik" name="nik" maxlength="16" pattern="[0-9]{16}" required>
-                                    <div class="form-text">16 digit. Wajib untuk semua Guru.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="nip">NIP</label>
-                                    <input type="text" inputmode="numeric" class="form-control" id="nip" name="nip" maxlength="18" pattern="[0-9]{18}">
-                                    <div class="form-text">Kosongkan bila belum mempunyai NIP resmi.</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="nuptk">NUPTK</label>
-                                    <input type="text" inputmode="numeric" class="form-control" id="nuptk" name="nuptk" maxlength="16" pattern="[0-9]{16}">
-                                </div>
-                                <div class="col-md-8">
-                                    <label class="form-label" for="nama">Nama Lengkap & Gelar <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="nama" name="nama" maxlength="150" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="jenis_kelamin">Jenis Kelamin <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required data-searchable-off="1">
-                                        <option value="">Pilih</option>
-                                        <option value="L">Laki-laki</option>
-                                        <option value="P">Perempuan</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="tempat_lahir">Tempat Lahir</label>
-                                    <input type="text" class="form-control" id="tempat_lahir" name="tempat_lahir" maxlength="100">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="tanggal_lahir">Tanggal Lahir</label>
-                                    <input type="date" class="form-control" id="tanggal_lahir" name="tanggal_lahir">
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label" for="agama">Agama</label>
-                                    <input type="text" class="form-control" id="agama" name="agama" maxlength="30">
-                                </div>
+                        <h6 class="text-primary mb-2">Identitas</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label" for="nik">NIK <span class="text-danger">*</span></label>
+                                <input type="text" inputmode="numeric" class="form-control" id="nik" name="nik" maxlength="16" pattern="[0-9]{16}" required>
+                                <div class="form-text">16 digit. Wajib untuk semua Guru.</div>
                             </div>
-
-                            <h6 class="text-primary mb-3">Kepegawaian</h6>
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label" for="status_kepegawaian">Status Kepegawaian <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="status_kepegawaian" name="status_kepegawaian" required data-searchable-off="1">
-                                        <option value="">Pilih</option>
-                                        <?php foreach (($statusOptions ?? []) as $status): ?>
-                                            <option value="<?= esc($status) ?>"><?= esc($status) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="foto">Foto PNG</label>
-                                    <input type="file" class="form-control" id="foto" name="foto" accept="image/png">
-                                    <div class="form-text">PNG maksimal 2 MB, crop otomatis 3:4.</div>
-                                </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="nip">NIP</label>
+                                <input type="text" inputmode="numeric" class="form-control" id="nip" name="nip" maxlength="18" pattern="[0-9]{18}">
+                                <div class="form-text">Kosongkan bila belum mempunyai NIP resmi.</div>
                             </div>
-
-                            <h6 class="text-primary mb-3">Kontak</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label" for="no_telepon">No. Telepon</label>
-                                    <input type="text" class="form-control" id="no_telepon" name="no_telepon" maxlength="20">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label" for="email">Email</label>
-                                    <input type="email" class="form-control" id="email" name="email" maxlength="100">
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label" for="alamat">Alamat</label>
-                                    <textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea>
-                                </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="nuptk">NUPTK</label>
+                                <input type="text" inputmode="numeric" class="form-control" id="nuptk" name="nuptk" maxlength="16" pattern="[0-9]{16}">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label" for="nama">Nama Lengkap & Gelar <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nama" name="nama" maxlength="150" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="jenis_kelamin">Jenis Kelamin <span class="text-danger">*</span></label>
+                                <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required data-searchable-off="1">
+                                    <option value="">Pilih</option>
+                                    <option value="L">Laki-laki</option>
+                                    <option value="P">Perempuan</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="tempat_lahir">Tempat Lahir</label>
+                                <input type="text" class="form-control" id="tempat_lahir" name="tempat_lahir" maxlength="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="tanggal_lahir">Tanggal Lahir</label>
+                                <input type="date" class="form-control" id="tanggal_lahir" name="tanggal_lahir">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="agama">Agama</label>
+                                <input type="text" class="form-control" id="agama" name="agama" maxlength="30">
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary" id="btnSimpanGuru">
-                                <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
-                                Simpan
-                            </button>
+
+                        <h6 class="text-primary mb-2">Kepegawaian</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="status_kepegawaian">Status Kepegawaian <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status_kepegawaian" name="status_kepegawaian" required data-searchable-off="1">
+                                    <option value="">Pilih</option>
+                                    <?php foreach (($statusOptions ?? []) as $status): ?>
+                                        <option value="<?= esc($status) ?>"><?= esc($status) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="foto">Foto PNG</label>
+                                <input type="file" class="form-control" id="foto" name="foto" accept="image/png">
+                                <div class="form-text">PNG maksimal 2 MB, crop otomatis 3:4.</div>
+                            </div>
                         </div>
-                    </form>
-                </div>
+
+                        <h6 class="text-primary mb-2">Kontak</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label" for="no_telepon">No. Telepon</label>
+                                <input type="text" class="form-control" id="no_telepon" name="no_telepon" maxlength="20">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="email">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" maxlength="100">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="alamat">Alamat</label>
+                                <textarea class="form-control" id="alamat" name="alamat" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 sisfour-modal-actions">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary" id="btnSimpanGuru">
+                            <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
+                            Simpan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 

@@ -1,229 +1,187 @@
-# Dashboard, Settings, Maintenance, Backup & Log Activity — SisisFour
+# Dashboard, Settings, Maintenance, Backup & Log — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 14 September 2026
 
+## 1. Dashboard by Experience
 
-> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog**.
-
-## A. Dashboard
-
-### 1. Experience Role
-
-Dashboard memakai effective role dan priority:
+Dashboard mengikuti `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`.
 
 ```text
-admin > operator > pimpinan > bk > guru > siswa
+Admin       system/master/operational overview
+Operator    administrasi operasional sesuai permission
+Pimpinan    monitoring exception/decision
+BK          kasus/EWS/tindak lanjut/prestasi
+Guru        tugas mengajar hari ini
+Guru+Wali   tugas Guru + kondisi kelas wali
+Siswa       self-service data diri
 ```
 
-BK berada di atas Guru karena akun BK dapat tetap mempunyai identity/secondary role Guru.
+Wali Kelas tetap context Guru, bukan role.
 
-Wali Kelas bukan role. Dashboard Wali = Dashboard Guru + contextual data/quick links berdasarkan mapping Wali aktif dan permission yang dimiliki.
+## 2. Mobile Dashboard Rule
 
-### 2. Admin
-
-Fokus ringkasan sistem, master, Presensi, Jurnal, EWS, BK/Prestasi, Kartu, status sistem dan log sesuai permission.
-
-### 3. Operator
-
-Fokus administrasi operasional, master, Presensi, laporan, BK/Kartu sesuai permission. Operator tidak otomatis memperoleh Settings/Backup.
-
-### 4. Pimpinan
-
-Fokus monitoring/supervisi readonly. Mutation hanya tersedia bila permission eksplisit memang diberikan.
-
-### 5. BK
-
-Fokus EWS, Kasus, Pelanggaran, dan Prestasi.
-
-### 6. Guru
-
-Dashboard Guru baseline menampilkan:
+Pimpinan/BK/Guru/Wali/Siswa mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`:
 
 ```text
-Tahun Ajaran aktif
-Jadwal hari ini
-Task summary Presensi/Jurnal
-Riwayat Jurnal terakhir
-Akses Profile bila tersedia
+4 KPI = grid 2×2
+spacing compact
+quick action 2×2 bila relevan
+recent/top list maksimal 3–5 item
+no horizontal table scroll
+name-first identity
 ```
 
-Action Presensi/Jurnal pada jadwal mengikuti time-window dan status submission server-side.
+Implementasi besar dilakukan pada G3. G2 hanya stabilization/regression.
 
-### 7. Guru + Wali Kelas
+## 3. Pimpinan
 
-Dashboard Wali adalah Dashboard Guru dengan tambahan contextual:
+Prioritas:
 
 ```text
-Kelas wali
-Jumlah siswa
-Presensi Sesi Awal hari ini (H/S/I/A)
-EWS kelas bila diizinkan
-Ketidakhadiran terbaru
-Quick links contextual
+kelas belum Presensi
+jadwal belum Jurnal
+EWS
+kasus/pelanggaran penting
+trend singkat
 ```
 
-Quick links dapat mengarah ke Presensi Kelas, Rekap, Data Siswa, Matrix, EWS, Kasus, Prestasi, dan Kartu sesuai permission.
+Statistik jumlah master berada di bawah data exception.
 
-### 8. Siswa
+## 4. BK
 
-Dashboard Siswa readonly menampilkan data diri:
+Prioritas:
 
 ```text
-Tahun Ajaran aktif
-Status kehadiran hari ini dari Sesi Awal
-Rekap Presensi bulan berjalan
-Presensi/ketidakhadiran terbaru
+Kasus
+Pelanggaran Berat
+EWS
+Tindak Lanjut
 Prestasi
-Pelanggaran/Kasus
-Kartu
+```
+
+## 5. Guru
+
+Prioritas:
+
+```text
+Jadwal Hari Ini
+Belum Presensi
+Belum Jurnal
+Selesai
+Quick Action
+```
+
+Action mengikuti time-window dan state server.
+
+## 6. Guru + Wali
+
+Tambahan context:
+
+```text
+kelas wali
+jumlah siswa
+rekap H/S/I/A Sesi Awal
+EWS kelas
+absence terbaru
+quick link contextual
+```
+
+## 7. Siswa
+
+Readonly/self-service:
+
+```text
+status Sesi Awal hari ini
+rekap bulan berjalan
+recent absence
+Kartu Pelajar
+Prestasi
+Kasus/Pelanggaran diri
 Profile
 ```
 
-Tidak adanya row Sesi Awal bukan otomatis `Hadir`; UI membedakan data tersedia dan belum tersedia.
+Tidak ada row Sesi Awal berarti data belum tersedia, bukan otomatis Hadir.
 
-### 9. Redesign UI/UX
+## 8. Settings User
 
-Fokus redesign aktif adalah Guru, Guru+Wali, dan Siswa. Mockup visual yang dibuat selama diskusi tidak menjadi runtime contract sebelum source diimplementasikan dan lolos regression.
-
-Detail: `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md`.
-
-## B. Settings User
-
-Permission:
-
-```text
-settings_user.manage
-```
+Permission: `settings_user.manage`.
 
 Fitur:
 
-- create/update akun;
-- primary role;
-- secondary role;
+- create/update account;
+- primary/secondary role;
+- identity relation;
 - aktif/nonaktif;
-- relasi Guru/Pegawai/Siswa;
-- reset password;
-- managed credential;
-- `auth_version` invalidation ketika state keamanan/kredensial berubah.
+- reset managed credential;
+- auth invalidation bila security state berubah.
 
-Credential Guru/Pegawai yang dikelola Master mengikuti identifier NIP bila ada, selain itu NIK.
+Mutation memakai busy guard.
 
-UI mutation create/update/reset/delete memiliki busy guard.
+## 9. Settings Menu
 
-## C. Settings Menu
+Permission: `settings_menu.manage`.
 
-Permission:
+`role_menus` mengatur visibility, bukan authorization boundary. Direct URL tetap diperiksa filter/Service.
 
-```text
-settings_menu.manage
-```
+Sidebar data-driven dan hanya menampilkan context/menu yang relevan.
 
-`role_menus` mengatur visibilitas navigasi. Menu **bukan authorization boundary**; direct URL tetap diperiksa filter dan Service.
+## 10. Settings Sistem
 
-Sidebar harus:
+Permission: `settings_sistem.manage`.
 
-- membuang parent kosong;
-- hanya mempunyai satu active item paling spesifik;
-- membuka ancestor dari active item;
-- tidak menampilkan menu yang tidak berguna bagi effective role/context bila desain final sudah menetapkannya.
+Key utama meliputi nama/alamat sekolah, logo/icon, geofence, maintenance dan background Kartu.
 
-## D. Settings Sistem
-
-Permission:
-
-```text
-settings_sistem.manage
-```
-
-Key utama:
-
-```text
-nama_sekolah
-alamat_sekolah
-logo_sekolah
-icon_sekolah
-latitude_sekolah
-longitude_sekolah
-radius_geofencing
-geofencing_aktif
-maintenance_mode
-maintenance_message
-background_kta_depan
-background_kta_belakang
-```
-
-Upload branding:
+Branding runtime:
 
 ```text
 uploads/settings/branding/
 ```
 
-Upload background Kartu:
+Kartu background:
 
 ```text
 uploads/settings/kartu/
 ```
 
-File image divalidasi dan di-reencode dengan GD. Maksimum input 5 MB. Background Kartu dinormalisasi ke 1011×638.
+`icon_sekolah` menjadi favicon login + authenticated shell bila file valid. URL favicon diberi cache-busting. Setting UI menampilkan preview/path asset aktif.
 
-## E. Maintenance
+## 11. Maintenance
 
-Maintenance adalah global filter.
+Global filter.
 
-Saat ON:
-
-```text
-Effective Admin -> tetap dapat login dan mengakses Web/AJAX/API yang sah
-Non-Admin Web   -> HTTP 503 HTML
-Non-Admin AJAX  -> HTTP 503 JSON
-Non-Admin API   -> HTTP 503 JSON
-```
-
-Login page/logout mempunyai exception yang diperlukan agar recovery tetap mungkin.
-
-## F. Backup
-
-Permission:
+Saat aktif:
 
 ```text
-backup.manage
+Admin efektif → recovery sesuai policy
+Non-Admin Web → 503 HTML
+AJAX/API      → 503 JSON
 ```
 
-Lokasi:
+Confirmation memakai UI project, bukan browser native dialog.
+
+## 12. Backup
+
+Permission: `backup.manage`.
+
+Storage:
 
 ```text
 writable/backups/
 ```
 
-Format:
+Create/download/delete menggunakan validation path dan permission. Backup adalah pekerjaan Admin desktop, bukan target utama APK role operasional.
+
+## 13. Log Activity
+
+Permission: `log_activity.view`.
+
+Log tidak boleh menyimpan password/hash/token/cookie/session id/secret. Filter/pagination/export mengikuti UI canonical.
+
+## 14. Phase Boundary
 
 ```text
-backup_YYYYMMDD_HHMMSS.sql
+G2 → dashboard/settings stabilization only
+G3 → mobile role dashboard redesign
+G4 → Cordova integration
 ```
-
-Prinsip:
-
-- pure PHP, tidak mengandalkan shell database executable;
-- dump dibuat konsisten;
-- temporary `.part` lalu rename atomic;
-- download/delete memakai whitelist dan path validation;
-- folder harus writable di production.
-
-## G. Log Activity
-
-Tabel:
-
-```text
-log_activity
-```
-
-Permission:
-
-```text
-log_activity.view
-```
-
-Log tidak boleh menyimpan password/hash/token/cookie/session id/secret `.env`.

@@ -1,89 +1,36 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 15 September 2026
+**Development aktif:** G2 Final Closure
+**Target:** Web + Android Cordova
 
+## 1. Sistem
 
-> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
+SisisFour adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang untuk akademik, presensi, monitoring, BK, kartu pelajar, personalia, pelaporan, dan self-service pengguna.
 
-## 1. Identitas Sistem
-
-**SisisFour** adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang yang mengintegrasikan administrasi akademik, presensi, monitoring, BK, kartu pelajar, personalia, dan pelaporan.
-
-Target production:
+Stack utama:
 
 ```text
-https://sisfour.mtsn4jombang.sch.id/
+CodeIgniter 4
+PHP 8.2+
+MariaDB/MySQL
+Sneat Free v3 + Bootstrap 5.3.x
+Vanilla JavaScript + Fetch
 ```
 
-## 2. Skala Operasional
-
-Kapasitas desain:
+## 2. Surface Client
 
 ```text
-Siswa       1.600+
-Guru/BK     140+
-Rombel      50+
-Presensi    2 sesi per siswa per hari
+Desktop/laptop browser
+Mobile browser
+Android Cordova WebView
+API /api/*
 ```
 
-Snapshot audit release:
+Sumber UI utama tetap View CI4/Sneat yang sama. APK tidak direncanakan sebagai duplikasi SPA penuh.
 
-```text
-Siswa aktif        1.493
-Kelas                 53
-Guru                  115
-Jadwal              1.253
-Kartu aktif         1.493
-Akun user           1.610
-Permission             43
-```
-
-Angka snapshot bukan constraint bisnis; sistem tetap dirancang untuk skala di atasnya.
-
-## 3. Modul Utama
-
-- Auth Web dan API/JWT.
-- RBAC dan menu dinamis.
-- Dashboard per experience role.
-- Master Guru/Pegawai/Siswa/Kelas/Tahun/Mapel.
-- Mapping Wali Kelas dan Jadwal Guru.
-- Manajemen Siswa: penempatan, kenaikan, mutasi, kelulusan.
-- Presensi Siswa dan Presensi Mengajar/Jurnal.
-- Matrix dan export laporan.
-- EWS internal dan Digital Signage.
-- BK: pelanggaran, kasus, tindak lanjut.
-- Prestasi.
-- Kartu Pelajar dan public verify.
-- Profile Guru/Pegawai/Siswa.
-- Personalia/Portofolio Guru/Pegawai.
-- Settings User/Menu/Sistem.
-- Maintenance, Backup, Log Activity.
-- API core untuk mobile.
-
-## 4. Arsitektur
-
-```text
-Client
-  -> Route
-  -> Global/Route Filters
-  -> Controller
-  -> Service
-  -> Model / Query
-  -> Database
-```
-
-- Controller menangani request/response.
-- Service menentukan authorization data-level dan business rule.
-- Model/Query menangani persistence.
-- View/JS bukan security boundary.
-- PermissionFilter tidak menggantikan scope validation di Service.
-
-## 5. Role dan Experience
-
-Role resmi:
+## 3. Role
 
 ```text
 admin
@@ -94,149 +41,191 @@ guru
 siswa
 ```
 
-Wali Kelas adalah konteks Guru, bukan role.
+Wali Kelas adalah context Guru berdasarkan mapping aktif, bukan role baru.
 
-Priority experience role UI/dashboard:
-
-```text
-admin > operator > pimpinan > bk > guru > siswa
-```
-
-BK diprioritaskan sebelum Guru karena akun BK dapat memiliki `id_guru` dan secondary role Guru.
-
-## 6. Fokus UI/UX Aktif
-
-Fokus redesign saat ini dibatasi pada tiga experience:
+Role experience canonical:
 
 ```text
-Guru biasa
-Guru + Wali Kelas
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
 Siswa
 ```
 
-Prinsip:
+## 4. Identity UX
 
-- UI redesign tidak boleh mengubah authorization/business rule secara diam-diam;
-- Wali tetap bukan role baru;
-- Dashboard Wali = Dashboard Guru + contextual kelas wali;
-- Siswa tetap readonly untuk data diri;
-- mockup/render visual adalah artefak desain, **bukan bukti implementasi runtime**;
-- perubahan baru dianggap canonical runtime setelah source diubah, diuji, dan diputuskan final.
-
-Kontrak detail ada di `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md`.
-
-## 7. Kontrak Identitas Login
-
-### Guru/Pegawai
+Untuk penggunaan sehari-hari:
 
 ```text
-identifier = NIP bila tersedia/valid
-             jika tidak -> NIK
+Nama lengkap = identitas visual utama
+NISN/NIP/NIK = identifier sekunder
 ```
 
-NIK wajib secara business rule untuk create/edit/import baru, tetapi schema tetap nullable untuk kompatibilitas legacy.
+Search tetap mendukung nama dan identifier untuk pencocokan/verifikasi.
 
-Bila akun awalnya login dengan NIK lalu memperoleh NIP:
+## 5. Modul
+
+- Auth Web + API.
+- RBAC + menu dinamis.
+- Dashboard per experience.
+- Master Guru/Pegawai/Siswa/Kelas/Tahun/Mapel.
+- Mapping Wali + Jadwal Guru.
+- Manajemen Siswa.
+- Presensi Siswa + Jurnal Mengajar.
+- Laporan/Matrix/EWS/Signage.
+- BK/Pelanggaran/Prestasi.
+- Kartu Pelajar.
+- Profile/Personalia/Portofolio.
+- Settings/Maintenance/Backup/Log.
+- Android Cordova pada phase G4.
+
+## 6. Arsitektur
 
 ```text
-username -> NIP
-password managed/reset -> NIP
-auth_version -> increment
+Client
+→ Route/Filter
+→ Controller
+→ Service
+→ Model/Query
+→ Database
 ```
 
-### Siswa
+Service adalah business/security boundary. View/JS tidak menentukan authorization final.
+
+## 7. Semester & Lifecycle
 
 ```text
-username default = NISN
-password default = NISN
+Ganjil → Genap tahun sama = Siapkan Genap
+Genap → Ganjil tahun berikutnya = Kenaikan/Kelulusan
 ```
 
-## 8. Presensi
+Siapkan Genap menyalin struktur akademik yang diperbolehkan secara transactional dan tidak menyalin Presensi/Jurnal historis.
 
-Status:
+Kenaikan normal hanya memproses:
 
 ```text
-Hadir
-Sakit
-Izin
-Alpha
+7 → 8
+8 → 9
 ```
 
-Sesi:
+Kelas 9 menggunakan workflow Kelulusan. Kenaikan menjaga membership/history target secara transactional dan memiliki guard anti-double-process.
+
+Status siswa:
 
 ```text
-Sesi Awal  -> resmi
-Sesi Akhir -> dokumentasi
+Aktif
+Lulus
+Pindah
+Keluar
 ```
 
-Statistik ketidakhadiran menggunakan S/I/A.
+Lifecycle terminal menjaga history, current membership, status, dan kartu secara konsisten. Restore terminal lifecycle hanya diperbolehkan untuk event terminal terbaru ketika exact periode sumber terminal masih aktif; histori terminal tidak dihapus.
 
-Guru biasa mengisi sesuai jadwal. Wali mengisi kelas wali sesuai contextual authorization. Revisi setelah simpan hanya Wali kelas target, Operator, atau Admin.
+Status F14 Manajemen Siswa per 15 September 2026: **PASS**.
 
-## 9. Digital Signage
-
-Route public:
+## 8. UI/UX Hierarchy
 
 ```text
-/signage
-/signage/data
+13 CI4 + Sneat Global
+→ 11 UI/UX SisisFour
+→ 14 Mobile & Cordova UI/UX
+→ 11 Role Experience
 ```
 
-Kontrak:
+Pimpinan/BK/Guru/Wali/Siswa adalah mobile-first pada phase G3.
 
-- sumber hanya Sesi Awal;
-- ranking 14 hari;
-- Top 20 Alpha, Izin, Sakit;
-- Tidak Masuk Hari Ini (S/I/A);
-- nama siswa ditampilkan;
-- refresh client 5 menit;
-- rotasi panel 15 detik;
-- cache server 240 detik;
-- penempatan internal ruang Guru/TU;
-- maksimal sekitar 4 display.
-
-## 10. Kartu Pelajar
-
-- satu kartu Aktif maksimum per siswa;
-- canvas 1011×638;
-- QR `SISFOUR|V1|...`;
-- public verify readonly;
-- bulk generate maksimum 200 per request;
-- cetak massal maksimum 200;
-- A4 2×5 = 10 kartu per halaman;
-- background shared/cached per request;
-- lifecycle Lulus/Pindah/Keluar menonaktifkan kartu Aktif.
-
-## 11. Personalia
+Untuk halaman yang memiliki selector Tahun Ajaran sebagai filter baca/histori:
 
 ```text
-riwayat_pendidikan
-riwayat_penugasan
-riwayat_pangkat
-dokumen_personalia
+default = periode aktif
+Reset   = periode aktif
+histori = tetap selectable bila didukung
 ```
 
-Dokumen mentah non-public. Self-service hanya identity sendiri; Admin/Operator manage dapat membantu target sesuai permission; readonly actor tidak mendapat raw document.
+UI tidak perlu menampilkan helper/alert yang hanya menjelaskan default tersebut. Workflow current-state mengikuti periode aktif langsung dari business context.
 
-## 12. Deployment
+## 9. G2 — Current
 
-Production:
+G2 menyelesaikan:
 
 ```text
-Hostinger hPanel
-manual ZIP upload
-project root -> public_html
-HTTPS
-PHP 8.2+ (direkomendasikan 8.3)
-MariaDB/MySQL
-.env production terpisah
+F06–F14 integrity/business fixes
+Admin UI stabilization yang sudah masuk branch
+login/branding regression
+static + browser regression
+document sync
 ```
 
-## 13. Roadmap di Luar Baseline Wajib
+Current milestone:
 
-- penyempurnaan UI/UX Guru–Walas–Siswa sesuai hasil review visual;
-- Global Search lintas modul yang lebih luas;
-- Notifikasi internal end-to-end;
-- Dashboard Alumni penuh;
-- APK Cordova final/distribusi;
-- Integrasi EMIS/Dapodik.
+```text
+F06–F14 business regression    PASS
+F14 Manajemen Siswa            PASS
+active-year default/reset      PASS
+focused Admin/browser G2.4     PASS
+F11 final runtime retest       PASS
+final PR review/closure        IN PROGRESS
+```
+
+Focused browser regression dilakukan terhadap data aktual hosting dan mencakup login, branding/favicon, title/navbar, filter/pagination/export, Presensi Mengajar Guru search, Profile Guru mobile, modal/responsive, console, serta retest edit Mapel dengan kode sendiri.
+
+G2 tetap belum merged sampai final repository hygiene, docs/PR sanity, dan approval eksplisit pengguna selesai.
+
+G2 tidak menerima full mobile redesign atau Cordova implementation.
+
+## 10. G3 — Mobile Role UI
+
+Setelah G2 closed:
+
+```text
+mobile foundation
+Guru/Wali Presensi & Jurnal
+Dashboard Guru/Wali
+BK
+Pimpinan
+Siswa
+global mobile sweep
+WebView-readiness regression
+```
+
+Target utama:
+
+```text
+no horizontal table scroll untuk role operasional
+compact spacing
+touch target 44–48px
+name-first identity
+safe-area/keyboard ready
+```
+
+## 11. G4 — Cordova APK
+
+Setelah G3 stable:
+
+```text
+architecture spike
+Android project/config
+session/WebView verification
+Back/keyboard/safe-area
+geolocation
+network state
+file/download/share
+external links
+device regression
+signed package/distribution
+```
+
+Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+
+## 12. Release Rule
+
+```text
+G2 PASS → merge G2 setelah approval eksplisit
+G3 PASS → mobile/WebView UI ready
+G4 PASS → APK distribution gate
+```
+
+Setiap merge/release membutuhkan approval eksplisit pengguna.

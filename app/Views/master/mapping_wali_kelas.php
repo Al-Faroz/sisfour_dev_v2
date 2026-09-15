@@ -7,8 +7,8 @@
     data-base-url="<?= esc(base_url()) ?>"
     data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
 >
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Mapping Wali Kelas</h4>
             <p class="text-muted mb-0">
                 Kelola penetapan wali kelas per tahun ajaran.
@@ -16,7 +16,7 @@
         </div>
 
         <?php if (!empty($canManage)): ?>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="sisfour-page-actions">
                 <a
                     href="<?= base_url('master/wali-kelas/recycle') ?>"
                     class="btn btn-outline-secondary"
@@ -24,6 +24,15 @@
                     <i class="bx bx-history me-1"></i>
                     Histori / Recycle Bin
                 </a>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-success"
+                    id="btnExportWali"
+                >
+                    <i class="bx bx-export me-1"></i>
+                    Export
+                </button>
 
                 <button
                     type="button"
@@ -37,16 +46,16 @@
         <?php endif; ?>
     </div>
 
-    <div class="alert alert-info">
+    <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Wali Kelas <strong>bukan role</strong>. Status Wali dibaca dinamis dari
         mapping aktif. Satu guru maksimal satu kelas aktif per tahun ajaran,
         dan satu kelas maksimal satu wali aktif per tahun ajaran.
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
-            <form id="formFilterWali" class="row g-3">
+            <form id="formFilterWali" class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label
                         class="form-label"
@@ -123,15 +132,7 @@
                     </select>
                 </div>
 
-                <div class="col-12 d-flex gap-2">
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-                        <i class="bx bx-filter-alt me-1"></i>
-                        Terapkan
-                    </button>
-
+                <div class="col-12 sisfour-filter-actions">
                     <button
                         type="button"
                         class="btn btn-outline-secondary"
@@ -139,13 +140,21 @@
                     >
                         Reset
                     </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        <i class="bx bx-filter-alt me-1"></i>
+                        Terapkan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card sisfour-table-card">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2">
             <h5 class="mb-0">Daftar Wali Kelas Aktif</h5>
 
             <?php if (empty($canManage)): ?>
@@ -155,9 +164,9 @@
             <?php endif; ?>
         </div>
 
-        <div class="card-datatable table-responsive">
+        <div class="table-responsive">
             <table
-                class="table table-hover align-middle"
+                class="table table-hover align-middle mb-0"
                 id="tableMappingWali"
             >
                 <thead>
@@ -184,133 +193,131 @@
             tabindex="-1"
             aria-hidden="true"
         >
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="formAssignWali">
-                        <?= csrf_field() ?>
+            <div class="modal-dialog modal-dialog-scrollable">
+                <form id="formAssignWali" class="modal-content">
+                    <?= csrf_field() ?>
 
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                Assign Wali Kelas
-                            </h5>
+                    <div class="modal-header py-2">
+                        <h5 class="modal-title">
+                            Assign Wali Kelas
+                        </h5>
 
-                            <button
-                                type="button"
-                                class="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Tutup"
-                            ></button>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Tutup"
+                        ></button>
+                    </div>
+
+                    <div class="modal-body overflow-auto py-3">
+                        <div class="alert alert-warning sisfour-compact-note">
+                            Jika guru pernah menjadi wali pada tahun yang sama
+                            dan mapping lama sudah nonaktif, sistem akan
+                            <strong>restore</strong> row lama, bukan membuat
+                            row baru.
                         </div>
 
-                        <div class="modal-body">
-                            <div class="alert alert-warning">
-                                Jika guru pernah menjadi wali pada tahun yang sama
-                                dan mapping lama sudah nonaktif, sistem akan
-                                <strong>restore</strong> row lama, bukan membuat
-                                row baru.
-                            </div>
-
-                            <div class="mb-3">
-                                <label
-                                    class="form-label"
-                                    for="assignTahun"
-                                >
-                                    Tahun Ajaran
-                                </label>
-
-                                <select
-                                    class="form-select"
-                                    id="assignTahun"
-                                    name="id_tahun"
-                                    required
-                                >
-                                    <option value="">
-                                        Pilih tahun ajaran
-                                    </option>
-
-                                    <?php foreach ($tahunOptions as $tahun): ?>
-                                        <option
-                                            value="<?= (int) $tahun['id'] ?>"
-                                        >
-                                            <?= esc(
-                                                $tahun['nama_tahun']
-                                                . ' - '
-                                                . $tahun['semester']
-                                                . ((int) $tahun['status_aktif'] === 1
-                                                    ? ' (Aktif)'
-                                                    : '')
-                                            ) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label
-                                    class="form-label"
-                                    for="assignGuru"
-                                >
-                                    Guru
-                                </label>
-
-                                <select
-                                    class="form-select"
-                                    id="assignGuru"
-                                    name="id_guru"
-                                    required
-                                    disabled
-                                >
-                                    <option value="">
-                                        Pilih tahun ajaran terlebih dahulu
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label
-                                    class="form-label"
-                                    for="assignKelas"
-                                >
-                                    Kelas
-                                </label>
-
-                                <select
-                                    class="form-select"
-                                    id="assignKelas"
-                                    name="id_kelas"
-                                    required
-                                    disabled
-                                >
-                                    <option value="">
-                                        Pilih tahun ajaran terlebih dahulu
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button
-                                type="button"
-                                class="btn btn-outline-secondary"
-                                data-bs-dismiss="modal"
+                        <div class="mb-3">
+                            <label
+                                class="form-label"
+                                for="assignTahun"
                             >
-                                Batal
-                            </button>
+                                Tahun Ajaran
+                            </label>
 
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                                id="btnSimpanMapping"
+                            <select
+                                class="form-select"
+                                id="assignTahun"
+                                name="id_tahun"
+                                required
                             >
-                                <span
-                                    class="spinner-border spinner-border-sm d-none me-1"
-                                    aria-hidden="true"
-                                ></span>
-                                Simpan Mapping
-                            </button>
+                                <option value="">
+                                    Pilih tahun ajaran
+                                </option>
+
+                                <?php foreach ($tahunOptions as $tahun): ?>
+                                    <option
+                                        value="<?= (int) $tahun['id'] ?>"
+                                    >
+                                        <?= esc(
+                                            $tahun['nama_tahun']
+                                            . ' - '
+                                            . $tahun['semester']
+                                            . ((int) $tahun['status_aktif'] === 1
+                                                ? ' (Aktif)'
+                                                : '')
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                    </form>
-                </div>
+
+                        <div class="mb-3">
+                            <label
+                                class="form-label"
+                                for="assignGuru"
+                            >
+                                Guru
+                            </label>
+
+                            <select
+                                class="form-select"
+                                id="assignGuru"
+                                name="id_guru"
+                                required
+                                disabled
+                            >
+                                <option value="">
+                                    Pilih tahun ajaran terlebih dahulu
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                class="form-label"
+                                for="assignKelas"
+                            >
+                                Kelas
+                            </label>
+
+                            <select
+                                class="form-select"
+                                id="assignKelas"
+                                name="id_kelas"
+                                required
+                                disabled
+                            >
+                                <option value="">
+                                    Pilih tahun ajaran terlebih dahulu
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer py-2 sisfour-modal-actions">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            data-bs-dismiss="modal"
+                        >
+                            Batal
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            id="btnSimpanMapping"
+                        >
+                            <span
+                                class="spinner-border spinner-border-sm d-none me-1"
+                                aria-hidden="true"
+                            ></span>
+                            Simpan Mapping
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     <?php endif; ?>

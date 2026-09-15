@@ -82,7 +82,7 @@
                 </td>
                 <td>${escapeHtml(row.deleted_at || '-')}</td>
                 <td>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <button
                             type="button"
                             class="btn btn-sm btn-outline-success btn-restore"
@@ -92,14 +92,13 @@
                             Restore
                         </button>
 
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-danger btn-force-delete"
-                            data-id="${row.id}"
+                        <span
+                            class="badge text-bg-light border"
+                            title="Histori Mapping Wali Kelas dipertahankan untuk integritas data akademik."
                         >
-                            <i class="bx bx-x me-1"></i>
-                            Permanen
-                        </button>
+                            <i class="bx bx-lock-alt me-1"></i>
+                            Histori dilindungi
+                        </span>
                     </div>
                 </td>
             </tr>
@@ -150,134 +149,65 @@
             const restore =
                 event.target.closest('.btn-restore');
 
-            const forceDelete =
-                event.target.closest(
-                    '.btn-force-delete'
-                );
-
-            if (restore) {
-                const id = Number(restore.dataset.id);
-
-                const row = rows.find(
-                    (item) =>
-                        Number(item.id) === id
-                );
-
-                const confirmation =
-                    await Swal.fire({
-                        icon: 'question',
-                        title: 'Restore mapping?',
-                        html: `
-                            <strong>
-                                ${escapeHtml(row?.nama_guru || '')}
-                            </strong>
-                            <br>
-                            kembali menjadi wali
-                            ${escapeHtml(row?.nama_kelas || '')}.
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: 'Restore',
-                        cancelButtonText: 'Batal',
-                    });
-
-                if (!confirmation.isConfirmed) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(
-                        endpoint(
-                            `master/wali-kelas/restore/${id}`
-                        ),
-                        {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With':
-                                    'XMLHttpRequest',
-                            },
-                            credentials: 'same-origin',
-                        }
-                    );
-
-                    const result =
-                        await parseResponse(response);
-
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: result.message,
-                    });
-
-                    await loadData();
-                } catch (error) {
-                    showError(error);
-                }
-
+            if (!restore) {
                 return;
             }
 
-            if (forceDelete) {
-                const id = Number(
-                    forceDelete.dataset.id
+            const id = Number(restore.dataset.id);
+
+            const row = rows.find(
+                (item) =>
+                    Number(item.id) === id
+            );
+
+            const confirmation =
+                await Swal.fire({
+                    icon: 'question',
+                    title: 'Restore mapping?',
+                    html: `
+                        <strong>
+                            ${escapeHtml(row?.nama_guru || '')}
+                        </strong>
+                        <br>
+                        kembali menjadi wali
+                        ${escapeHtml(row?.nama_kelas || '')}.
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Restore',
+                    cancelButtonText: 'Batal',
+                });
+
+            if (!confirmation.isConfirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    endpoint(
+                        `master/wali-kelas/restore/${id}`
+                    ),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With':
+                                'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    }
                 );
 
-                const row = rows.find(
-                    (item) =>
-                        Number(item.id) === id
-                );
+                const result =
+                    await parseResponse(response);
 
-                const confirmation =
-                    await Swal.fire({
-                        icon: 'warning',
-                        title: 'Hapus histori permanen?',
-                        html: `
-                            <strong>
-                                ${escapeHtml(row?.nama_guru || '')}
-                            </strong>
-                            <br>
-                            ${escapeHtml(row?.nama_kelas || '')}
-                            <br><br>
-                            Data histori tidak dapat dipulihkan.
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText:
-                            'Hapus permanen',
-                        cancelButtonText: 'Batal',
-                        confirmButtonColor: '#d33',
-                    });
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: result.message,
+                });
 
-                if (!confirmation.isConfirmed) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(
-                        endpoint(
-                            `master/wali-kelas/force-delete/${id}`
-                        ),
-                        {
-                            method: 'DELETE',
-                            headers: {
-                                'X-Requested-With':
-                                    'XMLHttpRequest',
-                            },
-                            credentials: 'same-origin',
-                        }
-                    );
-
-                    const result =
-                        await parseResponse(response);
-
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: result.message,
-                    });
-
-                    await loadData();
-                } catch (error) {
-                    showError(error);
-                }
+                await loadData();
+            } catch (error) {
+                showError(error);
             }
         }
     );

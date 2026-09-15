@@ -3,13 +3,15 @@
 <?= $this->section('content') ?>
 
 <div id="manajemenKelasSiswaApp" data-base-url="<?= esc(base_url()) ?>">
-    <div class="mb-4">
-        <h4 class="fw-bold mb-1">Penempatan / Pindah Kelas</h4>
-        <p class="text-muted mb-0">Tempatkan siswa yang belum memiliki kelas atau pindahkan siswa antar kelas pada tahun ajaran aktif.</p>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
+            <h4 class="fw-bold mb-1">Penempatan / Pindah Kelas</h4>
+            <p class="text-muted mb-0">Tempatkan siswa yang belum memiliki kelas atau pindahkan siswa antar kelas pada tahun ajaran aktif.</p>
+        </div>
     </div>
 
     <?php if ($tahunAktif): ?>
-        <div class="alert alert-info">
+        <div class="alert alert-info sisfour-compact-note">
             <i class="bx bx-calendar me-1"></i>
             Tahun ajaran aktif:
             <strong><?= esc($tahunAktif['nama_tahun'] . ' - ' . $tahunAktif['semester']) ?></strong>
@@ -18,14 +20,14 @@
         <div class="alert alert-danger">Tahun ajaran aktif belum tersedia.</div>
     <?php endif; ?>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
-            <form id="formFilterKelasSiswa" class="row g-3">
-                <div class="col-md-7">
+            <form id="formFilterKelasSiswa" class="row g-3 align-items-end">
+                <div class="col-12 col-md-7">
                     <label class="form-label" for="filterQ">Cari Siswa</label>
-                    <input type="text" class="form-control" id="filterQ" name="q" placeholder="Nama, NISN, atau NIK">
+                    <input type="search" class="form-control" id="filterQ" name="q" placeholder="Nama, NISN, atau NIK">
                 </div>
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                     <label class="form-label" for="filterKelas">Kelas Saat Ini</label>
                     <select class="form-select" id="filterKelas" name="kelas">
                         <option value="">Semua</option>
@@ -35,18 +37,20 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button>
+                <div class="col-12 sisfour-filter-actions">
                     <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-filter-alt me-1"></i> Terapkan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card sisfour-table-card">
         <div class="card-header"><h5 class="mb-0">Daftar Siswa Aktif</h5></div>
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tableKelasSiswa">
+            <table class="table table-hover align-middle mb-0" id="tableKelasSiswa">
                 <thead>
                     <tr>
                         <th style="width:56px;">No.</th>
@@ -64,40 +68,38 @@
     </div>
 
     <div class="modal fade" id="modalAturKelas" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="formAturKelas">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="idSiswaKelas">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Atur Kelas Siswa</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-dialog-scrollable">
+            <form id="formAturKelas" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden" id="idSiswaKelas">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Atur Kelas Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body overflow-auto py-3">
+                    <div class="mb-3">
+                        <label class="form-label" for="namaSiswaKelas">Siswa</label>
+                        <input type="text" class="form-control" id="namaSiswaKelas" readonly>
                     </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Siswa</label>
-                            <input type="text" class="form-control" id="namaSiswaKelas" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Kelas Saat Ini</label>
-                            <input type="text" class="form-control" id="kelasSaatIni" readonly>
-                        </div>
-                        <div>
-                            <label class="form-label" for="idKelasTujuan">Kelas Tujuan</label>
-                            <select class="form-select" id="idKelasTujuan" name="id_kelas_tujuan" required>
-                                <option value="">Pilih kelas</option>
-                                <?php foreach ($kelasOptions as $kelas): ?>
-                                    <option value="<?= (int) $kelas['id'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="kelasSaatIni">Kelas Saat Ini</label>
+                        <input type="text" class="form-control" id="kelasSaatIni" readonly>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    <div>
+                        <label class="form-label" for="idKelasTujuan">Kelas Tujuan</label>
+                        <select class="form-select" id="idKelasTujuan" name="id_kelas_tujuan" required>
+                            <option value="">Pilih kelas</option>
+                            <?php foreach ($kelasOptions as $kelas): ?>
+                                <option value="<?= (int) $kelas['id'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -6,8 +6,8 @@
     data-base-url="<?= esc(base_url()) ?>"
     data-can-manage="<?= !empty($initial['can_manage']) ? '1' : '0' ?>"
 >
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Catatan Kasus</h4>
             <p class="text-muted mb-0">
                 Data otomatis dibatasi sesuai scope user. Tindak lanjut dicatat sebagai histori terpisah.
@@ -15,10 +15,12 @@
         </div>
 
         <?php if (!empty($initial['can_manage'])): ?>
-            <button class="btn btn-primary" id="btnKasusBaru" type="button">
-                <i class="bx bx-plus me-1"></i>
-                Tambah Kasus
-            </button>
+            <div class="sisfour-page-actions">
+                <button class="btn btn-primary" id="btnKasusBaru" type="button">
+                    <i class="bx bx-plus me-1"></i>
+                    Tambah Kasus
+                </button>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -27,10 +29,10 @@
             <?= esc($initial['message'] ?? 'Data tidak dapat dibuka.') ?>
         </div>
     <?php else: ?>
-        <div class="card mb-4">
+        <div class="card sisfour-filter-card mb-4">
             <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4">
                         <label class="form-label" for="kasusSearch">Pencarian</label>
                         <input
                             id="kasusSearch"
@@ -39,7 +41,7 @@
                         >
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-12 col-sm-6 col-md-2">
                         <label class="form-label" for="kasusKategori">Kategori</label>
                         <select id="kasusKategori" class="form-select" data-searchable-off="1">
                             <option value="">Semua kategori</option>
@@ -49,34 +51,34 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label" for="kasusMulai">Dari</label>
                         <input id="kasusMulai" type="date" class="form-control">
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label" for="kasusSelesai">Sampai</label>
                         <input id="kasusSelesai" type="date" class="form-control">
                     </div>
 
-                    <div class="col-md-2 d-grid align-self-end">
-                        <button id="btnKasusCari" type="button" class="btn btn-outline-primary">
-                            Tampilkan
+                    <div class="col-12 col-md-2 d-grid">
+                        <button id="btnKasusCari" type="button" class="btn btn-primary">
+                            <i class="bx bx-filter-alt me-1"></i> Tampilkan
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="kasusAlert" class="alert d-none"></div>
+        <div id="kasusAlert" class="alert d-none" role="alert"></div>
 
-        <div class="card">
+        <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Riwayat Kasus</h5>
 
                 <?php if (!empty($initial['can_manage'])): ?>
                     <a class="btn btn-sm btn-outline-primary" id="btnKasusExport" href="#">
-                        Export XLSX
+                        <i class="bx bx-export me-1"></i> Export XLSX
                     </a>
                 <?php endif; ?>
             </div>
@@ -98,16 +100,8 @@
                 </table>
             </div>
 
-            <div class="card-footer d-flex justify-content-between align-items-center gap-2">
-                <small id="kasusInfo" class="text-muted"></small>
-                <div class="btn-group">
-                    <button id="kasusPrev" type="button" class="btn btn-sm btn-outline-secondary">
-                        Sebelumnya
-                    </button>
-                    <button id="kasusNext" type="button" class="btn btn-sm btn-outline-secondary">
-                        Berikutnya
-                    </button>
-                </div>
+            <div class="card-footer">
+                <div id="bkKasusPager"></div>
             </div>
         </div>
 
@@ -121,7 +115,7 @@
 
         <?php if (!empty($initial['can_manage'])): ?>
             <div class="modal fade" id="modalKasus" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
+                <div class="modal-dialog modal-dialog-scrollable">
                     <form class="modal-content" id="formKasus">
                         <div class="modal-header">
                             <h5 class="modal-title" id="judulModalKasus">Catatan Kasus</h5>
@@ -185,7 +179,7 @@
                             </div>
                         </div>
 
-                        <div class="modal-footer">
+                        <div class="modal-footer sisfour-modal-actions">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                             <button type="submit" class="btn btn-primary">Simpan</button>
                         </div>
@@ -198,7 +192,7 @@
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Detail Kasus & Tindak Lanjut</h5>
+                        <h5 class="modal-title">Detail Kasus &amp; Tindak Lanjut</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
 
@@ -261,7 +255,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="card-footer d-flex justify-content-end gap-2">
+                                    <div class="card-footer sisfour-modal-actions">
                                         <button type="button" id="btnBatalEditTindak" class="btn btn-outline-secondary d-none">Batal Edit</button>
                                         <button type="submit" class="btn btn-primary">Simpan Tindak Lanjut</button>
                                     </div>

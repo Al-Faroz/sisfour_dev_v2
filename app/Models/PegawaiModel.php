@@ -10,6 +10,11 @@ use CodeIgniter\Model;
  * Struktur inti disamakan dengan Guru. Kolom `jabatan` lama tetap berada
  * di database sebagai data legacy sampai desain riwayat penugasan/jabatan
  * dikunci pada fase berikutnya, tetapi bukan lagi bagian form biodata inti.
+ *
+ * Uniqueness NIK/NIP dijaga PegawaiService dengan awareness terhadap record
+ * yang sedang diedit, lalu tetap diproteksi UNIQUE KEY database. Model fokus
+ * pada validasi bentuk agar update tidak salah mendeteksi record sendiri
+ * sebagai duplikat.
  */
 class PegawaiModel extends Model
 {
@@ -43,8 +48,8 @@ class PegawaiModel extends Model
     ];
 
     protected $validationRules = [
-        'nik'                 => 'required|exact_length[16]|numeric|is_unique[pegawai.nik,id,{id}]',
-        'nip'                 => 'permit_empty|exact_length[18]|numeric|is_unique[pegawai.nip,id,{id}]',
+        'nik'                 => 'required|exact_length[16]|numeric',
+        'nip'                 => 'permit_empty|exact_length[18]|numeric',
         'nama'                => 'required|max_length[150]',
         'jenis_kelamin'       => 'required|in_list[L,P]',
         'tempat_lahir'        => 'permit_empty|max_length[100]',
@@ -62,12 +67,10 @@ class PegawaiModel extends Model
             'required'     => 'NIK wajib diisi.',
             'exact_length' => 'NIK harus 16 digit.',
             'numeric'      => 'NIK hanya boleh berisi angka.',
-            'is_unique'    => 'NIK sudah terdaftar pada data Pegawai.',
         ],
         'nip' => [
             'exact_length' => 'NIP harus 18 digit.',
             'numeric'      => 'NIP hanya boleh berisi angka.',
-            'is_unique'    => 'NIP sudah terdaftar pada data Pegawai.',
         ],
         'nama' => [
             'required' => 'Nama Pegawai wajib diisi.',

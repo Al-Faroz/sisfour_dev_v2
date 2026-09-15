@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\PegawaiIntegrityService;
 use App\Services\PegawaiService;
 use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -15,7 +16,7 @@ class MasterPegawai extends BaseController
 
     public function __construct()
     {
-        $this->pegawaiService = new PegawaiService();
+        $this->pegawaiService = new PegawaiIntegrityService();
         $this->paginationService = new MasterPaginationService();
     }
 

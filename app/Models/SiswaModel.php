@@ -26,9 +26,12 @@ class SiswaModel extends Model
         'tanggal_mutasi','keterangan_mutasi',
     ];
 
+    // Uniqueness NIK/NISN dijaga SiswaService dengan awareness terhadap record
+    // yang sedang diedit dan tetap diproteksi UNIQUE KEY database. Model fokus
+    // pada validasi bentuk agar update tidak menolak record sendiri.
     protected $validationRules = [
-        'nik' => 'required|exact_length[16]|numeric|is_unique[siswa.nik,id,{id}]',
-        'nisn' => 'required|max_length[20]|is_unique[siswa.nisn,id,{id}]',
+        'nik' => 'required|exact_length[16]|numeric',
+        'nisn' => 'required|max_length[20]',
         'nama' => 'required|max_length[150]',
         'jenis_kelamin' => 'required|in_list[L,P]',
         'tempat_lahir' => 'permit_empty|max_length[100]',
@@ -50,11 +53,9 @@ class SiswaModel extends Model
             'required' => 'NIK wajib diisi.',
             'exact_length' => 'NIK wajib 16 digit.',
             'numeric' => 'NIK hanya boleh berisi angka.',
-            'is_unique' => 'NIK sudah terdaftar.',
         ],
         'nisn' => [
             'required' => 'NISN wajib diisi.',
-            'is_unique' => 'NISN sudah terdaftar.',
         ],
     ];
 

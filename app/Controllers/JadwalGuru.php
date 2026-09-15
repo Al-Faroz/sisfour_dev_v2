@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\JadwalGuruIntegrityService;
 use App\Services\JadwalGuruService;
 use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -15,7 +16,7 @@ class JadwalGuru extends BaseController
 
     public function __construct()
     {
-        $this->jadwalService = new JadwalGuruService();
+        $this->jadwalService = new JadwalGuruIntegrityService();
         $this->paginationService = new MasterPaginationService();
     }
 
@@ -121,17 +122,26 @@ class JadwalGuru extends BaseController
                 'MTK',
                 'Senin',
                 '07:30',
-                '09:00',
+                '08:10',
                 'Sesi Awal',
             ],
             [
-                '3517012345670001',
-                '7-B',
+                '196808212003122001',
+                '7-A',
                 'BIN',
-                'Selasa',
-                '07:30',
+                'Senin',
+                '08:10',
                 '08:50',
-                'Sesi Awal',
+                'Non Sesi',
+            ],
+            [
+                '196808212003122001',
+                '7-A',
+                'IPA',
+                'Senin',
+                '08:50',
+                '09:30',
+                'Sesi Akhir',
             ],
         ], null, 'A1');
 
@@ -141,6 +151,23 @@ class JadwalGuru extends BaseController
         foreach (range('A', 'G') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
+
+        $petunjuk = $spreadsheet->createSheet();
+        $petunjuk->setTitle('Petunjuk');
+        $petunjuk->fromArray([
+            ['ATURAN IMPORT JADWAL GURU'],
+            ['1. IDENTITAS_GURU wajib Text: NIK 16 digit atau NIP 18 digit.'],
+            ['2. Setiap kombinasi kelas dan hari wajib memiliki minimal dua jadwal.'],
+            ['3. Jadwal paling awal wajib berlabel Sesi Awal.'],
+            ['4. Jadwal paling akhir wajib berlabel Sesi Akhir.'],
+            ['5. Jadwal di antara slot pertama dan terakhir wajib berlabel Non Sesi.'],
+            ['6. Jadwal Guru maupun Kelas tidak boleh overlap.'],
+            ['7. Import bersifat atomic dan mengganti jadwal aktif pada tahun ajaran yang dipilih.'],
+        ], null, 'A1');
+        $petunjuk->getStyle('A1')->getFont()->setBold(true);
+        $petunjuk->getColumnDimension('A')->setAutoSize(true);
+
+        $spreadsheet->setActiveSheetIndex(0);
 
         $tempFile = tempnam(
             sys_get_temp_dir(),
@@ -292,7 +319,9 @@ class JadwalGuru extends BaseController
         $errorCode = match ($code) {
             'FORBIDDEN' => 403,
             'NOT_FOUND' => 404,
-            'SCHEDULE_CONFLICT' => 409,
+            'SCHEDULE_CONFLICT',
+            'SESSION_TOPOLOGY',
+            'JADWAL_IN_USE' => 409,
             default => 422,
         };
 

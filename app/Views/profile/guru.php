@@ -3,18 +3,34 @@
 <?= $this->section('content') ?>
 
 <div id="profileGuruApp" data-base-url="<?= esc(base_url(), 'attr') ?>">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <div class="text-muted small mb-1">Profile Saya</div>
             <h4 class="fw-bold mb-1">Profile Guru</h4>
             <p class="text-muted mb-0">
                 Kelola biodata pribadi, foto, kontak, serta akses Riwayat &amp; Portofolio.
             </p>
         </div>
-        <a href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>" class="btn btn-outline-primary">
-            <i class="bx bx-folder-open me-1"></i>Riwayat &amp; Portofolio
-        </a>
     </div>
+
+    <nav class="sisfour-secondary-nav mb-4" aria-label="Navigasi Profile Guru">
+        <div class="nav nav-pills flex-nowrap gap-2">
+            <a class="nav-link active" href="<?= esc(base_url('profile/guru'), 'attr') ?>" aria-current="page">
+                <i class="bx bx-user me-1"></i>Biodata
+            </a>
+            <a class="nav-link" href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>">
+                <i class="bx bx-history me-1"></i>Riwayat Personalia
+            </a>
+            <a
+                class="nav-link"
+                href="<?= esc(base_url('profile/guru/portofolio'), 'attr') ?>"
+                target="_blank"
+                rel="noopener"
+            >
+                <i class="bx bx-file me-1"></i>Portofolio PDF
+            </a>
+        </div>
+    </nav>
 
     <?php if (! empty($profileError)): ?>
         <div class="alert alert-warning">
@@ -126,7 +142,7 @@
                             </button>
                         </form>
 
-                        <div class="alert alert-light border mt-4 mb-0 small">
+                        <div class="alert alert-light border mt-4 mb-0 small sisfour-compact-note">
                             <i class="bx bx-lock-alt me-1"></i>
                             NIK, NIP dan status kepegawaian hanya dapat diubah melalui Master Guru.
                         </div>

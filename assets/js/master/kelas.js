@@ -1,41 +1,257 @@
 (() => {
     'use strict';
-    const app=document.getElementById('masterKelasApp'); if(!app)return;
-    const baseUrl=app.dataset.baseUrl.replace(/\/+$/,'');
-    const table=document.getElementById('tableKelas'), tbody=table.querySelector('tbody');
-    const filterForm=document.getElementById('formFilterKelas'), form=document.getElementById('formKelas');
-    const modal=new bootstrap.Modal(document.getElementById('modalKelas'));
-    let rows=[], editingId=null, dataTable=null;
-    const endpoint=p=>`${baseUrl}/${p.replace(/^\/+/,'')}`;
-    const esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML;};
-    const parse=async r=>{const d=await r.json().catch(()=>({}));if(!r.ok||d.status==='error')throw new Error(d.message||'Permintaan gagal.');return d;};
-    const error=e=>Swal.fire({icon:'error',title:'Gagal',text:e?.message||'Terjadi kesalahan.'});
-    const success=m=>Swal.fire({icon:'success',title:'Berhasil',text:m,timer:1500,showConfirmButton:false});
-    const render=()=>{if(dataTable){dataTable.destroy();dataTable=null;}
-        tbody.innerHTML=rows.map((r,i)=>`<tr>
-        <td>${i+1}</td><td class="fw-semibold">${esc(r.nama_kelas)}</td><td>${esc(r.tingkat)}</td><td>${esc(r.rombel)}</td>
-        <td>${esc(r.nama_tahun)} - ${esc(r.semester)} ${Number(r.tahun_aktif)===1?'<span class="badge bg-label-success ms-1">Aktif</span>':''}</td>
-        <td>${Number(r.jumlah_siswa||0)} siswa</td>
-        <td><div class="d-flex gap-1">
-        <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${r.id}"><i class="bx bx-edit"></i></button>
-        <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${r.id}"><i class="bx bx-trash"></i></button>
-        </div></td></tr>`).join('');
-        if(typeof window.DataTable==='function')dataTable=new window.DataTable(table,{pageLength:25,order:[[4,'desc'],[2,'asc'],[3,'asc']]});
+
+    const app = document.getElementById('masterKelasApp');
+    if (!app) return;
+
+    const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
+    const activeYearId = String(app.dataset.activeYearId || '');
+    const table = document.getElementById('tableKelas');
+    const tbody = table.querySelector('tbody');
+    const filterForm = document.getElementById('formFilterKelas');
+    const form = document.getElementById('formKelas');
+    const filterTahun = document.getElementById('filterTahun');
+    const formTahun = document.getElementById('id_tahun');
+    const modal = new bootstrap.Modal(document.getElementById('modalKelas'));
+
+    let rows = [];
+    let editingId = null;
+    const state = { limit: 25, offset: 0, total: 0 };
+
+    const endpoint = (path) => `${baseUrl}/${path.replace(/^\/+/, '')}`;
+    const esc = (value) => {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
     };
-    const load=async()=>{try{const q=new URLSearchParams(new FormData(filterForm));[...q.entries()].forEach(([k,v])=>{if(!String(v).trim())q.delete(k);});
-        const r=await fetch(endpoint(`master/kelas/json?${q}`),{headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});
-        const d=await parse(r); rows=Array.isArray(d.data)?d.data:[]; render();}catch(e){error(e);}};
-    document.getElementById('btnTambahKelas').addEventListener('click',()=>{editingId=null;form.reset();document.getElementById('kelasId').value='';document.getElementById('modalKelasTitle').textContent='Tambah Kelas';modal.show();});
-    form.addEventListener('submit',async e=>{e.preventDefault();const btn=document.getElementById('btnSimpanKelas'),sp=btn.querySelector('.spinner-border');btn.disabled=true;sp.classList.remove('d-none');
-        try{let r;if(editingId===null){r=await fetch(endpoint('master/kelas/create'),{method:'POST',body:new FormData(form),headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});}
-        else{const p=new URLSearchParams();for(const[k,v]of new FormData(form).entries())if(k!=='csrf_test_name')p.append(k,v);
-            r=await fetch(endpoint(`master/kelas/update/${editingId}`),{method:'PUT',body:p,headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});}
-        const d=await parse(r);modal.hide();await success(d.message);await load();}catch(err){error(err);}finally{btn.disabled=false;sp.classList.add('d-none');}});
-    tbody.addEventListener('click',async e=>{const edit=e.target.closest('.btn-edit'),del=e.target.closest('.btn-delete');
-        if(edit){const id=Number(edit.dataset.id),r=rows.find(x=>Number(x.id)===id);if(!r)return;editingId=id;form.reset();document.getElementById('kelasId').value=String(id);document.getElementById('tingkat').value=r.tingkat??'';document.getElementById('rombel').value=r.rombel??'';document.getElementById('id_tahun').value=r.id_tahun??'';document.getElementById('modalKelasTitle').textContent='Edit Kelas';modal.show();return;}
-        if(del){const id=Number(del.dataset.id),c=await Swal.fire({icon:'warning',title:'Hapus kelas?',text:'Kelas hanya dapat dihapus jika tidak lagi memiliki dependency aktif.',showCancelButton:true,confirmButtonText:'Ya, hapus',cancelButtonText:'Batal'});if(!c.isConfirmed)return;
-            try{const r=await fetch(endpoint(`master/kelas/delete/${id}`),{method:'DELETE',headers:{'X-Requested-With':'XMLHttpRequest'},credentials:'same-origin'});const d=await parse(r);await success(d.message);await load();}catch(err){error(err);}}});
-    filterForm.addEventListener('submit',e=>{e.preventDefault();load();});
-    document.getElementById('btnResetFilter').addEventListener('click',()=>{filterForm.reset();load();});
+    const parse = async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.status === 'error') {
+            throw new Error(data.message || 'Permintaan gagal.');
+        }
+        return data;
+    };
+    const error = (err) => Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: err?.message || 'Terjadi kesalahan.',
+    });
+    const success = (message) => Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: message,
+        timer: 1500,
+        showConfirmButton: false,
+    });
+
+    const setActiveYear = (select) => {
+        if (
+            !select
+            || !activeYearId
+            || !Array.from(select.options).some(
+                (option) => option.value === activeYearId
+            )
+        ) {
+            return;
+        }
+
+        select.value = activeYearId;
+        window.SisfourSearchableSelect?.sync(select);
+    };
+
+    const filterParams = () => {
+        const params = new URLSearchParams(new FormData(filterForm));
+        [...params.entries()].forEach(([key, value]) => {
+            if (!String(value).trim()) params.delete(key);
+        });
+        return params;
+    };
+
+    const normalizeOffset = () => {
+        const maxOffset = state.total > 0
+            ? Math.floor((state.total - 1) / state.limit) * state.limit
+            : 0;
+        state.offset = Math.min(state.offset, maxOffset);
+    };
+
+    const pager = window.SisfourPagination?.mount(table, {
+        id: 'kelasPager',
+        label: 'kelas',
+        onChange: (next) => {
+            state.limit = next.limit;
+            state.offset = next.offset;
+            render();
+        },
+    });
+
+    const render = () => {
+        state.total = rows.length;
+        normalizeOffset();
+        const pageRows = rows.slice(state.offset, state.offset + state.limit);
+
+        tbody.innerHTML = pageRows.map((row, index) => `
+            <tr>
+                <td>${state.offset + index + 1}</td>
+                <td class="fw-semibold">${esc(row.nama_kelas)}</td>
+                <td>${esc(row.tingkat)}</td>
+                <td>${esc(row.rombel)}</td>
+                <td>
+                    ${esc(row.nama_tahun)} - ${esc(row.semester)}
+                    ${Number(row.tahun_aktif) === 1 ? '<span class="badge bg-label-success ms-1">Aktif</span>' : ''}
+                </td>
+                <td>${Number(row.jumlah_siswa || 0)} siswa</td>
+                <td>
+                    <div class="sisfour-row-actions">
+                        <button type="button" class="btn btn-sm btn-outline-primary btn-edit" data-id="${row.id}" title="Edit" aria-label="Edit kelas"><i class="bx bx-edit"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${row.id}" title="Hapus" aria-label="Hapus kelas"><i class="bx bx-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('') || '<tr class="sisfour-empty-row"><td colspan="7" class="text-muted">Tidak ada data Kelas.</td></tr>';
+
+        pager?.render(state);
+    };
+
+    const load = async () => {
+        try {
+            const query = filterParams();
+            const response = await fetch(
+                endpoint(`master/kelas/json?${query.toString()}`),
+                {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                }
+            );
+            const data = await parse(response);
+            rows = Array.isArray(data.data) ? data.data : [];
+            state.offset = 0;
+            render();
+        } catch (err) {
+            error(err);
+        }
+    };
+
+    document.getElementById('btnExportKelas')?.addEventListener('click', () => {
+        const params = filterParams();
+        params.set('export', '1');
+        window.location.href = endpoint(`master/kelas?${params.toString()}`);
+    });
+
+    document.getElementById('btnTambahKelas').addEventListener('click', () => {
+        editingId = null;
+        form.reset();
+        setActiveYear(formTahun);
+        document.getElementById('kelasId').value = '';
+        document.getElementById('modalKelasTitle').textContent = 'Tambah Kelas';
+        modal.show();
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = document.getElementById('btnSimpanKelas');
+        const spinner = button.querySelector('.spinner-border');
+        button.disabled = true;
+        spinner.classList.remove('d-none');
+
+        try {
+            let response;
+            if (editingId === null) {
+                response = await fetch(endpoint('master/kelas/create'), {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+            } else {
+                const payload = new URLSearchParams();
+                for (const [key, value] of new FormData(form).entries()) {
+                    if (key !== 'csrf_test_name') payload.append(key, value);
+                }
+                response = await fetch(endpoint(`master/kelas/update/${editingId}`), {
+                    method: 'PUT',
+                    body: payload,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+            }
+
+            const data = await parse(response);
+            modal.hide();
+            await success(data.message);
+            await load();
+        } catch (err) {
+            error(err);
+        } finally {
+            button.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    });
+
+    tbody.addEventListener('click', async (event) => {
+        const edit = event.target.closest('.btn-edit');
+        const remove = event.target.closest('.btn-delete');
+
+        if (edit) {
+            const id = Number(edit.dataset.id);
+            const row = rows.find((item) => Number(item.id) === id);
+            if (!row) return;
+
+            editingId = id;
+            form.reset();
+            document.getElementById('kelasId').value = String(id);
+            document.getElementById('tingkat').value = row.tingkat ?? '';
+            document.getElementById('rombel').value = row.rombel ?? '';
+            document.getElementById('id_tahun').value = row.id_tahun ?? '';
+            window.SisfourSearchableSelect?.sync(document.getElementById('id_tahun'));
+            document.getElementById('modalKelasTitle').textContent = 'Edit Kelas';
+            modal.show();
+            return;
+        }
+
+        if (remove) {
+            const id = Number(remove.dataset.id);
+            const confirmation = await Swal.fire({
+                icon: 'warning',
+                title: 'Hapus kelas?',
+                text: 'Kelas hanya dapat dihapus jika tidak lagi memiliki dependency aktif.',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, hapus',
+                cancelButtonText: 'Batal',
+            });
+            if (!confirmation.isConfirmed) return;
+
+            try {
+                const response = await fetch(endpoint(`master/kelas/delete/${id}`), {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                const data = await parse(response);
+                await success(data.message);
+                await load();
+            } catch (err) {
+                error(err);
+            }
+        }
+    });
+
+    filterForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        load();
+    });
+
+    document.getElementById('btnResetFilter').addEventListener('click', () => {
+        filterForm.reset();
+        setActiveYear(filterTahun);
+        load();
+    });
+
+    if (!filterTahun.value) {
+        setActiveYear(filterTahun);
+    }
+
     load();
 })();

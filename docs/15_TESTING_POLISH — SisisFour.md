@@ -1,82 +1,254 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 15 September 2026
 
-> Dokumen ini adalah quality gate release yang berlaku. Ia bukan catatan fase pengerjaan lama.
+> Quality gate dibagi per phase agar regression bisnis, mobile UI, dan Cordova tidak bercampur.
 
-## 1. Static Gate
-
-PHP yang berubah:
+## 1. Static Gate Umum
 
 ```powershell
 php -l path\file.php
-```
-
-JavaScript yang berubah:
-
-```powershell
 node --check path\file.js
-```
-
-Release-wide:
-
-```powershell
 php spark routes
 git diff --check
 git status --short
 ```
 
-Tidak boleh ada syntax error, route target hilang, atau source file tak sengaja dihapus.
+Tidak boleh ada syntax error, route target hilang, file tidak sengaja terhapus, atau whitespace conflict.
 
-## 2. Auth Web
+## 2. G2 Gate — Fixing & Stabilization
 
-Uji:
+G2 wajib lulus:
 
-- login valid;
-- password salah;
-- username tidak ada;
-- account nonaktif;
-- lockout 5 kegagalan beruntun;
-- logout POST;
-- session database;
+```text
+repository hygiene
+F06–F14 business regression
+Admin UI smoke
+Login password toggle
+favicon/branding
+page title/navbar
+pagination/filter/export yang berubah
+active-year default/reset yang berubah
+Profile Guru tabs
+browser console
+```
+
+Status:
+
+```text
+G2.3 Business Regression   PASS
+G2.4 Browser Regression    PASS
+G2.5 Closure               IN PROGRESS
+```
+
+### F06 Guru
+
+- create/update/import/export;
+- identifier validation/sync;
+- authorization first;
+- dependency-protected permanent delete;
+- user lifecycle/personalia dependency.
+
+### F07 Pegawai
+
+- CRUD/import/export;
+- identifier validation;
+- dependency-protected permanent delete;
+- account/personalia relation.
+
+### F08 Siswa
+
+- NISN/NIK integrity;
+- account creation/sync;
+- import atomic;
+- membership/history/card/BK dependency protection.
+
+### F09 Kelas
+
+- CRUD/recycle/restore;
+- dependency delete protection;
+- pagination/export UI regression.
+
+### F10 Tahun Ajaran
+
+`Siapkan Genap` contract:
+
+```text
+create target Genap
+copy Kelas
+copy active membership
+copy Wali
+copy active Jadwal
+close source histories
+open target histories
+deactivate Ganjil
+activate Genap
+verify before commit
+```
+
+Presensi/Jurnal tidak disalin.
+
+Jika Service transition tidak berubah setelah regression yang sudah PASS, tidak perlu mengulang destructive local transition tanpa alasan; lakukan targeted verification.
+
+### F11 Mapel
+
+- kode unique;
+- edit nama dengan kode sendiri tetap valid;
+- edit ke kode lain yang sudah ada tetap ditolak;
+- dependency delete;
+- pagination/export.
+
+Final runtime retest F11 pada 15 September 2026: **PASS**.
+
+### F12 Mapping Wali
+
+- class/year integrity;
+- 1 Guru/1 kelas aktif per tahun;
+- history protected;
+- Nonaktifkan → Assign baru sebagai workflow pergantian wali;
+- restore mapping historis sesuai guard;
+- pagination/export.
+
+### F13 Jadwal Guru
+
+- import;
+- overlap Guru/Kelas;
+- topology Sesi Awal/Non Sesi/Sesi Akhir;
+- linked journal/delete protection;
+- source cleanup memastikan tidak ada eksperimen inactive-Genap yang tersisa tanpa kebutuhan.
+
+Core integrity regression F13 telah PASS; positive import tetap diuji hanya dengan snapshot/isolated data bila diperlukan karena import mengganti baseline aktif periode target secara atomic.
+
+### F14 Manajemen Siswa
+
+Wajib mencakup:
+
+- penempatan/pindah;
+- kenaikan antar tahun;
+- mutasi;
+- kelulusan;
+- restore terminal lifecycle;
+- transactional history/status/membership/card;
+- anti-double-process;
+- partial promotion;
+- progress per kelas.
+
+Kenaikan contract:
+
+```text
+source aktif = Genap
+target        = Ganjil tahun ajaran berikutnya
+7 → 8
+8 → 9
+kelas 9 → Kelulusan, bukan kenaikan biasa
+```
+
+Restore contract:
+
+```text
+terminal latest event saja
+exact source period terminal masih aktif
+terminal history dipertahankan
+membership dipulihkan
+history Aktif baru dibuka
+status kembali Aktif
+```
+
+Status F14 per 15 September 2026: **PASS**.
+
+## 3. Default Tahun Ajaran — Regression Gate
+
+Surface selector Tahun Ajaran yang relevan harus mengikuti:
+
+```text
+initial load = periode aktif
+Reset        = periode aktif
+manual pilih histori tetap berfungsi bila halaman mendukung histori
+export/filter mengikuti periode yang sedang dipilih
+```
+
+Surface minimum:
+
+```text
+Master Siswa
+Master Kelas
+Mapping Wali
+Assign Wali
+Master Jadwal Guru
+Import Jadwal Guru
+Laporan Jurnal
+Matrix Presensi
+Export Presensi
+```
+
+Tidak perlu helper/alert seperti “Default menampilkan Tahun Ajaran yang sedang aktif.” Default harus terbaca dari control terpilih.
+
+Workflow current-state berikut tidak membutuhkan selector periode tambahan:
+
+```text
+Penempatan/Pindah
+Mutasi
+Kelulusan
+Kenaikan
+Presensi operasional
+Jurnal operasional
+Kartu Pelajar operasional
+```
+
+Focused regression active-year default/reset: **PASS**.
+
+## 4. G2 Browser Smoke
+
+Minimum:
+
+```text
+390×844
+1024×768
+1366×768
+```
+
+Final focused G2.4 result pada 15 September 2026 menggunakan data aktual hosting:
+
+```text
+Login                              PASS
+Branding/Favicon                   PASS
+Title/Navbar                       PASS
+Filter/Pagination/Export           PASS
+Presensi Mengajar Guru Search      PASS
+Profile Guru mobile                PASS
+Modal + responsive                 PASS
+Browser console                    PASS
+F11 edit Mapel kode sendiri        PASS
+Active-year default/reset          PASS
+```
+
+Status G2.4: **PASS**.
+
+Pixel-level mobile role redesign bukan gate G2.
+
+## 5. Auth Web/API Baseline
+
+Web:
+
+- valid/invalid login;
+- inactive account;
+- lockout policy;
+- logout;
+- session DB;
 - multi-role;
-- role NULL dengan identity Pegawai bila digunakan;
-- login normal **tidak menaikkan `auth_version`**;
-- credential/security change yang relevan menaikkan `auth_version`.
+- CSRF mutation.
 
-## 3. API Auth / RequestContext
+API:
 
-Canonical request context:
+- login/me/refresh/logout;
+- missing/invalid token;
+- effective permission/scope;
+- version/maintenance response.
 
-```text
-api_user
-api_access_token
-api_token_row
-api_claims
-```
+## 6. RBAC
 
-Uji:
-
-```text
-/api/auth/login
-/api/auth/me
-/api/dashboard
-satu endpoint role/profile relevan
-request tanpa token -> 401
-/api/auth/logout
-token lama setelah logout -> ditolak
-/api/auth/refresh
-/api/version
-```
-
-Tidak boleh ada consumer runtime yang memakai literal key lama `apiUser`.
-
-## 4. RBAC
-
-Akun minimum:
+Minimum actor:
 
 ```text
 Admin
@@ -86,291 +258,146 @@ BK
 Guru
 Guru + Wali
 Siswa
-Guru + Operator bila tersedia
-Guru + Pimpinan bila tersedia
-Pegawai dengan role operasional bila tersedia
+multi-role relevan
 ```
 
-Per role cek:
+Cek menu, direct URL, read, mutation, target scope, contextual Wali.
+
+## 7. Presensi & Jurnal
+
+Presensi Siswa:
+
+- Guru Terjadwal;
+- Wali kelas sendiri;
+- Admin/Operator;
+- forged target ditolak;
+- time window/geofence;
+- Sesi Awal/Akhir;
+- atomic save;
+- duplicate prevention;
+- revisi actor sah.
+
+Jurnal:
+
+- Jadwal actor benar;
+- status/materi;
+- duplicate prevention;
+- Non Sesi bila didukung;
+- history Jadwal.
+
+## 8. Laporan / BK / Kartu / Profile
+
+Tetap uji scope, filter, export, detail, lifecycle, ownership, file validation, dan busy guard sesuai dokumen domain.
+
+## 9. G3 Gate — Mobile Role UI
+
+G3 tidak boleh dinyatakan ACC sebelum role Pimpinan/BK/Guru/Wali/Siswa lulus:
 
 ```text
-sidebar/menu
-direct URL
-read
-mutation
-scope target
-union primary+secondary role
-contextual Wali
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
 ```
 
-## 5. Master Guru/Pegawai
+Acceptance:
 
-- CRUD.
-- NIK business-required 16 digit untuk data baru.
-- NIP optional/nullable legacy.
-- identifier NIP bila ada, selain itu NIK.
-- account sync NIK -> NIP bila NIP ditambahkan.
-- managed password reset sesuai kontrak Service.
-- duplicate lintas Guru/Pegawai ditolak.
-- import atomic.
-- export.
-- foto.
-- recycle/restore.
-- user lifecycle.
-- Personalia/Portofolio.
+- no body horizontal overflow;
+- no horizontal table scroll pada role operasional;
+- primary information berbasis Nama;
+- NISN/NIP/NIK sekunder;
+- KPI 2×2 mobile;
+- touch target sesuai standard;
+- modal/keyboard nyaman;
+- filter compact;
+- mutation busy guard;
+- network failure tidak menghapus input penting;
+- server-confirmed success untuk data akademik.
 
-## 6. Master Siswa / Manajemen Siswa
+## 10. G3 Critical Workflows
 
-- NISN unique.
-- NIK valid sesuai Service.
-- auto account.
-- Wali hanya kelas sendiri.
-- Wali tidak mengubah NISN.
-- import/export.
-- upload foto.
-- penempatan/pindah kelas.
-- kenaikan.
-- mutasi.
-- kelulusan.
-- histori kelas.
-- lifecycle Kartu.
-- pagination server-side.
-
-## 7. Kelas, Tahun, Mapel, Wali, Jadwal
-
-- satu Tahun Ajaran operasional aktif.
-- membership satu siswa/tahun.
-- dependency delete.
-- Mapping Wali 1 Guru/1 kelas aktif per tahun.
-- Wali bukan role.
-- Jadwal import.
-- overlap Guru ditolak.
-- overlap Kelas ditolak.
-- jadwal Nonaktif tetap dapat mendukung histori/laporan yang relevan.
-
-## 8. Presensi Siswa
-
-Uji:
-
-- Admin/Operator.
-- Guru Terjadwal.
-- forged kelas/Jadwal ditolak.
-- Wali kelas sendiri.
-- dual Guru+Wali.
-- time-window.
-- geofence bila aktif.
-- Sesi Awal/Akhir.
-- default UI Hadir dan perubahan S/I/A.
-- bulk atomic/rollback.
-- duplicate prevention.
-- revisi hanya actor berwenang.
-- snapshot histori.
-- Dashboard/status Siswa Sesi Awal.
-
-## 9. Presensi Mengajar/Jurnal
-
-- jadwal aktif.
-- actor Guru benar.
-- duplicate ditolak.
-- materi/status.
-- semua sesi yang didukung termasuk Non Sesi untuk Jurnal.
-- scope view/input.
-- histori Jadwal Nonaktif.
-
-## 10. Laporan
-
-- Matrix Sesi Awal.
-- tanggal di luar membership bukan Alpha otomatis.
-- bulanan/semester.
-- Jurnal/export Jurnal.
-- Wali hanya kelas sendiri.
-- Pimpinan/Admin/Operator sesuai permission.
-- query bounded/no N+1.
-
-## 11. BK/Prestasi
-
-- Master Pelanggaran CRUD.
-- Kasus scope.
-- detail/tindak lanjut 1:N.
-- Prestasi.
-- export.
-- searchable student.
-- readonly actor tidak mutation.
-- double-submit UI tidak menghasilkan mutation ganda.
-
-## 12. Kartu Pelajar
-
-- satu kartu Aktif.
-- generate tunggal.
-- generate bulk hingga 200 per batch.
-- reissue.
-- preview/download.
-- QR/public verify.
-- background override/fallback.
-- cetak massal front/back.
-- 10 kartu/A4.
-- hingga 200 kartu/request sesuai limit.
-- sisi belakang tidak membangkitkan QR/foto yang tidak digunakan.
-- lifecycle kartu.
-
-## 13. Profile/Personalia
-
-- Guru self.
-- Pegawai self tanpa role `pegawai`.
-- Siswa readonly.
-- owner check Personalia.
-- Admin/Operator manage target.
-- readonly actor tidak mutation/raw document.
-- upload PDF/PNG/JPG valid.
-- >5 MB ditolak.
-- traversal/absolute/owner silang ditolak.
-- Portofolio PDF.
-
-## 14. Dashboard/UI
-
-- role priority `admin > operator > pimpinan > bk > guru > siswa`.
-- contextual Wali quick links permission-gated.
-- sidebar satu active item paling spesifik.
-- parent kosong tidak tampil.
-- loading/error/empty state masuk akal.
-- mobile responsive.
-- WebView tidak pecah.
-- session-expired Fetch kembali ke login, bukan JSON/PDF parse error.
-
-## 15. Signage
-
-Tanpa login:
+Urutan test:
 
 ```text
-/signage      -> 200
-/signage/data -> data JSON
+Guru/Wali Presensi
+Guru/Wali Jurnal
+Dashboard Guru/Wali
+BK Kasus/Tindak Lanjut
+Dashboard BK
+Dashboard Pimpinan
+Dashboard/flow Siswa
 ```
 
-Verifikasi:
+## 11. G4 Gate — Cordova APK
 
-- Sesi Awal only;
-- Top 20 Alpha/Izin/Sakit;
-- Tidak Masuk Hari Ini S/I/A;
-- nama siswa tampil;
-- ranking 14 hari;
-- refresh 5 menit;
-- cache 240 detik;
-- tidak membutuhkan session/token.
+Sebelum build final:
 
-## 16. Settings/Maintenance/Backup/Log
+- G3 Web/mobile PASS;
+- Cordova architecture spike PASS;
+- real Android WebView test;
+- safe-area;
+- soft keyboard;
+- Android Back;
+- session/login behavior;
+- geolocation permission/device GPS;
+- network/offline state;
+- file preview/download/share;
+- internal/external link routing;
+- maintenance behavior;
+- no sensitive debug logging.
 
-Settings:
+## 12. Cordova Mutation Safety
 
-- User create/update/reset/delete;
-- managed credential;
-- secondary role;
-- Menu;
-- geofence;
-- branding/background;
-- busy guard.
-
-Maintenance:
-
-- Admin recovery Web/AJAX;
-- non-Admin 503;
-- API JSON 503.
-
-Backup:
-
-- create/download/delete;
-- traversal ditolak;
-- permission.
-
-Log:
-
-- event penting tercatat;
-- pagination/filter/export;
-- tidak ada credential/token leak.
-
-## 17. Security Production
-
-Expected:
+Tidak ada silent offline queue canonical untuk:
 
 ```text
-/.env               -> 403/404
-/composer.json      -> 403/404
-/app/Config/App.php -> 403/404
-/docs/              -> 403/404
-/signage            -> 200
+Presensi
+Jurnal
+Kasus
+Prestasi
 ```
 
-Uji juga:
+Network failure = gagal/tertunda, bukan sukses palsu.
 
-- CSRF mutation Web;
-- SQL injection;
-- XSS;
-- IDOR;
-- forged actor/target;
-- upload invalid;
-- path traversal;
-- sensitive log;
-- unauthorized API.
+## 13. Production Security
 
-## 18. Performance
+Expected sensitive path tidak public. Uji CSRF, XSS, injection, IDOR, upload invalid, traversal, secret/log exposure, dan unauthorized API sesuai deployment contract.
 
-Untuk query besar:
+## 14. Performance
 
-```sql
-EXPLAIN SELECT ...
-```
+- bounded DB query;
+- index digunakan pada query besar;
+- no N+1;
+- pagination;
+- dashboard hanya data ringkas;
+- mobile tidak merender ratusan row;
+- Kartu/PDF tetap dalam memory limit.
 
-Periksa:
+## 15. Current G2 Closure Rule
+
+G2.3 business regression dan G2.4 focused browser regression sudah **PASS**.
+
+Sebelum merge tetap wajib:
 
 ```text
-index digunakan
-bounded rows
-LIMIT/OFFSET
-no N+1
-no unbounded aggregation di PHP
-memory PDF Kartu
-Signage cache
+final repository hygiene recheck
+final static gate pada head terakhir
+final docs/checklist sanity
+PR review + PR body sync
+explicit user approval
 ```
 
-## 19. Release Criteria
+Database hosting/dump yang dipakai sebagai referensi regression tidak boleh masuk repository atau commit.
 
-Release dinyatakan layak bila:
-
-- PHP/JS static gate PASS;
-- `spark routes` normal;
-- RBAC role utama PASS;
-- Auth Web/API PASS;
-- Presensi core PASS;
-- Kartu front/back PASS;
-- BK/Settings mutation PASS;
-- Signage public PASS;
-- sensitive-path hardening PASS;
-- tidak ada blocker 404/500;
-- `.env`/secret production tidak masuk Git;
-- dump database dan upload runtime tersedia untuk deployment/rollback.
-
-
-## 20. UI/UX Guru–Walas–Siswa
-
-Setiap perubahan UI pada tiga experience wajib diuji pada:
+## 16. Phase Release Rule
 
 ```text
-Guru non-Wali
-Guru + Wali
-Siswa
+G2 PASS → boleh merge G2 setelah approval eksplisit
+G3 PASS → mobile/WebView UI dianggap siap
+G4 PASS → APK dapat masuk distribution gate
 ```
 
-Cek:
-
-- sidebar/menu sesuai context dan tetap aman pada direct URL;
-- Dashboard tidak membocorkan data lintas scope;
-- Wali tetap context Guru, bukan role baru;
-- status Siswa hari ini tetap bersumber dari Sesi Awal;
-- empty/loading/error state;
-- desktop, laptop, mobile/WebView;
-- active/open sidebar;
-- teks panjang dan data kosong;
-- mutation button busy guard/double-submit;
-- session-expired recovery;
-- browser back/refresh tidak merusak state penting.
-
-Mockup/render visual hanya menjadi bahan review. Quality gate memakai source yang benar-benar diimplementasikan.
+Setiap merge/release tetap membutuhkan approval eksplisit pengguna.

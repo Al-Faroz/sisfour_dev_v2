@@ -8,16 +8,24 @@ if ($namaSekolah === '') {
 }
 
 $iconUrl = sisfour_asset_url('assets/img/favicon/favicon.ico');
+$iconType = 'image/x-icon';
+$hasUploadedIcon = false;
 
-if (
-    $iconSekolah !== ''
-    && is_file(FCPATH . ltrim($iconSekolah, '/\\'))
-) {
-    $iconUrl = base_url(ltrim($iconSekolah, '/'));
+if ($iconSekolah !== '') {
+    $iconRelative = ltrim($iconSekolah, '/\\');
+    $iconPath = FCPATH . $iconRelative;
+
+    if (is_file($iconPath)) {
+        $iconVersion = @filemtime($iconPath);
+        $iconUrl = base_url($iconRelative)
+            . ($iconVersion ? '?v=' . $iconVersion : '');
+        $iconType = 'image/png';
+        $hasUploadedIcon = true;
+    }
 }
 ?>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title><?= isset($pageTitle) ? esc($pageTitle) . ' | ' : '' ?>SisisFour - <?= esc($namaSekolah) ?></title>
 <meta name="description" content="SisisFour - Sistem Informasi Manajemen Madrasah <?= esc($namaSekolah) ?>" />
 
@@ -30,7 +38,10 @@ if (
 <meta name="csrf-token" content="<?= esc(csrf_hash()) ?>" />
 <meta name="csrf-header-name" content="X-CSRF-TOKEN" />
 
-<link rel="icon" type="image/png" href="<?= esc($iconUrl, 'attr') ?>" />
+<link rel="icon" type="<?= esc($iconType, 'attr') ?>" href="<?= esc($iconUrl, 'attr') ?>" />
+<?php if ($hasUploadedIcon): ?>
+<link rel="apple-touch-icon" href="<?= esc($iconUrl, 'attr') ?>" />
+<?php endif; ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -49,6 +60,9 @@ if (
 <?php if (isset($extraCss)): foreach ((array) $extraCss as $css): ?>
 <link rel="stylesheet" href="<?= sisfour_asset_url((string) $css) ?>" />
 <?php endforeach; endif; ?>
+
+<!-- Global modal safety loaded last so page-specific CSS cannot disable modal scrolling. -->
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-modal.css') ?>" />
 
 <script src="<?= sisfour_asset_url('assets/vendor/js/helpers.js') ?>"></script>
 <script src="<?= sisfour_asset_url('assets/js/config.js') ?>"></script>

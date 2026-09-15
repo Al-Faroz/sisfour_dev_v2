@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\GuruIntegrityService;
 use App\Services\GuruService;
 use App\Services\MasterPaginationService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -15,7 +16,7 @@ class MasterGuru extends BaseController
 
     public function __construct()
     {
-        $this->guruService = new GuruService();
+        $this->guruService = new GuruIntegrityService();
         $this->paginationService = new MasterPaginationService();
     }
 

@@ -9,8 +9,8 @@
     data-selected-kelas="<?= (int) ($selectedKelas ?? 0) ?>"
     data-selected-sesi="<?= esc($selectedSesi ?? 'Sesi Awal') ?>"
 >
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1"><?= esc($title ?? 'Presensi Siswa') ?></h4>
             <p class="text-muted mb-0">
                 Input Presensi Sesi Awal dan Sesi Akhir sesuai Jadwal Guru atau hak Wali Kelas.
@@ -18,24 +18,21 @@
         </div>
 
         <?php if (!empty($tahunAktif)): ?>
-            <span class="badge bg-label-primary fs-6">
-                <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
-                <?= esc($tahunAktif['semester'] ?? '') ?>
-            </span>
+            <div class="sisfour-page-actions">
+                <span class="badge bg-label-primary fs-6">
+                    <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
+                    <?= esc($tahunAktif['semester'] ?? '') ?>
+                </span>
+            </div>
         <?php endif; ?>
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label" for="presensiTanggal">Tanggal</label>
-                    <input
-                        type="date"
-                        class="form-control"
-                        id="presensiTanggal"
-                        value="<?= esc($tanggal ?? '') ?>"
-                    >
+                    <input type="date" class="form-control" id="presensiTanggal" value="<?= esc($tanggal ?? '') ?>">
                 </div>
 
                 <div class="col-12 col-md-4">
@@ -43,10 +40,7 @@
                     <select class="form-select" id="presensiKelas">
                         <option value="">Pilih kelas</option>
                         <?php foreach (($kelasOptions ?? []) as $kelas): ?>
-                            <option
-                                value="<?= (int) $kelas['id'] ?>"
-                                <?= (int) ($selectedKelas ?? 0) === (int) $kelas['id'] ? 'selected' : '' ?>
-                            >
+                            <option value="<?= (int) $kelas['id'] ?>" <?= (int) ($selectedKelas ?? 0) === (int) $kelas['id'] ? 'selected' : '' ?>>
                                 <?= esc($kelas['nama_kelas']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -55,7 +49,7 @@
 
                 <div class="col-12 col-md-2">
                     <label class="form-label" for="presensiSesi">Sesi</label>
-                    <select class="form-select" id="presensiSesi">
+                    <select class="form-select" id="presensiSesi" data-searchable-off="1">
                         <option value="Sesi Awal" <?= ($selectedSesi ?? 'Sesi Awal') === 'Sesi Awal' ? 'selected' : '' ?>>Sesi Awal</option>
                         <option value="Sesi Akhir" <?= ($selectedSesi ?? '') === 'Sesi Akhir' ? 'selected' : '' ?>>Sesi Akhir</option>
                     </select>
@@ -72,13 +66,13 @@
 
     <div id="presensiInfo" class="alert alert-info d-none" role="alert"></div>
 
-    <div class="card d-none" id="presensiCard">
+    <div class="card sisfour-table-card d-none" id="presensiCard">
         <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
             <div>
                 <h5 class="mb-1" id="presensiCardTitle">Daftar Siswa</h5>
                 <small class="text-muted" id="presensiCardMeta"></small>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="badge bg-label-secondary" id="presensiCapability"></span>
                 <span class="badge bg-label-warning d-none" id="presensiRevisionBadge">Mode Revisi</span>
             </div>

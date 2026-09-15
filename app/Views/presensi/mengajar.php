@@ -9,8 +9,8 @@
     data-selected-guru="<?= (int) ($selectedGuru ?? 0) ?>"
     data-selected-jadwal="<?= (int) ($selectedJadwal ?? 0) ?>"
 >
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1"><?= esc($title ?? 'Presensi Mengajar / Jurnal') ?></h4>
             <p class="text-muted mb-0">
                 Pilih Guru terlebih dahulu, lalu pilih Jadwal aktif Guru pada tanggal tersebut.
@@ -18,14 +18,16 @@
         </div>
 
         <?php if (!empty($tahunAktif)): ?>
-            <span class="badge bg-label-primary fs-6">
-                <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
-                <?= esc($tahunAktif['semester'] ?? '') ?>
-            </span>
+            <div class="sisfour-page-actions">
+                <span class="badge bg-label-primary fs-6">
+                    <?= esc($tahunAktif['nama_tahun'] ?? '') ?>
+                    <?= esc($tahunAktif['semester'] ?? '') ?>
+                </span>
+            </div>
         <?php endif; ?>
     </div>
 
-    <div class="card mb-4">
+    <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-lg-3">
@@ -40,7 +42,12 @@
 
                 <div class="col-12 col-lg-5">
                     <label class="form-label" for="jurnalGuru">Nama Guru</label>
-                    <select class="form-select" id="jurnalGuru">
+                    <select
+                        class="form-select"
+                        id="jurnalGuru"
+                        data-searchable-select
+                        data-search-placeholder="Ketik nama atau NIP Guru..."
+                    >
                         <option value="">Pilih Guru</option>
                         <?php foreach (($guruOptions ?? []) as $guru): ?>
                             <option
@@ -79,7 +86,7 @@
                     </select>
                 </div>
 
-                <div class="col-12 d-grid d-md-flex justify-content-md-end">
+                <div class="col-12 sisfour-filter-actions justify-content-end">
                     <button type="button" class="btn btn-primary" id="btnMuatJurnal">
                         <i class="bx bx-search-alt me-1"></i> Muat Jurnal
                     </button>

@@ -3,6 +3,9 @@
 namespace App\Controllers;
 
 use App\Services\MataPelajaranService;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * MasterMapel
@@ -21,6 +24,10 @@ class MasterMapel extends BaseController
     public function index()
     {
         $filter = $this->filters();
+
+        if ($this->request->getGet('export') === '1') {
+            return $this->exportFile($filter);
+        }
 
         if ($this->isJsonRequest()) {
             return $this->response->setJSON([
@@ -128,5 +135,67 @@ class MasterMapel extends BaseController
                         : 'Gagal.'),
                 'data' => $result,
             ]);
+    }
+
+    private function exportFile(array $filter)
+    {
+        $rows = $this->mapelService->getList($filter);
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Data Mata Pelajaran');
+
+        $sheet->setCellValue('A1', 'DATA MATA PELAJARAN SISISFOUR');
+        $sheet->mergeCells('A1:C1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->fromArray([[
+            'KODE MAPEL',
+            'NAMA MATA PELAJARAN',
+            'DIGUNAKAN JADWAL',
+        ]], null, 'A3');
+        $sheet->getStyle('A3:C3')->getFont()->setBold(true);
+
+        $row = 4;
+        foreach ($rows as $mapel) {
+            $sheet->fromArray([[
+                '',
+                $mapel['nama_mapel'] ?? '',
+                (int) ($mapel['jumlah_jadwal'] ?? 0),
+            ]], null, 'A' . $row);
+            $sheet->setCellValueExplicit(
+                'A' . $row,
+                (string) ($mapel['kode_mapel'] ?? ''),
+                DataType::TYPE_STRING
+            );
+            $row++;
+        }
+
+        foreach (range('A', 'C') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        return $this->downloadSpreadsheet(
+            $spreadsheet,
+            'data_mata_pelajaran_' . date('Ymd_His') . '.xlsx',
+            'sisfour_mapel_export_'
+        );
+    }
+
+    private function downloadSpreadsheet(
+        Spreadsheet $spreadsheet,
+        string $filename,
+        string $prefix
+    ) {
+        $tempFile = tempnam(sys_get_temp_dir(), $prefix);
+        (new Xlsx($spreadsheet))->save($tempFile);
+
+        register_shutdown_function(static function () use ($tempFile): void {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        return $this->response
+            ->download($tempFile, null)
+            ->setFileName($filename);
     }
 }

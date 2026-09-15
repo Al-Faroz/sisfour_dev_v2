@@ -2,8 +2,8 @@
 <?= $this->section('content') ?>
 
 <div id="laporanJurnalApp" data-base-url="<?= esc(base_url()) ?>">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Laporan Jurnal Mengajar</h4>
             <p class="text-muted mb-0">Histori tetap menampilkan Jurnal yang merujuk Jadwal Nonaktif.</p>
         </div>
@@ -18,11 +18,11 @@
             data-fixed-guru="<?= (int) ($options['id_guru_fixed'] ?? 0) ?>"
         ></div>
 
-        <div class="card mb-4">
+        <div class="card sisfour-filter-card mb-4">
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-3 align-items-end">
                     <div class="col-12 col-md-3">
-                        <label class="form-label">Tahun Ajaran</label>
+                        <label class="form-label" for="jurnalTahun">Tahun Ajaran</label>
                         <select class="form-select" id="jurnalTahun">
                             <?php foreach (($options['tahun'] ?? []) as $tahun): ?>
                                 <option
@@ -37,7 +37,7 @@
 
                     <?php if (($options['scope'] ?? '') === 'SEMUA'): ?>
                         <div class="col-12 col-md-3">
-                            <label class="form-label">Guru</label>
+                            <label class="form-label" for="jurnalGuru">Guru</label>
                             <select class="form-select" id="jurnalGuru">
                                 <option value="">Semua Guru</option>
                                 <?php foreach (($options['guru'] ?? []) as $guru): ?>
@@ -50,7 +50,7 @@
                     <?php endif; ?>
 
                     <div class="col-12 col-md-3">
-                        <label class="form-label">Kelas</label>
+                        <label class="form-label" for="jurnalKelas">Kelas</label>
                         <select class="form-select" id="jurnalKelas">
                             <option value="">Semua Kelas</option>
                             <?php foreach (($options['kelas'] ?? []) as $kelas): ?>
@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="col-12 col-md-3">
-                        <label class="form-label">Hari</label>
+                        <label class="form-label" for="jurnalHari">Hari</label>
                         <select class="form-select" id="jurnalHari">
                             <option value="">Semua Hari</option>
                             <?php foreach (($options['hari'] ?? []) as $hari): ?>
@@ -72,7 +72,7 @@
                     </div>
 
                     <div class="col-12 col-md-3">
-                        <label class="form-label">Status</label>
+                        <label class="form-label" for="jurnalStatus">Status</label>
                         <select class="form-select" id="jurnalStatus">
                             <option value="">Semua Status</option>
                             <?php foreach (($options['status'] ?? []) as $status): ?>
@@ -81,35 +81,37 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">Tanggal Awal</label>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label" for="jurnalMulai">Tanggal Awal</label>
                         <input type="date" class="form-control" id="jurnalMulai" value="<?= esc($tanggalMulai) ?>">
                     </div>
 
-                    <div class="col-12 col-md-3">
-                        <label class="form-label">Tanggal Akhir</label>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label" for="jurnalSelesai">Tanggal Akhir</label>
                         <input type="date" class="form-control" id="jurnalSelesai" value="<?= esc($tanggalSelesai) ?>">
                     </div>
 
-                    <div class="col-12 col-md-3 d-grid align-self-end">
-                        <button type="button" class="btn btn-primary" id="btnJurnalCari">Tampilkan</button>
+                    <div class="col-12 col-md-3 d-grid">
+                        <button type="button" class="btn btn-primary" id="btnJurnalCari">
+                            <i class="bx bx-filter-alt me-1"></i> Tampilkan
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="jurnalAlert" class="alert alert-info d-none"></div>
+        <div id="jurnalAlert" class="alert alert-info d-none" role="alert"></div>
 
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div class="card sisfour-table-card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Histori Jurnal</h5>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="btnJurnalExport">
-                    Export XLSX
+                    <i class="bx bx-export me-1"></i> Export XLSX
                 </button>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Tanggal</th>
@@ -123,19 +125,15 @@
                         </tr>
                     </thead>
                     <tbody id="jurnalBody">
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">Memuat data...</td>
+                        <tr class="sisfour-loading-row">
+                            <td colspan="8" class="text-muted">Memuat data...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="card-footer d-flex justify-content-between align-items-center">
-                <small class="text-muted" id="jurnalPageInfo"></small>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-secondary" id="btnJurnalPrev">Sebelumnya</button>
-                    <button class="btn btn-sm btn-outline-secondary" id="btnJurnalNext">Berikutnya</button>
-                </div>
+            <div class="card-footer">
+                <div id="laporanJurnalPager"></div>
             </div>
         </div>
     <?php endif; ?>

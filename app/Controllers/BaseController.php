@@ -134,6 +134,17 @@ abstract class BaseController extends Controller
 
     protected function renderWithLayout(string $view, array $data = []): string
     {
+        $resolvedTitle = trim((string) (
+            $data['pageTitle']
+            ?? $data['title']
+            ?? ''
+        ));
+
+        if ($resolvedTitle !== '') {
+            $data['title'] = $resolvedTitle;
+            $data['pageTitle'] = $resolvedTitle;
+        }
+
         return view($view, array_merge($this->layoutData, $data));
     }
 

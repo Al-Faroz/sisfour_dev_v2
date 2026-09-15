@@ -1,74 +1,79 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 15 September 2026
+**Development aktif:** G2 — Final Closure
+**Branch aktif:** `fix/g2-master-data-20260913`
+**PR aktif:** #5, belum merge
 
-> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
+> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog dan tidak menyimpan narasi revisi lama.
 
+## 1. Kedudukan `docs/`
 
-## 1. Kedudukan Folder `docs/`
+Folder `docs/` adalah Single Source of Truth untuk business rule, arsitektur, database, authorization, route, UI/UX, testing, deployment, mobile, dan Cordova.
 
-`docs/` adalah **Single Source of Truth (SSOT)** untuk kontrak bisnis, arsitektur, authorization, database, route, release gate, dan deployment SisisFour.
-
-Urutan baca:
+Urutan baca canonical:
 
 ```text
-00_POLA_PENGERJAAN
-01_MASTERPLAN
-02_DATABASE
-03_AUTH_RBAC_MENU
-04_MASTER_DATA
-05_PRESENSI
-06_LAPORAN
-07_BK_PRESTASI_KARTU
-08_DASHBOARD_SETTINGS_BACKUP
-09_PROFILE
-10_DEPLOYMENT_PRODUCTION
-15_TESTING_POLISH
-16_MOBILE_CORDOVA
+00  Pola Pengerjaan
+01  Masterplan
+02  Database
+03  Auth / RBAC / Menu
+04  Master Data & Student Lifecycle
+05  Presensi
+06  Laporan
+07  BK / Prestasi / Kartu
+08  Dashboard / Settings / Backup / Log
+09  Profile / Personalia
+10  Deployment Production
+11  UI/UX SisisFour
+11  UI/UX Role Experience
+12  Audit UI/UX Admin
+13  CI4 + Sneat Global Layout Standard
+14  SisisFour Mobile & Cordova UI/UX Standard
+15  Testing / Regression / Release Gate
+16  Cordova Packaging & Integration
 Routes Final
 Tree Structure
 ```
 
-Jika dokumen, source, route, dan database berbeda, konflik harus diidentifikasi dan diputuskan eksplisit.
+## 2. Hirarki Standar UI
 
-## 2. Sumber Kebenaran Teknis
+Jika ada aturan visual yang berbeda, gunakan prioritas:
 
 ```text
-Database    -> dump SQL resmi terbaru + SHOW CREATE TABLE bila perlu
+13 CI4 + Sneat Global
+        ↓
+11 UI/UX SisisFour
+        ↓
+14 Mobile & Cordova UI/UX
+        ↓
+11 Role Experience
+        ↓
+aturan khusus halaman bila terdokumentasi
+```
+
+`14` meng-override aturan `11/13` pada mobile/WebView bila lebih ketat, misalnya larangan horizontal-scroll tabel operasional.
+
+Business rule tetap mengikuti dokumen domain dan Service; dokumen UI tidak boleh mengubah authorization atau lifecycle secara diam-diam.
+
+## 3. Sumber Kebenaran Teknis
+
+```text
+Database    -> dump SQL resmi terbaru + schema live bila perlu
 Route       -> app/Config/Routes.php
-Auth/RBAC   -> users, user_roles, permissions, role_permissions
+Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
 Menu        -> menus, role_menus, MenuService
 Business    -> Service modul
 Persistence -> Model / Query Builder
-UI          -> View + Vanilla JS
-Deployment  -> 10_DEPLOYMENT_PRODUCTION
+UI          -> View + assets/css/sisfour-ui.css + Vanilla JS
+Global UI   -> docs/13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md
+Mobile UI   -> docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
+Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
+Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ```
 
-`PermissionFilter` hanya route gate. **Service adalah security/business boundary** untuk target data, scope, transaksi, lifecycle, dan side effect.
-
-## 3. Aturan Full File
-
-Setiap revisi atau file baru diserahkan sebagai **file utuh**, bukan snippet/diff.
-
-Urutan pengerjaan:
-
-```text
-Model
--> Service
--> Filter bila diperlukan
--> Controller
--> View
--> JavaScript
--> Routes bila benar-benar perlu
--> Static Check
--> Runtime Checkpoint
--> Dokumentasi Canonical
-```
-
-`Routes.php` tidak diubah bila tidak ada kebutuhan route nyata.
+`PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
 
 ## 4. Stack Resmi
 
@@ -77,132 +82,293 @@ Framework        CodeIgniter 4
 PHP              8.2+
 Database         MariaDB / MySQL
 Development      XAMPP
-UI               Sneat + Bootstrap 5
+UI               Sneat Free v3 + Bootstrap 5.3.x
+Font             Public Sans
 Business JS      Vanilla JavaScript
 HTTP Frontend    Fetch API
 Chart            ApexCharts
 Spreadsheet      PhpSpreadsheet
 PDF              Dompdf
 QR               endroid/qr-code
-Session Web      DatabaseHandler / ci_sessions
-Auth API         JWT + api_tokens
+Web Session      DatabaseHandler / ci_sessions
+API Auth         JWT + api_tokens
+Android target   Apache Cordova / Android WebView
 Timezone         Asia/Jakarta
 ```
 
-jQuery boleh ada sebagai dependency template/vendor, tetapi business JavaScript tidak bergantung pada jQuery.
+jQuery boleh tetap menjadi dependency vendor, tetapi business JavaScript baru tidak bergantung pada jQuery.
 
 ## 5. Arsitektur Request
 
 ```text
-Browser / WebView / API Client
-        |
-        v
+Browser / Cordova WebView / API Client
+        ↓
 Routes
-        |
-        v
-Global Filter (Maintenance/CSRF)
-        |
-        v
-AuthFilter
-        |
-        v
-PermissionFilter
-        |
-        v
+        ↓
+Global Filter / Auth / Permission
+        ↓
 Controller
-        |
-        v
+        ↓
 Service
-        |
-        v
+        ↓
 Model / Query Builder
-        |
-        v
-MariaDB/MySQL
+        ↓
+MariaDB / MySQL
 ```
 
-## 6. Document Root
+View/JavaScript tidak menjadi authorization boundary.
 
-SisisFour menggunakan **project root sebagai Web root**, bukan folder `public/`.
+## 6. Pola Perubahan Source
+
+Urutan normal:
 
 ```text
-sisfour_dev_v2/
-├── index.php
-├── .htaccess
-├── app/
-├── assets/
-├── public/
-├── uploads/
-├── vendor/
-├── writable/
-└── docs/
+1. baca docs domain + source + database aktual
+2. tentukan invariant/business rule
+3. Model/Query bila perlu
+4. Service
+5. Filter bila perlu
+6. Controller
+7. View
+8. JavaScript/CSS
+9. Routes hanya bila endpoint nyata diperlukan
+10. static gate
+11. runtime regression
+12. sinkronkan docs canonical
 ```
 
-`.htaccess` root wajib melindungi file/folder internal seperti `.env`, `app/`, `vendor/`, `writable/`, `docs/`, `database/`, dan repository metadata.
+Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan datanya tidak berubah.
 
-## 7. Database-First
+## 7. Aturan Full File dan Git
 
-Untuk dataset besar, filtering/agregasi utama dilakukan database:
+- Revisi file diserahkan sebagai file utuh, bukan potongan source.
+- `Routes.php` dipertahankan bila endpoint baru tidak diperlukan.
+- Sebelum write GitHub, baca blob SHA aktual.
+- Perubahan berurutan pada path yang sama harus memakai SHA terbaru.
+- Jangan merge/deploy sebelum static + runtime gate lulus.
+- Production DB tidak disentuh dalam regression development.
+
+## 8. Phase Aktif — G2
+
+G2 adalah **fixing dan stabilization**, bukan fase redesign mobile penuh.
+
+Scope G2:
 
 ```text
-WHERE
-JOIN
-GROUP BY
-COUNT / SUM
-HAVING
-ORDER BY
-LIMIT / OFFSET
+F06 Guru
+F07 Pegawai
+F08 Siswa
+F09 Kelas
+F10 Tahun Ajaran / semester transition
+F11 Mata Pelajaran
+F12 Mapping Wali
+F13 Jadwal Guru
+F14 Manajemen Siswa
+Admin UI foundation/stabilization yang sudah masuk branch
+Login/branding bugfix yang terkait regression
 ```
 
-Dilarang memuat seluruh data besar lalu mengagregasi utama di PHP. Pivot ringan diperbolehkan setelah dataset dibatasi.
+### G2.0 — SSOT Sync
 
-## 8. Authorization
+Canonical docs sudah ditetapkan dan terus disinkronkan terhadap state source final:
 
-Effective role:
+- hierarki UI;
+- standar Sneat global;
+- role experience;
+- Mobile & Cordova UI/UX;
+- testing gate;
+- urutan G2/G3/G4.
+
+### G2.1 — Repository Hygiene
+
+Sebelum regression final:
+
+- audit diff terhadap `main`;
+- kembalikan perubahan eksperimental yang tidak lagi diperlukan;
+- khusus `JadwalGuruService.php`, pastikan tidak membawa rewrite/relaksasi import Genap yang sudah tidak dibutuhkan workflow final;
+- pastikan `Routes.php` hanya berubah bila memang disengaja; target G2 saat ini tetap tidak memerlukannya;
+- `git diff --check`.
+
+Status hygiene utama sudah PASS dan wajib direcheck sekali lagi pada G2.5 sebelum merge.
+
+### G2.2 — Static Gate
 
 ```text
-users.role
-UNION
-user_roles.role
+PHP lint semua PHP yang berubah
+node --check semua JS yang berubah
+php spark routes
+git diff --check
+git status
 ```
 
-Role resmi:
+Static gate historis PASS. Focused lint/check setelah perubahan akhir tetap menjadi syarat final sebelum merge.
+
+### G2.3 — Business Regression F06–F14
+
+Urutan canonical:
 
 ```text
-admin
-operator
-pimpinan
-bk
-guru
-siswa
+F06 Guru
+F07 Pegawai
+F08 Siswa
+F09 Kelas
+F10 Tahun Ajaran
+F11 Mapel
+F12 Mapping Wali
+F13 Jadwal Guru
+F14 Manajemen Siswa
 ```
 
-Tidak ada role `pegawai`. Wali Kelas juga **bukan role**; status Wali di-resolve dinamis dari `mapping_wali_kelas` pada tahun aktif.
+Status G2.3: **PASS**.
 
-Scope:
+F10 `Siapkan Genap` sudah lulus regression dan tidak perlu menjalankan destructive transition berulang bila Service terkait tidak berubah.
+
+F11 final runtime retest sudah PASS: edit nama dengan kode Mapel sendiri berhasil dan duplicate code tetap ditolak.
+
+F14 Manajemen Siswa telah dinyatakan PASS, termasuk:
 
 ```text
-SEMUA
-KELAS_DIAMPU
-KELAS_TERJADWAL
-DIRI_SENDIRI
-TIDAK_ADA
+Penempatan/Pindah
+Mutasi
+Kelulusan
+Restore lifecycle
+Kenaikan 7 → 8
+Kenaikan 8 → 9
+Partial promotion
+Promotion guards
+Anti-double-process
+Membership integrity
+History integrity
+Progress per kelas
+Year-aware Master Siswa
 ```
 
-## 9. Security Baseline
+Kenaikan adalah Genap → Ganjil tahun ajaran berikutnya. Ganjil → Genap tahun yang sama tetap melalui `Siapkan Genap`.
 
-- Web menggunakan database session.
+### G2.4 — Browser Regression G2
+
+Status G2.4: **PASS** pada 15 September 2026 menggunakan data aktual hosting.
+
+Cakupan focused browser regression:
+
+```text
+Login show/hide password              PASS
+Branding/Favicon                      PASS
+Title/Navbar                          PASS
+Filter/Pagination/Export              PASS
+Presensi Mengajar Guru Search         PASS
+Profile Guru mobile                   PASS
+Modal + responsive                    PASS
+Browser console                       PASS
+F11 edit Mapel kode sendiri           PASS
+Default/reset Tahun Ajaran aktif      PASS
+```
+
+Contract selector Tahun Ajaran:
+
+```text
+initial load = periode aktif
+Reset        = periode aktif
+histori      = tetap selectable bila halaman mendukung histori
+```
+
+Tidak perlu helper/alert yang hanya menjelaskan default aktif. Master Tahun Ajaran tetap menampilkan seluruh periode; workflow current-state mengikuti periode aktif tanpa selector tambahan.
+
+Pixel-level redesign besar role operasional tetap bukan bagian G2.
+
+### G2.5 — G2 Closure
+
+Sisa sebelum G2 closed/merge:
+
+- final repository hygiene recheck;
+- final docs/checklist sanity;
+- review PR #5 dan sinkronkan PR body dengan hasil regression final;
+- pastikan tidak ada SQL dump/test data/temporary/build artifact ikut commit;
+- focused static gate final pada head terakhir;
+- user memberi approval eksplisit;
+- merge hanya setelah approval.
+
+G2.3 dan G2.4 sudah PASS. Tidak ada merge otomatis.
+
+## 9. Phase Berikutnya — G3 Mobile Role UI
+
+G3 dimulai dari `main` setelah G2 selesai/merge.
+
+Tujuan:
+
+```text
+Web UI mobile-first
+Cordova/WebView ready
+satu source UI CI4/Sneat
+no duplicate mobile application UI
+```
+
+Urutan G3:
+
+```text
+G3.1 Mobile foundation
+G3.2 Guru/Wali — Presensi & Jurnal
+G3.3 Dashboard Guru/Wali
+G3.4 BK workflow + Dashboard BK
+G3.5 Pimpinan monitoring
+G3.6 Siswa self-service
+G3.7 global mobile sweep
+G3.8 viewport/WebView regression
+```
+
+G3 mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
+
+## 10. Phase Setelahnya — G4 Cordova APK
+
+Cordova packaging tidak dikerjakan di G2.
+
+G4 dimulai setelah Web/mobile G3 stabil:
+
+```text
+G4.1 Cordova architecture spike
+G4.2 Android project/config
+G4.3 session/auth strategy verification
+G4.4 back button / keyboard / safe-area
+G4.5 geolocation permission
+G4.6 network/offline state
+G4.7 file download/share/external links
+G4.8 device regression
+G4.9 signed APK/release distribution
+```
+
+Detail teknis ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+
+## 11. Aturan Anti-Tabrakan Antar Phase
+
+- G2 tidak menerima redesign mobile besar kecuali blocker regression.
+- G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
+- G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
+- Cordova bridge/plugin tidak ditanam ke business Service.
+- CSS mobile reusable masuk foundation, bukan patch per halaman.
+- Semua phase memakai branch terpisah dan regression gate sendiri.
+
+## 12. Database-First
+
+Filtering/agregasi dataset besar dilakukan database:
+
+```text
+WHERE / JOIN / GROUP BY / HAVING / ORDER BY / LIMIT / OFFSET
+```
+
+Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
+
+## 13. Security Baseline
+
 - CSRF aktif untuk Web.
-- Mutation Fetch menggunakan `assets/js/csrf-fetch.js`.
-- API `/api/*` memakai Bearer token/JWT dan tidak memakai CSRF Web.
-- Actor Web berasal dari session; actor API dari token tervalidasi.
-- `auth_version` adalah invalidation token keamanan; **login normal tidak menaikkannya**.
-- Output teks di-escape.
-- Password/hash/token/cookie/session id tidak ditulis ke log bisnis.
-- Upload user divalidasi tipe, ukuran, isi, path, dan nama.
-- Dokumen Personalia disimpan non-public di `writable/uploads/personalia/`.
+- Mutation Fetch memakai helper CSRF project.
+- API memakai Bearer/JWT dan bukan CSRF Web.
+- Output user/data di-escape.
+- Upload divalidasi tipe, ukuran, isi dan path.
+- Dokumen personalia tetap non-public.
+- Cordova tidak boleh memindahkan authorization ke client.
+- Credential/token tidak ditulis ke log.
 
-## 10. Static Gate
+## 14. Static Gate Minimum
 
 ```powershell
 php -l path\file.php
@@ -212,24 +378,30 @@ git diff --check
 git status --short
 ```
 
-## 11. Runtime Gate Minimum
+## 15. Runtime Gate Minimum
 
 Tidak boleh ada:
 
-- 404 route tidak disengaja;
-- 500;
+- 404/500 tak disengaja;
 - 403 palsu;
 - CSRF failure pada mutation sah;
-- privilege escalation/IDOR;
-- duplicate akibat double-submit/race;
+- IDOR/privilege escalation;
+- double mutation;
 - partial transaction;
 - histori putus;
-- session/API actor salah;
 - uncaught browser error;
-- resource internal dapat diakses public.
+- horizontal body overflow pada viewport wajib;
+- data akademik dinyatakan sukses sebelum server mengonfirmasi.
 
-## 12. Baseline Release
+## 16. Definition of Done per Phase
 
-Baseline ini adalah release candidate setelah STEP 06: UI/UX sweep, authorization consistency, RequestContext API, signage, session recovery, pagination, maintenance, Kartu performance, hosting hardening, dan final regression.
+Sebuah phase baru boleh dimulai jika phase sebelumnya:
 
-Deployment production dilakukan secara **manual upload** ke Hostinger dan dikontrol oleh `10_DEPLOYMENT_PRODUCTION — SisisFour.md`.
+```text
+source stabil
+static gate PASS
+runtime gate PASS
+canonical docs sinkron
+PR review selesai
+user approval eksplisit
+```

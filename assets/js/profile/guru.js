@@ -9,11 +9,12 @@
   const fotoForm = document.getElementById('formFotoProfileGuru');
 
   const notify = async (text, error = false) => {
-    if (window.Swal) {
-      await Swal.fire({ icon: error ? 'error' : 'success', text, confirmButtonText: 'OK' });
-    } else {
-      alert(text);
-    }
+    if (!window.Swal) return;
+    await Swal.fire({
+      icon: error ? 'error' : 'success',
+      text,
+      confirmButtonText: 'OK',
+    });
   };
 
   const setBusy = (formElement, busy) => {
@@ -60,7 +61,10 @@
       const response = await fetch(`${base}/profile/guru/upload-foto`, {
         method: 'POST',
         body: new FormData(fotoForm),
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
       });
       const payload = await response.json();
       if (!response.ok || payload.success !== true) {

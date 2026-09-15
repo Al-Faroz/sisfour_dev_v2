@@ -23,6 +23,20 @@
     const modalTitle =
         document.getElementById('modalTahunAjaranTitle');
 
+    const semesterSteps = [
+        { key: 'precheck', label: 'Validasi data Semester Ganjil' },
+        { key: 'create_year', label: 'Membuat Semester Genap' },
+        { key: 'copy_classes', label: 'Menyalin struktur Kelas' },
+        { key: 'copy_members', label: 'Menyalin Anggota Kelas siswa Aktif' },
+        { key: 'copy_wali', label: 'Menyalin Mapping Wali' },
+        { key: 'copy_schedule', label: 'Menyalin Jadwal Guru' },
+        { key: 'close_history', label: 'Menutup histori Aktif Ganjil' },
+        { key: 'open_history', label: 'Membuat histori Aktif Genap' },
+        { key: 'deactivate_source', label: 'Menonaktifkan Semester Ganjil' },
+        { key: 'activate_target', label: 'Mengaktifkan Semester Genap' },
+        { key: 'verify', label: 'Verifikasi akhir' },
+    ];
+
     const endpoint = (path) =>
         `${baseUrl}/${path.replace(/^\/+/, '')}`;
 
@@ -58,9 +72,136 @@
         icon: 'success',
         title: 'Berhasil',
         text: message,
-        timer: 1600,
+        timer: 2200,
         showConfirmButton: false,
     });
+
+    const normalizeSemesterSteps = (steps = []) => {
+        const byKey = new Map(
+            (Array.isArray(steps) ? steps : []).map(
+                (step) => [String(step.key || ''), step]
+            )
+        );
+
+        return semesterSteps.map((base) => ({
+            ...base,
+            ...(byKey.get(base.key) || {}),
+        }));
+    };
+
+    const stepBadge = (status) => {
+        const map = {
+            success: ['success', '✓', 'Berhasil'],
+            rolled_back: ['warning', '↶', 'Rollback'],
+            failed: ['danger', '✕', 'Gagal'],
+            skipped: ['secondary', '○', 'Tidak dijalankan'],
+            pending: ['info', '⟳', 'Menunggu'],
+            unknown: ['secondary', '?', 'Tidak diketahui'],
+        };
+
+        const item = map[status] || map.pending;
+
+        return `
+            <span class="badge bg-label-${item[0]} ms-2">
+                ${item[1]} ${item[2]}
+            </span>
+        `;
+    };
+
+    const renderSemesterSteps = (steps, forceStatus = null) => {
+        const normalized = normalizeSemesterSteps(steps);
+
+        return `
+            <div class="text-start border rounded p-2 mt-2" style="max-height: 390px; overflow:auto;">
+                ${normalized.map((step) => {
+                    const status = forceStatus || step.status || 'pending';
+                    const countText =
+                        Number.isFinite(Number(step.count))
+                        && Number.isFinite(Number(step.expected))
+                            ? `<div class="small text-muted mt-1">${Number(step.count)} / ${Number(step.expected)}</div>`
+                            : '';
+                    const message = step.message
+                        ? `<div class="small text-muted mt-1">${escapeHtml(step.message)}</div>`
+                        : '';
+
+                    return `
+                        <div class="py-2 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <span>${escapeHtml(step.label)}</span>
+                                ${stepBadge(status)}
+                            </div>
+                            ${countText}
+                            ${message}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    };
+
+    const semesterSummaryHtml = (detail) => {
+        const source = detail?.source || {};
+        const target = detail?.target || {};
+        const counts = detail?.counts || {};
+
+        return `
+            <div class="text-start mb-3">
+                ${source.nama_tahun ? `
+                    <div><strong>Tahun Pelajaran:</strong> ${escapeHtml(source.nama_tahun)}</div>
+                    <div><strong>Dari:</strong> Ganjil</div>
+                    <div><strong>Ke:</strong> Genap</div>
+                ` : ''}
+                ${target.id ? `<div><strong>ID Semester Genap:</strong> ${Number(target.id)}</div>` : ''}
+            </div>
+            ${Object.keys(counts).length > 0 ? `
+                <div class="text-start small border rounded p-2 mb-3">
+                    <div><strong>Hasil verifikasi:</strong></div>
+                    <div>Kelas: ${Number(counts.kelas || 0)}</div>
+                    <div>Anggota: ${Number(counts.anggota || 0)}</div>
+                    <div>Mapping Wali: ${Number(counts.wali || 0)}</div>
+                    <div>Jadwal Guru: ${Number(counts.jadwal || 0)}</div>
+                    <div>Histori Aktif Ganjil tersisa: ${Number(counts.histori_aktif_ganjil || 0)}</div>
+                    <div>Histori Aktif Genap: ${Number(counts.histori_aktif_genap || 0)}</div>
+                    <div>Presensi Genap: ${Number(counts.presensi_genap || 0)}</div>
+                    <div>Jurnal Genap: ${Number(counts.jurnal_genap || 0)}</div>
+                </div>
+            ` : ''}
+        `;
+    };
+
+    const showSemesterResult = async (payload, httpOk = true) => {
+        const detail = payload?.data || payload || {};
+        const success = httpOk
+            && payload?.status !== 'error'
+            && detail?.success === true;
+        const rolledBack = detail?.rolled_back === true;
+        const title = success
+            ? 'Semester Genap berhasil diaktifkan'
+            : rolledBack
+                ? 'Proses gagal — seluruh perubahan di-rollback'
+                : 'Siapkan Genap gagal';
+
+        await Swal.fire({
+            icon: success ? 'success' : 'error',
+            title,
+            width: 760,
+            html: `
+                ${semesterSummaryHtml(detail)}
+                <div class="text-start mb-2">
+                    ${escapeHtml(detail?.message || payload?.message || 'Proses selesai.')}
+                </div>
+                ${renderSemesterSteps(detail?.steps || [])}
+                <div class="alert ${success ? 'alert-success' : rolledBack ? 'alert-warning' : 'alert-danger'} text-start mt-3 mb-0">
+                    ${success
+                        ? 'Presensi dan Jurnal Mengajar tidak disalin. Semester Genap sekarang menjadi semester aktif.'
+                        : rolledBack
+                            ? 'Database dikembalikan ke kondisi sebelum proses. Semester Ganjil tetap menjadi sumber operasional.'
+                            : 'Tidak ada pergantian semester yang dikonfirmasi berhasil.'}
+                </div>
+            `,
+            confirmButtonText: 'Tutup',
+        });
+    };
 
     const destroyDataTable = () => {
         if (
@@ -86,6 +227,8 @@
 
         tbody.innerHTML = rows.map((tahun, index) => {
             const aktif = Number(tahun.status_aktif) === 1;
+            const canPrepareGenap =
+                aktif && String(tahun.semester) === 'Ganjil';
 
             return `
                 <tr>
@@ -106,6 +249,22 @@
                     <td>${Number(tahun.jumlah_jadwal || 0)}</td>
                     <td>
                         <div class="d-flex flex-wrap gap-1">
+                            ${
+                                canPrepareGenap
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-info btn-prepare-semester"
+                                            data-id="${tahun.id}"
+                                            title="Siapkan dan aktifkan Semester Genap"
+                                        >
+                                            <i class="bx bx-copy-alt me-1"></i>
+                                            Siapkan Genap
+                                        </button>
+                                    `
+                                    : ''
+                            }
+
                             ${
                                 aktif
                                     ? ''
@@ -192,6 +351,115 @@
         const aktifkan =
             event.target.closest('.btn-aktifkan');
         const hapus = event.target.closest('.btn-delete');
+        const prepareSemester =
+            event.target.closest('.btn-prepare-semester');
+
+        if (prepareSemester) {
+            const id = Number(prepareSemester.dataset.id);
+            const tahun = rows.find(
+                (item) => Number(item.id) === id
+            );
+
+            if (!tahun) {
+                return;
+            }
+
+            const confirmation = await Swal.fire({
+                icon: 'warning',
+                title: 'Siapkan Semester Genap?',
+                width: 760,
+                html: `
+                    <div class="text-start">
+                        <p class="mb-2">
+                            <strong>${escapeHtml(tahun.nama_tahun)} - Ganjil</strong>
+                            akan dipindahkan ke Semester Genap dalam satu transaksi atomic.
+                        </p>
+                        <p class="mb-2">
+                            Jika satu langkah gagal, seluruh perubahan akan di-rollback.
+                        </p>
+                        ${renderSemesterSteps([], 'pending')}
+                        <div class="alert alert-info text-start mt-3 mb-0">
+                            Presensi dan Jurnal Mengajar tidak disalin. Setelah berhasil,
+                            Semester Ganjil menjadi Nonaktif dan Semester Genap langsung Aktif.
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Siapkan Genap',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+            });
+
+            if (!confirmation.isConfirmed) {
+                return;
+            }
+
+            Swal.fire({
+                title: 'Menjalankan Siapkan Genap',
+                width: 760,
+                html: `
+                    <div class="text-start mb-2">
+                        Proses sedang dijalankan di server. Jangan refresh atau tutup halaman.
+                    </div>
+                    ${renderSemesterSteps([], 'pending')}
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
+
+            try {
+                const payload = new FormData();
+                payload.append('mode', 'prepare_next_semester');
+
+                const response = await fetch(
+                    endpoint('master/tahun/create'),
+                    {
+                        method: 'POST',
+                        body: payload,
+                        headers: {
+                            'X-Requested-With':
+                                'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    }
+                );
+
+                const result = await response
+                    .json()
+                    .catch(() => ({}));
+
+                await showSemesterResult(result, response.ok);
+                await loadData();
+            } catch (error) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Status proses tidak dapat dipastikan',
+                    width: 760,
+                    html: `
+                        <div class="text-start mb-3">
+                            ${escapeHtml(error?.message || 'Koneksi ke server gagal.')}
+                        </div>
+                        ${renderSemesterSteps(
+                            semesterSteps.map((step) => ({
+                                ...step,
+                                status: 'unknown',
+                                message: 'Status tidak diketahui karena respons server tidak diterima.',
+                            }))
+                        )}
+                        <div class="alert alert-warning text-start mt-3 mb-0">
+                            Jangan jalankan ulang proses sebelum status database diperiksa.
+                        </div>
+                    `,
+                    confirmButtonText: 'Tutup',
+                });
+            }
+
+            return;
+        }
 
         if (edit) {
             const id = Number(edit.dataset.id);

@@ -2,8 +2,9 @@
 
 namespace App\Controllers;
 
-use App\Services\MasterPaginationService;
+use App\Services\SiswaMasterPaginationService;
 use App\Services\SiswaImportService;
+use App\Services\SiswaIntegrityService;
 use App\Services\SiswaService;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
@@ -15,19 +16,19 @@ class MasterSiswa extends BaseController
 {
     protected SiswaService $siswaService;
     protected SiswaImportService $siswaImportService;
-    protected MasterPaginationService $paginationService;
+    protected SiswaMasterPaginationService $paginationService;
 
     public function __construct()
     {
-        $this->siswaService = new SiswaService();
+        $this->siswaService = new SiswaIntegrityService();
         $this->siswaImportService = new SiswaImportService();
-        $this->paginationService = new MasterPaginationService();
+        $this->paginationService = new SiswaMasterPaginationService();
     }
 
     public function index()
     {
         $userId = (int) session()->get('user_id');
-        $filter = $this->filters();
+        $filter = $this->filters($userId, true);
 
         if ($this->isJsonRequest()) {
             $paging = $this->paginationService->normalizePaging(
@@ -48,17 +49,23 @@ class MasterSiswa extends BaseController
         $editScope = $this->siswaService->getEditScope($userId);
         $manageScope = $this->siswaService->getManageScope($userId);
         $importExportScope = $this->siswaService->getImportExportScope($userId);
+        $tahunOptions = $this->siswaService->getTahunOptions($userId);
 
         return $this->response->setBody(
             $this->renderWithLayout('master/siswa', [
                 'title' => 'Master Siswa',
                 'filters' => $filter,
-                'kelasOptions' => $this->siswaService->getKelasOptions($userId),
+                'tahunOptions' => $tahunOptions,
+                'activeTahunId' => $this->siswaService->getActiveTahunId(),
+                'kelasOptions' => $this->siswaService->getFilterKelasOptions($userId),
                 'canEdit' => $editScope !== 'TIDAK_ADA',
                 'canEditNisn' => $editScope === 'SEMUA',
                 'canManage' => $manageScope === 'SEMUA',
                 'canImportExport' => $importExportScope === 'SEMUA',
-                'extraJs' => ['assets/js/master/siswa.js'],
+                'extraJs' => [
+                    'assets/js/master/siswa-filter-year.js',
+                    'assets/js/master/siswa.js',
+                ],
             ])
         );
     }
@@ -71,7 +78,7 @@ class MasterSiswa extends BaseController
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => $this->siswaService->getList(
-                    $this->filters(),
+                    $this->filters($userId, false),
                     $userId,
                     true
                 ),
@@ -295,7 +302,7 @@ class MasterSiswa extends BaseController
     {
         $userId = (int) session()->get('user_id');
         $data = $this->siswaService->getList(
-            $this->filters(),
+            $this->filters($userId, true),
             $userId
         );
 
@@ -385,16 +392,30 @@ class MasterSiswa extends BaseController
             );
     }
 
-    protected function filters(): array
+    protected function filters(int $userId, bool $useDefaults = true): array
     {
+        $tahunRaw = $this->request->getGet('id_tahun');
+        $statusRaw = $this->request->getGet('status_aktif');
+
+        $idTahun = (int) $tahunRaw;
+
+        if ($useDefaults && ($tahunRaw === null || $idTahun <= 0)) {
+            $idTahun = (int) ($this->siswaService->getActiveTahunId() ?? 0);
+        }
+
+        $status = trim((string) $statusRaw);
+
+        if ($useDefaults && $statusRaw === null) {
+            $status = 'Aktif';
+        }
+
         return [
             'nama' => trim((string) $this->request->getGet('nama')),
             'nik' => trim((string) $this->request->getGet('nik')),
             'nisn' => trim((string) $this->request->getGet('nisn')),
+            'id_tahun' => $idTahun,
             'id_kelas' => (int) $this->request->getGet('id_kelas'),
-            'status_aktif' => trim(
-                (string) $this->request->getGet('status_aktif')
-            ),
+            'status_aktif' => $status,
         ];
     }
 

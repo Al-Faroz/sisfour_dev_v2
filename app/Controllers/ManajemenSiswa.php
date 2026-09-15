@@ -2,15 +2,18 @@
 
 namespace App\Controllers;
 
-use App\Services\ManajemenSiswaService;
+use App\Services\ManajemenSiswaIntegrityService;
+use App\Services\SiswaLifecycleHistoryService;
 
 class ManajemenSiswa extends BaseController
 {
-    protected ManajemenSiswaService $service;
+    protected ManajemenSiswaIntegrityService $service;
+    protected SiswaLifecycleHistoryService $historyService;
 
     public function __construct()
     {
-        $this->service = new ManajemenSiswaService();
+        $this->service = new ManajemenSiswaIntegrityService();
+        $this->historyService = new SiswaLifecycleHistoryService();
     }
 
     public function kelas()
@@ -117,6 +120,7 @@ class ManajemenSiswa extends BaseController
                 'title' => 'Mutasi Siswa',
                 'kelasOptions' => $this->service->getActiveClassOptions($userId),
                 'tahunAktif' => $this->service->getActiveYearInfo($userId),
+                'mutasiHistory' => $this->historyService->getMutasiHistory($userId),
                 'extraJs' => ['assets/js/manajemen_siswa/mutasi.js'],
             ])
         );
@@ -124,9 +128,20 @@ class ManajemenSiswa extends BaseController
 
     public function prosesMutasi($id)
     {
+        $userId = (int) session()->get('user_id');
+
+        if ((string) $this->request->getPost('action') === 'restore') {
+            return $this->respondResult(
+                $this->historyService->restoreMutasi(
+                    $userId,
+                    (int) $id
+                )
+            );
+        }
+
         return $this->respondResult(
             $this->service->mutasi(
-                (int) session()->get('user_id'),
+                $userId,
                 (int) $id,
                 trim((string) $this->request->getPost('status')),
                 trim((string) $this->request->getPost('keterangan'))
@@ -143,6 +158,7 @@ class ManajemenSiswa extends BaseController
                 'title' => 'Kelulusan Siswa',
                 'sourceClasses' => $this->service->getKelulusanSourceClasses($userId),
                 'tahunAktif' => $this->service->getActiveYearInfo($userId),
+                'alumniRows' => $this->historyService->getAlumni($userId),
                 'extraJs' => ['assets/js/manajemen_siswa/kelulusan.js'],
             ])
         );
@@ -150,12 +166,23 @@ class ManajemenSiswa extends BaseController
 
     public function lulus($id)
     {
+        $userId = (int) session()->get('user_id');
+
+        if ((string) $this->request->getPost('action') === 'restore') {
+            return $this->respondResult(
+                $this->historyService->restoreKelulusan(
+                    $userId,
+                    (int) $id
+                )
+            );
+        }
+
         $selected = $this->request->getPost('id_siswa');
         $selected = is_array($selected) ? $selected : [];
 
         return $this->respondResult(
             $this->service->lulus(
-                (int) session()->get('user_id'),
+                $userId,
                 (int) $id,
                 $selected
             )
