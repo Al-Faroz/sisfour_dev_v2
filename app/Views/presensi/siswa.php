@@ -2,6 +2,44 @@
 
 <?= $this->section('content') ?>
 
+<style>
+    #presensiSiswaApp .presensi-status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(40px, 1fr));
+        gap: .35rem;
+        width: 100%;
+        max-width: 32rem;
+    }
+
+    #presensiSiswaApp .presensi-status-btn {
+        min-width: 40px;
+        min-height: 40px;
+        padding-inline: .45rem;
+    }
+
+    #presensiSiswaApp .presensi-sticky-actions {
+        justify-content: space-between;
+    }
+
+    #presensiSiswaApp .presensi-sticky-actions > small {
+        flex: 1 1 14rem;
+    }
+
+    @media (max-width: 575.98px) {
+        #presensiSiswaApp .presensi-col-siswa {
+            width: 38%;
+        }
+
+        #presensiSiswaApp .presensi-col-status {
+            width: 62%;
+        }
+
+        #presensiSiswaApp .presensi-sticky-actions > .btn {
+            width: 100%;
+        }
+    }
+</style>
+
 <div
     id="presensiSiswaApp"
     data-base-url="<?= esc(base_url()) ?>"
@@ -56,7 +94,7 @@
                 </div>
 
                 <div class="col-12 col-md-2 d-grid">
-                    <button type="button" class="btn btn-primary" id="btnMuatPresensi">
+                    <button type="button" class="btn btn-primary sisfour-primary-action" id="btnMuatPresensi">
                         <i class="bx bx-search-alt me-1"></i> Muat
                     </button>
                 </div>
@@ -64,7 +102,7 @@
         </div>
     </div>
 
-    <div id="presensiInfo" class="alert alert-info d-none" role="alert"></div>
+    <div id="presensiInfo" class="alert alert-info d-none" role="alert" aria-live="polite"></div>
 
     <div class="card sisfour-table-card d-none" id="presensiCard">
         <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
@@ -79,25 +117,25 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 sisfour-mobile-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">No.</th>
-                        <th>Siswa</th>
-                        <th>NISN</th>
-                        <th style="min-width: 390px;">Status</th>
+                        <th class="d-none d-md-table-cell" style="width: 60px;">No.</th>
+                        <th class="presensi-col-siswa">Siswa</th>
+                        <th class="d-none d-lg-table-cell">NISN</th>
+                        <th class="presensi-col-status">Status</th>
                     </tr>
                 </thead>
                 <tbody id="presensiTableBody"></tbody>
             </table>
         </div>
 
-        <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div class="card-footer sisfour-sticky-actions presensi-sticky-actions">
             <small class="text-muted" id="presensiGeoNote">
                 Lokasi hanya diminta bila geofencing wajib untuk jalur Guru Terjadwal.
             </small>
 
-            <button type="button" class="btn btn-success" id="btnSimpanPresensi">
+            <button type="button" class="btn btn-success sisfour-primary-action" id="btnSimpanPresensi">
                 <i class="bx bx-save me-1"></i> Simpan Presensi
             </button>
         </div>
