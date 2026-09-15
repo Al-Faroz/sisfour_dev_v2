@@ -70,52 +70,50 @@
     </div>
 
     <div class="modal fade" id="modalKenaikan" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <form id="formKenaikan">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="idKelasAsal">
-                    <div class="modal-header">
-                        <div>
-                            <h5 class="modal-title">Proses Kenaikan Kelas</h5>
-                            <div class="small text-muted" id="labelKelasAsal"></div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
+            <form id="formKenaikan" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden" id="idKelasAsal">
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title">Proses Kenaikan Kelas</h5>
+                        <div class="small text-muted" id="labelKelasAsal"></div>
                     </div>
-                    <div class="modal-body">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-8">
-                                <label class="form-label" for="kelasTujuanNaik">Kelas Tujuan</label>
-                                <select class="form-select" id="kelasTujuanNaik" name="id_kelas_tujuan" required>
-                                    <option value="">Pilih kelas tujuan</option>
-                                </select>
-                                <input type="hidden" id="idTahunBaru" name="id_tahun_baru">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Jumlah Dipilih</label>
-                                <div class="form-control bg-light" id="jumlahNaikDipilih">0 siswa</div>
-                            </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body overflow-auto py-3">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label" for="kelasTujuanNaik">Kelas Tujuan</label>
+                            <select class="form-select" id="kelasTujuanNaik" name="id_kelas_tujuan" required>
+                                <option value="">Pilih kelas tujuan</option>
+                            </select>
+                            <input type="hidden" id="idTahunBaru" name="id_tahun_baru">
                         </div>
-                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
-                            <strong>Checklist Siswa</strong>
-                            <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaNaik">Pilih Semua</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanNaik">Kosongkan</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive border rounded">
-                            <table class="table table-hover mb-0">
-                                <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th></tr></thead>
-                                <tbody id="tbodyNaik"></tbody>
-                            </table>
+                        <div class="col-md-4">
+                            <label class="form-label">Jumlah Dipilih</label>
+                            <div class="form-control bg-light" id="jumlahNaikDipilih">0 siswa</div>
                         </div>
                     </div>
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Proses Kenaikan</button>
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                        <strong>Checklist Siswa</strong>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaNaik">Pilih Semua</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanNaik">Kosongkan</button>
+                        </div>
                     </div>
-                </form>
-            </div>
+                    <div class="table-responsive border rounded">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th></tr></thead>
+                            <tbody id="tbodyNaik"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Proses Kenaikan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
