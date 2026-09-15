@@ -2,7 +2,11 @@
 
 <?= $this->section('content') ?>
 
-<div id="masterKelasApp" data-base-url="<?= esc(base_url()) ?>">
+<div
+    id="masterKelasApp"
+    data-base-url="<?= esc(base_url()) ?>"
+    data-active-year-id="<?= (int) ($activeTahunId ?? 0) ?>"
+>
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Master Kelas</h4>
@@ -46,13 +50,17 @@
                 <div class="col-12 col-md-5">
                     <label class="form-label" for="filterTahun">Tahun Ajaran</label>
                     <select class="form-select" id="filterTahun" name="id_tahun">
-                        <option value="">Semua</option>
+                        <option value="" <?= (int) ($filters['id_tahun'] ?? 0) <= 0 ? 'selected' : '' ?>>Semua</option>
                         <?php foreach ($tahunOptions as $tahun): ?>
-                            <option value="<?= (int) $tahun['id'] ?>">
+                            <option
+                                value="<?= (int) $tahun['id'] ?>"
+                                <?= (int) ($filters['id_tahun'] ?? 0) === (int) $tahun['id'] ? 'selected' : '' ?>
+                            >
                                 <?= esc($tahun['nama_tahun'] . ' - ' . $tahun['semester'] . ((int) $tahun['status_aktif'] === 1 ? ' (Aktif)' : '')) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <div class="form-text">Default menampilkan Tahun Ajaran yang sedang aktif.</div>
                 </div>
                 <div class="col-12 col-md-3 sisfour-filter-actions">
                     <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
@@ -112,7 +120,10 @@
                         <select class="form-select" id="id_tahun" name="id_tahun" required>
                             <option value="">Pilih</option>
                             <?php foreach ($tahunOptions as $tahun): ?>
-                                <option value="<?= (int) $tahun['id'] ?>">
+                                <option
+                                    value="<?= (int) $tahun['id'] ?>"
+                                    <?= (int) ($activeTahunId ?? 0) === (int) $tahun['id'] ? 'selected' : '' ?>
+                                >
                                     <?= esc($tahun['nama_tahun'] . ' - ' . $tahun['semester'] . ((int) $tahun['status_aktif'] === 1 ? ' (Aktif)' : '')) ?>
                                 </option>
                             <?php endforeach; ?>
