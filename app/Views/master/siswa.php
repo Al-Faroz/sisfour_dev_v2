@@ -4,6 +4,7 @@
 <div
     id="masterSiswaApp"
     data-base-url="<?= esc(base_url()) ?>"
+    data-active-year-id="<?= (int) ($activeTahunId ?? 0) ?>"
     data-can-edit="<?= !empty($canEdit) ? '1' : '0' ?>"
     data-can-edit-nisn="<?= !empty($canEditNisn) ? '1' : '0' ?>"
     data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
@@ -42,13 +43,38 @@
             <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNama">Nama</label><input type="text" class="form-control" id="filterNama" name="nama" placeholder="Cari nama"></div>
             <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNik">NIK</label><input type="text" class="form-control" id="filterNik" name="nik" maxlength="16" placeholder="Cari NIK"></div>
             <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNisn">NISN</label><input type="text" class="form-control" id="filterNisn" name="nisn" placeholder="Cari NISN"></div>
-            <div class="col-12 col-md-6 col-xl">
-                <label class="form-label" for="filterKelas">Kelas</label>
-                <select class="form-select" id="filterKelas" name="id_kelas"><option value="">Semua</option><?php foreach ($kelasOptions as $kelas): ?><option value="<?= (int)$kelas['id'] ?>"><?= esc($kelas['nama_kelas']) ?></option><?php endforeach; ?></select>
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label" for="filterTahun">Tahun Ajaran</label>
+                <select class="form-select" id="filterTahun" name="id_tahun" required>
+                    <?php foreach (($tahunOptions ?? []) as $tahun): ?>
+                        <option
+                            value="<?= (int) $tahun['id'] ?>"
+                            <?= (int) ($tahun['status_aktif'] ?? 0) === 1 ? 'selected' : '' ?>
+                        >
+                            <?= esc($tahun['nama_tahun']) ?> - <?= esc($tahun['semester']) ?><?= (int) ($tahun['status_aktif'] ?? 0) === 1 ? ' (Aktif)' : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
-            <div class="col-12 col-md-6 col-xl">
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label" for="filterKelas">Kelas</label>
+                <select class="form-select" id="filterKelas" name="id_kelas">
+                    <option value="">Semua</option>
+                    <?php foreach (($kelasOptions ?? []) as $kelas): ?>
+                        <option value="<?= (int) $kelas['id'] ?>" data-tahun="<?= (int) $kelas['id_tahun'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div class="form-text">Daftar kelas mengikuti Tahun Ajaran yang dipilih.</div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
                 <label class="form-label" for="filterStatus">Status</label>
-                <select class="form-select" id="filterStatus" name="status_aktif"><option value="">Semua</option><option value="Aktif">Aktif</option><option value="Lulus">Lulus</option><option value="Pindah">Pindah</option><option value="Keluar">Keluar</option></select>
+                <select class="form-select" id="filterStatus" name="status_aktif">
+                    <option value="">Semua</option>
+                    <option value="Aktif" selected>Aktif</option>
+                    <option value="Lulus">Lulus</option>
+                    <option value="Pindah">Pindah</option>
+                    <option value="Keluar">Keluar</option>
+                </select>
             </div>
             <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button><button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button></div>
         </form>
