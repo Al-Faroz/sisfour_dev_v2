@@ -113,17 +113,23 @@ class LaporanJurnal extends BaseController
     private function respondService(array $result)
     {
         $success = (bool) ($result['success'] ?? false);
+        $code = (string) ($result['code'] ?? '');
+        $message = $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.');
+
+        if (! $success && $code === 'SCHEMA_NOT_READY') {
+            $message = 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.';
+            $result['message'] = $message;
+        }
 
         return $this->response
             ->setStatusCode(
                 $success
                     ? ResponseInterface::HTTP_OK
-                    : $this->httpCode((string) ($result['code'] ?? ''))
+                    : $this->httpCode($code)
             )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $message,
                 'data' => $result,
             ]);
     }
