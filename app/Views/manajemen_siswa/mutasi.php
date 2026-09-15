@@ -97,6 +97,11 @@
             aria-labelledby="mutasi-riwayat-tab"
             tabindex="0"
         >
+            <div class="alert alert-info sisfour-compact-note">
+                <i class="bx bx-info-circle me-1"></i>
+                Restore hanya tersedia bila tahun ajaran/semester asal siswa masih menjadi periode aktif. Histori dari periode nonaktif tetap disimpan dan tidak dapat dibuka kembali.
+            </div>
+
             <div class="card sisfour-table-card">
                 <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                     <div>
@@ -116,10 +121,12 @@
                                 <th>Periode</th>
                                 <th>Tanggal</th>
                                 <th>Keterangan</th>
+                                <th style="width:130px;">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbodyRiwayatMutasi">
                             <?php foreach (($mutasiHistory ?? []) as $index => $row): ?>
+                                <?php $canRestore = !empty($row['can_restore']); ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
                                     <td>
@@ -137,14 +144,41 @@
                                         <?php if (!empty($row['semester'])): ?>
                                             <div class="small text-muted"><?= esc($row['semester']) ?></div>
                                         <?php endif; ?>
+                                        <?php if ((int) ($row['tahun_aktif'] ?? 0) === 1): ?>
+                                            <span class="badge bg-label-success mt-1">Aktif</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-label-secondary mt-1">Nonaktif</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= esc($row['tanggal_selesai'] ?? $row['tanggal_mutasi'] ?? '-') ?></td>
                                     <td><?= esc($row['keterangan'] ?? $row['keterangan_mutasi'] ?? '-') ?></td>
+                                    <td>
+                                        <?php if ($canRestore): ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary btn-restore-mutasi"
+                                                data-history-id="<?= (int) $row['id'] ?>"
+                                                data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>"
+                                                data-status="<?= esc($row['status'] ?? '', 'attr') ?>"
+                                            >
+                                                <i class="bx bx-undo me-1"></i>Restore
+                                            </button>
+                                        <?php else: ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                disabled
+                                                title="Restore hanya tersedia untuk histori terminal terbaru pada periode yang masih aktif."
+                                            >
+                                                Restore
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (($mutasiHistory ?? []) === []): ?>
                                 <tr class="sisfour-empty-row">
-                                    <td colspan="7" class="text-muted text-center py-4">Belum ada riwayat siswa Pindah/Keluar.</td>
+                                    <td colspan="8" class="text-muted text-center py-4">Belum ada riwayat siswa Pindah/Keluar.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
