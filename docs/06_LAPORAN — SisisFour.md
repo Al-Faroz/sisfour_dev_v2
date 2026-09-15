@@ -5,7 +5,7 @@
 **Released baseline:** `main` setelah G3.1  
 **Schema delta aktif:** G3.2 Jurnal student exceptions (belum production)
 
-> Dokumen ini menyatakan kontrak laporan yang berlaku untuk development G3.2. Schema delta branch tidak berarti database production sudah dimigrasikan.
+> Dokumen ini menyatakan kontrak laporan yang berlaku untuk development G3.2. Schema delta branch tidak berarti SQL hosting sudah diterapkan ke database production.
 
 ## 1. Sumber Resmi Presensi
 
@@ -199,4 +199,4 @@ Snapshot Nama/NISN child Jurnal hanya tampil pada Detail yang telah melewati aut
 
 Server menolak scope actor yang tidak sah, periode/tahun invalid, Guru data Guru lain tanpa hak, export tanpa permission, dan request Detail Jurnal di luar scope.
 
-Jika schema delta G3.2 belum dimigrasikan pada local/staging, endpoint data Jurnal baru harus mengembalikan error terkontrol `SCHEMA_NOT_READY`, bukan SQL error mentah.
+Jika SQL schema G3.2 belum diterapkan pada local/staging, endpoint data Jurnal baru harus mengembalikan error terkontrol `SCHEMA_NOT_READY`, bukan SQL error mentah.
