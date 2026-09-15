@@ -44,6 +44,7 @@ class PresensiMengajarModel extends Model
         'tanggal',
         'status',
         'materi',
+        'catatan',
         'updated_by',
     ];
 
@@ -56,6 +57,7 @@ class PresensiMengajarModel extends Model
         'tanggal'             => 'required|valid_date[Y-m-d]',
         'status'              => 'required|in_list[Hadir,Izin,Sakit]',
         'materi'              => 'required',
+        'catatan'             => 'permit_empty',
         'updated_by'          => 'permit_empty|integer',
     ];
 
@@ -144,6 +146,7 @@ class PresensiMengajarModel extends Model
                 'pm.tanggal',
                 'pm.status',
                 'pm.materi',
+                'pm.catatan',
                 'pm.created_at',
                 'pm.updated_at',
                 'pm.updated_by',
