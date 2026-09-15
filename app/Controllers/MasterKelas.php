@@ -18,7 +18,7 @@ class MasterKelas extends BaseController
 
     public function index()
     {
-        $filter = $this->filters();
+        $filter = $this->filters(true);
 
         if ($this->request->getGet('export') === '1') {
             return $this->exportFile($filter);
@@ -31,11 +31,14 @@ class MasterKelas extends BaseController
             ]);
         }
 
+        $tahunOptions = $this->kelasService->getTahunOptions();
+
         return $this->response->setBody(
             $this->renderWithLayout('master/kelas', [
                 'title' => 'Master Kelas',
                 'filters' => $filter,
-                'tahunOptions' => $this->kelasService->getTahunOptions(),
+                'tahunOptions' => $tahunOptions,
+                'activeTahunId' => $this->activeTahunId($tahunOptions),
                 'extraJs' => ['assets/js/master/kelas.js'],
             ])
         );
@@ -76,7 +79,7 @@ class MasterKelas extends BaseController
             return $this->response->setJSON([
                 'status' => 'success',
                 'data' => $this->kelasService->getList(
-                    $this->filters(),
+                    $this->filters(false),
                     true
                 ),
             ]);
@@ -104,13 +107,22 @@ class MasterKelas extends BaseController
         );
     }
 
-    protected function filters(): array
+    protected function filters(bool $defaultActiveYear = true): array
     {
+        $yearRaw = $this->request->getGet('id_tahun');
+        $idTahun = (int) $yearRaw;
+
+        if ($defaultActiveYear && ($yearRaw === null || $idTahun <= 0)) {
+            $idTahun = $this->activeTahunId(
+                $this->kelasService->getTahunOptions()
+            );
+        }
+
         return [
             'tingkat' => trim(
                 (string) $this->request->getGet('tingkat')
             ),
-            'id_tahun' => (int) $this->request->getGet('id_tahun'),
+            'id_tahun' => $idTahun,
         ];
     }
 
@@ -137,6 +149,17 @@ class MasterKelas extends BaseController
                     ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
+    }
+
+    private function activeTahunId(array $tahunOptions): int
+    {
+        foreach ($tahunOptions as $tahun) {
+            if ((int) ($tahun['status_aktif'] ?? 0) === 1) {
+                return (int) ($tahun['id'] ?? 0);
+            }
+        }
+
+        return 0;
     }
 
     private function exportFile(array $filter)
