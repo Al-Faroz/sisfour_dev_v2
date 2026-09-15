@@ -91,6 +91,11 @@
             aria-labelledby="kelulusan-alumni-tab"
             tabindex="0"
         >
+            <div class="alert alert-info sisfour-compact-note">
+                <i class="bx bx-info-circle me-1"></i>
+                Restore siswa Lulus hanya tersedia bila tahun ajaran/semester kelulusannya masih menjadi periode aktif. Kelulusan dari periode nonaktif tetap menjadi histori alumni dan tidak dapat dibuka kembali.
+            </div>
+
             <div class="card sisfour-table-card">
                 <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
                     <div>
@@ -109,10 +114,12 @@
                                 <th>Tahun Ajaran</th>
                                 <th>Tanggal Lulus</th>
                                 <th>Keterangan</th>
+                                <th style="width:130px;">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbodyAlumni">
                             <?php foreach (($alumniRows ?? []) as $index => $row): ?>
+                                <?php $canRestore = !empty($row['can_restore']); ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
                                     <td>
@@ -125,14 +132,40 @@
                                         <?php if (!empty($row['semester'])): ?>
                                             <div class="small text-muted"><?= esc($row['semester']) ?></div>
                                         <?php endif; ?>
+                                        <?php if ((int) ($row['tahun_aktif'] ?? 0) === 1): ?>
+                                            <span class="badge bg-label-success mt-1">Aktif</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-label-secondary mt-1">Nonaktif</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td><?= esc($row['tanggal_selesai'] ?? $row['tanggal_mutasi'] ?? '-') ?></td>
                                     <td><?= esc($row['keterangan'] ?? $row['keterangan_mutasi'] ?? '-') ?></td>
+                                    <td>
+                                        <?php if ($canRestore): ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary btn-restore-lulus"
+                                                data-history-id="<?= (int) $row['id'] ?>"
+                                                data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>"
+                                            >
+                                                <i class="bx bx-undo me-1"></i>Restore
+                                            </button>
+                                        <?php else: ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                disabled
+                                                title="Restore hanya tersedia untuk histori kelulusan terbaru pada periode yang masih aktif."
+                                            >
+                                                Restore
+                                            </button>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (($alumniRows ?? []) === []): ?>
                                 <tr class="sisfour-empty-row">
-                                    <td colspan="6" class="text-muted text-center py-4">Belum ada data alumni / siswa Lulus.</td>
+                                    <td colspan="7" class="text-muted text-center py-4">Belum ada data alumni / siswa Lulus.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
