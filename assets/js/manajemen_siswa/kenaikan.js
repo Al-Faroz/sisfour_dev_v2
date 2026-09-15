@@ -40,7 +40,7 @@
   });
   const count = () => {
     document.getElementById('jumlahNaikDipilih').textContent =
-      `${tbody.querySelectorAll('.check-naik:checked').length} siswa`;
+      `${tbody.querySelectorAll('.check-naik:checked:not(:disabled)').length} siswa`;
   };
 
   const pager = sourceTable && window.SisfourPagination
@@ -75,7 +75,7 @@
     if (!empty && sourceBody && sourceRows.length > 0) {
       empty = document.createElement('tr');
       empty.className = 'js-kenaikan-empty sisfour-empty-row d-none';
-      empty.innerHTML = '<td colspan="4" class="text-muted">Tidak ada kelas untuk tingkat yang dipilih.</td>';
+      empty.innerHTML = '<td colspan="5" class="text-muted">Tidak ada kelas untuk tingkat yang dipilih.</td>';
       sourceBody.appendChild(empty);
     }
 
@@ -91,7 +91,7 @@
 
   document.addEventListener('click', async (event) => {
     const button = event.target.closest('.btn-proses-naik');
-    if (!button) return;
+    if (!button || button.disabled) return;
 
     const id = Number(button.dataset.id);
 
@@ -117,14 +117,34 @@
           </option>
         `).join('');
 
-      tbody.innerHTML = (payload.siswa || []).map((siswa) => `
-        <tr>
-          <td><input class="form-check-input check-naik" type="checkbox" name="id_siswa[]" value="${siswa.id_siswa}" checked></td>
-          <td>${esc(siswa.nama)}</td>
-          <td class="font-monospace">${esc(siswa.nisn)}</td>
-          <td>${siswa.jenis_kelamin === 'L' ? 'L' : 'P'}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = (payload.siswa || []).map((siswa) => {
+        const done = Boolean(siswa.sudah_dinaikkan);
+        return `
+          <tr class="${done ? 'table-light text-muted' : ''}">
+            <td>
+              <input
+                class="form-check-input check-naik"
+                type="checkbox"
+                name="id_siswa[]"
+                value="${siswa.id_siswa}"
+                ${done ? 'disabled' : 'checked'}
+              >
+            </td>
+            <td>${esc(siswa.nama)}</td>
+            <td class="font-monospace">${esc(siswa.nisn)}</td>
+            <td>${siswa.jenis_kelamin === 'L' ? 'L' : 'P'}</td>
+            <td>
+              ${done
+                ? '<span class="badge bg-label-success">Sudah Dinaikkan</span>'
+                : '<span class="badge bg-label-secondary">Belum Diproses</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      if (!(payload.target_kelas || []).length) {
+        target.innerHTML = '<option value="">Kelas tujuan valid belum tersedia</option>';
+      }
 
       document.getElementById('idTahunBaru').value = '';
       window.SisfourSearchableSelect?.enhance(modalElement);
@@ -144,14 +164,14 @@
   tbody.addEventListener('change', count);
 
   document.getElementById('btnPilihSemuaNaik').addEventListener('click', () => {
-    tbody.querySelectorAll('.check-naik').forEach((item) => {
+    tbody.querySelectorAll('.check-naik:not(:disabled)').forEach((item) => {
       item.checked = true;
     });
     count();
   });
 
   document.getElementById('btnKosongkanNaik').addEventListener('click', () => {
-    tbody.querySelectorAll('.check-naik').forEach((item) => {
+    tbody.querySelectorAll('.check-naik:not(:disabled)').forEach((item) => {
       item.checked = false;
     });
     count();
@@ -163,7 +183,9 @@
     const id = Number(document.getElementById('idKelasAsal').value);
     if (!target.value) return showError('Kelas tujuan wajib dipilih.');
     if (!document.getElementById('idTahunBaru').value) return showError('Tahun ajaran tujuan tidak valid.');
-    if (!tbody.querySelectorAll('.check-naik:checked').length) return showError('Pilih minimal satu siswa.');
+    if (!tbody.querySelectorAll('.check-naik:checked:not(:disabled)').length) {
+      return showError('Pilih minimal satu siswa yang belum dinaikkan.');
+    }
 
     try {
       const response = await fetch(
