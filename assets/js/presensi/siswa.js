@@ -252,8 +252,8 @@
         card.classList.remove('d-none');
     };
 
-    const loadPresensi = async () => {
-        if (state.loading || state.saveBusy) {
+    const loadPresensi = async (force = false) => {
+        if (!force && (state.loading || state.saveBusy)) {
             return;
         }
 
@@ -391,7 +391,7 @@
                 card.classList.add('d-none');
                 showInfo('Presensi sudah tersimpan. Guru biasa tidak dapat membuka kembali data tersimpan.', 'success');
             } else {
-                await loadPresensi();
+                await loadPresensi(true);
             }
         } catch (error) {
             const message = error.network
@@ -452,6 +452,12 @@
 
     btnMuat.addEventListener('click', loadPresensi);
     btnSimpan.addEventListener('click', savePresensi);
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!state.dirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
 
     const selectedKelas = app.dataset.selectedKelas || '';
 
