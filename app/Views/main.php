@@ -1,3 +1,20 @@
+<?php
+$roleSlug = strtolower(trim((string) ($authUser['role'] ?? 'guest')));
+$roleSlug = preg_replace('/[^a-z0-9_-]/', '', $roleSlug) ?: 'guest';
+
+$bodyClasses = [
+    'sisfour-app',
+    'sisfour-role-' . $roleSlug,
+];
+
+if (in_array($roleSlug, ['pimpinan', 'bk', 'guru', 'siswa'], true)) {
+    $bodyClasses[] = 'sisfour-role-operational';
+}
+
+if ($roleSlug === 'guru' && (bool) ($authUser['is_wali'] ?? false)) {
+    $bodyClasses[] = 'sisfour-context-wali';
+}
+?>
 <!doctype html>
 <html lang="id" class="layout-menu-fixed layout-compact" data-assets-path="<?= base_url('assets/') ?>" data-template="vertical-menu-template-free">
 <head>
@@ -8,7 +25,7 @@
     }
   </style>
 </head>
-<body>
+<body class="<?= esc(implode(' ', $bodyClasses), 'attr') ?>">
   <div class="layout-wrapper layout-content-navbar">
     <div class="layout-container">
 
