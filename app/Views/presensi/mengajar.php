@@ -10,7 +10,8 @@
         max-width: 28rem;
     }
 
-    #presensiMengajarApp .jurnal-status {
+    #presensiMengajarApp .jurnal-status,
+    #presensiMengajarApp .jurnal-student-status {
         min-height: 44px;
     }
 
@@ -22,13 +23,67 @@
         flex: 1 1 16rem;
     }
 
+    #presensiMengajarApp .jurnal-student-search-wrap {
+        position: relative;
+    }
+
+    #presensiMengajarApp .jurnal-student-suggestions {
+        position: absolute;
+        z-index: 20;
+        top: calc(100% + .25rem);
+        left: 0;
+        right: 0;
+        max-height: 18rem;
+        overflow-y: auto;
+        background: var(--bs-body-bg, #fff);
+        border: 1px solid rgba(67, 89, 113, .2);
+        border-radius: .5rem;
+        box-shadow: 0 .5rem 1rem rgba(67, 89, 113, .12);
+    }
+
+    #presensiMengajarApp .jurnal-student-suggestion {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid rgba(67, 89, 113, .08);
+        background: transparent;
+        text-align: left;
+        padding: .75rem 1rem;
+        min-height: 44px;
+    }
+
+    #presensiMengajarApp .jurnal-student-suggestion:last-child {
+        border-bottom: 0;
+    }
+
+    #presensiMengajarApp .jurnal-student-row {
+        border: 1px solid rgba(67, 89, 113, .12);
+        border-radius: .625rem;
+        padding: .75rem;
+    }
+
+    #presensiMengajarApp .jurnal-student-status-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .375rem;
+        width: min(100%, 18rem);
+    }
+
+    #presensiMengajarApp .jurnal-student-section.is-disabled {
+        opacity: .65;
+    }
+
     @media (max-width: 575.98px) {
         #presensiMengajarApp .jurnal-sticky-actions > .btn {
             width: 100%;
         }
 
-        #presensiMengajarApp #jurnalMateri {
-            min-height: 10rem;
+        #presensiMengajarApp #jurnalMateri,
+        #presensiMengajarApp #jurnalCatatan {
+            min-height: 8rem;
+        }
+
+        #presensiMengajarApp .jurnal-student-row {
+            padding: .75rem;
         }
     }
 </style>
@@ -143,7 +198,7 @@
         <div class="card-body">
             <div class="sisfour-mobile-form">
                 <div>
-                    <label class="form-label">Status</label>
+                    <label class="form-label">Status Guru</label>
                     <div class="jurnal-status-grid" id="jurnalStatusGroup" role="group" aria-label="Status jurnal mengajar">
                         <button type="button" class="btn btn-outline-success jurnal-status sisfour-touch-target" data-status="Hadir" aria-pressed="false">
                             Hadir
@@ -158,7 +213,7 @@
                 </div>
 
                 <div>
-                    <label class="form-label" for="jurnalMateri">Materi / Keterangan</label>
+                    <label class="form-label" for="jurnalMateri">Materi / Keterangan <span class="text-danger">*</span></label>
                     <textarea
                         class="form-control"
                         id="jurnalMateri"
@@ -168,6 +223,52 @@
                     ></textarea>
                     <div class="form-text">
                         Materi/keterangan wajib untuk status Hadir, Izin, maupun Sakit.
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" for="jurnalCatatan">Catatan</label>
+                    <textarea
+                        class="form-control"
+                        id="jurnalCatatan"
+                        rows="4"
+                        autocomplete="off"
+                        placeholder="Catatan tambahan pembelajaran (opsional)."
+                    ></textarea>
+                </div>
+
+                <div class="jurnal-student-section" id="jurnalStudentSection">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-2">
+                        <div>
+                            <label class="form-label mb-1" for="jurnalStudentSearch">Siswa Tidak Mengikuti Pembelajaran</label>
+                            <div class="form-text mt-0">
+                                Hanya tersimpan pada Jurnal Mengajar dan tidak mengubah Presensi Siswa resmi.
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1" aria-label="Ringkasan status siswa">
+                            <span class="badge bg-label-warning">S <span id="jurnalSakitCount">0</span></span>
+                            <span class="badge bg-label-info">I <span id="jurnalIzinCount">0</span></span>
+                            <span class="badge bg-label-danger">A <span id="jurnalAlphaCount">0</span></span>
+                        </div>
+                    </div>
+
+                    <div class="jurnal-student-search-wrap mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bx bx-search"></i></span>
+                            <input
+                                type="search"
+                                class="form-control"
+                                id="jurnalStudentSearch"
+                                placeholder="Cari nama atau NISN siswa kelas ini..."
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="jurnal-student-suggestions d-none" id="jurnalStudentSuggestions"></div>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2" id="jurnalStudentSelected"></div>
+                    <div class="text-muted small py-2" id="jurnalStudentEmpty">
+                        Belum ada siswa Sakit/Izin/Alpha pada Jurnal ini.
                     </div>
                 </div>
             </div>
