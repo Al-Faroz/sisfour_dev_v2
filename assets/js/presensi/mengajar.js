@@ -19,9 +19,13 @@
     const btnSimpan = document.getElementById('btnSimpanJurnal');
     const geoNote = document.getElementById('jurnalGeoNote');
     const statusButtons = Array.from(document.querySelectorAll('.jurnal-status'));
+    const isOperationalGuru = document.body.classList.contains('sisfour-role-guru');
 
     let current = null;
     let selectedStatus = 'Hadir';
+    let saveBusy = false;
+    let loadBusy = false;
+    let dirty = false;
 
     function url(path) {
         return `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
@@ -38,20 +42,93 @@
         info.textContent = '';
     }
 
-    function resetForm() {
-        current = null;
-        card.classList.add('d-none');
-        materiInput.value = '';
-        setStatus('Hadir');
+    async function requestJson(requestUrl, options = {}) {
+        let response;
+
+        try {
+            response = await fetch(requestUrl, options);
+        } catch (error) {
+            const networkError = new Error('Koneksi ke server gagal. Periksa jaringan lalu coba lagi.');
+            networkError.network = true;
+            throw networkError;
+        }
+
+        let json = null;
+        try {
+            json = await response.json();
+        } catch (error) {
+            json = null;
+        }
+
+        if (!response.ok || json?.status === 'error') {
+            const message = response.status === 401
+                ? 'Sesi Anda telah berakhir. Silakan login kembali.'
+                : json?.message || `Request gagal (${response.status}).`;
+            const requestError = new Error(message);
+            requestError.status = response.status;
+            requestError.payload = json;
+            throw requestError;
+        }
+
+        if (!json) {
+            throw new Error('Respons server tidak valid. Silakan muat ulang halaman.');
+        }
+
+        return json;
     }
 
-    function setStatus(status) {
+    function normalSaveLabel() {
+        return current?.submitted
+            ? '<i class="bx bx-save me-1"></i> Simpan Revisi'
+            : '<i class="bx bx-save me-1"></i> Simpan Jurnal';
+    }
+
+    function hasScheduleOptions() {
+        return Array.from(jadwalSelect.options).some((option) => option.value !== '');
+    }
+
+    function setSaveBusy(busy) {
+        saveBusy = busy;
+        btnSimpan.disabled = busy;
+        btnMuat.disabled = busy || loadBusy;
+        tanggalInput.disabled = busy;
+        guruSelect.disabled = busy;
+        jadwalSelect.disabled = busy || !hasScheduleOptions();
+        materiInput.disabled = busy;
+        statusButtons.forEach((button) => {
+            button.disabled = busy;
+        });
+
+        btnSimpan.innerHTML = busy
+            ? '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...'
+            : normalSaveLabel();
+    }
+
+    function setLoadBusy(busy) {
+        loadBusy = busy;
+        btnMuat.disabled = busy || saveBusy;
+        btnMuat.innerHTML = busy
+            ? '<span class="spinner-border spinner-border-sm me-1"></span> Memuat...'
+            : '<i class="bx bx-search-alt me-1"></i> Muat Jurnal';
+    }
+
+    function resetForm() {
+        current = null;
+        dirty = false;
+        card.classList.add('d-none');
+        materiInput.value = '';
+        setStatus('Hadir', false);
+    }
+
+    function setStatus(status, markDirty = true) {
+        const previousStatus = selectedStatus;
         selectedStatus = status;
 
         statusButtons.forEach((button) => {
             const value = button.dataset.status;
             const active = value === status;
-            button.className = 'btn jurnal-status';
+            button.className = 'btn jurnal-status sisfour-touch-target';
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
 
             if (active) {
                 if (value === 'Hadir') button.classList.add('btn-success');
@@ -65,8 +142,12 @@
         });
 
         geoNote.textContent = status === 'Hadir'
-            ? 'Status Hadir memerlukan geofence untuk Guru. Admin/Operator tidak dibatasi lokasi.'
-            : 'Status Izin/Sakit tidak memerlukan geofence, tetapi Guru tetap terikat time-window Jadwal.';
+            ? 'Status Hadir mengikuti validasi geofence server untuk Guru. Admin/Operator tidak dibatasi lokasi.'
+            : 'Status Izin/Sakit tidak memerlukan lokasi, tetapi Guru tetap terikat time-window Jadwal.';
+
+        if (markDirty && previousStatus !== status && current?.success) {
+            dirty = true;
+        }
     }
 
     function populateJadwal(rows) {
@@ -92,9 +173,16 @@
 
         jadwalSelect.disabled = false;
         hideInfo();
+
+        if (isOperationalGuru && rows.length === 1) {
+            jadwalSelect.value = String(rows[0].id);
+            window.setTimeout(loadJournal, 0);
+        }
     }
 
     async function loadSchedulesForGuru() {
+        if (saveBusy) return;
+
         resetForm();
 
         const idGuru = Number(guruSelect.value || 0);
@@ -114,7 +202,7 @@
                 id_guru: String(idGuru)
             });
 
-            const response = await fetch(
+            const json = await requestJson(
                 url(`presensi/mengajar?${params.toString()}`),
                 {
                     headers: {
@@ -124,16 +212,9 @@
                 }
             );
 
-            const json = await response.json();
-
-            if (!response.ok || json.status !== 'success') {
-                showInfo(json.message || 'Gagal memuat Jadwal Guru.', 'danger');
-                return;
-            }
-
             populateJadwal(json.data?.jadwal || []);
         } catch (error) {
-            showInfo('Terjadi kesalahan saat memuat Jadwal Guru.', 'danger');
+            showInfo(error.message, 'danger');
         }
     }
 
@@ -156,19 +237,20 @@
             `${jadwal.jam_mulai || ''} - ${jadwal.jam_selesai || ''}`,
             jadwal.sesi || '-',
             result.tanggal || ''
-        ].join(' | ');
+        ].join(' · ');
 
         capabilityBadge.textContent = result.capability || '-';
         revisionBadge.classList.toggle('d-none', !result.submitted);
         materiInput.value = existing?.materi || '';
-        setStatus(existing?.status || 'Hadir');
-        btnSimpan.innerHTML = result.submitted
-            ? '<i class="bx bx-save me-1"></i> Simpan Revisi'
-            : '<i class="bx bx-save me-1"></i> Simpan Jurnal';
+        setStatus(existing?.status || 'Hadir', false);
+        dirty = false;
+        btnSimpan.innerHTML = normalSaveLabel();
         card.classList.remove('d-none');
     }
 
     async function loadJournal() {
+        if (loadBusy || saveBusy) return;
+
         const idJadwal = Number(jadwalSelect.value || 0);
         const tanggal = tanggalInput.value;
 
@@ -182,12 +264,12 @@
             return;
         }
 
-        btnMuat.disabled = true;
+        setLoadBusy(true);
         card.classList.add('d-none');
         showInfo('Memuat Jurnal...', 'info');
 
         try {
-            const response = await fetch(
+            const json = await requestJson(
                 url(`presensi/mengajar/input/${idJadwal}?tanggal=${encodeURIComponent(tanggal)}&format=json`),
                 {
                     headers: {
@@ -196,15 +278,15 @@
                     }
                 }
             );
-            const json = await response.json();
+
             renderResult(json.data || {
                 success: false,
                 message: json.message || 'Gagal memuat Jurnal.'
             });
         } catch (error) {
-            showInfo('Terjadi kesalahan saat memuat Jurnal.', 'danger');
+            showInfo(error.message, 'danger');
         } finally {
-            btnMuat.disabled = false;
+            setLoadBusy(false);
         }
     }
 
@@ -231,6 +313,8 @@
     }
 
     async function saveJournal() {
+        if (saveBusy || loadBusy) return;
+
         if (!current?.success) {
             showInfo('Muat Jurnal terlebih dahulu.', 'warning');
             return;
@@ -243,7 +327,7 @@
             return;
         }
 
-        btnSimpan.disabled = true;
+        setSaveBusy(true);
 
         try {
             let location = { latitude: null, longitude: null };
@@ -252,7 +336,7 @@
                 location = await getLocation();
             }
 
-            const response = await fetch(url('presensi/mengajar/save'), {
+            const json = await requestJson(url('presensi/mengajar/save'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -269,42 +353,84 @@
                 })
             });
 
-            const json = await response.json();
-            if (!response.ok || json.status !== 'success') {
-                showInfo(json.message || 'Jurnal gagal disimpan.', 'danger');
-                return;
-            }
-
+            dirty = false;
             showInfo(json.message || 'Jurnal berhasil disimpan.', 'success');
-            setTimeout(() => loadJournal(), 350);
+            setSaveBusy(false);
+            window.setTimeout(loadJournal, 250);
+            return;
         } catch (error) {
-            showInfo('Terjadi kesalahan saat menyimpan Jurnal.', 'danger');
+            const message = error.network
+                ? `${error.message} Materi dan status Jurnal tetap dipertahankan.`
+                : `${error.message} Input Jurnal belum dihapus dan dapat dicoba kembali.`;
+            showInfo(message, 'danger');
         } finally {
-            btnSimpan.disabled = false;
+            if (saveBusy) {
+                setSaveBusy(false);
+            }
         }
+    }
+
+    function autoSelectOperationalGuru() {
+        if (!isOperationalGuru || guruSelect.value) {
+            return false;
+        }
+
+        const options = Array.from(guruSelect.options).filter((option) => option.value !== '');
+        if (options.length !== 1) {
+            return false;
+        }
+
+        guruSelect.value = options[0].value;
+        window.SisfourSearchableSelect?.sync(guruSelect);
+        loadSchedulesForGuru();
+        return true;
     }
 
     guruSelect?.addEventListener('change', loadSchedulesForGuru);
     btnMuat?.addEventListener('click', loadJournal);
     btnSimpan?.addEventListener('click', saveJournal);
 
+    materiInput?.addEventListener('input', () => {
+        if (current?.success) {
+            dirty = true;
+        }
+    });
+
     statusButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            setStatus(button.dataset.status || 'Hadir');
+            if (!saveBusy) {
+                setStatus(button.dataset.status || 'Hadir');
+            }
         });
     });
 
     tanggalInput?.addEventListener('change', () => {
+        if (dirty && !window.confirm('Perubahan Jurnal belum disimpan. Ganti tanggal dan abaikan perubahan?')) {
+            tanggalInput.value = current?.tanggal || app.dataset.tanggal || '';
+            return;
+        }
+
         const tanggal = tanggalInput.value;
         if (tanggal) {
+            dirty = false;
             window.location.href = url(`presensi/mengajar?tanggal=${encodeURIComponent(tanggal)}`);
         }
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = '';
     });
 
     const initialGuru = Number(app.dataset.selectedGuru || 0);
     const initialJadwal = Number(app.dataset.selectedJadwal || 0);
 
-    if (initialGuru > 0 && initialJadwal === 0) loadSchedulesForGuru();
-    else if (initialJadwal > 0) loadJournal();
-    else setStatus('Hadir');
+    if (initialGuru > 0 && initialJadwal === 0) {
+        loadSchedulesForGuru();
+    } else if (initialJadwal > 0) {
+        loadJournal();
+    } else if (!autoSelectOperationalGuru()) {
+        setStatus('Hadir', false);
+    }
 })();
