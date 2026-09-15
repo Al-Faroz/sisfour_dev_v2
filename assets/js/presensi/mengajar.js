@@ -16,9 +16,18 @@
     const capabilityBadge = document.getElementById('jurnalCapability');
     const revisionBadge = document.getElementById('jurnalRevisionBadge');
     const materiInput = document.getElementById('jurnalMateri');
+    const catatanInput = document.getElementById('jurnalCatatan');
     const btnSimpan = document.getElementById('btnSimpanJurnal');
     const geoNote = document.getElementById('jurnalGeoNote');
     const statusButtons = Array.from(document.querySelectorAll('.jurnal-status'));
+    const studentSection = document.getElementById('jurnalStudentSection');
+    const studentSearch = document.getElementById('jurnalStudentSearch');
+    const studentSuggestions = document.getElementById('jurnalStudentSuggestions');
+    const studentSelected = document.getElementById('jurnalStudentSelected');
+    const studentEmpty = document.getElementById('jurnalStudentEmpty');
+    const sakitCount = document.getElementById('jurnalSakitCount');
+    const izinCount = document.getElementById('jurnalIzinCount');
+    const alphaCount = document.getElementById('jurnalAlphaCount');
     const isOperationalGuru = document.body.classList.contains('sisfour-role-guru');
 
     let current = null;
@@ -26,9 +35,17 @@
     let saveBusy = false;
     let loadBusy = false;
     let dirty = false;
+    let roster = [];
+    const selectedStudents = new Map();
 
     function url(path) {
         return `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
     }
 
     function showInfo(message, type = 'info') {
@@ -87,6 +104,39 @@
         return Array.from(jadwalSelect.options).some((option) => option.value !== '');
     }
 
+    function closeStudentSuggestions() {
+        studentSuggestions.classList.add('d-none');
+        studentSuggestions.innerHTML = '';
+    }
+
+    function updateStudentSummary() {
+        const summary = { Sakit: 0, Izin: 0, Alpha: 0 };
+
+        selectedStudents.forEach((student) => {
+            if (Object.hasOwn(summary, student.status)) {
+                summary[student.status]++;
+            }
+        });
+
+        sakitCount.textContent = String(summary.Sakit);
+        izinCount.textContent = String(summary.Izin);
+        alphaCount.textContent = String(summary.Alpha);
+    }
+
+    function setStudentSectionState() {
+        const enabled = selectedStatus === 'Hadir' && !saveBusy;
+        studentSection.classList.toggle('is-disabled', !enabled);
+        studentSearch.disabled = !enabled;
+
+        studentSelected.querySelectorAll('button').forEach((button) => {
+            button.disabled = !enabled;
+        });
+
+        if (!enabled) {
+            closeStudentSuggestions();
+        }
+    }
+
     function setSaveBusy(busy) {
         saveBusy = busy;
         btnSimpan.disabled = busy;
@@ -95,9 +145,11 @@
         guruSelect.disabled = busy;
         jadwalSelect.disabled = busy || !hasScheduleOptions();
         materiInput.disabled = busy;
+        catatanInput.disabled = busy;
         statusButtons.forEach((button) => {
             button.disabled = busy;
         });
+        setStudentSectionState();
 
         btnSimpan.innerHTML = busy
             ? '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...'
@@ -112,11 +164,21 @@
             : '<i class="bx bx-search-alt me-1"></i> Muat Jurnal';
     }
 
+    function resetStudents() {
+        roster = [];
+        selectedStudents.clear();
+        studentSearch.value = '';
+        closeStudentSuggestions();
+        renderSelectedStudents();
+    }
+
     function resetForm() {
         current = null;
         dirty = false;
         card.classList.add('d-none');
         materiInput.value = '';
+        catatanInput.value = '';
+        resetStudents();
         setStatus('Hadir', false);
     }
 
@@ -143,7 +205,9 @@
 
         geoNote.textContent = status === 'Hadir'
             ? 'Status Hadir mengikuti validasi geofence server untuk Guru. Admin/Operator tidak dibatasi lokasi.'
-            : 'Status Izin/Sakit tidak memerlukan lokasi, tetapi Guru tetap terikat time-window Jadwal.';
+            : 'Status Izin/Sakit tidak memerlukan lokasi. Daftar siswa S/I/A tidak digunakan ketika Guru tidak hadir.';
+
+        setStudentSectionState();
 
         if (markDirty && previousStatus !== status && current?.success) {
             dirty = true;
@@ -218,6 +282,146 @@
         }
     }
 
+    function renderStudentSuggestions() {
+        if (selectedStatus !== 'Hadir') {
+            closeStudentSuggestions();
+            return;
+        }
+
+        const query = studentSearch.value.trim().toLowerCase();
+        if (!query) {
+            closeStudentSuggestions();
+            return;
+        }
+
+        const matches = roster
+            .filter((student) => !selectedStudents.has(Number(student.id)))
+            .filter((student) => {
+                const nama = String(student.nama || '').toLowerCase();
+                const nisn = String(student.nisn || '').toLowerCase();
+                return nama.includes(query) || nisn.includes(query);
+            })
+            .slice(0, 8);
+
+        if (!matches.length) {
+            studentSuggestions.innerHTML = '<div class="p-3 text-muted small">Siswa tidak ditemukan pada roster kelas Jurnal.</div>';
+            studentSuggestions.classList.remove('d-none');
+            return;
+        }
+
+        studentSuggestions.innerHTML = matches.map((student) => `
+            <button type="button" class="jurnal-student-suggestion" data-student-id="${Number(student.id)}">
+                <div class="fw-semibold">${escapeHtml(student.nama || '-')}</div>
+                <small class="text-muted">${student.nisn ? `NISN ${escapeHtml(student.nisn)}` : 'NISN tidak tersedia'}</small>
+            </button>
+        `).join('');
+        studentSuggestions.classList.remove('d-none');
+    }
+
+    function addStudent(idStudent) {
+        const id = Number(idStudent || 0);
+        if (!id || selectedStudents.has(id)) return;
+
+        const student = roster.find((item) => Number(item.id) === id);
+        if (!student) return;
+
+        selectedStudents.set(id, {
+            id_siswa: id,
+            nama: student.nama || '-',
+            nisn: student.nisn || '',
+            status: '',
+        });
+
+        studentSearch.value = '';
+        closeStudentSuggestions();
+        dirty = true;
+        renderSelectedStudents();
+    }
+
+    function statusButton(id, status, currentStatus, css, label) {
+        const active = currentStatus === status;
+        return `
+            <button
+                type="button"
+                class="btn jurnal-student-status sisfour-touch-target ${active ? `btn-${css}` : `btn-outline-${css}`}"
+                data-action="status"
+                data-student-id="${id}"
+                data-status="${status}"
+                aria-pressed="${active ? 'true' : 'false'}"
+                aria-label="${status} untuk siswa"
+                title="${status}"
+            >${label}</button>
+        `;
+    }
+
+    function renderSelectedStudents() {
+        const rows = Array.from(selectedStudents.values());
+        studentEmpty.classList.toggle('d-none', rows.length > 0);
+
+        studentSelected.innerHTML = rows.map((student) => {
+            const id = Number(student.id_siswa);
+            const incomplete = !student.status;
+
+            return `
+                <div class="jurnal-student-row" data-student-row="${id}">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div class="min-w-0">
+                            <div class="fw-semibold text-break">${escapeHtml(student.nama || '-')}</div>
+                            <small class="text-muted">${student.nisn ? `NISN ${escapeHtml(student.nisn)}` : 'NISN tidak tersedia'}</small>
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-icon btn-outline-secondary sisfour-touch-target"
+                            data-action="remove"
+                            data-student-id="${id}"
+                            aria-label="Hapus ${escapeHtml(student.nama || 'siswa')} dari Jurnal"
+                            title="Hapus"
+                        ><i class="bx bx-x"></i></button>
+                    </div>
+                    <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                        <div class="jurnal-student-status-grid" role="group" aria-label="Status ${escapeHtml(student.nama || 'siswa')}">
+                            ${statusButton(id, 'Sakit', student.status, 'warning', 'S')}
+                            ${statusButton(id, 'Izin', student.status, 'info', 'I')}
+                            ${statusButton(id, 'Alpha', student.status, 'danger', 'A')}
+                        </div>
+                        <small class="${incomplete ? 'text-danger' : 'text-muted'}">
+                            ${incomplete ? 'Pilih status S/I/A' : escapeHtml(student.status)}
+                        </small>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        updateStudentSummary();
+        setStudentSectionState();
+    }
+
+    function hydrateStudents(result) {
+        roster = Array.isArray(result.siswa_options) ? result.siswa_options : [];
+        selectedStudents.clear();
+
+        const existingRows = Array.isArray(result.siswa_exceptions)
+            ? result.siswa_exceptions
+            : [];
+
+        existingRows.forEach((row) => {
+            const id = Number(row.id_siswa || 0);
+            if (!id) return;
+
+            const rosterStudent = roster.find((student) => Number(student.id) === id);
+            selectedStudents.set(id, {
+                id_siswa: id,
+                nama: row.nama_siswa_snapshot || rosterStudent?.nama || '-',
+                nisn: row.nisn_snapshot || rosterStudent?.nisn || '',
+                status: row.status || '',
+            });
+        });
+
+        studentSearch.value = '';
+        closeStudentSuggestions();
+        renderSelectedStudents();
+    }
+
     function renderResult(result) {
         current = result;
 
@@ -242,7 +446,9 @@
         capabilityBadge.textContent = result.capability || '-';
         revisionBadge.classList.toggle('d-none', !result.submitted);
         materiInput.value = existing?.materi || '';
+        catatanInput.value = existing?.catatan || '';
         setStatus(existing?.status || 'Hadir', false);
+        hydrateStudents(result);
         dirty = false;
         btnSimpan.innerHTML = normalSaveLabel();
         card.classList.remove('d-none');
@@ -327,14 +533,38 @@
             return;
         }
 
+        const incompleteStudent = Array.from(selectedStudents.values())
+            .find((student) => !student.status);
+
+        if (incompleteStudent) {
+            showInfo(`Pilih status S/I/A untuk ${incompleteStudent.nama}.`, 'warning');
+            studentSelected.querySelector(`[data-student-row="${Number(incompleteStudent.id_siswa)}"]`)?.scrollIntoView({
+                block: 'center',
+                behavior: 'smooth'
+            });
+            return;
+        }
+
+        if (selectedStatus !== 'Hadir' && selectedStudents.size > 0) {
+            showInfo('Daftar siswa S/I/A hanya dapat disimpan ketika status Guru Hadir.', 'warning');
+            return;
+        }
+
+        const wasSubmitted = Boolean(current.submitted);
+        const currentCapability = current.capability || '';
         setSaveBusy(true);
 
         try {
             let location = { latitude: null, longitude: null };
-            if (selectedStatus === 'Hadir' && current.capability !== 'SEMUA') {
+            if (selectedStatus === 'Hadir' && currentCapability !== 'SEMUA') {
                 showInfo('Memeriksa lokasi...', 'info');
                 location = await getLocation();
             }
+
+            const siswa = Array.from(selectedStudents.values()).map((student) => ({
+                id_siswa: Number(student.id_siswa),
+                status: student.status,
+            }));
 
             const json = await requestJson(url('presensi/mengajar/save'), {
                 method: 'POST',
@@ -348,19 +578,31 @@
                     tanggal: tanggalInput.value,
                     status: selectedStatus,
                     materi,
+                    catatan: catatanInput.value.trim(),
+                    siswa,
                     latitude: location.latitude,
                     longitude: location.longitude
                 })
             });
 
             dirty = false;
-            showInfo(json.message || 'Jurnal berhasil disimpan.', 'success');
+            const total = Number(json.data?.siswa_exception_total || siswa.length || 0);
+            showInfo(
+                `${json.message || 'Jurnal berhasil disimpan.'} ${total} siswa S/I/A tercatat pada Jurnal.`,
+                'success'
+            );
             setSaveBusy(false);
+
+            if (currentCapability !== 'SEMUA' && !wasSubmitted) {
+                card.classList.add('d-none');
+                return;
+            }
+
             window.setTimeout(loadJournal, 250);
             return;
         } catch (error) {
             const message = error.network
-                ? `${error.message} Materi dan status Jurnal tetap dipertahankan.`
+                ? `${error.message} Materi, catatan, dan daftar siswa tetap dipertahankan.`
                 : `${error.message} Input Jurnal belum dihapus dan dapat dicoba kembali.`;
             showInfo(message, 'danger');
         } finally {
@@ -390,18 +632,70 @@
     btnMuat?.addEventListener('click', loadJournal);
     btnSimpan?.addEventListener('click', saveJournal);
 
-    materiInput?.addEventListener('input', () => {
-        if (current?.success) {
-            dirty = true;
-        }
+    [materiInput, catatanInput].forEach((input) => {
+        input?.addEventListener('input', () => {
+            if (current?.success) {
+                dirty = true;
+            }
+        });
     });
 
     statusButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            if (!saveBusy) {
-                setStatus(button.dataset.status || 'Hadir');
+            if (saveBusy) return;
+
+            const nextStatus = button.dataset.status || 'Hadir';
+            if (
+                nextStatus !== 'Hadir'
+                && selectedStatus === 'Hadir'
+                && selectedStudents.size > 0
+            ) {
+                const confirmed = window.confirm(
+                    `Status Guru akan diubah menjadi ${nextStatus}. Daftar siswa S/I/A akan dikosongkan. Lanjutkan?`
+                );
+
+                if (!confirmed) return;
+                selectedStudents.clear();
+                renderSelectedStudents();
             }
+
+            setStatus(nextStatus);
         });
+    });
+
+    studentSearch?.addEventListener('input', renderStudentSuggestions);
+    studentSearch?.addEventListener('focus', renderStudentSuggestions);
+
+    studentSuggestions?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-student-id]');
+        if (!button) return;
+        addStudent(button.dataset.studentId);
+    });
+
+    studentSelected?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-action][data-student-id]');
+        if (!button || selectedStatus !== 'Hadir' || saveBusy) return;
+
+        const id = Number(button.dataset.studentId || 0);
+        const action = button.dataset.action;
+        const student = selectedStudents.get(id);
+        if (!student) return;
+
+        if (action === 'remove') {
+            selectedStudents.delete(id);
+        } else if (action === 'status') {
+            student.status = button.dataset.status || '';
+            selectedStudents.set(id, student);
+        }
+
+        dirty = true;
+        renderSelectedStudents();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!studentSection.contains(event.target)) {
+            closeStudentSuggestions();
+        }
     });
 
     tanggalInput?.addEventListener('change', () => {
@@ -432,5 +726,6 @@
         loadJournal();
     } else if (!autoSelectOperationalGuru()) {
         setStatus('Hadir', false);
+        renderSelectedStudents();
     }
 })();
