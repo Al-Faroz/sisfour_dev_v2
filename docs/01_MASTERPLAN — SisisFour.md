@@ -249,7 +249,14 @@ presensi_mengajar_siswa
 
 Child Jurnal tidak mengubah tabel `presensi`, tidak masuk Rekap/EWS/Signage Presensi, dan hanya menyimpan exception pembelajaran.
 
-Schema delta di branch dibawa melalui migration reversible dan hanya diuji pada local/staging sampai G3.2 PASS. Database hosting/production tidak diubah tanpa approval deploy eksplisit.
+Schema delta G3.2 dibawa melalui SQL idempotent, bukan CodeIgniter migration:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+SQL localhost digunakan untuk development/UAT. SQL hosting hanya dijalankan setelah backup dan approval deploy eksplisit. Keduanya aman dijalankan ulang pada schema yang sudah memiliki `catatan`/`presensi_mengajar_siswa`.
 
 ## 11. G4 — Cordova APK
 
