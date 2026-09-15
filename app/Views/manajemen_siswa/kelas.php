@@ -68,40 +68,38 @@
     </div>
 
     <div class="modal fade" id="modalAturKelas" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="formAturKelas">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="idSiswaKelas">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Atur Kelas Siswa</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-dialog-scrollable">
+            <form id="formAturKelas" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden" id="idSiswaKelas">
+                <div class="modal-header py-2">
+                    <h5 class="modal-title">Atur Kelas Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body overflow-auto py-3">
+                    <div class="mb-3">
+                        <label class="form-label" for="namaSiswaKelas">Siswa</label>
+                        <input type="text" class="form-control" id="namaSiswaKelas" readonly>
                     </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label" for="namaSiswaKelas">Siswa</label>
-                            <input type="text" class="form-control" id="namaSiswaKelas" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label" for="kelasSaatIni">Kelas Saat Ini</label>
-                            <input type="text" class="form-control" id="kelasSaatIni" readonly>
-                        </div>
-                        <div>
-                            <label class="form-label" for="idKelasTujuan">Kelas Tujuan</label>
-                            <select class="form-select" id="idKelasTujuan" name="id_kelas_tujuan" required>
-                                <option value="">Pilih kelas</option>
-                                <?php foreach ($kelasOptions as $kelas): ?>
-                                    <option value="<?= (int) $kelas['id'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="kelasSaatIni">Kelas Saat Ini</label>
+                        <input type="text" class="form-control" id="kelasSaatIni" readonly>
                     </div>
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    <div>
+                        <label class="form-label" for="idKelasTujuan">Kelas Tujuan</label>
+                        <select class="form-select" id="idKelasTujuan" name="id_kelas_tujuan" required>
+                            <option value="">Pilih kelas</option>
+                            <?php foreach ($kelasOptions as $kelas): ?>
+                                <option value="<?= (int) $kelas['id'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
