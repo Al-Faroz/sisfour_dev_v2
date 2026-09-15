@@ -128,9 +128,20 @@ class ManajemenSiswa extends BaseController
 
     public function prosesMutasi($id)
     {
+        $userId = (int) session()->get('user_id');
+
+        if ((string) $this->request->getPost('action') === 'restore') {
+            return $this->respondResult(
+                $this->historyService->restoreMutasi(
+                    $userId,
+                    (int) $id
+                )
+            );
+        }
+
         return $this->respondResult(
             $this->service->mutasi(
-                (int) session()->get('user_id'),
+                $userId,
                 (int) $id,
                 trim((string) $this->request->getPost('status')),
                 trim((string) $this->request->getPost('keterangan'))
@@ -155,12 +166,23 @@ class ManajemenSiswa extends BaseController
 
     public function lulus($id)
     {
+        $userId = (int) session()->get('user_id');
+
+        if ((string) $this->request->getPost('action') === 'restore') {
+            return $this->respondResult(
+                $this->historyService->restoreKelulusan(
+                    $userId,
+                    (int) $id
+                )
+            );
+        }
+
         $selected = $this->request->getPost('id_siswa');
         $selected = is_array($selected) ? $selected : [];
 
         return $this->respondResult(
             $this->service->lulus(
-                (int) session()->get('user_id'),
+                $userId,
                 (int) $id,
                 $selected
             )
