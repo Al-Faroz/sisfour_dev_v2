@@ -213,22 +213,43 @@ Branch aktif:
 feat/g3-guru-wali-presensi-jurnal-20260915
 ```
 
-Fokus:
+Fokus Presensi Siswa:
 
 ```text
-Presensi Siswa mobile name-first
+mobile name-first
 H/S/I/A touch-friendly
 no horizontal table scroll
 sticky/busy-safe save
 network failure mempertahankan input
 Guru/Wali scope tetap Service-authoritative
-Jurnal mobile keyboard-friendly
+```
+
+Fokus Jurnal:
+
+```text
+mobile keyboard-friendly
 self Guru tidak perlu memilih identitas berulang
 Jadwal tunggal dapat dipercepat
+Materi wajib
+Catatan optional
+siswa exception per pembelajaran: Sakit/Izin/Alpha
+search siswa Name + NISN hanya roster kelas/tanggal Jurnal
+parent + child save/revisi atomic
+laporan tetap 1 row per Jurnal
+aggregate child no N+1 + Detail lazy-load
 server-confirmed mutation success
 ```
 
-G3.2 tidak mengubah kontrak business Presensi/Jurnal, RBAC, geofence, time-window, atau transaksi backend kecuali blocker terverifikasi memerlukan perubahan tersendiri.
+G3.2 mempertahankan RBAC, geofence, time-window, dan makna Presensi Siswa resmi. Perluasan domain yang disetujui terbatas pada Jurnal:
+
+```text
+presensi_mengajar.catatan
+presensi_mengajar_siswa
+```
+
+Child Jurnal tidak mengubah tabel `presensi`, tidak masuk Rekap/EWS/Signage Presensi, dan hanya menyimpan exception pembelajaran.
+
+Schema delta di branch dibawa melalui migration reversible dan hanya diuji pada local/staging sampai G3.2 PASS. Database hosting/production tidak diubah tanpa approval deploy eksplisit.
 
 ## 11. G4 — Cordova APK
 
@@ -255,7 +276,7 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada
 ```text
 G2 CLOSED      → baseline business/admin stabil
 G3.1 CLOSED    → mobile foundation tersedia
-G3.2 PASS      → Presensi/Jurnal Guru/Wali siap mobile
+G3.2 PASS      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta Jurnal tervalidasi
 G3 PASS        → mobile/WebView UI ready
 G4 PASS        → APK distribution gate
 ```
