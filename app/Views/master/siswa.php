@@ -64,7 +64,6 @@
                         <option value="<?= (int) $kelas['id'] ?>" data-tahun="<?= (int) $kelas['id_tahun'] ?>"><?= esc($kelas['nama_kelas']) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <div class="form-text">Daftar kelas mengikuti Tahun Ajaran yang dipilih.</div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
                 <label class="form-label" for="filterStatus">Status</label>
