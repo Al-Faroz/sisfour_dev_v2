@@ -3,14 +3,17 @@
 namespace App\Controllers;
 
 use App\Services\ManajemenSiswaIntegrityService;
+use App\Services\SiswaLifecycleHistoryService;
 
 class ManajemenSiswa extends BaseController
 {
     protected ManajemenSiswaIntegrityService $service;
+    protected SiswaLifecycleHistoryService $historyService;
 
     public function __construct()
     {
         $this->service = new ManajemenSiswaIntegrityService();
+        $this->historyService = new SiswaLifecycleHistoryService();
     }
 
     public function kelas()
@@ -117,6 +120,7 @@ class ManajemenSiswa extends BaseController
                 'title' => 'Mutasi Siswa',
                 'kelasOptions' => $this->service->getActiveClassOptions($userId),
                 'tahunAktif' => $this->service->getActiveYearInfo($userId),
+                'mutasiHistory' => $this->historyService->getMutasiHistory($userId),
                 'extraJs' => ['assets/js/manajemen_siswa/mutasi.js'],
             ])
         );
@@ -143,6 +147,7 @@ class ManajemenSiswa extends BaseController
                 'title' => 'Kelulusan Siswa',
                 'sourceClasses' => $this->service->getKelulusanSourceClasses($userId),
                 'tahunAktif' => $this->service->getActiveYearInfo($userId),
+                'alumniRows' => $this->historyService->getAlumni($userId),
                 'extraJs' => ['assets/js/manajemen_siswa/kelulusan.js'],
             ])
         );
