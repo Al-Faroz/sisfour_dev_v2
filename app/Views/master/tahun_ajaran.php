@@ -52,52 +52,50 @@
     </div>
 
     <div class="modal fade" id="modalTahunAjaran" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="formTahunAjaran">
-                    <?= csrf_field() ?>
+        <div class="modal-dialog modal-dialog-scrollable">
+            <form id="formTahunAjaran" class="modal-content">
+                <?= csrf_field() ?>
 
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalTahunAjaranTitle">Tambah Tahun Ajaran</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                <div class="modal-header py-2">
+                    <h5 class="modal-title" id="modalTahunAjaranTitle">Tambah Tahun Ajaran</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+
+                <div class="modal-body overflow-auto py-3">
+                    <input type="hidden" id="tahunAjaranId">
+
+                    <div class="mb-3">
+                        <label class="form-label" for="nama_tahun">Tahun Ajaran</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="nama_tahun"
+                            name="nama_tahun"
+                            maxlength="20"
+                            placeholder="2026/2027"
+                            required
+                        >
+                        <div class="form-text">Format YYYY/YYYY, contoh 2026/2027.</div>
                     </div>
 
-                    <div class="modal-body">
-                        <input type="hidden" id="tahunAjaranId">
-
-                        <div class="mb-3">
-                            <label class="form-label" for="nama_tahun">Tahun Ajaran</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="nama_tahun"
-                                name="nama_tahun"
-                                maxlength="20"
-                                placeholder="2026/2027"
-                                required
-                            >
-                            <div class="form-text">Format YYYY/YYYY, contoh 2026/2027.</div>
-                        </div>
-
-                        <div>
-                            <label class="form-label" for="semester">Semester</label>
-                            <select class="form-select" id="semester" name="semester" required data-searchable-off="1">
-                                <option value="">Pilih</option>
-                                <option value="Ganjil">Ganjil</option>
-                                <option value="Genap">Genap</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label class="form-label" for="semester">Semester</label>
+                        <select class="form-select" id="semester" name="semester" required data-searchable-off="1">
+                            <option value="">Pilih</option>
+                            <option value="Ganjil">Ganjil</option>
+                            <option value="Genap">Genap</option>
+                        </select>
                     </div>
+                </div>
 
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary" id="btnSimpanTahun">
-                            <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
-                            Simpan
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnSimpanTahun">
+                        <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
+                        Simpan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
