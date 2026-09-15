@@ -10,6 +10,7 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableMutasiSiswa');
     const tbody = table?.querySelector('tbody');
+    const historyBody = document.getElementById('tbodyRiwayatMutasi');
     const filter = document.getElementById('formFilterMutasi');
     const form = document.getElementById('formMutasi');
     const modalElement = document.getElementById('modalMutasi');
@@ -62,6 +63,34 @@
 
         window.alert(message);
         return Promise.resolve();
+    };
+
+    const showSuccess = (message) => {
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: message,
+            });
+        }
+
+        window.alert(message || 'Berhasil.');
+        return Promise.resolve();
+    };
+
+    const csrfField = () =>
+        form.querySelector('input[type="hidden"][name]');
+
+    const restoreFormData = () => {
+        const data = new FormData();
+        data.append('action', 'restore');
+
+        const csrf = csrfField();
+        if (csrf) {
+            data.append(csrf.name, csrf.value);
+        }
+
+        return data;
     };
 
     const pager = window.SisfourPagination?.mount(
@@ -201,6 +230,58 @@
         modal.show();
     });
 
+    historyBody?.addEventListener('click', async (event) => {
+        const button = event.target.closest('.btn-restore-mutasi');
+
+        if (!button) {
+            return;
+        }
+
+        const historyId = Number(button.dataset.historyId);
+        const nama = button.dataset.nama || 'siswa';
+        const status = button.dataset.status || 'terminal';
+
+        const confirmed = typeof Swal === 'undefined'
+            ? window.confirm(`Restore ${nama} menjadi siswa Aktif?`)
+            : (await Swal.fire({
+                icon: 'question',
+                title: 'Restore siswa?',
+                html: `<strong>${escapeHtml(nama)}</strong><br>Status ${escapeHtml(status)} akan dikembalikan menjadi Aktif pada kelas terakhir.`,
+                showCancelButton: true,
+                confirmButtonText: 'Ya, restore',
+                cancelButtonText: 'Batal',
+            })).isConfirmed;
+
+        if (!confirmed) {
+            return;
+        }
+
+        button.disabled = true;
+
+        try {
+            const response = await fetch(
+                endpoint(`manajemen-siswa/mutasi/proses/${historyId}`),
+                {
+                    method: 'POST',
+                    body: restoreFormData(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }
+            );
+
+            const payload = await parseResponse(response);
+            await showSuccess(payload.message || 'Siswa berhasil direstore.');
+            window.location.reload();
+        } catch (error) {
+            button.disabled = false;
+            await showError(
+                error.message || 'Restore siswa gagal.'
+            );
+        }
+    });
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -241,17 +322,7 @@
             const payload = await parseResponse(response);
 
             modal.hide();
-
-            if (typeof Swal !== 'undefined') {
-                await Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: payload.message,
-                });
-            } else {
-                window.alert(payload.message || 'Mutasi berhasil.');
-            }
-
+            await showSuccess(payload.message || 'Mutasi berhasil.');
             await load();
         } catch (error) {
             await showError(
