@@ -176,39 +176,37 @@
     </div>
 
     <div class="modal fade" id="modalKelulusan" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <form id="formKelulusan">
-                    <?= csrf_field() ?>
-                    <input type="hidden" id="idKelasLulus">
-                    <div class="modal-header">
-                        <div>
-                            <h5 class="modal-title">Proses Kelulusan</h5>
-                            <div class="small text-muted" id="labelKelasLulus"></div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
+            <form id="formKelulusan" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden" id="idKelasLulus">
+                <div class="modal-header py-2">
+                    <div>
+                        <h5 class="modal-title">Proses Kelulusan</h5>
+                        <div class="small text-muted" id="labelKelasLulus"></div>
                     </div>
-                    <div class="modal-body">
-                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
-                            <strong id="jumlahLulusDipilih">0 siswa dipilih</strong>
-                            <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaLulus">Pilih Semua</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanLulus">Kosongkan</button>
-                            </div>
-                        </div>
-                        <div class="table-responsive border rounded">
-                            <table class="table table-hover mb-0">
-                                <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th></tr></thead>
-                                <tbody id="tbodyLulus"></tbody>
-                            </table>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body overflow-auto py-3">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
+                        <strong id="jumlahLulusDipilih">0 siswa dipilih</strong>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaLulus">Pilih Semua</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanLulus">Kosongkan</button>
                         </div>
                     </div>
-                    <div class="modal-footer sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger">Proses Kelulusan</button>
+                    <div class="table-responsive border rounded">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th></tr></thead>
+                            <tbody id="tbodyLulus"></tbody>
+                        </table>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer py-2 sisfour-modal-actions">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Proses Kelulusan</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
