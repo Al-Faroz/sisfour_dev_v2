@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
-**Development aktif:** G2 Stabilization
+**Tanggal Acuan:** 15 September 2026
+**Development aktif:** G2 Regression Closure & Admin Browser Stabilization
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -104,6 +104,15 @@ Genap → Ganjil tahun berikutnya = Kenaikan/Kelulusan
 
 Siapkan Genap menyalin struktur akademik yang diperbolehkan secara transactional dan tidak menyalin Presensi/Jurnal historis.
 
+Kenaikan normal hanya memproses:
+
+```text
+7 → 8
+8 → 9
+```
+
+Kelas 9 menggunakan workflow Kelulusan. Kenaikan menjaga membership/history target secara transactional dan memiliki guard anti-double-process.
+
 Status siswa:
 
 ```text
@@ -113,7 +122,9 @@ Pindah
 Keluar
 ```
 
-Lifecycle terminal menjaga history, current membership, status, dan kartu secara konsisten.
+Lifecycle terminal menjaga history, current membership, status, dan kartu secara konsisten. Restore terminal lifecycle hanya diperbolehkan untuk event terminal terbaru ketika exact periode sumber terminal masih aktif; histori terminal tidak dihapus.
+
+Status F14 Manajemen Siswa per 15 September 2026: **PASS**.
 
 ## 8. UI/UX Hierarchy
 
@@ -126,6 +137,16 @@ Lifecycle terminal menjaga history, current membership, status, dan kartu secara
 
 Pimpinan/BK/Guru/Wali/Siswa adalah mobile-first pada phase G3.
 
+Untuk halaman yang memiliki selector Tahun Ajaran sebagai filter baca/histori:
+
+```text
+default = periode aktif
+Reset   = periode aktif
+histori = tetap selectable bila didukung
+```
+
+UI tidak perlu menampilkan helper/alert yang hanya menjelaskan default tersebut. Workflow current-state mengikuti periode aktif langsung dari business context.
+
 ## 9. G2 — Current
 
 G2 menyelesaikan:
@@ -137,6 +158,17 @@ login/branding regression
 static + browser regression
 document sync
 ```
+
+Current milestone:
+
+```text
+F14 Manajemen Siswa          PASS
+active-year default/reset    PASS focused smoke
+remaining browser regression pending sesuai docs/12 dan docs/15
+final PR review/closure      belum dilakukan
+```
+
+F14 PASS tidak berarti PR siap merge otomatis. G2 tetap mengikuti final browser gate, repository hygiene recheck, docs sanity, PR review, dan approval eksplisit.
 
 G2 tidak menerima full mobile redesign atau Cordova implementation.
 
