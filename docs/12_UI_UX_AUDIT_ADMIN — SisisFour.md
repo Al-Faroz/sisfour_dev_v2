@@ -1,11 +1,11 @@
 # Audit UI/UX Admin — SisisFour
 
-**Status:** Current G2 Source Audit / Remaining Browser Gate Pending
+**Status:** Current G2 Source Audit / Browser Gate PASS / Closure Pending
 **Tanggal Acuan:** 15 September 2026
 **Branch:** `fix/g2-master-data-20260913`
 **Acuan:** `11_UI_UX — SisisFour.md` + `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`
 
-> Dokumen ini menyatakan kondisi source Admin saat ini dan gate yang masih perlu dibuktikan di browser. Ia bukan daftar bug historis.
+> Dokumen ini menyatakan kondisi source Admin saat ini dan hasil gate browser G2. Ia bukan daftar bug historis.
 
 ## 1. Kondisi Foundation
 
@@ -41,7 +41,7 @@ Source G2 menetapkan:
 - Setting Sistem menampilkan preview/path branding;
 - branding reload setelah upload sukses.
 
-Status: **source ready, focused browser regression tetap bagian gate G2.4**.
+Status focused browser regression: **PASS**.
 
 ## 3. Admin Layout Contract
 
@@ -93,40 +93,28 @@ Master Tahun Ajaran tetap menampilkan semua periode karena fungsi halaman adalah
 
 Status focused smoke default Tahun Ajaran: **PASS**.
 
-## 5. Halaman Admin — Current Source Status
+## 5. Halaman Admin — Final G2 Browser Status
 
-| Area | Source State G2 | Gate sebelum G2 closed |
+Focused browser regression G2 dilakukan pada 15 September 2026 menggunakan data aktual hosting.
+
+| Area | Source State G2 | Final Gate |
 |---|---|---|
-| Dashboard Admin | foundation diterapkan | browser hierarchy/spacing |
-| Presensi Siswa | canonical header/filter/card | fungsi + responsive smoke |
-| Presensi Mengajar | SearchableSelect Guru | search + jurnal regression |
-| Rekap Presensi | paginator canonical | filter/pager browser |
-| EWS | paginator/layout normalized | browser pagination |
-| Master Guru | responsive compatibility + existing master workflow | CRUD/import/export/browser |
-| Master Pegawai | responsive compatibility + existing master workflow | CRUD/import/export/browser |
-| Master Siswa | canonical master + default Tahun aktif | focused active-year smoke PASS; CRUD/import/export browser |
-| Master Kelas | Export + pagination + default Tahun aktif | focused active-year smoke PASS; export/pager browser |
-| Tahun Ajaran | layout normalized | Siapkan Genap UI smoke |
-| Mapel | Export + pagination normalized | export/pager browser |
-| Mapping Wali | Export + pagination + default Tahun aktif | focused active-year smoke PASS; export/pager browser |
-| Jadwal Guru | layout/filter/import + default Tahun aktif | F13 core PASS; remaining browser/import smoke sesuai gate |
-| Penempatan/Pindah | foundation applied | **F14 PASS** |
-| Kenaikan | filter Tingkat + pagination + workflow guards | **F14 PASS** |
-| Mutasi | lifecycle tabs/history/restore | **F14 PASS** |
-| Kelulusan | alumni tab/restore | **F14 PASS** |
-| Matrix Presensi | canonical structure + default Tahun aktif | focused active-year smoke PASS; report browser |
-| Export Presensi | form/action + default Tahun aktif | focused active-year smoke PASS; export browser |
-| Laporan Jurnal | canonical table/pager + default Tahun aktif | focused active-year smoke PASS; filter/export browser |
-| Catatan Kasus | canonical pager/layout | BK regression |
-| Master Pelanggaran | canonical layout/export/SweetAlert | CRUD/export browser |
-| Prestasi | canonical table/pager | CRUD/export browser |
-| Kartu Pelajar | hierarchy/pager normalized | preview/download browser |
-| Manajemen User | canonical header/filter/modal/pager | CRUD/reset browser |
-| Menu & Role | canonical shell | matrix browser |
-| Setting Sistem | canonical shell + branding preview | upload/favicon/maintenance |
-| Backup | canonical shell | create/download/delete |
-| Log Activity | canonical filter/pager | filter/export browser |
-| Profile Guru | mobile secondary nav statis | tabs/profile browser |
+| Login | password toggle + branding | **PASS** |
+| Branding/Favicon | login + authenticated shell | **PASS** |
+| Title/Navbar | normalized page context | **PASS** |
+| Filter/Pagination/Export | normalized areas | **PASS** |
+| Presensi Mengajar | SearchableSelect Guru | **PASS** |
+| Profile Guru mobile | secondary navigation statis | **PASS** |
+| Modal + Responsive | global modal safety + normalized markup | **PASS** |
+| Browser Console | focused changed surfaces | **PASS** |
+| Master Mapel | edit nama dengan kode sendiri + duplicate guard | **PASS** |
+| Default Tahun Ajaran | active-year default/reset | **PASS** |
+| Penempatan/Pindah | F14 | **PASS** |
+| Kenaikan | F14 | **PASS** |
+| Mutasi | F14 | **PASS** |
+| Kelulusan | F14 | **PASS** |
+
+Modul lain yang tidak termasuk focused smoke final tetap mengikuti regression domain yang sudah diselesaikan sebelumnya dan tidak dibuka ulang tanpa perubahan source terkait.
 
 ## 6. F14 Manajemen Siswa — Final G2 Status
 
@@ -168,7 +156,7 @@ APK packaging
 
 Pekerjaan tersebut berada pada G3/G4.
 
-## 8. Browser Regression Wajib G2
+## 8. Browser Regression G2 — Final Result
 
 Minimum viewport smoke:
 
@@ -178,38 +166,38 @@ Minimum viewport smoke:
 1366×768
 ```
 
-Untuk Admin, 360px juga dicek untuk body overflow dan critical action, tetapi matrix administratif boleh exception lokal.
-
-Per halaman yang diubah, cek:
+Focused browser gate yang disepakati:
 
 ```text
-page title/navbar
-sidebar active/open
-header/action alignment
-filter
-active-year default/reset bila ada
-pagination
-modal
-loading/empty/error
-console error
-primary mutation
+Login                              PASS
+Branding/Favicon                   PASS
+Title/Navbar                       PASS
+Filter/Pagination/Export           PASS
+Presensi Mengajar Guru Search      PASS
+Profile Guru mobile                PASS
+Modal + responsive                 PASS
+Console                            PASS
+F11 final Mapel runtime retest     PASS
+Active-year default/reset          PASS
 ```
+
+Status G2.4: **PASS**.
 
 ## 9. Critical G2 UI Regression
 
-Wajib sebelum PR close:
+Semua critical item yang ditetapkan untuk focused G2.4 telah **PASS**:
 
 1. Login show/hide password.
 2. Favicon icon sekolah pada login dan authenticated page.
-3. Setting Sistem upload branding.
-4. Master Kelas/Mapel/Mapping Wali/Pelanggaran export.
+3. Branding/preview pada Setting Sistem.
+4. Filter/pagination/export pada area yang disentuh.
 5. Presensi Mengajar Guru search.
-6. EWS/Rekap/Kenaikan pagination.
+6. Pagination/filter pada area normalized.
 7. Profile Guru tabs pada mobile.
 8. Page title/navbar tidak kembali ke Dashboard secara salah.
 9. Selector Tahun Ajaran yang relevan default/reset ke periode aktif dan histori tetap selectable bila didukung.
-
-Item 9 focused smoke: **PASS**.
+10. Modal panjang/responsive dan browser console.
+11. F11 edit Mapel dengan kode sendiri.
 
 ## 10. G3 Mobile Re-audit
 
@@ -223,19 +211,19 @@ Audit G3 berbeda dengan audit Admin ini. Target G3 adalah no-horizontal-table-sc
 
 ## 11. Acceptance G2 Admin
 
-G2 Admin UI dianggap stabil bila:
+G2 Admin UI focused gate dinyatakan **PASS** karena:
 
-- tidak ada syntax/runtime blocker;
+- tidak ada syntax/runtime blocker yang ditemukan pada focused regression;
 - title dan navigation benar;
 - static action tidak muncul terlambat akibat JS;
-- paginator yang sudah dinormalisasi bekerja;
-- mutation modal/confirmation bekerja;
-- export yang ditambah menghasilkan file;
+- paginator/filter/export yang diuji bekerja;
+- modal/confirmation bekerja;
 - selector Tahun Ajaran mengikuti default aktif tanpa UI noise;
 - branding/login regression PASS;
-- tidak ada body horizontal overflow yang tidak disengaja;
+- responsive smoke PASS;
+- browser console bersih;
 - business rule F06–F14 tetap benar.
 
-F14 sudah **PASS**, tetapi G2 keseluruhan belum dinyatakan closed sampai remaining browser regression, final PR review, dan approval merge selesai.
+Sisa G2 bukan lagi browser regression, melainkan **G2.5 closure**: repository hygiene recheck, final docs/PR sanity, static gate final, dan approval eksplisit sebelum merge.
 
 Pixel-level redesign role mobile **bukan gate merge G2**; itu gate G3.
