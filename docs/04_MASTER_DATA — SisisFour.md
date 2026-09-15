@@ -1,7 +1,7 @@
 # Master Data & Student Lifecycle — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 15 September 2026
 **Development Stage:** G2
 
 > Dokumen ini menyatakan business contract Master Data dan Manajemen Siswa. UI detail mengikuti dokumen UI; authorization final tetap ditentukan Service + permission database.
@@ -27,7 +27,9 @@ F14 Manajemen Siswa
 - import besar atomic bila kontrak modul menuntut;
 - identifier tidak boleh bentrok lintas entitas yang relevan;
 - history tidak dihapus hanya demi membersihkan current state;
-- perubahan UI tidak boleh bypass Service.
+- perubahan UI tidak boleh bypass Service;
+- selector Tahun Ajaran pada halaman baca/histori default ke periode aktif, tetapi histori tetap dapat dipilih bila fungsi halaman memang mendukung histori;
+- workflow current-state seperti Penempatan/Pindah, Mutasi, Kelulusan, Kenaikan, input Presensi/Jurnal dan Kartu operasional mengikuti periode aktif sesuai Service dan tidak membutuhkan selector periode tambahan.
 
 ## 3. Guru
 
@@ -75,11 +77,15 @@ Permanent delete diblok bila memiliki anggota kelas, riwayat, Presensi, kartu, k
 
 UI operasional menonjolkan nama + kelas/context; NISN/NIK dipakai untuk search, pencocokan, detail dan administrasi.
 
+Master Siswa default menampilkan Tahun Ajaran aktif dan status siswa Aktif. Pemilihan periode lain tetap diperbolehkan untuk kebutuhan histori sesuai scope halaman.
+
 ## 6. Kelas
 
 Current membership berada di `anggota_kelas` dan history di `riwayat_siswa`.
 
 Permanent delete kelas ditolak bila masih direferensikan oleh membership, Mapping Wali, Jadwal, history, Presensi Siswa, atau Presensi Mengajar.
+
+Master Kelas default menampilkan Tahun Ajaran aktif; periode historis tetap dapat dipilih untuk pembacaan data lama.
 
 ## 7. Tahun Ajaran / Semester
 
@@ -91,6 +97,8 @@ Ganjil | Genap
 ```
 
 Hanya satu periode operasional aktif.
+
+Master Tahun Ajaran tetap menampilkan seluruh periode karena halaman tersebut adalah surface pengelolaan lifecycle periode, bukan filter operasional biasa.
 
 ### Ganjil → Genap tahun yang sama
 
@@ -140,6 +148,19 @@ Wali bukan role.
 
 Class harus berasal dari Tahun Ajaran target. Soft delete mempertahankan history. Permanent delete mapping historis dilindungi.
 
+Surface Mapping Wali default ke Tahun Ajaran aktif. Assign Wali juga membuka periode aktif sebagai pilihan awal, sementara histori tetap dapat ditinjau melalui filter/recycle sesuai permission.
+
+Workflow pergantian wali canonical:
+
+```text
+Wali lama
+→ Nonaktifkan
+→ histori dipertahankan
+→ Assign Wali baru
+```
+
+Tidak diperlukan mutation khusus yang menghapus histori lama.
+
 ## 10. Jadwal Guru
 
 Sesi:
@@ -170,22 +191,38 @@ row tengah = Non Sesi
 
 Delete Jadwal yang sudah direferensikan Jurnal/Presensi Mengajar dilindungi; historical row dapat dipertahankan nonaktif sesuai lifecycle.
 
+Master Jadwal Guru dan import Jadwal default ke Tahun Ajaran aktif. Filter historis tetap tersedia untuk kebutuhan baca/export bila scope mengizinkan.
+
 ## 11. Penempatan / Pindah Kelas
 
 Hanya bekerja pada siswa/periode yang valid sesuai Service. Current membership dan history harus tetap konsisten.
+
+Workflow ini mengikuti Tahun Ajaran aktif dan tidak menggunakan selector periode historis untuk mutation current-state.
 
 ## 12. Kenaikan Kelas
 
 Kenaikan adalah promotion antar Tahun Ajaran, bukan transisi Ganjil→Genap tahun yang sama.
 
-Target normal:
+Kontrak promotion normal:
 
 ```text
+source = periode aktif semester Genap
+target = semester Ganjil tahun ajaran berikutnya
 kelas 7 → 8
 kelas 8 → 9
 ```
 
-Level 9 tidak dinaikkan sebagai kelas biasa; kelulusan memiliki workflow tersendiri.
+Guard wajib:
+
+- source harus periode aktif yang valid;
+- source dan target tidak boleh tahun ajaran yang sama;
+- target harus tepat tahun akademik berikutnya;
+- semester source harus Genap dan target harus Ganjil;
+- level 9 tidak boleh diproses sebagai kenaikan biasa dan harus melalui Kelulusan;
+- membership/history tidak boleh menjadi duplikat akibat double process;
+- transaction menjaga source history tertutup, target history Aktif terbuka, membership target terbentuk, dan status siswa tetap Aktif.
+
+Status regression G2 per 15 September 2026: **PASS**, termasuk happy-path kenaikan, guard, partial promotion, anti-double-process, membership integrity, history integrity, dan progress per kelas.
 
 ## 13. Mutasi
 
@@ -219,13 +256,76 @@ Workflow transactional:
 - nonaktifkan kartu Aktif;
 - akun tidak otomatis dimatikan kecuali policy alumni/login diputuskan eksplisit.
 
-## 15. Pagination & Export
+## 15. Restore Lifecycle Terminal
+
+Restore tersedia untuk terminal event:
+
+```text
+Pindah
+Keluar
+Lulus
+```
+
+Restore hanya sah bila:
+
+- terminal event tersebut adalah lifecycle terminal terbaru siswa;
+- status siswa saat ini masih sama dengan terminal event yang akan direstore;
+- row `tahun_ajaran` exact milik terminal history tersebut masih merupakan periode yang aktif saat ini;
+- source class/history masih valid;
+- tidak ada membership aktif atau history Aktif terbuka yang akan menimbulkan duplikasi.
+
+Restore transactional:
+
+```text
+terminal history lama tetap dipertahankan
+→ membership ke kelas terakhir dipulihkan
+→ history Aktif baru dibuka
+→ status siswa kembali Aktif
+→ field mutasi terminal dibersihkan sesuai Service
+→ kartu terakhir dapat diaktifkan kembali bila memenuhi kontrak
+```
+
+Jika periode sumber terminal sudah nonaktif, restore ditolak. Restore bukan penghapusan histori terminal.
+
+Status regression G2: **PASS**.
+
+## 16. Pagination & Export
 
 Dataset besar memakai bounded query/pagination. UI Admin mengikuti paginator canonical.
 
 Export identifier seperti NIP/NISN/kode diperlakukan sebagai text bila diperlukan agar spreadsheet tidak kehilangan digit/format.
 
-## 16. G2 Gate
+## 17. Default Tahun Ajaran — Surface Contract
+
+Untuk menjaga tampilan operasional konsisten dan tetap mendukung histori:
+
+```text
+Master Siswa          → default periode aktif
+Master Kelas          → default periode aktif
+Mapping Wali          → default periode aktif
+Assign Wali           → default periode aktif
+Master Jadwal Guru    → default periode aktif
+Import Jadwal Guru    → default periode aktif
+Laporan Jurnal        → default periode aktif
+Matrix Presensi       → default periode aktif
+Export Presensi       → default periode aktif
+```
+
+Tidak perlu menampilkan helper/alert seperti “Default menampilkan Tahun Ajaran yang sedang aktif.” Pemilihan default harus terlihat langsung dari control yang terpilih.
+
+Workflow current-state memakai periode aktif langsung dari business context dan tidak perlu selector tambahan:
+
+```text
+Penempatan/Pindah
+Mutasi
+Kelulusan
+Kenaikan
+Presensi operasional
+Jurnal operasional
+Kartu Pelajar operasional
+```
+
+## 18. G2 Gate
 
 Sebelum G2 closed:
 
@@ -238,5 +338,7 @@ canonical docs sync
 PR review
 explicit approval
 ```
+
+F14 Manajemen Siswa telah dinyatakan **PASS**. Ini tidak otomatis berarti seluruh G2 closed; browser regression, final docs/checklist, PR review, dan approval merge tetap mengikuti gate phase.
 
 Redesign mobile role bukan bagian scope dokumen implementasi G2; targetnya G3.
