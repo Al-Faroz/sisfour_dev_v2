@@ -60,7 +60,6 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="form-text">Default menampilkan Tahun Ajaran yang sedang aktif.</div>
                 </div>
                 <div class="col-12 col-md-3 sisfour-filter-actions">
                     <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
