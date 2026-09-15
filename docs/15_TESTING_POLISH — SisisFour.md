@@ -170,27 +170,36 @@ Wajib diuji:
 - deep-link dengan kelas terpilih dapat memuat workflow tanpa tap tambahan yang tidak perlu.
 - success hanya muncul setelah server response sukses.
 
-### 6.2 Schema Gate Jurnal G3.2
+### 6.2 SQL Schema Gate Jurnal G3.2
 
-Migration branch:
+Schema delta tidak memakai CodeIgniter migration.
+
+Localhost / development / UAT:
 
 ```text
-app/Database/Migrations/2026-09-15-090000_AddJurnalStudentExceptions.php
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 ```
 
-Sebelum UAT fitur Jurnal baru, pada **database local/staging** wajib:
+Hosting / production:
 
 ```text
-migration up PASS
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+Sebelum UAT fitur Jurnal baru, pada **database localhost/staging copy** wajib:
+
+```text
+SQL localhost berhasil dieksekusi
 presensi_mengajar.catatan tersedia
 presensi_mengajar_siswa tersedia
 UNIQUE(parent,siswa) tersedia
 FK parent cascade tersedia
 FK siswa restrict tersedia
 index parent/siswa/status tersedia
+verification query PASS
 ```
 
-Rollback migration diuji hanya pada database disposable/copy yang aman. Production/hosting tidak dimigrasikan pada fase regression development.
+SQL dirancang aman dijalankan ulang pada schema yang sudah memiliki delta G3.2. Production/hosting tidak disentuh saat regression development. Sebelum SQL hosting dijalankan wajib ada backup production, G3.2 PASS/merge/release disetujui, dan approval deploy eksplisit.
 
 ### 6.3 Presensi Mengajar / Jurnal — Base Flow
 
@@ -519,7 +528,7 @@ Sebelum build final:
 ```text
 G2 CLOSED      → business/admin baseline
 G3.1 CLOSED    → mobile foundation baseline
-G3.2 PASS      → Guru/Wali Presensi & Jurnal mobile-ready + schema delta Jurnal validated
+G3.2 PASS      → Guru/Wali Presensi & Jurnal mobile-ready + SQL schema delta Jurnal validated
 G3 PASS        → mobile/WebView UI dianggap siap
 G4 PASS        → APK dapat masuk distribution gate
 ```
