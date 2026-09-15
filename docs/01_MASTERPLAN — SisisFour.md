@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 15 September 2026
-**Development aktif:** G2 Regression Closure & Admin Browser Stabilization
+**Development aktif:** G2 Final Closure
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -162,13 +162,17 @@ document sync
 Current milestone:
 
 ```text
-F14 Manajemen Siswa          PASS
-active-year default/reset    PASS focused smoke
-remaining browser regression pending sesuai docs/12 dan docs/15
-final PR review/closure      belum dilakukan
+F06–F14 business regression    PASS
+F14 Manajemen Siswa            PASS
+active-year default/reset      PASS
+focused Admin/browser G2.4     PASS
+F11 final runtime retest       PASS
+final PR review/closure        IN PROGRESS
 ```
 
-F14 PASS tidak berarti PR siap merge otomatis. G2 tetap mengikuti final browser gate, repository hygiene recheck, docs sanity, PR review, dan approval eksplisit.
+Focused browser regression dilakukan terhadap data aktual hosting dan mencakup login, branding/favicon, title/navbar, filter/pagination/export, Presensi Mengajar Guru search, Profile Guru mobile, modal/responsive, console, serta retest edit Mapel dengan kode sendiri.
+
+G2 tetap belum merged sampai final repository hygiene, docs/PR sanity, dan approval eksplisit pengguna selesai.
 
 G2 tidak menerima full mobile redesign atau Cordova implementation.
 
@@ -219,7 +223,7 @@ Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
 ## 12. Release Rule
 
 ```text
-G2 PASS → merge G2
+G2 PASS → merge G2 setelah approval eksplisit
 G3 PASS → mobile/WebView UI ready
 G4 PASS → APK distribution gate
 ```
