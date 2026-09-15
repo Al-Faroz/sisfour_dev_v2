@@ -60,7 +60,7 @@ Business rule tetap mengikuti dokumen domain dan Service. View/JavaScript tidak 
 ## 3. Sumber Kebenaran Teknis
 
 ```text
-Database    -> dump SQL resmi terbaru + schema live bila perlu
+Database    -> dump SQL resmi terbaru + schema live + migration delta yang belum dirilis
 Route       -> app/Config/Routes.php
 Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
 Menu        -> menus, role_menus, MenuService
@@ -72,6 +72,8 @@ Mobile UI   -> docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
 Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
 Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ```
+
+Migration yang masih berada pada branch development adalah **schema delta**, bukan bukti bahwa database production sudah berubah. `docs/02_DATABASE` baru dinaikkan menjadi baseline schema baru setelah migration lulus UAT dan masuk release yang disetujui.
 
 `PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
 
@@ -137,7 +139,7 @@ Urutan normal:
 12. sinkronkan docs canonical
 ```
 
-Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah.
+Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah. Bila user menyetujui perluasan domain yang benar-benar memerlukan persistence baru, perubahan schema wajib memakai migration yang reversible, punya rollback, diuji pada local/staging lebih dulu, dan tidak diaplikasikan ke production tanpa approval deploy eksplisit.
 
 ## 7. Aturan Full File dan Git
 
@@ -237,7 +239,7 @@ G3.1 tidak menambah project/plugin Cordova.
 
 ## 10. G3.2 — Guru/Wali Presensi & Jurnal
 
-G3.2 mengadaptasi workflow operasional yang paling sering dipakai Guru/Wali tanpa mengubah authorization atau business rule server.
+G3.2 mempertahankan authorization/scope Presensi dan Jurnal existing, sekaligus memuat **satu perluasan domain Jurnal yang disetujui user**: catatan Jurnal dan exception siswa Sakit/Izin/Alpha per pembelajaran. Perluasan ini tidak membuka ulang F06–F14 dan tidak mengubah makna Presensi Siswa resmi.
 
 ### Presensi Siswa
 
@@ -263,18 +265,40 @@ Kontrak:
 
 ### Presensi Mengajar / Jurnal
 
-Kontrak:
+Kontrak existing tetap:
 
 - Guru operasional tidak dipaksa memilih identitas dirinya sendiri bila hanya satu pilihan valid.
 - Jadwal dapat di-auto-load bila hanya satu Jadwal valid.
-- Status dan textarea nyaman pada layar 360–412px.
-- Save action mudah dijangkau dan mempertimbangkan safe-area.
-- Materi/keterangan tidak hilang pada network failure.
-- Busy guard mencegah mutation ganda.
 - Wali tidak mendapat hak Jurnal hanya karena context Wali; hak tetap berdasarkan Jadwal Guru.
 - Geofence/time-window/duplicate/revision tetap Service-authoritative.
 
-Tidak ada perubahan business rule F06–F14 pada G3.2.
+Perluasan Jurnal G3.2:
+
+```text
+presensi_mengajar.catatan                 = optional
+presensi_mengajar_siswa                  = child exception pembelajaran
+status child                              = Sakit / Izin / Alpha
+```
+
+Rule wajib:
+
+- child siswa hanya berasal dari roster kelas Jurnal pada tanggal Jurnal;
+- Nama primary, NISN secondary search/disambiguation;
+- satu siswa maksimal satu row child per Jurnal;
+- child hanya boleh ada ketika status Guru `Hadir`;
+- parent + exact child list disimpan/revisi dalam satu transaction;
+- child **tidak pernah** menulis/mengubah tabel `presensi`;
+- child tidak masuk Rekap/EWS/Signage Presensi resmi;
+- laporan utama tetap `1 row = 1 Jurnal`, child hanya aggregate count dan detail lazy-load;
+- query listing tidak boleh N+1.
+
+Schema delta canonical selama branch G3.2:
+
+```text
+app/Database/Migrations/2026-09-15-090000_AddJurnalStudentExceptions.php
+```
+
+Migration ini hanya dijalankan pada local/staging untuk UAT. Production/hosting tidak disentuh sebelum G3.2 PASS, merge disetujui, dan ada approval deploy eksplisit.
 
 ## 11. Core Mobile Contract G3
 
@@ -318,6 +342,7 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT.
 ## 13. Aturan Anti-Tabrakan Antar Phase
 
 - G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
+- G3.2 hanya memiliki schema/business extension Jurnal yang tercatat eksplisit pada `docs/05_PRESENSI` dan migration branch.
 - G3 tidak menambahkan project/plugin Cordova.
 - G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
 - Cordova bridge/plugin tidak ditanam ke business Service.
@@ -355,6 +380,8 @@ git diff --check
 git status --short
 ```
 
+Branch dengan migration juga wajib menjalankan migration pada database local/staging yang sesuai dan memverifikasi schema hasilnya sebelum runtime UAT.
+
 ## 17. Runtime Gate Minimum
 
 Tidak boleh ada:
@@ -372,6 +399,8 @@ Tidak boleh ada:
 - input penting hilang hanya karena network failure;
 - data akademik dinyatakan sukses sebelum server mengonfirmasi.
 
+Untuk Jurnal G3.2 juga tidak boleh ada child siswa di luar roster, child ketika Guru Izin/Sakit, duplikasi child, perubahan tabel `presensi` akibat child Jurnal, atau laporan yang menggandakan row parent.
+
 ## 18. Definition of Done per Sub-phase
 
 Sub-phase baru boleh ditutup/merge jika:
@@ -379,6 +408,7 @@ Sub-phase baru boleh ditutup/merge jika:
 ```text
 source stabil
 static gate PASS
+migration/schema gate PASS bila ada schema delta
 runtime gate PASS
 canonical docs sinkron
 PR review selesai
