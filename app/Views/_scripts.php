@@ -21,6 +21,7 @@
 
 <!-- Komponen UI internal SisisFour: Vanilla JS, tanpa jQuery/Select2/DataTables. -->
 <script src="<?= sisfour_asset_url('assets/js/components/searchable-select.js') ?>"></script>
+<script src="<?= sisfour_asset_url('assets/js/components/active-year-default.js') ?>"></script>
 <script src="<?= sisfour_asset_url('assets/js/components/pagination.js') ?>"></script>
 
 <script src="<?= sisfour_asset_url('assets/js/main.js') ?>"></script>
