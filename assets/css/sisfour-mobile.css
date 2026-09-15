@@ -1,0 +1,374 @@
+/*
+ * SisisFour G3 Mobile Foundation
+ *
+ * Reusable mobile/WebView primitives for role-operational surfaces.
+ * Page-specific role adaptations stay in their module/page styles.
+ */
+
+:root {
+  --sisfour-safe-top: env(safe-area-inset-top, 0px);
+  --sisfour-safe-right: env(safe-area-inset-right, 0px);
+  --sisfour-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sisfour-safe-left: env(safe-area-inset-left, 0px);
+
+  --sisfour-mobile-page-pad: 12px;
+  --sisfour-mobile-section-gap: 10px;
+  --sisfour-mobile-card-pad: 12px;
+  --sisfour-mobile-title-size: 1.125rem;
+  --sisfour-mobile-section-title-size: 0.95rem;
+  --sisfour-mobile-body-size: 0.8125rem;
+  --sisfour-mobile-meta-size: 0.72rem;
+  --sisfour-touch-primary: 44px;
+  --sisfour-touch-compact: 40px;
+}
+
+html,
+body {
+  max-width: 100%;
+}
+
+body.sisfour-app {
+  overflow-x: hidden;
+}
+
+body.sisfour-app .layout-wrapper,
+body.sisfour-app .layout-container,
+body.sisfour-app .layout-page,
+body.sisfour-app .content-wrapper,
+body.sisfour-app .container-xxl {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---------- Generic mobile-ready primitives ---------- */
+
+.sisfour-touch-target,
+.btn.sisfour-touch-target,
+a.sisfour-touch-target,
+button.sisfour-touch-target {
+  display: inline-flex;
+  min-width: var(--sisfour-touch-primary);
+  min-height: var(--sisfour-touch-primary);
+  align-items: center;
+  justify-content: center;
+}
+
+.sisfour-touch-target--compact,
+.btn.sisfour-touch-target--compact,
+a.sisfour-touch-target--compact,
+button.sisfour-touch-target--compact {
+  min-width: var(--sisfour-touch-compact);
+  min-height: var(--sisfour-touch-compact);
+}
+
+.sisfour-cell-primary {
+  min-width: 0;
+}
+
+.sisfour-cell-title {
+  display: block;
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.sisfour-cell-meta {
+  display: block;
+  min-width: 0;
+  margin-top: 0.15rem;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: var(--sisfour-mobile-meta-size);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.sisfour-mobile-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.sisfour-mobile-table th,
+.sisfour-mobile-table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+.sisfour-mobile-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sisfour-mobile-action-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sisfour-touch-compact);
+  min-height: var(--sisfour-touch-compact);
+}
+
+.sisfour-mobile-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sisfour-mobile-filter > *,
+.sisfour-mobile-form > * {
+  min-width: 0;
+}
+
+.sisfour-mobile-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.sisfour-sticky-actions {
+  position: sticky;
+  z-index: 20;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem max(0.75rem, var(--sisfour-safe-right))
+    calc(0.75rem + var(--sisfour-safe-bottom))
+    max(0.75rem, var(--sisfour-safe-left));
+  border-top: 1px solid var(--bs-border-color, rgba(67, 89, 113, 0.12));
+  background: var(--bs-body-bg, #fff);
+}
+
+.sisfour-mobile-state {
+  padding: 1rem 0.75rem;
+  text-align: center;
+}
+
+.sisfour-mobile-state > :last-child {
+  margin-bottom: 0;
+}
+
+.sisfour-mobile-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.sisfour-mobile-kpi-grid > * {
+  min-width: 0;
+}
+
+/* ---------- Shell / safe-area baseline ---------- */
+
+@media (max-width: 1199.98px) {
+  body.sisfour-app #layout-navbar {
+    max-width: calc(100% - 2 * var(--sisfour-mobile-page-pad));
+  }
+}
+
+@media (max-width: 767.98px) {
+  body.sisfour-app .content-wrapper > .container-xxl.container-p-y {
+    padding-left: max(var(--sisfour-mobile-page-pad), var(--sisfour-safe-left));
+    padding-right: max(var(--sisfour-mobile-page-pad), var(--sisfour-safe-right));
+    padding-bottom: calc(var(--sisfour-mobile-page-pad) + var(--sisfour-safe-bottom));
+  }
+
+  body.sisfour-app .sisfour-page-header {
+    gap: var(--sisfour-mobile-section-gap);
+    margin-bottom: 1rem;
+  }
+
+  body.sisfour-app .sisfour-page-header h1,
+  body.sisfour-app .sisfour-page-header h2,
+  body.sisfour-app .sisfour-page-header h3,
+  body.sisfour-app .sisfour-page-header h4 {
+    font-size: var(--sisfour-mobile-title-size);
+    line-height: 1.25;
+  }
+
+  body.sisfour-app .sisfour-page-header__copy p {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  body.sisfour-app .sisfour-section-heading {
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  body.sisfour-app .sisfour-section-heading h5,
+  body.sisfour-app .sisfour-section-heading h6 {
+    font-size: var(--sisfour-mobile-section-title-size);
+  }
+
+  body.sisfour-app .card {
+    min-width: 0;
+  }
+
+  body.sisfour-app .table-responsive {
+    max-width: 100%;
+  }
+
+  body.sisfour-app .sisfour-sticky-actions > .btn,
+  body.sisfour-app .sisfour-sticky-actions > a.btn {
+    min-height: var(--sisfour-touch-primary);
+  }
+}
+
+@media (max-width: 575.98px) {
+  body.sisfour-app #layout-navbar {
+    min-height: calc(3.375rem + var(--sisfour-safe-top));
+    margin-top: var(--sisfour-safe-top);
+    padding-left: max(0.75rem, var(--sisfour-safe-left));
+    padding-right: max(0.75rem, var(--sisfour-safe-right));
+  }
+
+  body.sisfour-app #layout-menu .menu-inner {
+    padding-bottom: calc(0.5rem + var(--sisfour-safe-bottom)) !important;
+  }
+
+  body.sisfour-role-operational #layout-menu .menu-link {
+    min-height: var(--sisfour-touch-primary);
+  }
+
+  body.sisfour-app .sisfour-navbar-toggle,
+  body.sisfour-app .sisfour-navbar-user {
+    min-width: var(--sisfour-touch-primary);
+    min-height: var(--sisfour-touch-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.sisfour-app .sisfour-navbar-title {
+    display: block;
+    max-width: min(48vw, 13rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.875rem;
+  }
+
+  body.sisfour-app .content-wrapper > .container-xxl.container-p-y {
+    padding-top: var(--sisfour-mobile-page-pad);
+  }
+
+  body.sisfour-app .content-footer .footer-container {
+    padding-bottom: calc(0.75rem + var(--sisfour-safe-bottom)) !important;
+  }
+
+  body.sisfour-app .content-wrapper .card-body,
+  body.sisfour-app .content-wrapper .card-header,
+  body.sisfour-app .content-wrapper .card-footer {
+    padding-left: var(--sisfour-mobile-card-pad);
+    padding-right: var(--sisfour-mobile-card-pad);
+  }
+
+  body.sisfour-app .sisfour-page-actions,
+  body.sisfour-app .sisfour-filter-actions,
+  body.sisfour-app .sisfour-modal-actions,
+  body.sisfour-app .sisfour-mobile-actions {
+    gap: 0.5rem;
+  }
+
+  body.sisfour-app .sisfour-mobile-filter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.625rem;
+  }
+
+  body.sisfour-app .sisfour-mobile-filter--keep-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.sisfour-app .sisfour-mobile-table th,
+  body.sisfour-app .sisfour-mobile-table td {
+    padding: 0.45rem 0.4rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+
+  body.sisfour-app .sisfour-mobile-table th {
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  body.sisfour-role-operational input.form-control:not([type="file"]),
+  body.sisfour-role-operational select.form-select,
+  body.sisfour-role-operational .sisfour-searchable__input {
+    min-height: var(--sisfour-touch-compact);
+  }
+
+  body.sisfour-role-operational .btn.sisfour-primary-action,
+  body.sisfour-role-operational a.btn.sisfour-primary-action,
+  body.sisfour-role-operational button.sisfour-primary-action {
+    min-height: var(--sisfour-touch-primary);
+  }
+
+  body.sisfour-role-operational .sisfour-searchable__item,
+  body.sisfour-role-operational .dropdown-menu .dropdown-item {
+    min-height: var(--sisfour-touch-primary);
+    display: flex;
+    align-items: center;
+  }
+
+  body.sisfour-role-operational .sisfour-mobile-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed;
+  }
+
+  body.sisfour-role-operational .sisfour-mobile-table th,
+  body.sisfour-role-operational .sisfour-mobile-table td {
+    white-space: normal;
+  }
+
+  body.sisfour-app .sisfour-pager {
+    gap: 0.75rem;
+  }
+
+  body.sisfour-app .sisfour-pager__summary {
+    gap: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  body.sisfour-app .sisfour-pager .page-link {
+    min-width: var(--sisfour-touch-compact);
+    min-height: var(--sisfour-touch-compact);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.sisfour-app .sisfour-empty-state {
+    padding: 1.5rem 0.75rem;
+  }
+
+  body.sisfour-app .sisfour-empty-state__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 0.6rem;
+    font-size: 1.35rem;
+  }
+}
+
+/* Very narrow Android devices: keep controls inside viewport without shrinking touch targets. */
+@media (max-width: 374.98px) {
+  body.sisfour-app .sisfour-page-actions > .btn,
+  body.sisfour-app .sisfour-page-actions > a.btn,
+  body.sisfour-app .sisfour-filter-actions > .btn,
+  body.sisfour-app .sisfour-modal-actions > .btn,
+  body.sisfour-app .sisfour-sticky-actions > .btn,
+  body.sisfour-app .sisfour-sticky-actions > a.btn {
+    flex: 1 1 100%;
+  }
+
+  body.sisfour-app .sisfour-mobile-filter--keep-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

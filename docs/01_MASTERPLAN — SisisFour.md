@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 15 September 2026
-**Development aktif:** G2 Final Closure
+**Development aktif:** G3.1 Mobile Foundation
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -124,7 +124,7 @@ Keluar
 
 Lifecycle terminal menjaga history, current membership, status, dan kartu secara konsisten. Restore terminal lifecycle hanya diperbolehkan untuk event terminal terbaru ketika exact periode sumber terminal masih aktif; histori terminal tidak dihapus.
 
-Status F14 Manajemen Siswa per 15 September 2026: **PASS**.
+Status F06–F14: **PASS / CLOSED pada G2**.
 
 ## 8. UI/UX Hierarchy
 
@@ -135,7 +135,7 @@ Status F14 Manajemen Siswa per 15 September 2026: **PASS**.
 → 11 Role Experience
 ```
 
-Pimpinan/BK/Guru/Wali/Siswa adalah mobile-first pada phase G3.
+Pimpinan/BK/Guru/Wali/Siswa adalah mobile-first pada G3.
 
 Untuk halaman yang memiliki selector Tahun Ajaran sebagai filter baca/histori:
 
@@ -147,58 +147,92 @@ histori = tetap selectable bila didukung
 
 UI tidak perlu menampilkan helper/alert yang hanya menjelaskan default tersebut. Workflow current-state mengikuti periode aktif langsung dari business context.
 
-## 9. G2 — Current
+## 9. G2 — CLOSED
 
-G2 menyelesaikan:
-
-```text
-F06–F14 integrity/business fixes
-Admin UI stabilization yang sudah masuk branch
-login/branding regression
-static + browser regression
-document sync
-```
-
-Current milestone:
+G2 telah selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
 
 ```text
-F06–F14 business regression    PASS
-F14 Manajemen Siswa            PASS
-active-year default/reset      PASS
-focused Admin/browser G2.4     PASS
-F11 final runtime retest       PASS
-final PR review/closure        IN PROGRESS
+G2.1 Repository Hygiene     PASS
+G2.2 Static Gate            PASS
+G2.3 Business Regression    PASS
+G2.4 Browser Regression     PASS
+G2.5 Closure Review         PASS
+PR #5                       MERGED
 ```
 
-Focused browser regression dilakukan terhadap data aktual hosting dan mencakup login, branding/favicon, title/navbar, filter/pagination/export, Presensi Mengajar Guru search, Profile Guru mobile, modal/responsive, console, serta retest edit Mapel dengan kode sendiri.
+Merge commit:
 
-G2 tetap belum merged sampai final repository hygiene, docs/PR sanity, dan approval eksplisit pengguna selesai.
+```text
+375766c07f3856515a71ffdb07f3681c3047ca31
+```
 
-G2 tidak menerima full mobile redesign atau Cordova implementation.
+Scope G2 tidak dibuka ulang pada G3 kecuali ditemukan regression/blocker nyata.
 
 ## 10. G3 — Mobile Role UI
 
-Setelah G2 closed:
+Development aktif dimulai dari branch:
 
 ```text
-mobile foundation
-Guru/Wali Presensi & Jurnal
-Dashboard Guru/Wali
-BK
-Pimpinan
-Siswa
-global mobile sweep
-WebView-readiness regression
+feat/g3-mobile-foundation-20260915
+```
+
+Urutan:
+
+```text
+G3.1 Mobile foundation
+G3.2 Guru/Wali Presensi & Jurnal
+G3.3 Dashboard Guru/Wali
+G3.4 BK workflow + Dashboard BK
+G3.5 Pimpinan monitoring
+G3.6 Siswa self-service
+G3.7 global mobile sweep
+G3.8 viewport/WebView readiness regression
 ```
 
 Target utama:
 
 ```text
+no body horizontal overflow
 no horizontal table scroll untuk role operasional
 compact spacing
 touch target 44–48px
 name-first identity
 safe-area/keyboard ready
+mobile filter/action density yang konsisten
+```
+
+### G3.1 Mobile Foundation
+
+Foundation bersifat reusable dan tidak boleh membuat UI kedua:
+
+```text
+safe-area tokens
+mobile spacing/density tokens
+compact page header/navbar
+mobile touch-target baseline
+adaptive table primitives
+primary/meta cell primitives
+compact row actions
+mobile filter/form primitives
+sticky action primitive
+fullscreen modal compatibility
+compact pagination
+empty/loading/error state
+WebView-friendly overflow baseline
+```
+
+Foundation tidak mengubah business rule dan tidak menambahkan Cordova plugin/project.
+
+Viewport minimum G3:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
 ```
 
 ## 11. G4 — Cordova APK
@@ -209,23 +243,24 @@ Setelah G3 stable:
 architecture spike
 Android project/config
 session/WebView verification
-Back/keyboard/safe-area
+Android Back
+keyboard/safe-area/status bar
 geolocation
-network state
+network/offline state
 file/download/share
 external links
-device regression
+real-device regression
 signed package/distribution
 ```
 
-Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
 
 ## 12. Release Rule
 
 ```text
-G2 PASS → merge G2 setelah approval eksplisit
-G3 PASS → mobile/WebView UI ready
-G4 PASS → APK distribution gate
+G2 CLOSED → baseline main untuk G3
+G3 PASS   → mobile/WebView UI ready
+G4 PASS   → APK distribution gate
 ```
 
-Setiap merge/release membutuhkan approval eksplisit pengguna.
+Setiap merge/release tetap membutuhkan approval eksplisit pengguna.

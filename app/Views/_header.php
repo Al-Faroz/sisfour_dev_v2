@@ -61,7 +61,10 @@ if ($iconSekolah !== '') {
 <link rel="stylesheet" href="<?= sisfour_asset_url((string) $css) ?>" />
 <?php endforeach; endif; ?>
 
-<!-- Global modal safety loaded last so page-specific CSS cannot disable modal scrolling. -->
+<!-- G3 mobile/WebView foundation: loaded after page CSS so canonical mobile primitives win. -->
+<link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-mobile.css') ?>" />
+
+<!-- Global modal safety stays last so page/mobile CSS cannot disable modal scrolling. -->
 <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/sisfour-modal.css') ?>" />
 
 <script src="<?= sisfour_asset_url('assets/vendor/js/helpers.js') ?>"></script>
