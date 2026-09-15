@@ -5,10 +5,13 @@
     if (!app) return;
 
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
+    const activeYearId = String(app.dataset.activeYearId || '');
     const table = document.getElementById('tableKelas');
     const tbody = table.querySelector('tbody');
     const filterForm = document.getElementById('formFilterKelas');
     const form = document.getElementById('formKelas');
+    const filterTahun = document.getElementById('filterTahun');
+    const formTahun = document.getElementById('id_tahun');
     const modal = new bootstrap.Modal(document.getElementById('modalKelas'));
 
     let rows = [];
@@ -40,6 +43,21 @@
         timer: 1500,
         showConfirmButton: false,
     });
+
+    const setActiveYear = (select) => {
+        if (
+            !select
+            || !activeYearId
+            || !Array.from(select.options).some(
+                (option) => option.value === activeYearId
+            )
+        ) {
+            return;
+        }
+
+        select.value = activeYearId;
+        window.SisfourSearchableSelect?.sync(select);
+    };
 
     const filterParams = () => {
         const params = new URLSearchParams(new FormData(filterForm));
@@ -122,6 +140,7 @@
     document.getElementById('btnTambahKelas').addEventListener('click', () => {
         editingId = null;
         form.reset();
+        setActiveYear(formTahun);
         document.getElementById('kelasId').value = '';
         document.getElementById('modalKelasTitle').textContent = 'Tambah Kelas';
         modal.show();
@@ -226,9 +245,13 @@
 
     document.getElementById('btnResetFilter').addEventListener('click', () => {
         filterForm.reset();
-        window.SisfourSearchableSelect?.sync(document.getElementById('filterTahun'));
+        setActiveYear(filterTahun);
         load();
     });
+
+    if (!filterTahun.value) {
+        setActiveYear(filterTahun);
+    }
 
     load();
 })();
