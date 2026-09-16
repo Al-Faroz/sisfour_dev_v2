@@ -218,8 +218,16 @@
                                 </div>
                             </div>
 
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">Riwayat Tindak Lanjut</h6>
+                                    <span class="badge bg-label-primary" id="jumlahTindakLanjut">0</span>
+                                </div>
+                                <div id="timelineTindakLanjut" class="vstack gap-3"></div>
+                            </div>
+
                             <?php if (! empty($initial['can_manage'])): ?>
-                                <form id="formTindakLanjut" class="card mb-4">
+                                <form id="formTindakLanjut" class="card mb-0">
                                     <div class="card-header">
                                         <h6 class="mb-0" id="judulTindakLanjut">Tambah Tindak Lanjut</h6>
                                     </div>
@@ -250,12 +258,6 @@
                                     </div>
                                 </form>
                             <?php endif; ?>
-
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0">Riwayat Tindak Lanjut</h6>
-                                <span class="badge bg-label-primary" id="jumlahTindakLanjut">0</span>
-                            </div>
-                            <div id="timelineTindakLanjut" class="vstack gap-3"></div>
                         </div>
                     </div>
                 </div>
