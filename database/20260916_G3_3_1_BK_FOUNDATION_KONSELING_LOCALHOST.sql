@@ -6,13 +6,16 @@
 -- Catatan:
 -- 1) Kolom legacy ref_pelanggaran.poin TIDAK dihapus pada tahap ini agar rollback aman.
 --    Aplikasi G3.3.1 tidak lagi menampilkan/mengagregasi poin.
--- 2) Konseling BK bersifat rahasia. Akses diberikan kepada Admin, Operator, dan BK
---    melalui permission khusus; Service tetap menjadi business/security boundary.
--- 3) Workflow Konseling BK: create Tahap 1 -> update Tahap 2.
--- 4) Audit actor selalu direkam melalui created_by -> users.id.
--- 5) Pada database aktual, akun role BK adalah Pegawai: users.id_pegawai -> pegawai.id.
+-- 2) Konseling BK bersifat rahasia. Akses operasional hanya Admin, Operator, dan BK.
+-- 3) Pengaturan Form Konseling hanya Admin dan BK.
+-- 4) Pimpinan, Guru/Wali, dan Siswa tidak memperoleh permission/menu Konseling.
+-- 5) Workflow Konseling BK: create Tahap 1 -> update Tahap 2.
+-- 6) Audit actor selalu direkam melalui created_by -> users.id.
+-- 7) Pada database aktual, akun role BK adalah Pegawai: users.id_pegawai -> pegawai.id.
 --    id_guru_bk hanya metadata legacy nullable dan bukan identitas utama BK.
--- 6) Semua tabel aplikasi memakai schema eksplisit agar aman dari context phpMyAdmin.
+-- 8) Pilihan Form Konseling memakai tabel existing setting_sistem dengan key
+--    bk_konseling_form_options; tidak membuat tabel setting baru.
+-- 9) Semua tabel aplikasi memakai schema eksplisit agar aman dari context phpMyAdmin.
 
 CREATE TABLE IF NOT EXISTS `sisfour_dev_v2`.`konseling_bk` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -52,28 +55,25 @@ CREATE TABLE IF NOT EXISTS `sisfour_dev_v2`.`konseling_bk` (
   CONSTRAINT `fk_konseling_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `sisfour_dev_v2`.`users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Permission operasional + settings.
 INSERT INTO `sisfour_dev_v2`.`permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 VALUES
   ('bk_konseling.view', 'Lihat Konseling BK', 'BK', 'SEMUA'),
   ('bk_konseling.manage', 'Kelola Konseling BK', 'BK', 'SEMUA'),
-  ('bk_konseling.export', 'Export Konseling BK', 'BK', 'SEMUA')
+  ('bk_konseling.export', 'Export Konseling BK', 'BK', 'SEMUA'),
+  ('bk_konseling.settings', 'Pengaturan Form Konseling BK', 'BK', 'SEMUA')
 ON DUPLICATE KEY UPDATE
   `nama` = VALUES(`nama`),
   `modul` = VALUES(`modul`),
   `scope_didukung` = VALUES(`scope_didukung`);
 
--- role_permissions memiliki UNIQUE(role,id_permission,scope), jadi hapus scope lama
--- untuk ketiga permission Konseling sebelum memasang scope final SEMUA.
+-- Normalisasi seluruh mapping permission Konseling agar tidak ada legacy/accidental access.
 DELETE rp
 FROM `sisfour_dev_v2`.`role_permissions` rp
 JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
-WHERE rp.`role` IN ('admin', 'operator', 'bk')
-  AND p.`permission_key` IN (
-    'bk_konseling.view',
-    'bk_konseling.manage',
-    'bk_konseling.export'
-  );
+WHERE p.`permission_key` LIKE 'bk_konseling.%';
 
+-- Operasional: Admin + Operator + BK.
 INSERT INTO `sisfour_dev_v2`.`role_permissions` (`role`, `id_permission`, `scope`)
 SELECT r.`role`, p.`id`, 'SEMUA'
 FROM (
@@ -88,6 +88,16 @@ JOIN `sisfour_dev_v2`.`permissions` p
     'bk_konseling.export'
   );
 
+-- Settings: Admin + BK saja.
+INSERT INTO `sisfour_dev_v2`.`role_permissions` (`role`, `id_permission`, `scope`)
+SELECT r.`role`, p.`id`, 'SEMUA'
+FROM (
+  SELECT 'admin' AS `role`
+  UNION ALL SELECT 'bk'
+) r
+JOIN `sisfour_dev_v2`.`permissions` p
+  ON p.`permission_key` = 'bk_konseling.settings';
+
 UPDATE `sisfour_dev_v2`.`menus`
 SET `nama_menu` = 'Catatan Pelanggaran', `updated_at` = NOW()
 WHERE `link` = 'bk/kasus';
@@ -98,6 +108,8 @@ SET @bk_parent_id := (
   WHERE `link` = 'bk/kasus'
   LIMIT 1
 );
+
+-- Menu Konseling BK.
 SET @konseling_menu_id := (
   SELECT `id`
   FROM `sisfour_dev_v2`.`menus`
@@ -132,6 +144,48 @@ FROM (
 WHERE @konseling_menu_id IS NOT NULL
 ON DUPLICATE KEY UPDATE `tampil` = 1;
 
+DELETE FROM `sisfour_dev_v2`.`role_menus`
+WHERE `role` IN ('pimpinan', 'guru', 'siswa')
+  AND `id_menu` = @konseling_menu_id;
+
+-- Menu Pengaturan Form Konseling.
+SET @settings_menu_id := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `link` = 'bk/konseling/settings'
+  LIMIT 1
+);
+SET @next_menu_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `sisfour_dev_v2`.`menus`);
+SET @next_menu_order := (
+  SELECT COALESCE(MAX(`urutan`), 0) + 1
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE (`parent_id` = @bk_parent_id OR (`parent_id` IS NULL AND @bk_parent_id IS NULL))
+);
+
+INSERT INTO `sisfour_dev_v2`.`menus` (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT @next_menu_id, 'Pengaturan Form Konseling', @bk_parent_id, @next_menu_order, 'bx bx-slider-alt', 'bk/konseling/settings', NOW(), NOW()
+WHERE @settings_menu_id IS NULL;
+
+SET @settings_menu_id := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `link` = 'bk/konseling/settings'
+  LIMIT 1
+);
+
+INSERT INTO `sisfour_dev_v2`.`role_menus` (`role`, `id_menu`, `tampil`)
+SELECT r.`role`, @settings_menu_id, 1
+FROM (
+  SELECT 'admin' AS `role`
+  UNION ALL SELECT 'bk'
+) r
+WHERE @settings_menu_id IS NOT NULL
+ON DUPLICATE KEY UPDATE `tampil` = 1;
+
+DELETE FROM `sisfour_dev_v2`.`role_menus`
+WHERE `role` IN ('operator', 'pimpinan', 'guru', 'siswa')
+  AND `id_menu` = @settings_menu_id;
+
 -- Verifikasi schema-qualified.
 SELECT 'sisfour_dev_v2' AS `database_target`;
 
@@ -149,8 +203,21 @@ ORDER BY rp.`role`, p.`permission_key`;
 SELECT rm.`role`, m.`nama_menu`, m.`link`, rm.`tampil`
 FROM `sisfour_dev_v2`.`role_menus` rm
 JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
-WHERE m.`link` = 'bk/konseling'
-ORDER BY rm.`role`;
+WHERE m.`link` IN ('bk/konseling', 'bk/konseling/settings')
+ORDER BY m.`link`, rm.`role`;
+
+SELECT COUNT(*) AS `forbidden_permission_rows`
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
+WHERE rp.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND p.`permission_key` LIKE 'bk_konseling.%';
+
+SELECT COUNT(*) AS `forbidden_menu_rows`
+FROM `sisfour_dev_v2`.`role_menus` rm
+JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
+WHERE rm.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND m.`link` IN ('bk/konseling', 'bk/konseling/settings')
+  AND rm.`tampil` = 1;
 
 SELECT u.`id`, u.`username`, u.`role`, u.`id_guru`, u.`id_pegawai`, p.`nama` AS `nama_pegawai`
 FROM `sisfour_dev_v2`.`users` u
