@@ -9,12 +9,12 @@
 -- 2) Konseling BK bersifat rahasia. Akses diberikan kepada Admin, Operator, dan BK
 --    melalui permission khusus; Service tetap menjadi business/security boundary.
 -- 3) Workflow Konseling BK: create Tahap 1 -> update Tahap 2.
--- 4) Pencatat selalu direkam melalui created_by -> users.id. id_guru_bk hanya metadata
---    optional bila akun memang terhubung ke identitas Guru.
+-- 4) Audit actor selalu direkam melalui created_by -> users.id.
+-- 5) Pada database aktual, akun role BK adalah Pegawai: users.id_pegawai -> pegawai.id.
+--    id_guru_bk hanya metadata legacy nullable dan bukan identitas utama BK.
+-- 6) Semua tabel aplikasi memakai schema eksplisit agar aman dari context phpMyAdmin.
 
-USE `sisfour_dev_v2`;
-
-CREATE TABLE IF NOT EXISTS `konseling_bk` (
+CREATE TABLE IF NOT EXISTS `sisfour_dev_v2`.`konseling_bk` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_tahun` int(10) UNSIGNED NOT NULL,
   `id_kelas` int(10) UNSIGNED NOT NULL,
@@ -44,15 +44,15 @@ CREATE TABLE IF NOT EXISTS `konseling_bk` (
   KEY `idx_konseling_tanggal_berikutnya` (`tanggal_berikutnya`),
   KEY `idx_konseling_created_by` (`created_by`),
   KEY `idx_konseling_updated_by` (`updated_by`),
-  CONSTRAINT `fk_konseling_tahun` FOREIGN KEY (`id_tahun`) REFERENCES `tahun_ajaran` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_kelas` FOREIGN KEY (`id_kelas`) REFERENCES `kelas` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_siswa` FOREIGN KEY (`id_siswa`) REFERENCES `siswa` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_guru_bk` FOREIGN KEY (`id_guru_bk`) REFERENCES `guru` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `fk_konseling_tahun` FOREIGN KEY (`id_tahun`) REFERENCES `sisfour_dev_v2`.`tahun_ajaran` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_kelas` FOREIGN KEY (`id_kelas`) REFERENCES `sisfour_dev_v2`.`kelas` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_siswa` FOREIGN KEY (`id_siswa`) REFERENCES `sisfour_dev_v2`.`siswa` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_guru_bk` FOREIGN KEY (`id_guru_bk`) REFERENCES `sisfour_dev_v2`.`guru` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_created_by` FOREIGN KEY (`created_by`) REFERENCES `sisfour_dev_v2`.`users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `sisfour_dev_v2`.`users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-INSERT INTO `permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
+INSERT INTO `sisfour_dev_v2`.`permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 VALUES
   ('bk_konseling.view', 'Lihat Konseling BK', 'BK', 'SEMUA'),
   ('bk_konseling.manage', 'Kelola Konseling BK', 'BK', 'SEMUA'),
@@ -62,80 +62,100 @@ ON DUPLICATE KEY UPDATE
   `modul` = VALUES(`modul`),
   `scope_didukung` = VALUES(`scope_didukung`);
 
-INSERT IGNORE INTO `role_permissions` (`role`, `id_permission`, `scope`)
+-- role_permissions memiliki UNIQUE(role,id_permission,scope), jadi hapus scope lama
+-- untuk ketiga permission Konseling sebelum memasang scope final SEMUA.
+DELETE rp
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
+WHERE rp.`role` IN ('admin', 'operator', 'bk')
+  AND p.`permission_key` IN (
+    'bk_konseling.view',
+    'bk_konseling.manage',
+    'bk_konseling.export'
+  );
+
+INSERT INTO `sisfour_dev_v2`.`role_permissions` (`role`, `id_permission`, `scope`)
 SELECT r.`role`, p.`id`, 'SEMUA'
 FROM (
   SELECT 'admin' AS `role`
   UNION ALL SELECT 'operator'
   UNION ALL SELECT 'bk'
 ) r
-JOIN `permissions` p
+JOIN `sisfour_dev_v2`.`permissions` p
   ON p.`permission_key` IN (
     'bk_konseling.view',
     'bk_konseling.manage',
     'bk_konseling.export'
   );
 
-UPDATE `menus`
+UPDATE `sisfour_dev_v2`.`menus`
 SET `nama_menu` = 'Catatan Pelanggaran', `updated_at` = NOW()
 WHERE `link` = 'bk/kasus';
 
 SET @bk_parent_id := (
   SELECT `parent_id`
-  FROM `menus`
+  FROM `sisfour_dev_v2`.`menus`
   WHERE `link` = 'bk/kasus'
   LIMIT 1
 );
-
 SET @konseling_menu_id := (
   SELECT `id`
-  FROM `menus`
+  FROM `sisfour_dev_v2`.`menus`
   WHERE `link` = 'bk/konseling'
   LIMIT 1
 );
-
-SET @next_menu_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `menus`);
+SET @next_menu_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `sisfour_dev_v2`.`menus`);
 SET @next_menu_order := (
   SELECT COALESCE(MAX(`urutan`), 0) + 1
-  FROM `menus`
+  FROM `sisfour_dev_v2`.`menus`
   WHERE (`parent_id` = @bk_parent_id OR (`parent_id` IS NULL AND @bk_parent_id IS NULL))
 );
 
-INSERT INTO `menus` (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+INSERT INTO `sisfour_dev_v2`.`menus` (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
 SELECT @next_menu_id, 'Konseling BK', @bk_parent_id, @next_menu_order, 'bx bx-chat', 'bk/konseling', NOW(), NOW()
 WHERE @konseling_menu_id IS NULL;
 
 SET @konseling_menu_id := (
   SELECT `id`
-  FROM `menus`
+  FROM `sisfour_dev_v2`.`menus`
   WHERE `link` = 'bk/konseling'
   LIMIT 1
 );
 
-INSERT IGNORE INTO `role_menus` (`role`, `id_menu`, `tampil`)
+INSERT INTO `sisfour_dev_v2`.`role_menus` (`role`, `id_menu`, `tampil`)
 SELECT r.`role`, @konseling_menu_id, 1
 FROM (
   SELECT 'admin' AS `role`
   UNION ALL SELECT 'operator'
   UNION ALL SELECT 'bk'
 ) r
-WHERE @konseling_menu_id IS NOT NULL;
+WHERE @konseling_menu_id IS NOT NULL
+ON DUPLICATE KEY UPDATE `tampil` = 1;
+
+-- Verifikasi schema-qualified.
+SELECT 'sisfour_dev_v2' AS `database_target`;
 
 SELECT `id`, `permission_key`, `nama`, `scope_didukung`
-FROM `permissions`
+FROM `sisfour_dev_v2`.`permissions`
 WHERE `permission_key` LIKE 'bk_konseling.%'
 ORDER BY `permission_key`;
 
 SELECT rp.`role`, p.`permission_key`, rp.`scope`
-FROM `role_permissions` rp
-JOIN `permissions` p ON p.`id` = rp.`id_permission`
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
 WHERE p.`permission_key` LIKE 'bk_konseling.%'
 ORDER BY rp.`role`, p.`permission_key`;
 
 SELECT rm.`role`, m.`nama_menu`, m.`link`, rm.`tampil`
-FROM `role_menus` rm
-JOIN `menus` m ON m.`id` = rm.`id_menu`
+FROM `sisfour_dev_v2`.`role_menus` rm
+JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
 WHERE m.`link` = 'bk/konseling'
 ORDER BY rm.`role`;
 
-SHOW CREATE TABLE `konseling_bk`;
+SELECT u.`id`, u.`username`, u.`role`, u.`id_guru`, u.`id_pegawai`, p.`nama` AS `nama_pegawai`
+FROM `sisfour_dev_v2`.`users` u
+LEFT JOIN `sisfour_dev_v2`.`pegawai` p ON p.`id` = u.`id_pegawai`
+WHERE u.`role` = 'bk'
+ORDER BY u.`username`;
+
+SHOW CREATE TABLE `sisfour_dev_v2`.`konseling_bk`;
