@@ -9,6 +9,7 @@ class KonselingBkService
 {
     private const TZ = 'Asia/Jakarta';
     private const MAX_EXPORT_ROWS = 50000;
+    private const ALLOWED_ROLES = ['admin', 'operator', 'bk'];
 
     private const BENTUK_LAYANAN = [
         'Konseling individu',
@@ -188,11 +189,6 @@ class KonselingBkService
             return $auth;
         }
 
-        $idGuru = $this->scopeService->userGuruId($userId);
-        if ($idGuru === null) {
-            return $this->fail('NO_GURU_IDENTITY', 'Akun BK harus terhubung dengan identitas Guru.');
-        }
-
         $tahun = $this->activeYear();
         if ($tahun === null) {
             return $this->fail('NO_ACTIVE_YEAR', 'Tidak ada Tahun Ajaran aktif.');
@@ -207,7 +203,9 @@ class KonselingBkService
         $data = $validated['data'];
         $data['id_tahun'] = (int) $tahun['id'];
         $data['status'] = 'Proses';
-        $data['id_guru_bk'] = $idGuru;
+        // Identity Guru bersifat optional. Audit actor selalu disimpan pada created_by.
+        $data['id_guru_bk'] = $this->scopeService->userGuruId($userId);
+        $data['created_by'] = $userId;
         $data['created_at'] = $now;
         $data['updated_at'] = $now;
         $data['updated_by'] = $userId;
@@ -498,8 +496,11 @@ class KonselingBkService
     {
         $roles = $this->authService->getUserRoles($userId);
 
-        if (! in_array('bk', $roles, true)) {
-            return $this->fail('FORBIDDEN', 'Catatan Konseling BK bersifat rahasia dan hanya dapat dibuka oleh Guru BK.');
+        if (array_intersect(self::ALLOWED_ROLES, $roles) === []) {
+            return $this->fail(
+                'FORBIDDEN',
+                'Konseling BK hanya dapat diakses oleh Admin, Operator, atau BK yang memiliki permission terkait.'
+            );
         }
 
         if ($this->authService->resolveScope($permission, $userId) !== 'SEMUA') {
@@ -513,7 +514,7 @@ class KonselingBkService
     {
         $roles = $this->authService->getUserRoles($userId);
 
-        return in_array('bk', $roles, true)
+        return array_intersect(self::ALLOWED_ROLES, $roles) !== []
             && $this->authService->resolveScope($permission, $userId) === 'SEMUA';
     }
 
