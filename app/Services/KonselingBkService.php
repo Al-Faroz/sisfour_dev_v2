@@ -11,86 +11,17 @@ class KonselingBkService
     private const MAX_EXPORT_ROWS = 50000;
     private const ALLOWED_ROLES = ['admin', 'operator', 'bk'];
 
-    private const BENTUK_LAYANAN = [
-        'Konseling individu',
-        'Konseling kelompok',
-        'Konsultasi',
-    ];
-
-    private const CARA_HADIR = [
-        'Datang sendiri',
-        'Dipanggil guru BK',
-        'Rujukan wali kelas',
-        'Rujukan guru mata pelajaran',
-        'Permintaan orang tua',
-        'Rujukan UKS',
-    ];
-
-    private const BIDANG = [
-        'Pribadi',
-        'Sosial',
-        'Belajar',
-        'Karier',
-    ];
-
-    private const TOPIK = [
-        'Pribadi' => [
-            'Percaya diri',
-            'Mengendalikan emosi',
-            'Cemas atau takut berlebihan',
-            'Sedih berkepanjangan',
-            'Masalah kesehatan',
-            'Perubahan masa pubertas',
-            'Lainnya',
-        ],
-        'Sosial' => [
-            'Konflik dengan teman',
-            'Menjadi korban perundungan',
-            'Melakukan perundungan',
-            'Menarik diri dari pergaulan',
-            'Masalah keluarga',
-            'Pergaulan dengan lawan jenis',
-            'Kecanduan gawai atau game',
-            'Lainnya',
-        ],
-        'Belajar' => [
-            'Motivasi belajar rendah',
-            'Sulit berkonsentrasi',
-            'Nilai menurun',
-            'Kesulitan pada mata pelajaran tertentu',
-            'Sering terlambat atau tidak masuk',
-            'Mengatur waktu belajar',
-            'Lainnya',
-        ],
-        'Karier' => [
-            'Memilih sekolah lanjutan',
-            'Mengenali bakat dan minat',
-            'Tekanan pilihan dari orang tua',
-            'Lainnya',
-        ],
-    ];
-
-    private const RENCANA = [
-        'Selesai',
-        'Konseling lanjutan',
-        'Memanggil orang tua',
-        'Koordinasi dengan wali kelas',
-        'Kunjungan rumah',
-        'Rujuk ke UKS',
-        'Rujuk ke psikolog atau Puskesmas',
-    ];
-
-    private const STATUS = ['Proses', 'Selesai'];
-
     protected KonselingBkModel $model;
     protected AuthService $authService;
     protected BkScopeService $scopeService;
+    protected BkKonselingFormSettingsService $formSettings;
 
     public function __construct()
     {
         $this->model = new KonselingBkModel();
         $this->authService = new AuthService();
         $this->scopeService = new BkScopeService();
+        $this->formSettings = new BkKonselingFormSettingsService();
     }
 
     public function getPage(int $userId, array $input): array
@@ -295,18 +226,12 @@ class KonselingBkService
 
     public function options(): array
     {
-        return [
-            'bentuk_layanan' => self::BENTUK_LAYANAN,
-            'cara_hadir' => self::CARA_HADIR,
-            'bidang' => self::BIDANG,
-            'topik' => self::TOPIK,
-            'rencana' => self::RENCANA,
-            'status' => self::STATUS,
-        ];
+        return $this->formSettings->options();
     }
 
     private function validateStageOne(array $input, int $idTahun): array
     {
+        $options = $this->options();
         $idKelas = (int) ($input['id_kelas'] ?? 0);
         $idSiswa = (int) ($input['id_siswa'] ?? 0);
         $tanggal = trim((string) ($input['tanggal'] ?? ''));
@@ -336,19 +261,19 @@ class KonselingBkService
             return $this->fail('VALIDATION', 'Pertemuan ke- harus berupa angka 1–99.');
         }
 
-        if (! in_array($bentuk, self::BENTUK_LAYANAN, true)) {
+        if (! in_array($bentuk, $options['bentuk_layanan'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Bentuk layanan tidak valid.');
         }
 
-        if (! in_array($caraHadir, self::CARA_HADIR, true)) {
+        if (! in_array($caraHadir, $options['cara_hadir'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Cara siswa hadir tidak valid.');
         }
 
-        if (! in_array($bidang, self::BIDANG, true)) {
+        if (! in_array($bidang, $options['bidang'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Bidang layanan tidak valid.');
         }
 
-        if (! in_array($topik, self::TOPIK[$bidang] ?? [], true)) {
+        if (! in_array($topik, $options['topik'][$bidang] ?? [], true)) {
             return $this->fail('VALIDATION', 'Topik tidak sesuai dengan bidang yang dipilih.');
         }
 
@@ -369,17 +294,18 @@ class KonselingBkService
 
     private function validateStageTwo(array $input, array $existing): array
     {
+        $options = $this->options();
         $uraian = trim((string) ($input['uraian_masalah'] ?? ''));
         $hasil = trim((string) ($input['hasil_kesepakatan'] ?? ''));
         $rencana = trim((string) ($input['rencana_berikutnya'] ?? ''));
         $tanggalBerikutnya = trim((string) ($input['tanggal_berikutnya'] ?? ''));
         $status = trim((string) ($input['status'] ?? 'Proses'));
 
-        if (! in_array($status, self::STATUS, true)) {
+        if (! in_array($status, $options['status'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Status Konseling BK tidak valid.');
         }
 
-        if ($rencana !== '' && ! in_array($rencana, self::RENCANA, true)) {
+        if ($rencana !== '' && ! in_array($rencana, $options['rencana'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Rencana berikutnya tidak valid.');
         }
 
@@ -416,16 +342,17 @@ class KonselingBkService
 
     private function filter(array $input): array
     {
+        $options = $this->options();
         $status = trim((string) ($input['status'] ?? ''));
         $bidang = trim((string) ($input['bidang'] ?? ''));
         $tanggalMulai = trim((string) ($input['tanggal_mulai'] ?? ''));
         $tanggalSelesai = trim((string) ($input['tanggal_selesai'] ?? ''));
 
-        if ($status !== '' && ! in_array($status, self::STATUS, true)) {
+        if ($status !== '' && ! in_array($status, $options['status'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Status filter tidak valid.');
         }
 
-        if ($bidang !== '' && ! in_array($bidang, self::BIDANG, true)) {
+        if ($bidang !== '' && ! in_array($bidang, $options['bidang'] ?? [], true)) {
             return $this->fail('VALIDATION', 'Bidang filter tidak valid.');
         }
 
