@@ -1,10 +1,10 @@
 # Testing, Regression & Release Gate — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 15 September 2026
-**Phase aktif:** G3 — Mobile Role UI
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 15 September 2026  
+**Phase aktif:** G3.2 — Guru/Wali Presensi & Jurnal
 
-> Quality gate dibagi per phase agar regression bisnis, mobile UI, dan Cordova tidak bercampur.
+> Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, dan Cordova tidak bercampur.
 
 ## 1. Static Gate Umum
 
@@ -110,6 +110,7 @@ Acceptance global:
 - NISN/NIP/NIK sekunder;
 - KPI 2×2 mobile bila ada KPI;
 - touch target utama 44–48px;
+- compact control minimum sekitar 40px;
 - modal/keyboard nyaman;
 - filter compact;
 - mutation busy guard;
@@ -117,17 +118,22 @@ Acceptance global:
 - server-confirmed success untuk data akademik;
 - no uncaught browser error.
 
-## 5. G3.1 — Mobile Foundation Gate
+## 5. G3.1 — Mobile Foundation — PASS / MERGED
 
-Foundation harus reusable dan tidak page-specific.
+G3.1 telah lulus static/browser smoke dan merged melalui PR #6.
 
-Minimum:
+```text
+PR #6          MERGED
+merge commit   d10ced5d70ffc68642067aac44feeb6a91cacd29
+```
+
+Foundation yang telah diterima:
 
 ```text
 safe-area tokens
 mobile page spacing/density
 compact navbar/page header
-44–48px primary touch target
+44px primary / 40px compact touch target
 adaptive operational table primitive
 primary/meta cell primitive
 compact row-action primitive
@@ -139,40 +145,194 @@ empty/loading/error compact state
 WebView-friendly viewport/overflow baseline
 ```
 
-Acceptance G3.1:
+G3.1 tidak menambahkan Cordova project/plugin dan tidak merusak Admin desktop.
 
-- tidak merusak Admin desktop;
-- tidak ada body horizontal overflow pada viewport wajib;
-- tidak ada global `min-width` yang memaksa mobile scroll;
-- safe-area token tersedia;
-- fixed/sticky element mempertimbangkan safe-area;
-- foundation modal tetap kompatibel dengan G2 modal safety;
-- touch target global tidak dikecilkan untuk mengejar density;
-- no Cordova plugin/project masuk G3.1;
-- `Routes.php` tidak berubah kecuali ada kebutuhan endpoint nyata.
+## 6. G3.2 — Guru/Wali Presensi & Jurnal — ACTIVE
 
-## 6. G3.2 — Guru/Wali Presensi & Jurnal
+### 6.1 Presensi Siswa
 
-Presensi Siswa:
+Wajib diuji:
 
-- Nama siswa menjadi identitas utama;
-- NISN tidak menjadi kolom rutin mobile;
-- status H/S/I/A punya target sentuh memadai;
-- Guru Terjadwal dan Wali tetap mengikuti scope server;
-- time window/geofence tetap server-authoritative;
-- atomic save;
-- duplicate prevention;
-- revisi actor sah;
-- dirty input tidak hilang pada network failure.
+- Nama siswa menjadi identitas utama pada mobile.
+- NISN tidak menjadi kolom rutin mobile.
+- tabel muat portrait tanpa horizontal scroll.
+- status H/S/I/A dapat disentuh nyaman pada 360–412px.
+- setiap status memiliki `aria-label`/label yang jelas.
+- default seluruh siswa tetap Hadir sesuai business rule.
+- Guru Terjadwal hanya kelas/jadwal yang diizinkan Service.
+- Wali hanya kelas wali sesuai mapping/scope Service.
+- Sesi Awal/Akhir tetap benar.
+- time-window dan geofence tetap server-authoritative.
+- satu submit kelas tetap atomic.
+- duplicate/revision guard tetap benar.
+- busy guard mencegah double-submit.
+- save gagal/network failure mempertahankan pilihan status di layar.
+- deep-link dengan kelas terpilih dapat memuat workflow tanpa tap tambahan yang tidak perlu.
+- success hanya muncul setelah server response sukses.
 
-Jurnal:
+### 6.2 SQL Schema Gate Jurnal G3.2
 
-- jadwal actor benar;
-- status/materi;
-- duplicate prevention;
-- textarea nyaman dengan keyboard;
-- mutation busy guard;
-- server-confirmed success.
+Schema delta tidak memakai CodeIgniter migration.
+
+Localhost / development / UAT:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+```
+
+Hosting / production:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+Sebelum UAT fitur Jurnal baru, pada **database localhost/staging copy** wajib:
+
+```text
+SQL localhost berhasil dieksekusi
+presensi_mengajar.catatan tersedia
+presensi_mengajar_siswa tersedia
+UNIQUE(parent,siswa) tersedia
+FK parent cascade tersedia
+FK siswa restrict tersedia
+index parent/siswa/status tersedia
+verification query PASS
+```
+
+SQL dirancang aman dijalankan ulang pada schema yang sudah memiliki delta G3.2. Production/hosting tidak disentuh saat regression development. Sebelum SQL hosting dijalankan wajib ada backup production, G3.2 PASS/merge/release disetujui, dan approval deploy eksplisit.
+
+### 6.3 Presensi Mengajar / Jurnal — Base Flow
+
+Wajib diuji:
+
+- Guru diri sendiri tidak perlu memilih Nama Guru berulang bila hanya satu identitas valid.
+- jika hanya satu Jadwal valid, workflow dapat langsung memuat Jurnal.
+- Admin/Operator tetap dapat memilih Guru lain sesuai scope SEMUA.
+- Wali tidak mendapat hak Jurnal karena status Wali; Jurnal tetap berdasarkan Jadwal Guru.
+- jadwal Sesi Awal/Akhir/Non Sesi tetap dapat memiliki Jurnal sesuai business rule.
+- status Guru Hadir/Izin/Sakit tetap valid.
+- materi/keterangan wajib.
+- catatan optional dapat disimpan/dikosongkan.
+- textarea nyaman saat keyboard mobile terbuka.
+- status button minimal 44px.
+- save button busy state terlihat dan tidak dapat double-submit.
+- revisi tetap hanya actor yang diizinkan Service.
+- time-window/geofence tetap server-authoritative.
+- success hanya setelah server response sukses.
+
+### 6.4 Exception Siswa pada Jurnal
+
+Kontrak yang wajib dibuktikan runtime:
+
+```text
+child status = Sakit / Izin / Alpha
+child bukan Presensi Siswa resmi
+```
+
+Uji minimal:
+
+- search Nama menemukan siswa roster kelas Jurnal;
+- search NISN menemukan siswa yang sama;
+- siswa di luar roster kelas/tanggal tidak dapat dipilih dari UI;
+- forged request siswa di luar roster ditolak server;
+- siswa yang sama dua kali dalam satu payload ditolak;
+- status selain Sakit/Izin/Alpha ditolak;
+- siswa baru yang ditambahkan wajib memilih S/I/A sebelum save;
+- tidak ada default status child diam-diam;
+- status Guru `Hadir` boleh memiliki 0..N child;
+- status Guru `Izin/Sakit` dengan child ditolak server;
+- mengubah UI Guru `Hadir` → `Izin/Sakit` dengan child meminta konfirmasi sebelum mengosongkan list;
+- summary badge S/I/A sesuai selected state;
+- snapshot Nama/NISN child tersimpan;
+- `UNIQUE(id_presensi_mengajar,id_siswa)` terjaga.
+
+### 6.5 Atomicity dan Official Presensi Invariant
+
+Create dan revisi wajib membuktikan:
+
+```text
+parent Jurnal + exact child list = satu transaction
+```
+
+Uji:
+
+- create parent + beberapa child sukses semua;
+- revisi child mengganti exact state lama, tidak meninggalkan stale row;
+- kegagalan child tidak meninggalkan parent/child parsial;
+- activity log hanya mengikuti transaction sukses;
+- tabel `presensi` tidak bertambah/berubah akibat save child Jurnal;
+- Rekap/EWS/Signage Presensi resmi tidak berubah akibat child Jurnal.
+
+### 6.6 Laporan Jurnal dan Performance
+
+Listing wajib:
+
+```text
+1 row = 1 Jurnal
+```
+
+Uji:
+
+- Materi dan Catatan tampil ringkas;
+- jumlah S/I/A sesuai child database;
+- satu Jurnal dengan banyak child tetap satu row parent;
+- pagination tetap berdasarkan jumlah parent Jurnal;
+- desktop table normal;
+- mobile memakai card/list tanpa horizontal scroll;
+- `Detail` lazy-load menampilkan exact child Name/NISN/status;
+- Detail actor scope tetap server-side;
+- tidak ada N+1 child query per row;
+- aggregate child dilakukan batch untuk parent IDs page aktif;
+- network failure pada listing/detail memberi state gagal yang jelas.
+
+### 6.7 Network Failure / Mutation Safety
+
+Jika network/server gagal saat save:
+
+```text
+Presensi Siswa → pilihan H/S/I/A tetap di layar
+Jurnal         → status Guru + materi + catatan + daftar siswa S/I/A tetap di layar
+```
+
+Tidak ada offline queue atau sukses palsu.
+
+### 6.8 Viewport Focused G3.2
+
+Minimum runtime smoke:
+
+```text
+360×800
+390×844
+412×915
+768×1024
+1366×768
+```
+
+Pada 360/390/412 wajib cek:
+
+```text
+body overflow = none
+Presensi table horizontal scroll = none
+H/S/I/A Presensi fully reachable
+sticky save tidak menutup row terakhir
+Jurnal Materi/Catatan tetap usable dengan keyboard simulation
+search siswa tidak keluar viewport
+S/I/A child controls reachable
+SearchableSelect Guru tidak keluar viewport
+report card/list tidak horizontal-scroll
+modal Detail Jurnal vertical-scroll dan action reachable
+console clean
+```
+
+### 6.9 Actor Minimum G3.2
+
+```text
+Guru terjadwal
+Guru + Wali
+Admin atau Operator untuk smoke compatibility + revisi
+```
+
+Jika data memungkinkan, uji satu Guru biasa dan satu Guru yang juga Wali agar kedua context terbukti tidak saling menimpa.
 
 ## 7. G3.3 — Dashboard Guru/Wali
 
@@ -330,9 +490,19 @@ restore state pada gagal
 - no N+1;
 - pagination;
 - dashboard hanya data ringkas;
-- mobile tidak merender ratusan row;
+- mobile tidak merender ratusan row tanpa kebutuhan;
 - chart mobile ringkas;
 - Kartu/PDF tetap dalam memory limit.
+
+Khusus laporan Jurnal child G3.2:
+
+```text
+parent page query
++ 1 aggregate child query untuk seluruh parent pada page
++ detail child hanya saat user meminta
+```
+
+Dilarang menjalankan satu child query untuk setiap row parent.
 
 ## 17. G4 Gate — Cordova APK
 
@@ -356,9 +526,11 @@ Sebelum build final:
 ## 18. Phase Release Rule
 
 ```text
-G2 CLOSED → baseline main untuk G3
-G3 PASS   → mobile/WebView UI dianggap siap
-G4 PASS   → APK dapat masuk distribution gate
+G2 CLOSED      → business/admin baseline
+G3.1 CLOSED    → mobile foundation baseline
+G3.2 PASS      → Guru/Wali Presensi & Jurnal mobile-ready + SQL schema delta Jurnal validated
+G3 PASS        → mobile/WebView UI dianggap siap
+G4 PASS        → APK dapat masuk distribution gate
 ```
 
 Setiap merge/release tetap membutuhkan approval eksplisit pengguna.

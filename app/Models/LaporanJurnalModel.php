@@ -9,6 +9,7 @@ use Config\Database;
  * LaporanJurnalModel
  *
  * Histori Jurnal tidak memfilter status_jadwal = Aktif.
+ * Child siswa Jurnal diagregasi terpisah agar satu row laporan tetap satu Jurnal.
  */
 class LaporanJurnalModel
 {
@@ -115,6 +116,81 @@ class LaporanJurnalModel
             ->getResultArray();
     }
 
+    public function getById(int $idJurnal): ?array
+    {
+        if ($idJurnal <= 0) {
+            return null;
+        }
+
+        $row = $this->baseBuilder([])
+            ->where('pm.id', $idJurnal)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
+    /**
+     * Aggregate child untuk sekumpulan parent tanpa N+1 query.
+     *
+     * @return array<int,array{Sakit:int,Izin:int,Alpha:int,total:int}>
+     */
+    public function getStudentExceptionSummary(array $idJurnal): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $idJurnal))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->db
+            ->table('presensi_mengajar_siswa')
+            ->select('id_presensi_mengajar, status, COUNT(*) AS jumlah')
+            ->whereIn('id_presensi_mengajar', $ids)
+            ->groupBy('id_presensi_mengajar, status')
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $id = (int) ($row['id_presensi_mengajar'] ?? 0);
+            $status = (string) ($row['status'] ?? '');
+            $jumlah = (int) ($row['jumlah'] ?? 0);
+
+            if (! isset($map[$id])) {
+                $map[$id] = [
+                    'Sakit' => 0,
+                    'Izin' => 0,
+                    'Alpha' => 0,
+                    'total' => 0,
+                ];
+            }
+
+            if (array_key_exists($status, $map[$id])) {
+                $map[$id][$status] = $jumlah;
+                $map[$id]['total'] += $jumlah;
+            }
+        }
+
+        return $map;
+    }
+
+    public function getStudentExceptions(int $idJurnal): array
+    {
+        if ($idJurnal <= 0) {
+            return [];
+        }
+
+        return $this->db
+            ->table('presensi_mengajar_siswa')
+            ->select('id, id_siswa, nama_siswa_snapshot, nisn_snapshot, status')
+            ->where('id_presensi_mengajar', $idJurnal)
+            ->orderBy('nama_siswa_snapshot', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
     private function baseBuilder(array $filter)
     {
         $builder = $this->db
@@ -129,6 +205,7 @@ class LaporanJurnalModel
                 'pm.tanggal',
                 'pm.status',
                 'pm.materi',
+                'pm.catatan',
                 'jg.hari',
                 'jg.jam_mulai',
                 'jg.jam_selesai',

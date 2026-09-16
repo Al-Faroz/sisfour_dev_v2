@@ -2,24 +2,25 @@
 
 namespace App\Controllers;
 
-use App\Services\PresensiMengajarService;
+use App\Services\PresensiMengajarJurnalService;
 use CodeIgniter\I18n\Time;
+use Config\Database;
 
 /**
  * PresensiMengajar
  *
  * Controller tipis untuk Presensi Mengajar / Jurnal.
- * Business rule dan data-level authorization berada di PresensiMengajarService.
+ * Business rule dan data-level authorization berada di Service.
  */
 class PresensiMengajar extends BaseController
 {
     private const TZ = 'Asia/Jakarta';
 
-    protected PresensiMengajarService $service;
+    protected PresensiMengajarJurnalService $service;
 
     public function __construct()
     {
-        $this->service = new PresensiMengajarService();
+        $this->service = new PresensiMengajarJurnalService();
     }
 
     public function index()
@@ -136,6 +137,22 @@ class PresensiMengajar extends BaseController
     {
         $userId = $this->currentActorUserId();
         $now = Time::now(self::TZ);
+        $idJurnal = (int) $this->request->getGet('id_jurnal');
+        $wantsJson = $this->requestWantsJson();
+
+        if ($wantsJson && ! $this->jurnalSchemaReady()) {
+            return $this->respondService([
+                'success' => false,
+                'code' => 'SCHEMA_NOT_READY',
+                'message' => 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.',
+            ]);
+        }
+
+        if ($wantsJson && $idJurnal > 0) {
+            return $this->respondService(
+                $this->service->getHistoriDetail($userId, $idJurnal)
+            );
+        }
 
         $tanggalMulai = trim(
             (string) $this->request->getGet('tanggal_mulai')
@@ -162,7 +179,7 @@ class PresensiMengajar extends BaseController
             ? $statusRaw
             : null;
 
-        if ($this->requestWantsJson()) {
+        if ($wantsJson) {
             return $this->respondService(
                 $this->service->getHistori(
                     $userId,
@@ -199,18 +216,31 @@ class PresensiMengajar extends BaseController
         return is_array($post) ? $post : [];
     }
 
+    private function jurnalSchemaReady(): bool
+    {
+        $db = Database::connect();
+
+        return $db->fieldExists('catatan', 'presensi_mengajar')
+            && $db->tableExists('presensi_mengajar_siswa');
+    }
+
     private function respondService(array $result, int $successCode = 200)
     {
         $success = (bool) ($result['success'] ?? false);
         $code = (string) ($result['code'] ?? '');
         $httpCode = $success ? $successCode : $this->httpCodeFor($code);
+        $message = $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.');
+
+        if (! $success && $code === 'SCHEMA_NOT_READY') {
+            $message = 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.';
+            $result['message'] = $message;
+        }
 
         return $this->response
             ->setStatusCode($httpCode)
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $message,
                 'data' => $result,
             ]);
     }
@@ -224,6 +254,7 @@ class PresensiMengajar extends BaseController
             'NO_GURU_IDENTITY',
             'OUTSIDE_SCHEDULE_DATE' => 403,
             'ALREADY_SUBMITTED' => 409,
+            'NOT_FOUND' => 404,
             default => 422,
         };
     }

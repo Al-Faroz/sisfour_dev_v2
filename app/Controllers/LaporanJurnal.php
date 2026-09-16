@@ -2,28 +2,35 @@
 
 namespace App\Controllers;
 
-use App\Services\ExportService;
-use App\Services\LaporanJurnalService;
+use App\Services\JurnalExportService;
+use App\Services\LaporanJurnalExceptionService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class LaporanJurnal extends BaseController
 {
-    protected LaporanJurnalService $service;
-    protected ExportService $exportService;
+    protected LaporanJurnalExceptionService $service;
+    protected JurnalExportService $exportService;
 
     public function __construct()
     {
-        $this->service = new LaporanJurnalService();
-        $this->exportService = new ExportService();
+        $this->service = new LaporanJurnalExceptionService();
+        $this->exportService = new JurnalExportService();
     }
 
     public function index()
     {
         $userId = $this->currentActorUserId();
         $idTahun = (int) $this->request->getGet('id_tahun');
+        $idJurnal = (int) $this->request->getGet('id_jurnal');
         $defaults = $this->service->defaultDates();
 
         if ($this->requestWantsJson()) {
+            if ($idJurnal > 0) {
+                return $this->respondService(
+                    $this->service->getDetail($userId, $idJurnal)
+                );
+            }
+
             return $this->respondService(
                 $this->service->getPaged(
                     $userId,
@@ -106,17 +113,23 @@ class LaporanJurnal extends BaseController
     private function respondService(array $result)
     {
         $success = (bool) ($result['success'] ?? false);
+        $code = (string) ($result['code'] ?? '');
+        $message = $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.');
+
+        if (! $success && $code === 'SCHEMA_NOT_READY') {
+            $message = 'Schema Jurnal siswa belum tersedia. Jalankan SQL schema G3.2 terlebih dahulu.';
+            $result['message'] = $message;
+        }
 
         return $this->response
             ->setStatusCode(
                 $success
                     ? ResponseInterface::HTTP_OK
-                    : $this->httpCode((string) ($result['code'] ?? ''))
+                    : $this->httpCode($code)
             )
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $message,
                 'data' => $result,
             ]);
     }
@@ -127,6 +140,7 @@ class LaporanJurnal extends BaseController
             'FORBIDDEN',
             'FORBIDDEN_VIEW',
             'NO_GURU_IDENTITY' => 403,
+            'NOT_FOUND' => 404,
             default => 422,
         };
     }

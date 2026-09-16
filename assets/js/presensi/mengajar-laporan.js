@@ -11,7 +11,21 @@
     const btnMuat = document.getElementById('btnMuatLaporanJurnal');
     const info = document.getElementById('laporanJurnalInfo');
     const body = document.getElementById('laporanJurnalBody');
-    const meta = document.getElementById('laporanJurnalMeta');
+    const mobileList = document.getElementById('laporanJurnalMobileList');
+
+    const detailModalElement = document.getElementById('jurnalDetailModal');
+    const detailTitle = document.getElementById('jurnalDetailTitle');
+    const detailMeta = document.getElementById('jurnalDetailMeta');
+    const detailInfo = document.getElementById('jurnalDetailInfo');
+    const detailContent = document.getElementById('jurnalDetailContent');
+    const detailStatus = document.getElementById('jurnalDetailStatus');
+    const detailMateri = document.getElementById('jurnalDetailMateri');
+    const detailCatatan = document.getElementById('jurnalDetailCatatan');
+    const detailStudents = document.getElementById('jurnalDetailStudents');
+    const detailEmpty = document.getElementById('jurnalDetailEmpty');
+    const detailSakit = document.getElementById('jurnalDetailSakit');
+    const detailIzin = document.getElementById('jurnalDetailIzin');
+    const detailAlpha = document.getElementById('jurnalDetailAlpha');
 
     if (
         !inputMulai
@@ -20,6 +34,7 @@
         || !btnMuat
         || !info
         || !body
+        || !mobileList
     ) {
         return;
     }
@@ -40,9 +55,9 @@
         },
     });
 
-    if (meta) {
-        meta.classList.add('d-none');
-    }
+    const detailModal = detailModalElement && window.bootstrap?.Modal
+        ? window.bootstrap.Modal.getOrCreateInstance(detailModalElement)
+        : null;
 
     const url = (path) =>
         `${baseUrl}/${String(path).replace(/^\/+/, '')}`;
@@ -51,6 +66,12 @@
         const div = document.createElement('div');
         div.textContent = value == null ? '' : String(value);
         return div.innerHTML;
+    };
+
+    const truncate = (value, max = 120) => {
+        const text = String(value ?? '').trim();
+        if (text.length <= max) return text;
+        return `${text.slice(0, max - 1)}…`;
     };
 
     const showInfo = (message, type = 'info') => {
@@ -63,6 +84,35 @@
         info.classList.add('d-none');
     };
 
+    async function requestJson(requestUrl) {
+        let response;
+
+        try {
+            response = await fetch(requestUrl, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+        } catch (error) {
+            throw new Error('Koneksi ke server gagal. Periksa jaringan lalu coba lagi.');
+        }
+
+        let json = null;
+        try {
+            json = await response.json();
+        } catch (error) {
+            json = null;
+        }
+
+        if (!response.ok || json?.status !== 'success') {
+            throw new Error(json?.message || `Request gagal (${response.status}).`);
+        }
+
+        return json;
+    }
+
     const badge = (status) => {
         const css = status === 'Hadir'
             ? 'success'
@@ -70,10 +120,31 @@
                 ? 'warning'
                 : 'danger';
 
+        return `<span class="badge bg-label-${css}">${escapeHtml(status)}</span>`;
+    };
+
+    const studentBadge = (status) => {
+        const css = status === 'Sakit'
+            ? 'warning'
+            : status === 'Izin'
+                ? 'info'
+                : 'danger';
+        return `<span class="badge bg-label-${css}">${escapeHtml(status)}</span>`;
+    };
+
+    const exceptionSummaryHtml = (row) => {
+        const summary = row.siswa_exception_summary || {};
+        const total = Number(row.siswa_exception_count || summary.total || 0);
+
+        if (total <= 0) {
+            return '<span class="text-muted small">Tidak ada</span>';
+        }
+
         return `
-            <span class="badge bg-label-${css}">
-                ${escapeHtml(status)}
-            </span>
+            <div class="fw-semibold">${total} siswa</div>
+            <small class="text-muted">
+                S ${Number(summary.Sakit || 0)} · I ${Number(summary.Izin || 0)} · A ${Number(summary.Alpha || 0)}
+            </small>
         `;
     };
 
@@ -127,6 +198,16 @@
         });
     };
 
+    const detailButton = (id, compact = false) => `
+        <button
+            type="button"
+            class="btn ${compact ? 'btn-sm' : ''} btn-outline-primary sisfour-touch-target--compact"
+            data-jurnal-detail="${Number(id)}"
+        >
+            <i class="bx bx-detail me-1"></i> Detail
+        </button>
+    `;
+
     const render = (rows) => {
         if (!Array.isArray(rows) || rows.length === 0) {
             body.innerHTML = `
@@ -136,39 +217,117 @@
                     </td>
                 </tr>
             `;
+            mobileList.innerHTML = '<div class="sisfour-mobile-state text-muted">Tidak ada data Jurnal pada filter tersebut.</div>';
             return;
         }
 
         body.innerHTML = rows.map((row) => `
             <tr>
                 <td>${escapeHtml(row.tanggal)}</td>
-                <td>${escapeHtml(row.nama_guru_snapshot || '-')}</td>
-                <td>${escapeHtml(row.nama_kelas || '-')}</td>
                 <td>
-                    <div class="fw-semibold">
-                        ${escapeHtml(row.nama_mapel || '-')}
-                    </div>
-                    <small class="text-muted">
-                        ${escapeHtml(row.kode_mapel || '')}
-                    </small>
+                    <div class="fw-semibold">${escapeHtml(row.nama_guru_snapshot || '-')}</div>
+                    <small class="text-muted">${escapeHtml(row.nama_kelas || '-')}</small>
                 </td>
                 <td>
-                    <div>
-                        ${escapeHtml(row.jam_mulai || '')}
-                        -
-                        ${escapeHtml(row.jam_selesai || '')}
-                    </div>
+                    <div class="fw-semibold">${escapeHtml(row.nama_mapel || '-')}</div>
                     <small class="text-muted">
-                        ${escapeHtml(row.sesi || '-')}
+                        ${escapeHtml(row.jam_mulai || '')} - ${escapeHtml(row.jam_selesai || '')} · ${escapeHtml(row.sesi || '-')}
                     </small>
                 </td>
                 <td>${badge(row.status || '-')}</td>
                 <td style="min-width:260px;">
-                    ${escapeHtml(row.materi || '-')}
+                    <div>${escapeHtml(truncate(row.materi || '-', 110))}</div>
+                    ${row.catatan ? `<small class="text-muted">Catatan: ${escapeHtml(truncate(row.catatan, 80))}</small>` : ''}
                 </td>
+                <td>${exceptionSummaryHtml(row)}</td>
+                <td class="text-end">${detailButton(row.id, true)}</td>
             </tr>
         `).join('');
+
+        mobileList.innerHTML = rows.map((row) => `
+            <article class="border rounded p-3 mb-2">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
+                        <div class="fw-semibold text-break">${escapeHtml(row.nama_mapel || '-')} · ${escapeHtml(row.nama_kelas || '-')}</div>
+                        <small class="text-muted">${escapeHtml(row.tanggal)} · ${escapeHtml(row.jam_mulai || '')}-${escapeHtml(row.jam_selesai || '')}</small>
+                    </div>
+                    ${badge(row.status || '-')}
+                </div>
+                <div class="small mb-2">
+                    <div class="fw-semibold">${escapeHtml(row.nama_guru_snapshot || '-')}</div>
+                    <div class="text-muted mt-1">${escapeHtml(truncate(row.materi || '-', 120))}</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-end gap-2">
+                    <div>${exceptionSummaryHtml(row)}</div>
+                    ${detailButton(row.id, true)}
+                </div>
+            </article>
+        `).join('');
     };
+
+    async function loadDetail(idJurnal) {
+        if (!idJurnal) return;
+
+        detailTitle.textContent = 'Detail Jurnal';
+        detailMeta.textContent = '';
+        detailContent.classList.add('d-none');
+        detailInfo.className = 'alert alert-info';
+        detailInfo.textContent = 'Memuat detail Jurnal...';
+        detailInfo.classList.remove('d-none');
+        detailStudents.innerHTML = '';
+        detailEmpty.classList.add('d-none');
+        detailModal?.show();
+
+        try {
+            const params = new URLSearchParams({
+                format: 'json',
+                id_jurnal: String(idJurnal),
+            });
+            const json = await requestJson(
+                url(`presensi/mengajar/laporan?${params.toString()}`)
+            );
+
+            const data = json.data || {};
+            const jurnal = data.jurnal || {};
+            const students = Array.isArray(data.siswa) ? data.siswa : [];
+            const summary = data.siswa_exception_summary || {};
+
+            detailTitle.textContent = `${jurnal.nama_kelas || '-'} — ${jurnal.nama_mapel || '-'}`;
+            detailMeta.textContent = [
+                jurnal.nama_guru_snapshot || '-',
+                jurnal.tanggal || '-',
+                `${jurnal.jam_mulai || ''} - ${jurnal.jam_selesai || ''}`,
+                jurnal.sesi || '-'
+            ].join(' · ');
+            detailStatus.textContent = jurnal.status || '-';
+            detailMateri.textContent = jurnal.materi || '-';
+            detailCatatan.textContent = jurnal.catatan || '-';
+            detailSakit.textContent = String(Number(summary.Sakit || 0));
+            detailIzin.textContent = String(Number(summary.Izin || 0));
+            detailAlpha.textContent = String(Number(summary.Alpha || 0));
+
+            if (students.length === 0) {
+                detailEmpty.classList.remove('d-none');
+            } else {
+                detailStudents.innerHTML = students.map((student) => `
+                    <div class="border rounded p-2 d-flex justify-content-between align-items-center gap-2">
+                        <div class="min-w-0">
+                            <div class="fw-semibold text-break">${escapeHtml(student.nama_siswa_snapshot || '-')}</div>
+                            <small class="text-muted">${student.nisn_snapshot ? `NISN ${escapeHtml(student.nisn_snapshot)}` : 'NISN tidak tersedia'}</small>
+                        </div>
+                        ${studentBadge(student.status || '-')}
+                    </div>
+                `).join('');
+            }
+
+            detailInfo.classList.add('d-none');
+            detailContent.classList.remove('d-none');
+        } catch (error) {
+            detailInfo.className = 'alert alert-danger';
+            detailInfo.textContent = error.message;
+            detailInfo.classList.remove('d-none');
+        }
+    }
 
     async function load(resetOffset = false) {
         if (resetOffset) {
@@ -188,29 +347,9 @@
         params.set('format', 'json');
 
         try {
-            const response = await fetch(
-                url(`presensi/mengajar/laporan?${params.toString()}`),
-                {
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                }
+            const json = await requestJson(
+                url(`presensi/mengajar/laporan?${params.toString()}`)
             );
-
-            const json = await response.json();
-
-            if (!response.ok || json.status !== 'success') {
-                showInfo(
-                    json.message || 'Gagal memuat histori Jurnal.',
-                    'danger'
-                );
-                render([]);
-                state.total = 0;
-                pager?.render(state);
-                return;
-            }
 
             hideInfo();
 
@@ -238,11 +377,10 @@
             pager?.render(state);
             syncUrl();
         } catch (error) {
-            showInfo(
-                'Terjadi kesalahan saat memuat histori Jurnal.',
-                'danger'
-            );
+            showInfo(error.message || 'Terjadi kesalahan saat memuat histori Jurnal.', 'danger');
             render([]);
+            state.total = 0;
+            pager?.render(state);
         } finally {
             btnMuat.disabled = false;
             pager?.setDisabled(false);
@@ -250,6 +388,12 @@
     }
 
     btnMuat.addEventListener('click', () => load(true));
+
+    app.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-jurnal-detail]');
+        if (!button) return;
+        loadDetail(Number(button.dataset.jurnalDetail || 0));
+    });
 
     restoreState();
     load(false);

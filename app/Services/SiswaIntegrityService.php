@@ -395,6 +395,7 @@ class SiswaIntegrityService extends SiswaService
             ['anggota_kelas', 'id_siswa', 'keanggotaan kelas'],
             ['riwayat_siswa', 'id_siswa', 'riwayat siswa'],
             ['presensi', 'id_siswa', 'presensi siswa'],
+            ['presensi_mengajar_siswa', 'id_siswa', 'catatan jurnal pembelajaran'],
             ['kartu_pelajar', 'id_siswa', 'kartu pelajar'],
             ['catatan_kasus', 'id_siswa', 'catatan kasus BK'],
             ['catatan_prestasi', 'id_siswa', 'catatan prestasi'],

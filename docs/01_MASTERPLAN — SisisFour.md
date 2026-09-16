@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 15 September 2026
-**Development aktif:** G3.1 Mobile Foundation
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 15 September 2026  
+**Development aktif:** G3.2 — Guru/Wali Presensi & Jurnal  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -170,17 +170,11 @@ Scope G2 tidak dibuka ulang pada G3 kecuali ditemukan regression/blocker nyata.
 
 ## 10. G3 — Mobile Role UI
 
-Development aktif dimulai dari branch:
+Urutan implementasi:
 
 ```text
-feat/g3-mobile-foundation-20260915
-```
-
-Urutan:
-
-```text
-G3.1 Mobile foundation
-G3.2 Guru/Wali Presensi & Jurnal
+G3.1 Mobile foundation                  CLOSED / MERGED
+G3.2 Guru/Wali Presensi & Jurnal        ACTIVE
 G3.3 Dashboard Guru/Wali
 G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
@@ -201,39 +195,68 @@ safe-area/keyboard ready
 mobile filter/action density yang konsisten
 ```
 
-### G3.1 Mobile Foundation
+### G3.1 Mobile Foundation — CLOSED
 
-Foundation bersifat reusable dan tidak boleh membuat UI kedua:
-
-```text
-safe-area tokens
-mobile spacing/density tokens
-compact page header/navbar
-mobile touch-target baseline
-adaptive table primitives
-primary/meta cell primitives
-compact row actions
-mobile filter/form primitives
-sticky action primitive
-fullscreen modal compatibility
-compact pagination
-empty/loading/error state
-WebView-friendly overflow baseline
-```
-
-Foundation tidak mengubah business rule dan tidak menambahkan Cordova plugin/project.
-
-Viewport minimum G3:
+G3.1 merged melalui PR #6 dengan merge commit:
 
 ```text
-360×800
-375×812
-390×844
-412×915
-768×1024
-1024×768
-1366×768
+d10ced5d70ffc68642067aac44feeb6a91cacd29
 ```
+
+Foundation menyediakan role-aware shell, safe-area, mobile density, touch targets, adaptive table, sticky actions, KPI 2×2, compact pagination, dan overflow baseline.
+
+### G3.2 Guru/Wali Presensi & Jurnal — ACTIVE
+
+Branch aktif:
+
+```text
+feat/g3-guru-wali-presensi-jurnal-20260915
+```
+
+Fokus Presensi Siswa:
+
+```text
+mobile name-first
+H/S/I/A touch-friendly
+no horizontal table scroll
+sticky/busy-safe save
+network failure mempertahankan input
+Guru/Wali scope tetap Service-authoritative
+```
+
+Fokus Jurnal:
+
+```text
+mobile keyboard-friendly
+self Guru tidak perlu memilih identitas berulang
+Jadwal tunggal dapat dipercepat
+Materi wajib
+Catatan optional
+siswa exception per pembelajaran: Sakit/Izin/Alpha
+search siswa Name + NISN hanya roster kelas/tanggal Jurnal
+parent + child save/revisi atomic
+laporan tetap 1 row per Jurnal
+aggregate child no N+1 + Detail lazy-load
+server-confirmed mutation success
+```
+
+G3.2 mempertahankan RBAC, geofence, time-window, dan makna Presensi Siswa resmi. Perluasan domain yang disetujui terbatas pada Jurnal:
+
+```text
+presensi_mengajar.catatan
+presensi_mengajar_siswa
+```
+
+Child Jurnal tidak mengubah tabel `presensi`, tidak masuk Rekap/EWS/Signage Presensi, dan hanya menyimpan exception pembelajaran.
+
+Schema delta G3.2 dibawa melalui SQL idempotent, bukan CodeIgniter migration:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+SQL localhost digunakan untuk development/UAT. SQL hosting hanya dijalankan setelah backup dan approval deploy eksplisit. Keduanya aman dijalankan ulang pada schema yang sudah memiliki `catatan`/`presensi_mengajar_siswa`.
 
 ## 11. G4 — Cordova APK
 
@@ -258,9 +281,11 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada
 ## 12. Release Rule
 
 ```text
-G2 CLOSED → baseline main untuk G3
-G3 PASS   → mobile/WebView UI ready
-G4 PASS   → APK distribution gate
+G2 CLOSED      → baseline business/admin stabil
+G3.1 CLOSED    → mobile foundation tersedia
+G3.2 PASS      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta Jurnal tervalidasi
+G3 PASS        → mobile/WebView UI ready
+G4 PASS        → APK distribution gate
 ```
 
 Setiap merge/release tetap membutuhkan approval eksplisit pengguna.
