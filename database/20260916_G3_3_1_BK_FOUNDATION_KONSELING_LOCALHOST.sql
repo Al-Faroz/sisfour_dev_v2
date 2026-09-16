@@ -6,8 +6,11 @@
 -- Catatan:
 -- 1) Kolom legacy ref_pelanggaran.poin TIDAK dihapus pada tahap ini agar rollback aman.
 --    Aplikasi G3.3.1 tidak lagi menampilkan/mengagregasi poin.
--- 2) Konseling BK bersifat rahasia. Permission baru hanya diberikan ke role BK.
+-- 2) Konseling BK bersifat rahasia. Akses diberikan kepada Admin, Operator, dan BK
+--    melalui permission khusus; Service tetap menjadi business/security boundary.
 -- 3) Workflow Konseling BK: create Tahap 1 -> update Tahap 2.
+-- 4) Pencatat selalu direkam melalui created_by -> users.id. id_guru_bk hanya metadata
+--    optional bila akun memang terhubung ke identitas Guru.
 
 USE `sisfour_dev_v2`;
 
@@ -27,7 +30,8 @@ CREATE TABLE IF NOT EXISTS `konseling_bk` (
   `rencana_berikutnya` varchar(100) DEFAULT NULL,
   `tanggal_berikutnya` date DEFAULT NULL,
   `status` enum('Proses','Selesai') NOT NULL DEFAULT 'Proses',
-  `id_guru_bk` int(10) UNSIGNED NOT NULL,
+  `id_guru_bk` int(10) UNSIGNED DEFAULT NULL,
+  `created_by` int(10) UNSIGNED DEFAULT NULL,
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `updated_by` int(10) UNSIGNED DEFAULT NULL,
@@ -38,15 +42,16 @@ CREATE TABLE IF NOT EXISTS `konseling_bk` (
   KEY `idx_konseling_guru_tanggal` (`id_guru_bk`,`tanggal`),
   KEY `idx_konseling_tahun` (`id_tahun`),
   KEY `idx_konseling_tanggal_berikutnya` (`tanggal_berikutnya`),
+  KEY `idx_konseling_created_by` (`created_by`),
   KEY `idx_konseling_updated_by` (`updated_by`),
   CONSTRAINT `fk_konseling_tahun` FOREIGN KEY (`id_tahun`) REFERENCES `tahun_ajaran` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `fk_konseling_kelas` FOREIGN KEY (`id_kelas`) REFERENCES `kelas` (`id`) ON UPDATE CASCADE,
   CONSTRAINT `fk_konseling_siswa` FOREIGN KEY (`id_siswa`) REFERENCES `siswa` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_konseling_guru_bk` FOREIGN KEY (`id_guru_bk`) REFERENCES `guru` (`id`) ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_guru_bk` FOREIGN KEY (`id_guru_bk`) REFERENCES `guru` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_konseling_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_konseling_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Permission khusus Konseling BK.
 INSERT INTO `permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 VALUES
   ('bk_konseling.view', 'Lihat Konseling BK', 'BK', 'SEMUA'),
@@ -57,22 +62,24 @@ ON DUPLICATE KEY UPDATE
   `modul` = VALUES(`modul`),
   `scope_didukung` = VALUES(`scope_didukung`);
 
--- Rahasia: hanya role BK yang mendapat permission Konseling BK.
 INSERT IGNORE INTO `role_permissions` (`role`, `id_permission`, `scope`)
-SELECT 'bk', p.id, 'SEMUA'
-FROM `permissions` p
-WHERE p.permission_key IN (
-  'bk_konseling.view',
-  'bk_konseling.manage',
-  'bk_konseling.export'
-);
+SELECT r.`role`, p.`id`, 'SEMUA'
+FROM (
+  SELECT 'admin' AS `role`
+  UNION ALL SELECT 'operator'
+  UNION ALL SELECT 'bk'
+) r
+JOIN `permissions` p
+  ON p.`permission_key` IN (
+    'bk_konseling.view',
+    'bk_konseling.manage',
+    'bk_konseling.export'
+  );
 
--- Istilah UI: Catatan Kasus menjadi Catatan Pelanggaran.
 UPDATE `menus`
 SET `nama_menu` = 'Catatan Pelanggaran', `updated_at` = NOW()
 WHERE `link` = 'bk/kasus';
 
--- Tambah menu Konseling BK pada parent yang sama dengan Catatan Pelanggaran.
 SET @bk_parent_id := (
   SELECT `parent_id`
   FROM `menus`
@@ -106,10 +113,14 @@ SET @konseling_menu_id := (
 );
 
 INSERT IGNORE INTO `role_menus` (`role`, `id_menu`, `tampil`)
-SELECT 'bk', @konseling_menu_id, 1
+SELECT r.`role`, @konseling_menu_id, 1
+FROM (
+  SELECT 'admin' AS `role`
+  UNION ALL SELECT 'operator'
+  UNION ALL SELECT 'bk'
+) r
 WHERE @konseling_menu_id IS NOT NULL;
 
--- Verifikasi cepat.
 SELECT `id`, `permission_key`, `nama`, `scope_didukung`
 FROM `permissions`
 WHERE `permission_key` LIKE 'bk_konseling.%'
@@ -119,11 +130,12 @@ SELECT rp.`role`, p.`permission_key`, rp.`scope`
 FROM `role_permissions` rp
 JOIN `permissions` p ON p.`id` = rp.`id_permission`
 WHERE p.`permission_key` LIKE 'bk_konseling.%'
-ORDER BY p.`permission_key`, rp.`role`;
+ORDER BY rp.`role`, p.`permission_key`;
 
-SELECT `id`, `nama_menu`, `parent_id`, `urutan`, `link`
-FROM `menus`
-WHERE `link` IN ('bk/kasus', 'bk/konseling')
-ORDER BY `urutan`;
+SELECT rm.`role`, m.`nama_menu`, m.`link`, rm.`tampil`
+FROM `role_menus` rm
+JOIN `menus` m ON m.`id` = rm.`id_menu`
+WHERE m.`link` = 'bk/konseling'
+ORDER BY rm.`role`;
 
 SHOW CREATE TABLE `konseling_bk`;
