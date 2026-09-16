@@ -139,7 +139,7 @@ $focusStateLabel = match ($focusState) {
             <?php endif; ?>
 
             <?php if (! empty($focusSchedule['jurnal_url'])): ?>
-              <a class="btn btn-outline-primary sisfour-touch-target"
+              <a class="btn btn-success sisfour-touch-target"
                  href="<?= base_url((string) $focusSchedule['jurnal_url']) ?>">
                 <i class="bx bx-book-content me-1"></i>Isi Jurnal Mengajar
               </a>
