@@ -1,7 +1,7 @@
 # Dashboard, Settings, Maintenance, Backup & Log — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 16 September 2026
 
 ## 1. Dashboard by Experience
 
@@ -74,6 +74,21 @@ Quick Action
 
 Action mengikuti time-window dan state server.
 
+G3.3 menetapkan implementasi Guru:
+
+```text
+KPI 2×2 menggunakan task summary server
+Belum Presensi = jadwal dengan Presensi applicable yang belum submitted
+Belum Jurnal = jadwal aktif hari ini yang belum memiliki Jurnal
+Selesai = Presensi selesai/tidak applicable DAN Jurnal submitted
+Quick Action hanya route yang permission-nya dimiliki user
+jadwal berikutnya/sedang berlangsung dipilih dari state waktu server
+mobile jadwal memakai card/list; tabel hanya tablet/desktop
+riwayat Jurnal dashboard dibatasi ringkas
+```
+
+Dashboard tidak membuka permission baru. Direct route tetap melewati route filter dan Service.
+
 ## 6. Guru + Wali
 
 Tambahan context:
@@ -86,6 +101,21 @@ EWS kelas
 absence terbaru
 quick link contextual
 ```
+
+G3.3 menetapkan implementasi Wali:
+
+```text
+experience Guru tetap tampil lebih dulu
+kelas wali berasal dari mapping tahun aktif
+rekap H/S/I/A hanya Sesi Awal hari ini
+jika jumlah row rekap = 0, UI menyatakan data belum tersedia
+EWS kelas mengikuti definisi EWS canonical
+absence terbaru name-first, NISN secondary
+quick link ditampilkan hanya bila permission sumber valid
+mobile EWS/absence memakai list, bukan horizontal table
+```
+
+Wali tetap context Guru; tidak ada role atau permission baru.
 
 ## 7. Siswa
 
@@ -178,10 +208,27 @@ Permission: `log_activity.view`.
 
 Log tidak boleh menyimpan password/hash/token/cookie/session id/secret. Filter/pagination/export mengikuti UI canonical.
 
-## 14. Phase Boundary
+## 14. G3.3 Acceptance — Dashboard Guru/Wali
+
+G3.3 PASS bila:
+
+- KPI Guru sesuai Jadwal/Belum Presensi/Belum Jurnal/Selesai;
+- quick action tidak melampaui effective permission;
+- action Presensi/Jurnal tetap mengikuti state/time-window server;
+- Guru tanpa jadwal mendapat empty state yang jelas;
+- Wali mendapat kelas, jumlah siswa, H/S/I/A, EWS dan absence yang tepat;
+- tidak adanya Presensi Sesi Awal ditampilkan sebagai belum tersedia, bukan Hadir;
+- 360×800, 390×844, 412×915 tidak memiliki body/table horizontal overflow;
+- mobile jadwal/EWS/absence menggunakan card/list;
+- tablet/desktop tetap ringkas dan readable;
+- route/RBAC/business rule G3.2 tidak berubah;
+- tidak ada schema/database baru.
+
+## 15. Phase Boundary
 
 ```text
-G2 → dashboard/settings stabilization only
-G3 → mobile role dashboard redesign
-G4 → Cordova integration
+G2      → dashboard/settings stabilization only
+G3.3    → Dashboard Guru/Wali mobile-first
+G3.4+   → role dashboard berikutnya
+G4      → Cordova integration
 ```

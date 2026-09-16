@@ -3,55 +3,308 @@
 
 <?php
 $task = $widgets['task_summary'] ?? [];
+$jadwal = $widgets['jadwal_hari_ini'] ?? [];
+$quickActions = $widgets['quick_actions'] ?? [];
+$nextSchedule = $widgets['next_schedule'] ?? null;
 $wali = $widgets['wali'] ?? [];
 $rekap = $wali['presensi_hari_ini'] ?? [];
+$rekapTotal = (int) ($rekap['hadir'] ?? 0)
+    + (int) ($rekap['sakit'] ?? 0)
+    + (int) ($rekap['izin'] ?? 0)
+    + (int) ($rekap['alpha'] ?? 0);
+
+$presensiLabels = [
+    'not_applicable' => ['Tidak berlaku', 'secondary'],
+    'submitted' => ['Presensi selesai', 'success'],
+    'not_started' => ['Belum waktunya', 'secondary'],
+    'available' => ['Isi Presensi', 'primary'],
+    'wali_available' => ['Isi sebagai Wali', 'info'],
+    'ended' => ['Waktu habis', 'danger'],
+];
+$jurnalLabels = [
+    'submitted' => ['Jurnal selesai', 'success'],
+    'not_started' => ['Belum waktunya', 'secondary'],
+    'available' => ['Isi Jurnal', 'primary'],
+    'ended' => ['Terlewat', 'danger'],
+];
 ?>
 
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
-  <div><h4 class="mb-1">Dashboard Guru & Wali Kelas</h4><p class="text-muted mb-0">Status Wali ditentukan otomatis dari mapping aktif.</p></div>
+<div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+  <div class="sisfour-page-header__copy">
+    <h4 class="mb-1">Dashboard Guru & Wali Kelas</h4>
+    <p class="text-muted mb-0">Tugas mengajar hari ini dan kondisi kelas wali dalam satu layar.</p>
+  </div>
+  <?php if (! empty($wali['nama_kelas'])): ?>
+    <span class="badge bg-label-primary">Wali <?= esc((string) $wali['nama_kelas']) ?></span>
+  <?php endif; ?>
 </div>
 
-<div class="row g-3 mb-4">
-  <?php foreach([['Jadwal Hari Ini',$task['jadwal']??0,'primary'],['Presensi Perlu Diisi',$task['presensi_perlu']??0,'warning'],['Jurnal Perlu Diisi',$task['jurnal_perlu']??0,'danger'],['Jurnal Selesai',$task['jurnal_selesai']??0,'success']] as $item): ?>
-    <div class="col-6 col-xl-3"><div class="card h-100"><div class="card-body"><small class="text-muted"><?= esc($item[0]) ?></small><h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int)$item[1] ?></h4></div></div></div>
+<div class="sisfour-mobile-kpi-grid mb-4">
+  <?php foreach ([
+      ['Jadwal Hari Ini', $task['jadwal'] ?? 0, 'primary', 'bx-calendar'],
+      ['Belum Presensi', $task['belum_presensi'] ?? ($task['presensi_perlu'] ?? 0), 'warning', 'bx-list-check'],
+      ['Belum Jurnal', $task['belum_jurnal'] ?? ($task['jurnal_perlu'] ?? 0), 'danger', 'bx-book-content'],
+      ['Selesai', $task['selesai'] ?? ($task['jurnal_selesai'] ?? 0), 'success', 'bx-check-circle'],
+  ] as $item): ?>
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <span class="avatar flex-shrink-0 bg-label-<?= esc($item[2]) ?> rounded">
+          <i class="bx <?= esc($item[3]) ?>"></i>
+        </span>
+        <div class="min-w-0">
+          <small class="text-muted d-block"><?= esc($item[0]) ?></small>
+          <h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4>
+        </div>
+      </div>
+    </div>
   <?php endforeach; ?>
 </div>
 
+<?php if ($quickActions !== []): ?>
 <div class="card mb-4">
-  <div class="card-header"><h5 class="mb-0">Jadwal Mengajar Hari Ini</h5></div>
-  <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Jam</th><th>Kelas</th><th>Mapel</th><th>Sesi</th><th>Presensi</th><th>Jurnal</th></tr></thead><tbody>
-    <?php if(empty($widgets['jadwal_hari_ini'])): ?><tr><td colspan="6" class="text-center text-muted py-4">Tidak ada jadwal hari ini.</td></tr>
-    <?php else: foreach($widgets['jadwal_hari_ini'] as $j): ?>
-    <tr><td><?= esc($j['jam_mulai']) ?> - <?= esc($j['jam_selesai']) ?></td><td><?= esc($j['nama_kelas']) ?></td><td><?= esc($j['nama_mapel']) ?></td><td><span class="badge bg-label-secondary"><?= esc($j['sesi']) ?></span></td><td>
-      <?php $ps=$j['presensi_state']??''; $m=['not_applicable'=>['—','secondary'],'submitted'=>['Sudah Diinput','success'],'not_started'=>['Belum Waktunya','secondary'],'available'=>['Isi Presensi','primary'],'wali_available'=>['Isi sebagai Wali','info'],'ended'=>['Waktu Habis','danger']]; [$l,$c]=$m[$ps]??['Tidak Tersedia','secondary']; ?>
-      <?php if(!empty($j['presensi_url'])):?><a href="<?= base_url($j['presensi_url']) ?>" class="btn btn-sm btn-outline-<?= esc($c) ?>"><?= esc($l) ?></a><?php else:?><span class="badge bg-label-<?= esc($c) ?>"><?= esc($l) ?></span><?php endif;?>
-    </td><td>
-      <?php $js=$j['jurnal_state']??''; $m2=['submitted'=>['Sudah','success'],'not_started'=>['Belum Waktunya','secondary'],'available'=>['Isi Jurnal','primary'],'ended'=>['Terlewat','danger']]; [$l2,$c2]=$m2[$js]??['Tidak Tersedia','secondary']; ?>
-      <?php if(!empty($j['jurnal_url'])):?><a href="<?= base_url($j['jurnal_url']) ?>" class="btn btn-sm btn-outline-<?= esc($c2) ?>"><?= esc($l2) ?></a><?php else:?><span class="badge bg-label-<?= esc($c2) ?>"><?= esc($l2) ?></span><?php endif;?>
-    </td></tr>
-    <?php endforeach; endif; ?>
-  </tbody></table></div>
-</div>
-
-<?php if(!empty($wali)): ?>
-<div class="card mb-4 border border-primary">
-  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"><div><h5 class="mb-1">Kelas Wali: <?= esc($wali['nama_kelas']??'-') ?></h5><small class="text-muted"><?= (int)($wali['jumlah_siswa']??0) ?> siswa aktif</small></div><span class="badge bg-label-danger">EWS <?= (int)($wali['ews_count']??0) ?> siswa</span></div>
+  <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
+    <h5 class="mb-0">Quick Action Guru</h5>
+    <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
+      <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
+    <?php endif; ?>
+  </div>
   <div class="card-body">
-    <div class="row g-3 text-center mb-4">
-      <?php foreach([['Hadir',$rekap['hadir']??0,'success'],['Sakit',$rekap['sakit']??0,'warning'],['Izin',$rekap['izin']??0,'info'],['Alpha',$rekap['alpha']??0,'danger']] as $item): ?><div class="col-6 col-md-3"><div class="border rounded p-3"><small class="text-muted d-block"><?= esc($item[0]) ?></small><h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int)$item[1] ?></h4></div></div><?php endforeach; ?>
-    </div>
-    <div class="d-flex flex-wrap gap-2">
-      <?php foreach(($wali['quick_links']??[]) as $link): ?><a href="<?= base_url($link['url']) ?>" class="btn btn-sm btn-outline-primary"><?= esc($link['label']) ?></a><?php endforeach; ?>
+    <div class="row g-2">
+      <?php foreach ($quickActions as $action): ?>
+        <div class="col-6 col-md-3">
+          <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
+             class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
+            <span class="d-flex align-items-center gap-2 min-w-0">
+              <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
+              <span class="min-w-0">
+                <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
+                <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+              </span>
+            </span>
+          </a>
+        </div>
+      <?php endforeach; ?>
     </div>
   </div>
 </div>
+<?php endif; ?>
 
-<div class="row g-3 mb-4">
-  <div class="col-lg-5"><div class="card h-100"><div class="card-header"><h5 class="mb-0">EWS Kelas</h5></div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Nama</th><th>Alpha</th></tr></thead><tbody><?php if(empty($wali['ews_top'])):?><tr><td colspan="2" class="text-center text-muted py-4">Tidak ada siswa EWS.</td></tr><?php else: foreach($wali['ews_top'] as $row):?><tr><td><?= esc($row['nama']) ?></td><td><span class="badge bg-label-danger"><?= (int)$row['total_alpha'] ?></span></td></tr><?php endforeach; endif;?></tbody></table></div></div></div>
-  <div class="col-lg-7"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Sakit / Izin / Alpha Terbaru</h5></div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Tanggal</th><th>Nama</th><th>Status</th></tr></thead><tbody><?php if(empty($wali['recent_absence'])):?><tr><td colspan="3" class="text-center text-muted py-4">Belum ada catatan.</td></tr><?php else: foreach($wali['recent_absence'] as $row):?><tr><td><?= esc($row['tanggal']) ?></td><td><?= esc($row['nama']) ?></td><td><span class="badge bg-label-<?= $row['status']==='Alpha'?'danger':($row['status']==='Sakit'?'warning':'info') ?>"><?= esc($row['status']) ?></span></td></tr><?php endforeach; endif;?></tbody></table></div></div></div>
+<?php if (is_array($nextSchedule)): ?>
+<div class="card mb-4 border border-primary">
+  <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+    <div class="min-w-0">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-label-primary">
+          <?= ($nextSchedule['dashboard_state'] ?? '') === 'berlangsung' ? 'Sedang Berlangsung' : 'Jadwal Berikutnya' ?>
+        </span>
+        <small class="text-muted"><?= esc((string) ($nextSchedule['jam_mulai'] ?? '')) ?> - <?= esc((string) ($nextSchedule['jam_selesai'] ?? '')) ?></small>
+      </div>
+      <h5 class="mb-1"><?= esc((string) ($nextSchedule['nama_kelas'] ?? '-')) ?> · <?= esc((string) ($nextSchedule['nama_mapel'] ?? '-')) ?></h5>
+      <div class="small text-muted"><?= esc((string) ($nextSchedule['sesi'] ?? '-')) ?></div>
+    </div>
+    <div class="sisfour-mobile-actions flex-shrink-0">
+      <?php if (! empty($nextSchedule['presensi_url'])): ?>
+        <a class="btn btn-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>">Isi Presensi</a>
+      <?php endif; ?>
+      <?php if (! empty($nextSchedule['jurnal_url'])): ?>
+        <a class="btn btn-outline-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>">Isi Jurnal</a>
+      <?php endif; ?>
+    </div>
+  </div>
 </div>
 <?php endif; ?>
 
-<div class="card"><div class="card-header"><h5 class="mb-0">Riwayat Jurnal Terakhir</h5></div><ul class="list-group list-group-flush"><?php if(empty($widgets['riwayat_jurnal_terakhir'])):?><li class="list-group-item text-center text-muted py-4">Belum ada jurnal.</li><?php else: foreach($widgets['riwayat_jurnal_terakhir'] as $row):?><li class="list-group-item"><strong><?= esc($row['tanggal']) ?> · <?= esc($row['nama_kelas']??'-') ?></strong><div class="small text-muted"><?= esc($row['nama_mapel']??'-') ?> · <?= esc($row['status']) ?> · <?= esc(mb_strimwidth((string)$row['materi'],0,70,'...')) ?></div></li><?php endforeach; endif;?></ul></div>
+<?php if (! empty($wali)): ?>
+<div class="card mb-4 border border-primary">
+  <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+      <h5 class="mb-1">Kelas Wali · <?= esc((string) ($wali['nama_kelas'] ?? '-')) ?></h5>
+      <small class="text-muted"><?= (int) ($wali['jumlah_siswa'] ?? 0) ?> siswa aktif</small>
+    </div>
+    <?php if ($wali['ews_count'] !== null): ?>
+      <span class="badge bg-label-danger">EWS <?= (int) $wali['ews_count'] ?> siswa</span>
+    <?php endif; ?>
+  </div>
+  <div class="card-body">
+    <?php if ($rekapTotal === 0): ?>
+      <div class="alert alert-secondary py-2 mb-3" role="status">Presensi Sesi Awal hari ini belum tersedia.</div>
+    <?php endif; ?>
+
+    <div class="sisfour-mobile-kpi-grid mb-3">
+      <?php foreach ([
+          ['Hadir', $rekap['hadir'] ?? 0, 'success'],
+          ['Sakit', $rekap['sakit'] ?? 0, 'warning'],
+          ['Izin', $rekap['izin'] ?? 0, 'info'],
+          ['Alpha', $rekap['alpha'] ?? 0, 'danger'],
+      ] as $item): ?>
+        <div class="border rounded p-3 text-center min-w-0">
+          <small class="text-muted d-block"><?= esc($item[0]) ?></small>
+          <h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <?php if (! empty($wali['quick_links'])): ?>
+      <div class="mb-2 small fw-semibold">Akses Kelas</div>
+      <div class="row g-2">
+        <?php foreach ($wali['quick_links'] as $link): ?>
+          <div class="col-6 col-md-auto">
+            <a href="<?= base_url((string) ($link['url'] ?? '')) ?>"
+               class="btn btn-sm btn-outline-primary w-100 sisfour-touch-target--compact text-wrap">
+              <?= esc((string) ($link['label'] ?? '-')) ?>
+            </a>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="card mb-4">
+  <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+    <h5 class="mb-0">Jadwal Hari Ini</h5>
+    <span class="text-muted small"><?= count($jadwal) ?> jadwal</span>
+  </div>
+
+  <div class="d-md-none">
+    <?php if ($jadwal === []): ?>
+      <div class="sisfour-mobile-state text-muted">Tidak ada jadwal mengajar hari ini.</div>
+    <?php else: ?>
+      <div class="list-group list-group-flush">
+        <?php foreach ($jadwal as $j): ?>
+          <?php
+          [$presensiLabel, $presensiColor] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          [$jurnalLabel, $jurnalColor] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          ?>
+          <div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <div class="sisfour-cell-primary">
+                <span class="sisfour-cell-title"><?= esc((string) ($j['nama_kelas'] ?? '-')) ?> · <?= esc((string) ($j['nama_mapel'] ?? '-')) ?></span>
+                <span class="sisfour-cell-meta"><?= esc((string) ($j['jam_mulai'] ?? '')) ?> - <?= esc((string) ($j['jam_selesai'] ?? '')) ?> · <?= esc((string) ($j['sesi'] ?? '-')) ?></span>
+              </div>
+              <span class="badge bg-label-secondary flex-shrink-0"><?= esc((string) ($j['kode_mapel'] ?? '-')) ?></span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
+              <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
+            </div>
+            <?php if (! empty($j['presensi_url']) || ! empty($j['jurnal_url'])): ?>
+              <div class="sisfour-mobile-actions">
+                <?php if (! empty($j['presensi_url'])): ?>
+                  <a class="btn btn-sm btn-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['presensi_url']) ?>">Presensi</a>
+                <?php endif; ?>
+                <?php if (! empty($j['jurnal_url'])): ?>
+                  <a class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['jurnal_url']) ?>">Jurnal</a>
+                <?php endif; ?>
+              </div>
+            <?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="d-none d-md-block table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Jam</th><th>Kelas / Mapel</th><th>Sesi</th><th>Presensi</th><th>Jurnal</th></tr></thead>
+      <tbody>
+      <?php if ($jadwal === []): ?>
+        <tr><td colspan="5" class="text-center text-muted py-4">Tidak ada jadwal mengajar hari ini.</td></tr>
+      <?php else: foreach ($jadwal as $j): ?>
+        <?php
+        [$presensiLabel, $presensiColor] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+        [$jurnalLabel, $jurnalColor] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+        ?>
+        <tr>
+          <td class="text-nowrap"><?= esc((string) ($j['jam_mulai'] ?? '')) ?> - <?= esc((string) ($j['jam_selesai'] ?? '')) ?></td>
+          <td><strong><?= esc((string) ($j['nama_kelas'] ?? '-')) ?></strong><div class="small text-muted"><?= esc((string) ($j['nama_mapel'] ?? '-')) ?></div></td>
+          <td><span class="badge bg-label-secondary"><?= esc((string) ($j['sesi'] ?? '-')) ?></span></td>
+          <td>
+            <?php if (! empty($j['presensi_url'])): ?>
+              <a class="btn btn-sm btn-outline-<?= esc($presensiColor) ?>" href="<?= base_url((string) $j['presensi_url']) ?>"><?= esc($presensiLabel) ?></a>
+            <?php else: ?>
+              <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
+            <?php endif; ?>
+          </td>
+          <td>
+            <?php if (! empty($j['jurnal_url'])): ?>
+              <a class="btn btn-sm btn-outline-<?= esc($jurnalColor) ?>" href="<?= base_url((string) $j['jurnal_url']) ?>"><?= esc($jurnalLabel) ?></a>
+            <?php else: ?>
+              <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<?php if (! empty($wali)): ?>
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+        <h5 class="mb-0">EWS Kelas</h5>
+        <?php if ($wali['ews_count'] !== null): ?><span class="badge bg-label-danger"><?= (int) $wali['ews_count'] ?></span><?php endif; ?>
+      </div>
+      <div class="list-group list-group-flush">
+        <?php if (empty($wali['ews_top'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Tidak ada siswa EWS.</div>
+        <?php else: foreach ($wali['ews_top'] as $row): ?>
+          <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+            <div class="sisfour-cell-primary">
+              <span class="sisfour-cell-title"><?= esc((string) ($row['nama'] ?? '-')) ?></span>
+              <span class="sisfour-cell-meta">Alpha Sesi Awal 14 hari terakhir</span>
+            </div>
+            <span class="badge bg-label-danger flex-shrink-0"><?= (int) ($row['total_alpha'] ?? 0) ?> Alpha</span>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header sisfour-section-heading"><h5 class="mb-0">Absence Terbaru</h5></div>
+      <div class="list-group list-group-flush">
+        <?php if (empty($wali['recent_absence'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada catatan Sakit/Izin/Alpha.</div>
+        <?php else: foreach ($wali['recent_absence'] as $row): ?>
+          <?php $status = (string) ($row['status'] ?? ''); $statusColor = $status === 'Alpha' ? 'danger' : ($status === 'Sakit' ? 'warning' : 'info'); ?>
+          <div class="list-group-item d-flex justify-content-between align-items-start gap-3 py-3">
+            <div class="sisfour-cell-primary">
+              <span class="sisfour-cell-title"><?= esc((string) ($row['nama'] ?? '-')) ?></span>
+              <span class="sisfour-cell-meta"><?= esc((string) ($row['tanggal'] ?? '-')) ?> · NISN <?= esc((string) ($row['nisn'] ?? '-')) ?></span>
+            </div>
+            <span class="badge bg-label-<?= esc($statusColor) ?> flex-shrink-0"><?= esc($status) ?></span>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="card">
+  <div class="card-header sisfour-section-heading"><h5 class="mb-0">Jurnal Terakhir</h5></div>
+  <div class="list-group list-group-flush">
+    <?php if (empty($widgets['riwayat_jurnal_terakhir'])): ?>
+      <div class="list-group-item sisfour-mobile-state text-muted">Belum ada jurnal.</div>
+    <?php else: foreach ($widgets['riwayat_jurnal_terakhir'] as $row): ?>
+      <div class="list-group-item py-3">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+          <div class="sisfour-cell-primary">
+            <span class="sisfour-cell-title"><?= esc((string) ($row['nama_kelas'] ?? '-')) ?> · <?= esc((string) ($row['nama_mapel'] ?? '-')) ?></span>
+            <span class="sisfour-cell-meta"><?= esc((string) ($row['tanggal'] ?? '-')) ?> · <?= esc((string) ($row['status'] ?? '-')) ?></span>
+          </div>
+          <span class="badge bg-label-secondary flex-shrink-0"><?= esc((string) ($row['status'] ?? '-')) ?></span>
+        </div>
+        <div class="small text-muted mt-2"><?= esc(mb_strimwidth((string) ($row['materi'] ?? ''), 0, 110, '...')) ?></div>
+      </div>
+    <?php endforeach; endif; ?>
+  </div>
+</div>
 
 <?= $this->endSection() ?>

@@ -28,6 +28,59 @@ class RoleAwareDashboardService extends DashboardService
         return 'guru';
     }
 
+    protected function widgetsGuru(int $userId, bool $isWali): array
+    {
+        $widgets = parent::widgetsGuru($userId, $isWali);
+        $jadwal = is_array($widgets['jadwal_hari_ini'] ?? null)
+            ? $widgets['jadwal_hari_ini']
+            : [];
+        $summary = is_array($widgets['task_summary'] ?? null)
+            ? $widgets['task_summary']
+            : [];
+
+        $summary['belum_presensi'] = 0;
+        $summary['belum_jurnal'] = 0;
+        $summary['selesai'] = 0;
+        $summary['actionable_now'] = 0;
+
+        foreach ($jadwal as $row) {
+            $presensiState = (string) ($row['presensi_state'] ?? '');
+            $jurnalState = (string) ($row['jurnal_state'] ?? '');
+            $presensiApplicable = $presensiState !== 'not_applicable';
+            $presensiDone = in_array(
+                $presensiState,
+                ['not_applicable', 'submitted'],
+                true
+            );
+            $jurnalDone = $jurnalState === 'submitted';
+
+            if ($presensiApplicable && $presensiState !== 'submitted') {
+                $summary['belum_presensi']++;
+            }
+
+            if (! $jurnalDone) {
+                $summary['belum_jurnal']++;
+            }
+
+            if ($presensiDone && $jurnalDone) {
+                $summary['selesai']++;
+            }
+
+            if (
+                in_array($presensiState, ['available', 'wali_available'], true)
+                || $jurnalState === 'available'
+            ) {
+                $summary['actionable_now']++;
+            }
+        }
+
+        $widgets['task_summary'] = $summary;
+        $widgets['quick_actions'] = $this->guruQuickActions($userId);
+        $widgets['next_schedule'] = $this->nextTeacherSchedule($jadwal);
+
+        return $widgets;
+    }
+
     protected function widgetsSiswa(int $userId): array
     {
         $widgets = parent::widgetsSiswa($userId);
@@ -134,5 +187,86 @@ class RoleAwareDashboardService extends DashboardService
         }
 
         return $links;
+    }
+
+    private function guruQuickActions(int $userId): array
+    {
+        $candidates = [
+            [
+                'permissions' => ['presensi_siswa.input'],
+                'label' => 'Presensi',
+                'description' => 'Isi presensi siswa',
+                'icon' => 'bx-list-check',
+                'url' => 'presensi/siswa',
+            ],
+            [
+                'permissions' => ['presensi_mengajar.input'],
+                'label' => 'Jurnal',
+                'description' => 'Isi jurnal mengajar',
+                'icon' => 'bx-book-content',
+                'url' => 'presensi/mengajar',
+            ],
+            [
+                'permissions' => [
+                    'jadwal_guru.view',
+                    'jadwal_guru.view_all',
+                    'jadwal_guru.manage',
+                ],
+                'label' => 'Jadwal',
+                'description' => 'Lihat jadwal mengajar',
+                'icon' => 'bx-calendar',
+                'url' => 'master/jadwal',
+            ],
+            [
+                'permissions' => ['profile_guru.view'],
+                'label' => 'Profil',
+                'description' => 'Buka profil saya',
+                'icon' => 'bx-user',
+                'url' => 'profile/guru',
+            ],
+        ];
+
+        $actions = [];
+
+        foreach ($candidates as $candidate) {
+            if (! $this->canAny($userId, $candidate['permissions'])) {
+                continue;
+            }
+
+            unset($candidate['permissions']);
+            $actions[] = $candidate;
+        }
+
+        return $actions;
+    }
+
+    private function canAny(int $userId, array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if ($this->can($userId, (string) $permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function nextTeacherSchedule(array $jadwal): ?array
+    {
+        foreach ($jadwal as $row) {
+            if (($row['window_state'] ?? '') === 'VALID') {
+                $row['dashboard_state'] = 'berlangsung';
+                return $row;
+            }
+        }
+
+        foreach ($jadwal as $row) {
+            if (($row['window_state'] ?? '') === 'NOT_STARTED') {
+                $row['dashboard_state'] = 'berikutnya';
+                return $row;
+            }
+        }
+
+        return null;
     }
 }
