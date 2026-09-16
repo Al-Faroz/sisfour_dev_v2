@@ -16,6 +16,7 @@
 -- 8) Pilihan Form Konseling memakai tabel existing setting_sistem dengan key
 --    bk_konseling_form_options; tidak membuat tabel setting baru.
 -- 9) Semua tabel aplikasi memakai schema eksplisit agar aman dari context phpMyAdmin.
+-- 10) Script canonical tidak membaca information_schema dan tidak memakai multi-table DELETE.
 
 CREATE TABLE IF NOT EXISTS `sisfour_dev_v2`.`konseling_bk` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -68,10 +69,12 @@ ON DUPLICATE KEY UPDATE
   `scope_didukung` = VALUES(`scope_didukung`);
 
 -- Normalisasi seluruh mapping permission Konseling agar tidak ada legacy/accidental access.
-DELETE rp
-FROM `sisfour_dev_v2`.`role_permissions` rp
-JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
-WHERE p.`permission_key` LIKE 'bk_konseling.%';
+DELETE FROM `sisfour_dev_v2`.`role_permissions`
+WHERE `id_permission` IN (
+  SELECT p.`id`
+  FROM `sisfour_dev_v2`.`permissions` p
+  WHERE p.`permission_key` LIKE 'bk_konseling.%'
+);
 
 -- Operasional: Admin + Operator + BK.
 INSERT INTO `sisfour_dev_v2`.`role_permissions` (`role`, `id_permission`, `scope`)
