@@ -16,7 +16,7 @@ $kelasOptions = $initial['kelas'] ?? [];
         <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Konseling BK</h4>
             <p class="text-muted mb-0">
-                Catatan layanan konseling bersifat rahasia dan hanya dapat diakses oleh Guru BK.
+                Catatan layanan konseling bersifat rahasia dan hanya dapat diakses oleh pengguna berwenang.
             </p>
         </div>
 
@@ -243,7 +243,7 @@ $kelasOptions = $initial['kelas'] ?? [];
                                         <div class="col-md-6"><small class="text-muted d-block">Jenis Layanan</small><strong id="detailKonselingLayanan"></strong></div>
                                         <div class="col-md-6"><small class="text-muted d-block">Bidang / Topik</small><strong id="detailKonselingTopik"></strong></div>
                                         <div class="col-md-6"><small class="text-muted d-block">Cara Hadir</small><span id="detailKonselingCara"></span></div>
-                                        <div class="col-md-6"><small class="text-muted d-block">Guru BK</small><span id="detailKonselingGuru"></span></div>
+                                        <div class="col-md-6"><small class="text-muted d-block">Dicatat oleh</small><span id="detailKonselingGuru"></span></div>
                                     </div>
                                 </div>
                             </div>
