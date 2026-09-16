@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 15 September 2026  
-**Development aktif:** G3.2 — Guru/Wali Presensi & Jurnal  
+**Tanggal Acuan:** 16 September 2026  
+**Development aktif:** G3.3 — Dashboard Guru/Wali  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -174,8 +174,8 @@ Urutan implementasi:
 
 ```text
 G3.1 Mobile foundation                  CLOSED / MERGED
-G3.2 Guru/Wali Presensi & Jurnal        ACTIVE
-G3.3 Dashboard Guru/Wali
+G3.2 Guru/Wali Presensi & Jurnal        CLOSED / MERGED
+G3.3 Dashboard Guru/Wali                ACTIVE
 G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
@@ -205,58 +205,79 @@ d10ced5d70ffc68642067aac44feeb6a91cacd29
 
 Foundation menyediakan role-aware shell, safe-area, mobile density, touch targets, adaptive table, sticky actions, KPI 2×2, compact pagination, dan overflow baseline.
 
-### G3.2 Guru/Wali Presensi & Jurnal — ACTIVE
+### G3.2 Guru/Wali Presensi & Jurnal — CLOSED
 
-Branch aktif:
+G3.2 merged melalui PR #7 pada 16 September 2026 dengan merge commit:
 
 ```text
-feat/g3-guru-wali-presensi-jurnal-20260915
+176e5f764850d030968524af47117f259449064c
 ```
 
-Fokus Presensi Siswa:
+Hasil G3.2:
 
 ```text
-mobile name-first
+Presensi Siswa Guru/Wali mobile name-first
 H/S/I/A touch-friendly
-no horizontal table scroll
-sticky/busy-safe save
-network failure mempertahankan input
-Guru/Wali scope tetap Service-authoritative
-```
-
-Fokus Jurnal:
-
-```text
-mobile keyboard-friendly
-self Guru tidak perlu memilih identitas berulang
-Jadwal tunggal dapat dipercepat
-Materi wajib
+Jurnal mobile keyboard-friendly
 Catatan optional
-siswa exception per pembelajaran: Sakit/Izin/Alpha
-search siswa Name + NISN hanya roster kelas/tanggal Jurnal
+student exception Sakit/Izin/Alpha per pembelajaran
 parent + child save/revisi atomic
-laporan tetap 1 row per Jurnal
-aggregate child no N+1 + Detail lazy-load
-server-confirmed mutation success
+laporan parent-level + aggregate no N+1 + Detail lazy-load
+SQL schema explicit untuk localhost/hosting
 ```
 
-G3.2 mempertahankan RBAC, geofence, time-window, dan makna Presensi Siswa resmi. Perluasan domain yang disetujui terbatas pada Jurnal:
+G3.2 mempertahankan RBAC, geofence, time-window, dan makna Presensi Siswa resmi. Child Jurnal tidak mengubah tabel `presensi`, Rekap/EWS/Signage Presensi, atau sesi resmi.
 
-```text
-presensi_mengajar.catatan
-presensi_mengajar_siswa
-```
-
-Child Jurnal tidak mengubah tabel `presensi`, tidak masuk Rekap/EWS/Signage Presensi, dan hanya menyimpan exception pembelajaran.
-
-Schema delta G3.2 dibawa melalui SQL idempotent, bukan CodeIgniter migration:
+Schema delta G3.2 dibawa melalui SQL eksplisit:
 
 ```text
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-SQL localhost digunakan untuk development/UAT. SQL hosting hanya dijalankan setelah backup dan approval deploy eksplisit. Keduanya aman dijalankan ulang pada schema yang sudah memiliki `catatan`/`presensi_mengajar_siswa`.
+### G3.3 Dashboard Guru/Wali — ACTIVE
+
+Branch aktif:
+
+```text
+feat/g3-dashboard-guru-wali-20260916
+```
+
+Dashboard Guru memprioritaskan:
+
+```text
+Jadwal Hari Ini
+Belum Presensi
+Belum Jurnal
+Selesai
+Quick Action permission-aware
+jadwal berikutnya / yang sedang berlangsung
+riwayat Jurnal singkat
+```
+
+Dashboard Guru + Wali mewarisi seluruh experience Guru lalu menambah:
+
+```text
+kelas wali + jumlah siswa aktif
+rekap H/S/I/A Sesi Awal hari ini
+status data belum tersedia bila belum ada row
+EWS kelas
+absence terbaru
+quick link contextual sesuai permission
+```
+
+Mobile contract G3.3:
+
+```text
+4 KPI = 2×2
+quick action compact 2×2
+jadwal mobile = card/list, bukan horizontal table
+EWS/absence mobile = list, bukan horizontal table
+jalur Presensi/Jurnal maksimal 1–2 tap
+business rule/time-window/authorization tetap server-side
+```
+
+Tidak ada schema/database baru pada G3.3.
 
 ## 11. G4 — Cordova APK
 
@@ -283,7 +304,8 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada
 ```text
 G2 CLOSED      → baseline business/admin stabil
 G3.1 CLOSED    → mobile foundation tersedia
-G3.2 PASS      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta Jurnal tervalidasi
+G3.2 CLOSED    → Presensi/Jurnal Guru/Wali mobile-ready + schema delta tervalidasi
+G3.3 PASS      → Dashboard Guru/Wali mobile-ready
 G3 PASS        → mobile/WebView UI ready
 G4 PASS        → APK distribution gate
 ```
