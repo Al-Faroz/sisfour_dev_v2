@@ -28,6 +28,49 @@ class RoleAwareDashboardService extends DashboardService
         return 'guru';
     }
 
+    /**
+     * G3.3.1: Dashboard supervisi tidak lagi membentuk ranking poin.
+     */
+    protected function widgetsPimpinan(int $userId): array
+    {
+        $tahun = $this->tahunAktif();
+        $idTahun = (int) ($tahun['id'] ?? 0);
+
+        return [
+            'tahun_aktif' => $tahun,
+            'master' => $this->masterSummary($idTahun),
+            'presensi_hari_ini' => $this->presensiTodaySummary($idTahun),
+            'jurnal_hari_ini' => $this->journalTodaySummary($idTahun),
+            'ews_count' => $this->can($userId, 'ews_radar.view') ? $this->ewsCount($idTahun) : null,
+            'ews_top' => $this->can($userId, 'ews_radar.view') ? $this->ewsTop($idTahun, null, 10) : [],
+            'kasus_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->caseCountThisMonth() : null,
+            'prestasi_terbaru' => $this->can($userId, 'prestasi.view') ? $this->latestPrestasi(5) : [],
+            'kartu' => $this->can($userId, 'kartu_pelajar.view') ? $this->cardSummary() : null,
+            'tren_presensi' => $this->trendAttendance($idTahun),
+        ];
+    }
+
+    /**
+     * G3.3.1: BK memakai jumlah catatan/kategori, bukan poin.
+     * G3.4 akan merancang ulang widget BK dengan Konseling sebagai sumber baru.
+     */
+    protected function widgetsBk(int $userId): array
+    {
+        $tahun = $this->tahunAktif();
+        $idTahun = (int) ($tahun['id'] ?? 0);
+
+        return [
+            'tahun_aktif' => $tahun,
+            'kasus_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->caseCountThisMonth() : null,
+            'pelanggaran_berat_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->severeCaseCountThisMonth() : null,
+            'ews_count' => $this->can($userId, 'ews_radar.view') ? $this->ewsCount($idTahun) : null,
+            'prestasi_bulan_ini' => $this->can($userId, 'prestasi.view') ? $this->prestasiCountThisMonth() : null,
+            'ews_top' => $this->can($userId, 'ews_radar.view') ? $this->ewsTop($idTahun, null, 10) : [],
+            'kasus_terbaru' => $this->can($userId, 'bk_kasus.view') ? $this->latestCases(8) : [],
+            'prestasi_terbaru' => $this->can($userId, 'prestasi.view') ? $this->latestPrestasi(8) : [],
+        ];
+    }
+
     protected function widgetsGuru(int $userId, bool $isWali): array
     {
         $widgets = parent::widgetsGuru($userId, $isWali);
@@ -150,7 +193,7 @@ class RoleAwareDashboardService extends DashboardService
             ],
             [
                 'permission' => 'bk_kasus.view',
-                'label' => 'Kasus Siswa',
+                'label' => 'Pelanggaran Siswa',
                 'url' => 'bk/kasus',
             ],
             [
