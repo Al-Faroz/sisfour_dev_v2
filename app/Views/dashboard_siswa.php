@@ -87,20 +87,11 @@ $tanggalHariIni = trim((string) ($presensiHariIni['tanggal'] ?? ''));
           </div>
 
           <div class="d-flex flex-wrap gap-2">
-            <a
-              href="<?= base_url('kartu/preview/' . (int) $kartu['id']) ?>"
-              class="btn btn-sm btn-outline-primary"
-            >
-              <i class="bx bx-show me-1"></i>
-              Preview
+            <a href="<?= base_url('kartu/preview/' . (int) $kartu['id']) ?>" class="btn btn-sm btn-outline-primary">
+              <i class="bx bx-show me-1"></i> Preview
             </a>
-
-            <a
-              href="<?= base_url('kartu/download/' . (int) $kartu['id']) ?>"
-              class="btn btn-sm btn-primary"
-            >
-              <i class="bx bx-download me-1"></i>
-              Unduh PDF
+            <a href="<?= base_url('kartu/download/' . (int) $kartu['id']) ?>" class="btn btn-sm btn-primary">
+              <i class="bx bx-download me-1"></i> Unduh PDF
             </a>
           </div>
         <?php endif; ?>
@@ -111,7 +102,7 @@ $tanggalHariIni = trim((string) ($presensiHariIni['tanggal'] ?? ''));
 
 <div class="row g-3">
   <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Prestasi Terbaru</h5></div><ul class="list-group list-group-flush"><?php if(empty($widgets['riwayat_prestasi'])):?><li class="list-group-item text-muted text-center py-4">Belum ada prestasi tercatat.</li><?php else: foreach($widgets['riwayat_prestasi'] as $row):?><li class="list-group-item"><strong><?= esc($row['nama_prestasi']) ?></strong><div class="small text-muted"><?= esc($row['tingkat']??'-') ?> · <?= esc($row['tanggal']) ?></div></li><?php endforeach; endif;?></ul></div></div>
-  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Catatan Kasus Saya</h5></div><ul class="list-group list-group-flush"><?php if(empty($widgets['riwayat_pelanggaran'])):?><li class="list-group-item text-muted text-center py-4">Tidak ada catatan kasus.</li><?php else: foreach($widgets['riwayat_pelanggaran'] as $row):?><li class="list-group-item"><strong><?= esc($row['nama_pelanggaran']) ?></strong> <span class="badge bg-label-<?= ($row['kategori']??'')==='Berat'?'danger':(($row['kategori']??'')==='Sedang'?'warning':'secondary') ?>"><?= esc($row['kategori']) ?></span><div class="small text-muted"><?= esc($row['tanggal']) ?> · <?= (int)$row['poin'] ?> poin</div><?php if(!empty($row['keterangan'])):?><div class="small mt-1"><?= esc($row['keterangan']) ?></div><?php endif;?></li><?php endforeach; endif;?></ul></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Catatan Pelanggaran Saya</h5></div><ul class="list-group list-group-flush"><?php if(empty($widgets['riwayat_pelanggaran'])):?><li class="list-group-item text-muted text-center py-4">Tidak ada catatan pelanggaran.</li><?php else: foreach($widgets['riwayat_pelanggaran'] as $row):?><li class="list-group-item"><strong><?= esc($row['nama_pelanggaran']) ?></strong> <span class="badge bg-label-<?= ($row['kategori']??'')==='Berat'?'danger':(($row['kategori']??'')==='Sedang'?'warning':'secondary') ?>"><?= esc($row['kategori']) ?></span><div class="small text-muted"><?= esc($row['tanggal']) ?></div><?php if(!empty($row['keterangan'])):?><div class="small mt-1"><?= esc($row['keterangan']) ?></div><?php endif;?></li><?php endforeach; endif;?></ul></div></div>
 </div>
 
 <?= $this->endSection() ?>
