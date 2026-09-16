@@ -27,6 +27,31 @@ $jurnalLabels = [
     'available' => ['Isi Jurnal', 'primary'],
     'ended' => ['Terlewat', 'danger'],
 ];
+
+$secondaryGuruActions = array_values(array_filter(
+    $quickActions,
+    static fn (array $action): bool => ! in_array(
+        (string) ($action['label'] ?? ''),
+        ['Presensi', 'Jurnal'],
+        true
+    )
+));
+
+$focusSchedule = is_array($nextSchedule) ? $nextSchedule : null;
+if ($focusSchedule === null && $jadwal !== []) {
+    $focusSchedule = $jadwal[array_key_last($jadwal)];
+    $focusSchedule['dashboard_state'] = 'selesai';
+}
+
+$focusState = is_array($focusSchedule)
+    ? (string) ($focusSchedule['dashboard_state'] ?? '')
+    : '';
+$focusStateLabel = match ($focusState) {
+    'berlangsung' => 'Sedang Berlangsung',
+    'berikutnya' => 'Jadwal Berikutnya',
+    'selesai' => 'Jadwal Terakhir Hari Ini',
+    default => 'Jadwal Mengajar',
+};
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -60,7 +85,6 @@ $jurnalLabels = [
   <?php endforeach; ?>
 </div>
 
-<?php if ($quickActions !== []): ?>
 <div class="card mb-4">
   <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
     <h5 class="mb-0">Quick Action Guru</h5>
@@ -69,50 +93,86 @@ $jurnalLabels = [
     <?php endif; ?>
   </div>
   <div class="card-body">
-    <div class="row g-2">
-      <?php foreach ($quickActions as $action): ?>
-        <div class="col-6 col-md-3">
-          <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
-             class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
-            <span class="d-flex align-items-center gap-2 min-w-0">
-              <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
-              <span class="min-w-0">
-                <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
-                <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
-              </span>
+    <div class="border rounded p-3 mb-3">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+        <div class="min-w-0">
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+            <span class="avatar avatar-sm bg-label-primary rounded flex-shrink-0">
+              <i class="bx bx-chalkboard"></i>
             </span>
-          </a>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
+            <strong>Jadwal Mengajar</strong>
+            <?php if (is_array($focusSchedule)): ?>
+              <span class="badge bg-label-primary"><?= esc($focusStateLabel) ?></span>
+            <?php endif; ?>
+          </div>
 
-<?php if (is_array($nextSchedule)): ?>
-<div class="card mb-4 border border-primary">
-  <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-    <div class="min-w-0">
-      <div class="d-flex align-items-center gap-2 mb-1">
-        <span class="badge bg-label-primary">
-          <?= ($nextSchedule['dashboard_state'] ?? '') === 'berlangsung' ? 'Sedang Berlangsung' : 'Jadwal Berikutnya' ?>
-        </span>
-        <small class="text-muted"><?= esc((string) ($nextSchedule['jam_mulai'] ?? '')) ?> - <?= esc((string) ($nextSchedule['jam_selesai'] ?? '')) ?></small>
+          <?php if (! is_array($focusSchedule)): ?>
+            <div class="text-muted small">Tidak ada jadwal mengajar hari ini.</div>
+          <?php else: ?>
+            <h5 class="mb-1">
+              <?= esc((string) ($focusSchedule['nama_kelas'] ?? '-')) ?> ·
+              <?= esc((string) ($focusSchedule['nama_mapel'] ?? '-')) ?>
+            </h5>
+            <div class="small text-muted">
+              <?= esc((string) ($focusSchedule['jam_mulai'] ?? '')) ?> -
+              <?= esc((string) ($focusSchedule['jam_selesai'] ?? '')) ?> ·
+              <?= esc((string) ($focusSchedule['sesi'] ?? '-')) ?>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <?php if (is_array($focusSchedule)): ?>
+          <?php
+          [$focusPresensiLabel, $focusPresensiColor] = $presensiLabels[$focusSchedule['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          [$focusJurnalLabel, $focusJurnalColor] = $jurnalLabels[$focusSchedule['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          ?>
+          <div class="sisfour-mobile-actions flex-shrink-0">
+            <?php if (! empty($focusSchedule['presensi_url'])): ?>
+              <a class="btn btn-primary sisfour-touch-target"
+                 href="<?= base_url((string) $focusSchedule['presensi_url']) ?>">
+                <i class="bx bx-list-check me-1"></i>Isi Presensi Siswa
+              </a>
+            <?php else: ?>
+              <span class="badge bg-label-<?= esc($focusPresensiColor) ?> py-2 px-3">
+                Presensi: <?= esc($focusPresensiLabel) ?>
+              </span>
+            <?php endif; ?>
+
+            <?php if (! empty($focusSchedule['jurnal_url'])): ?>
+              <a class="btn btn-outline-primary sisfour-touch-target"
+                 href="<?= base_url((string) $focusSchedule['jurnal_url']) ?>">
+                <i class="bx bx-book-content me-1"></i>Isi Jurnal Mengajar
+              </a>
+            <?php else: ?>
+              <span class="badge bg-label-<?= esc($focusJurnalColor) ?> py-2 px-3">
+                Jurnal: <?= esc($focusJurnalLabel) ?>
+              </span>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </div>
-      <h5 class="mb-1"><?= esc((string) ($nextSchedule['nama_kelas'] ?? '-')) ?> · <?= esc((string) ($nextSchedule['nama_mapel'] ?? '-')) ?></h5>
-      <div class="small text-muted"><?= esc((string) ($nextSchedule['sesi'] ?? '-')) ?></div>
     </div>
-    <div class="sisfour-mobile-actions flex-shrink-0">
-      <?php if (! empty($nextSchedule['presensi_url'])): ?>
-        <a class="btn btn-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>">Isi Presensi</a>
-      <?php endif; ?>
-      <?php if (! empty($nextSchedule['jurnal_url'])): ?>
-        <a class="btn btn-outline-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>">Isi Jurnal</a>
-      <?php endif; ?>
-    </div>
+
+    <?php if ($secondaryGuruActions !== []): ?>
+      <div class="row g-2">
+        <?php foreach ($secondaryGuruActions as $action): ?>
+          <div class="col-6 col-md-3">
+            <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
+               class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
+              <span class="d-flex align-items-center gap-2 min-w-0">
+                <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
+                <span class="min-w-0">
+                  <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
+                  <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+                </span>
+              </span>
+            </a>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
-<?php endif; ?>
 
 <?php if (! empty($wali)): ?>
 <div class="card mb-4 border border-primary">
