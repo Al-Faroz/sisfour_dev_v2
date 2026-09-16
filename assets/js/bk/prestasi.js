@@ -338,11 +338,22 @@
             )
           );
 
-          if (!confirm(
-            `Hapus prestasi ${row.nama_siswa}?`
-          )) {
+          if (!window.Swal?.fire) {
+            show('Dialog konfirmasi tidak tersedia. Muat ulang halaman lalu coba lagi.');
             return;
           }
+
+          const confirmation = await window.Swal.fire({
+            icon: 'warning',
+            title: 'Hapus prestasi?',
+            html: `<strong>${esc(row.nama_siswa || '-')}</strong><br>${esc(row.nama_prestasi || '-')}`,
+            showCancelButton: true,
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+          });
+
+          if (!confirmation.isConfirmed) return;
 
           setButtonBusy(button, true, 'Menghapus...');
 
