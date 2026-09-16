@@ -189,6 +189,53 @@ class RoleAwareDashboardService extends DashboardService
         return $widgets;
     }
 
+    /**
+     * Override helper legacy DashboardService supaya payload aktif tidak lagi
+     * membawa poin pelanggaran. Ranking, bila pernah dipanggil, berbasis jumlah
+     * catatan dan bukan SUM poin.
+     */
+    protected function topViolations(int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id_siswa, s.nama, COUNT(ck.id) AS total_catatan', false)
+            ->join('siswa s', 's.id = ck.id_siswa')
+            ->groupBy('ck.id_siswa, s.nama')
+            ->orderBy('total_catatan', 'DESC')
+            ->orderBy('s.nama', 'ASC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
+    protected function latestCases(int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id, ck.id_siswa, ck.tanggal, ck.keterangan, s.nama, rp.nama_pelanggaran, rp.kategori')
+            ->join('siswa s', 's.id = ck.id_siswa')
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->orderBy('ck.tanggal', 'DESC')
+            ->orderBy('ck.id', 'DESC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
+    protected function studentCases(int $idSiswa, int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id, ck.tanggal, ck.keterangan, rp.nama_pelanggaran, rp.kategori')
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->where('ck.id_siswa', $idSiswa)
+            ->orderBy('ck.tanggal', 'DESC')
+            ->orderBy('ck.id', 'DESC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
     protected function waliQuickLinks(int $userId, int $idKelas): array
     {
         $links = parent::waliQuickLinks($userId, $idKelas);
