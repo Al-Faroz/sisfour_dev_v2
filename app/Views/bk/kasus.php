@@ -4,21 +4,20 @@
 <div
     id="bkKasusApp"
     data-base-url="<?= esc(base_url()) ?>"
-    data-can-manage="<?= !empty($initial['can_manage']) ? '1' : '0' ?>"
+    data-can-manage="<?= ! empty($initial['can_manage']) ? '1' : '0' ?>"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
-            <h4 class="fw-bold mb-1">Catatan Kasus</h4>
+            <h4 class="fw-bold mb-1">Catatan Pelanggaran Siswa</h4>
             <p class="text-muted mb-0">
-                Data otomatis dibatasi sesuai scope user. Tindak lanjut dicatat sebagai histori terpisah.
+                Catatan pelanggaran bersifat data kejadian siswa. Sistem poin tidak digunakan lagi.
             </p>
         </div>
 
-        <?php if (!empty($initial['can_manage'])): ?>
+        <?php if (! empty($initial['can_manage'])): ?>
             <div class="sisfour-page-actions">
                 <button class="btn btn-primary" id="btnKasusBaru" type="button">
-                    <i class="bx bx-plus me-1"></i>
-                    Tambah Kasus
+                    <i class="bx bx-plus me-1"></i> Tambah Catatan
                 </button>
             </div>
         <?php endif; ?>
@@ -74,16 +73,18 @@
 
         <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                <h5 class="mb-0">Riwayat Kasus</h5>
+                <h5 class="mb-0">Riwayat Pelanggaran</h5>
 
-                <?php if (!empty($initial['can_manage'])): ?>
+                <?php if (! empty($initial['can_manage'])): ?>
                     <a class="btn btn-sm btn-outline-primary" id="btnKasusExport" href="#">
                         <i class="bx bx-export me-1"></i> Export XLSX
                     </a>
                 <?php endif; ?>
             </div>
 
-            <div class="table-responsive">
+            <div id="kasusMobileList" class="d-md-none list-group list-group-flush"></div>
+
+            <div class="d-none d-md-block table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
@@ -91,7 +92,6 @@
                             <th>Siswa</th>
                             <th>Pelanggaran</th>
                             <th>Kategori</th>
-                            <th>Poin</th>
                             <th>Keterangan</th>
                             <th class="text-end">Aksi</th>
                         </tr>
@@ -105,20 +105,12 @@
             </div>
         </div>
 
-        <?php if (($initial['scope'] ?? '') !== 'DIRI_SENDIRI'): ?>
-            <div class="mt-3">
-                <a href="<?= esc(base_url('bk/kasus/top')) ?>" class="btn btn-outline-secondary">
-                    Lihat Top 20 Poin
-                </a>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($initial['can_manage'])): ?>
+        <?php if (! empty($initial['can_manage'])): ?>
             <div class="modal fade" id="modalKasus" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-scrollable">
                     <form class="modal-content" id="formKasus">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="judulModalKasus">Catatan Kasus</h5>
+                            <h5 class="modal-title" id="judulModalKasus">Catatan Pelanggaran</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                         </div>
 
@@ -139,11 +131,11 @@
                                 >
                                     <option value="">Cari siswa</option>
                                 </select>
-                                <div class="form-text">Ketik minimal 2 karakter.</div>
+                                <div class="form-text">Ketik minimal 2 karakter, lalu pilih siswa dari hasil pencarian.</div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label" for="kasusPelanggaran">Pelanggaran</label>
+                                <label class="form-label" for="kasusPelanggaran">Jenis Pelanggaran</label>
                                 <select
                                     id="kasusPelanggaran"
                                     name="id_pelanggaran"
@@ -155,14 +147,7 @@
                                     <option value="">Pilih pelanggaran</option>
                                     <?php foreach (($initial['pelanggaran'] ?? []) as $p): ?>
                                         <option value="<?= (int) $p['id'] ?>">
-                                            <?= esc(
-                                                $p['nama_pelanggaran']
-                                                . ' — '
-                                                . $p['kategori']
-                                                . ' ('
-                                                . $p['poin']
-                                                . ' poin)'
-                                            ) ?>
+                                            <?= esc($p['nama_pelanggaran'] . ' — ' . $p['kategori']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -175,7 +160,13 @@
 
                             <div>
                                 <label class="form-label" for="kasusKeterangan">Keterangan</label>
-                                <textarea id="kasusKeterangan" name="keterangan" class="form-control" rows="3"></textarea>
+                                <textarea
+                                    id="kasusKeterangan"
+                                    name="keterangan"
+                                    class="form-control"
+                                    rows="4"
+                                    placeholder="Catat kronologi atau keterangan singkat bila diperlukan."
+                                ></textarea>
                             </div>
                         </div>
 
@@ -192,14 +183,12 @@
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Detail Kasus &amp; Tindak Lanjut</h5>
+                        <h5 class="modal-title">Detail Pelanggaran &amp; Tindak Lanjut</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                     </div>
 
                     <div class="modal-body">
-                        <div id="detailKasusLoading" class="text-center text-muted py-4">
-                            Memuat data...
-                        </div>
+                        <div id="detailKasusLoading" class="text-center text-muted py-4">Memuat data...</div>
 
                         <div id="detailKasusContent" class="d-none">
                             <div class="card bg-label-secondary mb-4">
@@ -214,7 +203,7 @@
                                             <strong id="detailKasusTanggal"></strong>
                                         </div>
                                         <div class="col-md-3">
-                                            <small class="text-muted d-block">Kategori / Poin</small>
+                                            <small class="text-muted d-block">Kategori</small>
                                             <strong id="detailKasusKategori"></strong>
                                         </div>
                                         <div class="col-12">
@@ -229,7 +218,7 @@
                                 </div>
                             </div>
 
-                            <?php if (!empty($initial['can_manage'])): ?>
+                            <?php if (! empty($initial['can_manage'])): ?>
                                 <form id="formTindakLanjut" class="card mb-4">
                                     <div class="card-header">
                                         <h6 class="mb-0" id="judulTindakLanjut">Tambah Tindak Lanjut</h6>
@@ -266,7 +255,6 @@
                                 <h6 class="mb-0">Riwayat Tindak Lanjut</h6>
                                 <span class="badge bg-label-primary" id="jumlahTindakLanjut">0</span>
                             </div>
-
                             <div id="timelineTindakLanjut" class="vstack gap-3"></div>
                         </div>
                     </div>
