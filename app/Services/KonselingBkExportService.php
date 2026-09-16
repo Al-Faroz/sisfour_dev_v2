@@ -27,7 +27,7 @@ class KonselingBkExportService
             'Rencana Berikutnya',
             'Tanggal Berikutnya',
             'Status',
-            'Guru BK',
+            'Dicatat Oleh',
         ];
 
         $data = [];
@@ -50,7 +50,7 @@ class KonselingBkExportService
                 $row['rencana_berikutnya'] ?? '',
                 $row['tanggal_berikutnya'] ?? '',
                 $row['status'] ?? '',
-                $row['nama_guru_bk'] ?? '',
+                $row['nama_pencatat'] ?? $row['nama_guru_bk'] ?? '',
             ];
         }
 
