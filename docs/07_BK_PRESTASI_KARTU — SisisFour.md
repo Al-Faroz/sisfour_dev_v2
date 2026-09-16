@@ -296,7 +296,7 @@ Siswa = tidak
 
 UI dan backend validation membaca sumber setting yang sama. Jika setting belum ada/rusak/tidak valid, aplikasi menggunakan default aman dari kode.
 
-Setiap group minimal satu pilihan, maksimal 40 pilihan, maksimal 150 karakter per pilihan, dan duplikat case-insensitive dibersihkan.
+Setiap group minimal satu dan maksimal 40 pilihan. Panjang pilihan mengikuti schema Konseling: Bentuk Layanan maksimal 50 karakter, Cara Siswa Hadir 80, setiap Topik 150, dan Rencana Berikutnya 100. Duplikat case-insensitive dibersihkan sebelum disimpan.
 
 ## 8. Referensi Default Jenis Layanan Konseling
 
