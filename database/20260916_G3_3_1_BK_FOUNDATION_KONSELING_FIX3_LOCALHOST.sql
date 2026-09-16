@@ -1,4 +1,4 @@
--- SisisFour G3.3.1 FIX3 — Pengaturan Form Konseling
+-- SisisFour G3.3.1 FIX3 — Pengaturan Form Konseling + role boundary hardening
 -- Target: LOCALHOST
 -- Database: sisfour_dev_v2
 -- Tanggal: 2026-09-16
@@ -8,11 +8,16 @@
 --   bk_konseling_form_options
 -- Row setting akan dibuat aplikasi saat pengaturan pertama kali disimpan.
 --
--- Akses:
---   admin = boleh mengatur
---   bk    = boleh mengatur
---   operator = tetap boleh memakai Konseling, tetapi tidak mengatur pilihan form
+-- Akses operasional Konseling:
+--   admin, operator, bk
+-- Pengaturan Form Konseling:
+--   admin, bk
+-- Explicit deny/cleanup:
+--   pimpinan, guru/Wali, siswa tidak memiliki permission/menu Konseling.
 
+-- -----------------------------------------------------------------------------
+-- 1. Pastikan permission Settings tersedia.
+-- -----------------------------------------------------------------------------
 INSERT INTO `sisfour_dev_v2`.`permissions`
     (`permission_key`, `nama`, `modul`, `scope_didukung`)
 VALUES
@@ -29,7 +34,7 @@ SET @settings_permission_id := (
     LIMIT 1
 );
 
--- Normalisasi permission: hanya Admin dan BK.
+-- Pengaturan hanya Admin + BK.
 DELETE FROM `sisfour_dev_v2`.`role_permissions`
 WHERE `id_permission` = @settings_permission_id;
 
@@ -43,7 +48,25 @@ FROM (
 ) r
 WHERE @settings_permission_id IS NOT NULL;
 
--- Parent mengikuti kelompok BK & Prestasi yang sama dengan Konseling BK.
+-- -----------------------------------------------------------------------------
+-- 2. Enforce boundary operasional Konseling.
+--    Hapus mapping accidental/legacy untuk role yang tidak boleh melihat data
+--    rahasia. Wali memakai role Guru + context, jadi tercakup oleh 'guru'.
+-- -----------------------------------------------------------------------------
+DELETE rp
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
+WHERE rp.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND p.`permission_key` IN (
+      'bk_konseling.view',
+      'bk_konseling.manage',
+      'bk_konseling.export',
+      'bk_konseling.settings'
+  );
+
+-- -----------------------------------------------------------------------------
+-- 3. Parent/menu Pengaturan Form Konseling.
+-- -----------------------------------------------------------------------------
 SET @bk_parent_id := (
     SELECT `parent_id`
     FROM `sisfour_dev_v2`.`menus`
@@ -63,7 +86,6 @@ SET @next_menu_id := (
     FROM `sisfour_dev_v2`.`menus`
 );
 
--- Pakai urutan terakhir dalam parent untuk menghindari benturan UNIQUE/order existing.
 SET @next_menu_order := (
     SELECT COALESCE(MAX(`urutan`), 0) + 1
     FROM `sisfour_dev_v2`.`menus`
@@ -98,7 +120,7 @@ SET
     `updated_at` = NOW()
 WHERE `id` = @settings_menu_id;
 
--- Admin dan BK tampil.
+-- Admin dan BK melihat menu Settings.
 INSERT INTO `sisfour_dev_v2`.`role_menus` (`role`, `id_menu`, `tampil`)
 SELECT r.`role`, @settings_menu_id, 1
 FROM (
@@ -109,26 +131,47 @@ FROM (
 WHERE @settings_menu_id IS NOT NULL
 ON DUPLICATE KEY UPDATE `tampil` = 1;
 
--- Operator tidak diberi menu setting meskipun tetap memiliki akses operasional Konseling.
+-- Operator tidak mengatur form; Pimpinan/Guru/Siswa tidak melihat Settings.
 DELETE FROM `sisfour_dev_v2`.`role_menus`
-WHERE `role` = 'operator'
+WHERE `role` IN ('operator', 'pimpinan', 'guru', 'siswa')
   AND `id_menu` = @settings_menu_id;
 
--- Verifikasi permission.
+-- Pastikan menu operasional Konseling juga tidak tampil pada role terlarang.
+DELETE rm
+FROM `sisfour_dev_v2`.`role_menus` rm
+JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
+WHERE rm.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND m.`link` = 'bk/konseling';
+
+-- -----------------------------------------------------------------------------
+-- 4. Verifikasi.
+-- -----------------------------------------------------------------------------
 SELECT rp.`role`, p.`permission_key`, rp.`scope`
 FROM `sisfour_dev_v2`.`role_permissions` rp
 JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
-WHERE p.`permission_key` = 'bk_konseling.settings'
-ORDER BY rp.`role`;
+WHERE p.`permission_key` LIKE 'bk_konseling.%'
+ORDER BY rp.`role`, p.`permission_key`;
 
--- Verifikasi menu.
 SELECT rm.`role`, m.`nama_menu`, m.`link`, rm.`tampil`
 FROM `sisfour_dev_v2`.`role_menus` rm
 JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
-WHERE m.`link` = 'bk/konseling/settings'
-ORDER BY rm.`role`;
+WHERE m.`link` IN ('bk/konseling', 'bk/konseling/settings')
+ORDER BY m.`link`, rm.`role`;
 
--- Verifikasi tabel setting_sistem tersedia; tidak ada CREATE TABLE pada FIX3.
+SELECT COUNT(*) AS `forbidden_permission_rows`
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
+WHERE rp.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND p.`permission_key` LIKE 'bk_konseling.%';
+
+SELECT COUNT(*) AS `forbidden_menu_rows`
+FROM `sisfour_dev_v2`.`role_menus` rm
+JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
+WHERE rm.`role` IN ('pimpinan', 'guru', 'siswa')
+  AND m.`link` IN ('bk/konseling', 'bk/konseling/settings')
+  AND rm.`tampil` = 1;
+
+-- Tidak ada CREATE TABLE pada FIX3; setting memakai tabel existing.
 SELECT COUNT(*) AS `setting_sistem_tersedia`
 FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = 'sisfour_dev_v2'
