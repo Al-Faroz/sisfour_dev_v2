@@ -519,16 +519,17 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 
 `FIX3_LOCALHOST` menambah permission/menu Setting Form Konseling dan secara eksplisit membersihkan accidental permission/menu Konseling untuk Pimpinan, Guru/Wali, dan Siswa.
 
-**Hosting dikerjakan terakhir.** Sebelum perubahan hosting:
+**Hosting dikerjakan terakhir.** Branch final localhost tidak menyertakan SQL hosting G3.3.1. Sebelum membuat syntax hosting:
 
 ```text
 1. user mengirim dump SQL hosting aktual
 2. dump diaudit terhadap schema, permission, menu, identity, dan data existing
-3. syntax SQL hosting disusun/direvisi berdasarkan kondisi nyata dump
-4. baru dilakukan static/review gate dan eksekusi dengan approval user
+3. syntax SQL hosting dibuat berdasarkan kondisi nyata dump
+4. dilakukan static/review gate
+5. baru dieksekusi dengan approval user
 ```
 
-File SQL hosting yang sudah terdapat pada branch selama development bersifat **provisional / DO NOT RUN** sampai dump hosting aktual diaudit dan file tersebut diganti/difinalkan.
+Tidak ada syntax G3.3.1 hosting yang dianggap canonical sebelum proses dump-audit tersebut selesai.
 
 ## 18. Checkpoint G3.3.1
 
