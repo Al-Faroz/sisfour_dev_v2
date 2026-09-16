@@ -254,15 +254,15 @@ class RoleAwareDashboardService extends DashboardService
     private function nextTeacherSchedule(array $jadwal): ?array
     {
         foreach ($jadwal as $row) {
-            if (($row['window_state'] ?? '') === 'NOT_STARTED') {
-                $row['dashboard_state'] = 'berikutnya';
+            if (($row['window_state'] ?? '') === 'VALID') {
+                $row['dashboard_state'] = 'berlangsung';
                 return $row;
             }
         }
 
         foreach ($jadwal as $row) {
-            if (($row['window_state'] ?? '') === 'VALID') {
-                $row['dashboard_state'] = 'berlangsung';
+            if (($row['window_state'] ?? '') === 'NOT_STARTED') {
+                $row['dashboard_state'] = 'berikutnya';
                 return $row;
             }
         }
