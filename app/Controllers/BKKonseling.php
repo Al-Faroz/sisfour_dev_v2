@@ -124,14 +124,13 @@ class BKKonseling extends BaseController
             }
         }
 
-        $raw = $this->request->getRawInput();
-        if (is_array($raw) && $raw !== []) {
-            return $raw;
-        }
-
         $post = $this->request->getPost();
+        $raw = $this->request->getRawInput();
 
-        return is_array($post) ? $post : [];
+        $post = is_array($post) ? $post : [];
+        $raw = is_array($raw) ? $raw : [];
+
+        return array_replace($raw, $post);
     }
 
     private function respond(array $result)
@@ -155,8 +154,7 @@ class BKKonseling extends BaseController
     private function httpCode(string $code): int
     {
         return match ($code) {
-            'FORBIDDEN',
-            'NO_GURU_IDENTITY' => ResponseInterface::HTTP_FORBIDDEN,
+            'FORBIDDEN' => ResponseInterface::HTTP_FORBIDDEN,
             'NOT_FOUND' => ResponseInterface::HTTP_NOT_FOUND,
             default => ResponseInterface::HTTP_UNPROCESSABLE_ENTITY,
         };
