@@ -141,6 +141,8 @@ class KonselingBkModel
                 'kb.cara_hadir',
                 'kb.bidang',
                 'kb.topik',
+                'kb.uraian_masalah',
+                'kb.hasil_kesepakatan',
                 'kb.rencana_berikutnya',
                 'kb.tanggal_berikutnya',
                 'kb.status',
