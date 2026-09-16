@@ -8,6 +8,9 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('bk', static function ($routes) {
         $routes->get('konseling', 'BKKonseling::index', ['filter' => 'permission:bk_konseling.view']);
         $routes->get('konseling/json', 'BKKonseling::index', ['filter' => 'permission:bk_konseling.view']);
+        $routes->get('konseling/settings', 'BKKonselingSettings::index', ['filter' => 'permission:bk_konseling.settings']);
+        $routes->post('konseling/settings', 'BKKonselingSettings::update', ['filter' => 'permission:bk_konseling.settings']);
+        $routes->post('konseling/settings/reset', 'BKKonselingSettings::reset', ['filter' => 'permission:bk_konseling.settings']);
         $routes->get('konseling/siswa-kelas/(:num)', 'BKKonseling::students/$1', ['filter' => 'permission:bk_konseling.manage']);
         $routes->get('konseling/detail/(:num)', 'BKKonseling::detail/$1', ['filter' => 'permission:bk_konseling.view']);
         $routes->post('konseling/create', 'BKKonseling::create', ['filter' => 'permission:bk_konseling.manage']);
