@@ -300,13 +300,14 @@ Catatan Kasus -> experience Catatan Pelanggaran Siswa
 sistem poin pelanggaran dihentikan
 Master Pelanggaran hanya nama + kategori
 Top Poin retired
-Konseling BK menjadi fitur terpisah
-Konseling BK bersifat rahasia dan BK-only
+Konseling BK menjadi fitur terpisah dan rahasia
+akses operasional Konseling = Admin + Operator + BK sesuai permission
+Pimpinan, Guru/Wali, Siswa tidak menerima surface/detail Konseling
 Konseling create Tahap 1
 Konseling update Tahap 2
 Kelas searchable -> Siswa searchable dalam kelas
 server memvalidasi membership kelas/tahun aktif
-SQL eksplisit localhost + hosting
+Setting Form Konseling memakai setting_sistem, tanpa tabel baru
 ```
 
 Tahap 1 Konseling:
@@ -326,24 +327,45 @@ Tanggal Pertemuan Berikutnya
 Status Proses/Selesai
 ```
 
-SQL G3.3.1:
+Permission Konseling:
+
+```text
+bk_konseling.view       -> Admin, Operator, BK
+bk_konseling.manage     -> Admin, Operator, BK
+bk_konseling.export     -> Admin, Operator, BK
+bk_konseling.settings   -> Admin, BK
+```
+
+Identity/audit Konseling:
+
+```text
+created_by -> users.id
+akun BK lokal memakai users.id_pegawai -> pegawai.id
+id_guru_bk hanya metadata legacy nullable
+```
+
+SQL localhost G3.3.1:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX2_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 ```
 
-Permission baru:
+**Hosting dikerjakan paling akhir.** Syntax SQL hosting final hanya disusun setelah dump SQL hosting aktual diberikan dan diaudit. File SQL hosting yang sudah ada pada branch bersifat provisional dan **tidak boleh dijalankan** sebelum audit dump hosting.
+
+Finalisasi lintas-role G3.3.1 juga memastikan:
 
 ```text
-bk_konseling.view
-bk_konseling.manage
-bk_konseling.export
+Pimpinan = agregat supervisi tanpa detail Konseling dan tanpa poin
+Wali = context Guru, quick link permission-aware, tanpa Konseling
+Siswa = self-service milik sendiri, tanpa Konseling dan tanpa poin
+mobile Pimpinan/Siswa = list/card, bukan tabel horizontal operasional
 ```
 
-Detail kontrak BK canonical ada di `07_BK_PRESTASI_KARTU — SisisFour.md`.
+Detail kontrak BK canonical ada di `07_BK_PRESTASI_KARTU — SisisFour.md`. Detail dashboard lintas-role ada di `08_DASHBOARD_SETTINGS_BACKUP — SisisFour.md`.
 
-G3.4 baru dimulai setelah G3.3.1 lulus schema, static, dan browser regression.
+G3.4 baru dimulai setelah G3.3.1 lulus schema, static, browser, privacy, dan cross-role regression.
 
 ## 11. G4 — Cordova APK
 
