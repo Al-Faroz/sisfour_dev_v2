@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 16 September 2026  
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling  
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling (PASS / pending merge approval)  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -176,7 +176,7 @@ Urutan implementasi:
 G3.1 Mobile foundation                  CLOSED / MERGED
 G3.2 Guru/Wali Presensi & Jurnal        CLOSED / MERGED
 G3.3 Dashboard Guru/Wali                CLOSED / MERGED
-G3.3.1 Fondasi BK + Konseling           ACTIVE
+G3.3.1 Fondasi BK + Konseling           PASS / PENDING MERGE APPROVAL
 G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
@@ -283,9 +283,9 @@ business rule/time-window/authorization tetap server-side
 
 Tidak ada schema/database baru pada G3.3.
 
-### G3.3.1 Fondasi BK + Konseling — ACTIVE
+### G3.3.1 Fondasi BK + Konseling — PASS / PENDING MERGE APPROVAL
 
-Branch aktif:
+Branch final:
 
 ```text
 feat/g3-bk-foundation-konseling-20260916
@@ -340,21 +340,21 @@ Identity/audit Konseling:
 
 ```text
 created_by -> users.id
-akun BK lokal memakai users.id_pegawai -> pegawai.id
+akun BK memakai users.id_pegawai -> pegawai.id
 id_guru_bk hanya metadata legacy nullable
 ```
 
-SQL localhost G3.3.1:
+SQL final G3.3.1:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX2_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-**Hosting dikerjakan paling akhir.** Branch final localhost sengaja tidak membawa SQL hosting G3.3.1. Syntax hosting baru dibuat setelah dump SQL hosting aktual diberikan dan diaudit terhadap schema, permission, menu, identity, dan data existing.
+SQL hosting dibuat setelah dump aktual `u473908839_sisfour2026` diaudit. SQL hosting telah dieksekusi dan smoke UAT hosting dinyatakan PASS pada 16 September 2026. FIX1/FIX2 localhost adalah patch transisi development dan tidak menjadi bagian branch final.
 
-Finalisasi lintas-role G3.3.1 juga memastikan:
+Finalisasi lintas-role G3.3.1 memastikan:
 
 ```text
 Pimpinan = agregat supervisi tanpa detail Konseling dan tanpa poin
@@ -363,9 +363,20 @@ Siswa = self-service milik sendiri, tanpa Konseling dan tanpa poin
 mobile Pimpinan/Siswa = list/card, bukan tabel horizontal operasional
 ```
 
+Gate G3.3.1 yang telah PASS:
+
+```text
+application/static regression
+localhost FINAL UAT
+security/privacy/cross-role audit
+hosting dump compatibility audit
+hosting SQL execution
+hosting smoke UAT
+```
+
 Detail kontrak BK canonical ada di `07_BK_PRESTASI_KARTU — SisisFour.md`. Detail dashboard lintas-role ada di `08_DASHBOARD_SETTINGS_BACKUP — SisisFour.md`.
 
-G3.4 baru dimulai setelah G3.3.1 lulus schema, static, browser, privacy, dan cross-role regression.
+G3.4 dimulai setelah PR #9 memperoleh approval eksplisit dan G3.3.1 merged ke `main`.
 
 ## 11. G4 — Cordova APK
 
@@ -394,7 +405,7 @@ G2 CLOSED        → baseline business/admin stabil
 G3.1 CLOSED      → mobile foundation tersedia
 G3.2 CLOSED      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta tervalidasi
 G3.3 CLOSED      → Dashboard Guru/Wali mobile-ready
-G3.3.1 PASS      → fondasi BK tanpa poin + Konseling dua tahap siap
+G3.3.1 PASS      → fondasi BK tanpa poin + Konseling dua tahap lulus local+hosting gate
 G3 PASS          → mobile/WebView UI ready
 G4 PASS          → APK distribution gate
 ```
