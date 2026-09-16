@@ -134,18 +134,36 @@ class BkExportService
 
     public function prestasi(array $data, int $userId): array
     {
-        $headers = ['No', 'NISN', 'Nama Siswa', 'Tanggal', 'Prestasi', 'Tingkat', 'Penyelenggara', 'Keterangan'];
+        $prestasiRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
+        $studentIds = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): int => (int) ($row['id_siswa'] ?? 0),
+            $prestasiRows
+        ))));
+        $classMap = $this->activeClassMap($studentIds);
+
+        $headers = [
+            'No',
+            'NISN',
+            'Nama Siswa',
+            'Kelas',
+            'Tanggal',
+            'Prestasi',
+            'Tingkat',
+            'Penyelenggara',
+            'Keterangan',
+        ];
         $rows = [];
         $no = 1;
 
-        foreach ($data['rows'] as $row) {
+        foreach ($prestasiRows as $row) {
             $rows[] = [
                 $no++,
-                $row['nisn'],
-                $row['nama_siswa'],
-                $row['tanggal'],
-                $row['nama_prestasi'],
-                $row['tingkat'],
+                $row['nisn'] ?? '',
+                $row['nama_siswa'] ?? '',
+                $classMap[(int) ($row['id_siswa'] ?? 0)] ?? '-',
+                $row['tanggal'] ?? '',
+                $row['nama_prestasi'] ?? '',
+                $row['tingkat'] ?? '',
                 $row['penyelenggara'] ?? '',
                 $row['keterangan'] ?? '',
             ];
@@ -154,7 +172,7 @@ class BkExportService
         $result = $this->write('Prestasi', $headers, $rows, 'prestasi_' . date('Ymd_His') . '.xlsx');
 
         if ($result['success']) {
-            $this->log($userId, 'Prestasi', 'Export Prestasi');
+            $this->log($userId, 'Prestasi', 'Export Prestasi dengan Kelas');
         }
 
         return $result;
