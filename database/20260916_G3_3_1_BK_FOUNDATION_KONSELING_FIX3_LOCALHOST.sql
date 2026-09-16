@@ -14,6 +14,11 @@
 --   admin, bk
 -- Explicit deny/cleanup:
 --   pimpinan, guru/Wali, siswa tidak memiliki permission/menu Konseling.
+--
+-- Catatan kompatibilitas localhost:
+-- - Script ini TIDAK membaca information_schema.
+-- - Cleanup memakai subquery sederhana, bukan multi-table DELETE ... JOIN.
+-- - Aman dijalankan ulang bila import sebelumnya berhenti di tengah.
 
 -- -----------------------------------------------------------------------------
 -- 1. Pastikan permission Settings tersedia.
@@ -53,15 +58,17 @@ WHERE @settings_permission_id IS NOT NULL;
 --    Hapus mapping accidental/legacy untuk role yang tidak boleh melihat data
 --    rahasia. Wali memakai role Guru + context, jadi tercakup oleh 'guru'.
 -- -----------------------------------------------------------------------------
-DELETE rp
-FROM `sisfour_dev_v2`.`role_permissions` rp
-JOIN `sisfour_dev_v2`.`permissions` p ON p.`id` = rp.`id_permission`
-WHERE rp.`role` IN ('pimpinan', 'guru', 'siswa')
-  AND p.`permission_key` IN (
-      'bk_konseling.view',
-      'bk_konseling.manage',
-      'bk_konseling.export',
-      'bk_konseling.settings'
+DELETE FROM `sisfour_dev_v2`.`role_permissions`
+WHERE `role` IN ('pimpinan', 'guru', 'siswa')
+  AND `id_permission` IN (
+      SELECT p.`id`
+      FROM `sisfour_dev_v2`.`permissions` p
+      WHERE p.`permission_key` IN (
+          'bk_konseling.view',
+          'bk_konseling.manage',
+          'bk_konseling.export',
+          'bk_konseling.settings'
+      )
   );
 
 -- -----------------------------------------------------------------------------
@@ -137,11 +144,13 @@ WHERE `role` IN ('operator', 'pimpinan', 'guru', 'siswa')
   AND `id_menu` = @settings_menu_id;
 
 -- Pastikan menu operasional Konseling juga tidak tampil pada role terlarang.
-DELETE rm
-FROM `sisfour_dev_v2`.`role_menus` rm
-JOIN `sisfour_dev_v2`.`menus` m ON m.`id` = rm.`id_menu`
-WHERE rm.`role` IN ('pimpinan', 'guru', 'siswa')
-  AND m.`link` = 'bk/konseling';
+DELETE FROM `sisfour_dev_v2`.`role_menus`
+WHERE `role` IN ('pimpinan', 'guru', 'siswa')
+  AND `id_menu` IN (
+      SELECT m.`id`
+      FROM `sisfour_dev_v2`.`menus` m
+      WHERE m.`link` = 'bk/konseling'
+  );
 
 -- -----------------------------------------------------------------------------
 -- 4. Verifikasi.
@@ -171,8 +180,5 @@ WHERE rm.`role` IN ('pimpinan', 'guru', 'siswa')
   AND m.`link` IN ('bk/konseling', 'bk/konseling/settings')
   AND rm.`tampil` = 1;
 
--- Tidak ada CREATE TABLE pada FIX3; setting memakai tabel existing.
-SELECT COUNT(*) AS `setting_sistem_tersedia`
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = 'sisfour_dev_v2'
-  AND TABLE_NAME = 'setting_sistem';
+-- Verifikasi tabel existing tanpa information_schema.
+SHOW TABLES FROM `sisfour_dev_v2` LIKE 'setting_sistem';
