@@ -144,12 +144,12 @@ class BkKonselingFormSettingsService
             return $validation;
         }
 
-        $json = json_encode(
-            $editable,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-        );
-
         try {
+            $json = json_encode(
+                $editable,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            );
+
             // Kolom type existing memakai tipe string; isi JSON disimpan di setting_value.
             $this->model->set(self::SETTING_KEY, $json, 'string', $userId);
         } catch (Throwable $e) {
@@ -175,12 +175,12 @@ class BkKonselingFormSettingsService
             return $guard;
         }
 
-        $json = json_encode(
-            self::DEFAULT_EDITABLE,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-        );
-
         try {
+            $json = json_encode(
+                self::DEFAULT_EDITABLE,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            );
+
             $this->model->set(self::SETTING_KEY, $json, 'string', $userId);
         } catch (Throwable $e) {
             return $this->fail('SAVE_FAILED', 'Default Form Konseling gagal dipulihkan.');
