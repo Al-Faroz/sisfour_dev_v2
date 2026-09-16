@@ -75,7 +75,6 @@ class BKKasusModel
                 's.nama AS nama_siswa',
                 'rp.nama_pelanggaran',
                 'rp.kategori',
-                'rp.poin',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
             ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
@@ -86,6 +85,10 @@ class BKKasusModel
         return $row ?: null;
     }
 
+    /**
+     * Legacy method name retained for compatibility. Ranking is now based on
+     * jumlah catatan pelanggaran, never on points.
+     */
     public function getTop20(?array $allowedStudentIds): array
     {
         $builder = $this->db
@@ -94,11 +97,9 @@ class BKKasusModel
                 ck.id_siswa,
                 s.nisn,
                 s.nama,
-                SUM(rp.poin) AS total_poin,
                 COUNT(ck.id) AS total_kasus
             ", false)
-            ->join('siswa s', 's.id = ck.id_siswa')
-            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran');
+            ->join('siswa s', 's.id = ck.id_siswa');
 
         if (is_array($allowedStudentIds)) {
             if ($allowedStudentIds === []) {
@@ -110,7 +111,6 @@ class BKKasusModel
 
         return $builder
             ->groupBy('ck.id_siswa, s.nisn, s.nama')
-            ->orderBy('total_poin', 'DESC')
             ->orderBy('total_kasus', 'DESC')
             ->orderBy('s.nama', 'ASC')
             ->limit(20)
@@ -121,6 +121,7 @@ class BKKasusModel
     public function insert(array $data): int
     {
         $this->db->table('catatan_kasus')->insert($data);
+
         return (int) $this->db->insertID();
     }
 
@@ -144,7 +145,7 @@ class BKKasusModel
     {
         return $this->db
             ->table('ref_pelanggaran')
-            ->select('id, nama_pelanggaran, kategori, poin')
+            ->select('id, nama_pelanggaran, kategori')
             ->orderBy('kategori', 'ASC')
             ->orderBy('nama_pelanggaran', 'ASC')
             ->get()
@@ -167,7 +168,6 @@ class BKKasusModel
                 's.nama AS nama_siswa',
                 'rp.nama_pelanggaran',
                 'rp.kategori',
-                'rp.poin',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
             ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran');
