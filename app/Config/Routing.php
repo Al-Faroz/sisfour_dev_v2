@@ -30,6 +30,7 @@ class Routing extends BaseRouting
      */
     public array $routeFiles = [
         APPPATH . 'Config/Routes.php',
+        APPPATH . 'Config/RoutesBKFoundation.php',
     ];
 
     /**
@@ -101,7 +102,7 @@ class Routing extends BaseRouting
      * class and methods that can run before and after the
      * controller/method.
      *
-     * If FALSE, will ignore any attributes.
+     * If FALSE, will ignore them.
      */
     public bool $useControllerAttributes = true;
 
@@ -117,8 +118,6 @@ class Routing extends BaseRouting
     /**
      * For Defined Routes.
      * If TRUE, matched multiple URI segments will be passed as one parameter.
-     *
-     * Default: false
      */
     public bool $multipleSegmentsOneParam = false;
 
@@ -126,24 +125,13 @@ class Routing extends BaseRouting
      * For Auto Routing (Improved).
      * Map of URI segments and namespaces.
      *
-     * The key is the first URI segment. The value is the controller namespace.
-     * E.g.,
-     *   [
-     *       'blog' => 'Acme\Blog\Controllers',
-     *   ]
-     *
      * @var array<string, string>
      */
     public array $moduleRoutes = [];
 
     /**
      * For Auto Routing (Improved).
-     * Whether to translate dashes in URIs for controller/method to CamelCase.
-     * E.g., blog-controller -> BlogController
-     *
-     * If you enable this, $translateURIDashes is ignored.
-     *
-     * Default: false
+     * Whether to translate dashes in URIs to CamelCase.
      */
     public bool $translateUriToCamelCase = true;
 }
