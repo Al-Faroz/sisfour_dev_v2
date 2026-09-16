@@ -56,7 +56,7 @@ $focusStateLabel = match ($focusState) {
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
   <div class="sisfour-page-header__copy">
-    <h4 class="mb-1">Dashboard Guru & Wali Kelas</h4>
+    <h4 class="mb-1">Dasbor Guru & Wali Kelas</h4>
     <p class="text-muted mb-0">Tugas mengajar hari ini dan kondisi kelas wali dalam satu layar.</p>
   </div>
   <?php if (! empty($wali['nama_kelas'])): ?>
@@ -87,7 +87,7 @@ $focusStateLabel = match ($focusState) {
 
 <div class="card mb-4">
   <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
-    <h5 class="mb-0">Quick Action Guru</h5>
+    <h5 class="mb-0">Aksi Cepat Guru</h5>
     <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
       <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
     <?php endif; ?>
@@ -327,7 +327,7 @@ $focusStateLabel = match ($focusState) {
 
   <div class="col-lg-7">
     <div class="card h-100">
-      <div class="card-header sisfour-section-heading"><h5 class="mb-0">Absence Terbaru</h5></div>
+      <div class="card-header sisfour-section-heading"><h5 class="mb-0">Ketidakhadiran Terbaru</h5></div>
       <div class="list-group list-group-flush">
         <?php if (empty($wali['recent_absence'])): ?>
           <div class="list-group-item sisfour-mobile-state text-muted">Belum ada catatan Sakit/Izin/Alpha.</div>
