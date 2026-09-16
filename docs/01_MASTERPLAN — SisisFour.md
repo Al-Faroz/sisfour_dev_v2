@@ -352,7 +352,7 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX2_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 ```
 
-**Hosting dikerjakan paling akhir.** Syntax SQL hosting final hanya disusun setelah dump SQL hosting aktual diberikan dan diaudit. File SQL hosting yang sudah ada pada branch bersifat provisional dan **tidak boleh dijalankan** sebelum audit dump hosting.
+**Hosting dikerjakan paling akhir.** Branch final localhost sengaja tidak membawa SQL hosting G3.3.1. Syntax hosting baru dibuat setelah dump SQL hosting aktual diberikan dan diaudit terhadap schema, permission, menu, identity, dan data existing.
 
 Finalisasi lintas-role G3.3.1 juga memastikan:
 
