@@ -68,6 +68,8 @@
     }
   }
 
+  // konseling.js mengisi form dari response detail terlebih dahulu, kemudian
+  // membuka detailContent. Jadi ringkasan selalu dibentuk dari data persisted.
   const observer = new MutationObserver(() => {
     if (!detailContent.classList.contains('d-none')) {
       window.requestAnimationFrame(refreshSummary);
@@ -77,9 +79,5 @@
   observer.observe(detailContent, {
     attributes: true,
     attributeFilter: ['class'],
-  });
-
-  updateForm.addEventListener('submit', () => {
-    window.setTimeout(refreshSummary, 500);
   });
 })();
