@@ -11,8 +11,18 @@ class BkKonselingFormSettingsService
     private const TZ = 'Asia/Jakarta';
     private const SETTING_KEY = 'bk_konseling_form_options';
     private const MAX_ITEMS_PER_GROUP = 40;
-    private const MAX_ITEM_LENGTH = 150;
     private const ALLOWED_ROLES = ['admin', 'bk'];
+
+    // Harus selaras dengan panjang kolom konseling_bk.
+    private const MAX_LENGTH = [
+        'Bentuk Layanan' => 50,
+        'Cara Siswa Hadir' => 80,
+        'Rencana Berikutnya' => 100,
+        'Topik Pribadi' => 150,
+        'Topik Sosial' => 150,
+        'Topik Belajar' => 150,
+        'Topik Karier' => 150,
+    ];
 
     private const FIXED_BIDANG = [
         'Pribadi',
@@ -288,12 +298,13 @@ class BkKonselingFormSettingsService
                 );
             }
 
+            $maxLength = self::MAX_LENGTH[$label] ?? 150;
             foreach ($items as $item) {
-                if (mb_strlen((string) $item) > self::MAX_ITEM_LENGTH) {
+                if (mb_strlen((string) $item) > $maxLength) {
                     return $this->fail(
                         'VALIDATION',
                         $label . ' memiliki pilihan yang lebih dari '
-                            . self::MAX_ITEM_LENGTH . ' karakter.'
+                            . $maxLength . ' karakter.'
                     );
                 }
             }
