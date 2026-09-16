@@ -29,23 +29,34 @@ class RoleAwareDashboardService extends DashboardService
     }
 
     /**
-     * G3.3.1: Dashboard supervisi tidak lagi membentuk ranking poin.
+     * G3.3.1: Pimpinan hanya menerima agregat supervisi.
+     * Data Konseling BK tidak pernah dibentuk untuk dashboard Pimpinan.
      */
     protected function widgetsPimpinan(int $userId): array
     {
         $tahun = $this->tahunAktif();
         $idTahun = (int) ($tahun['id'] ?? 0);
+        $canEws = $this->can($userId, 'ews_radar.view');
+        $canPelanggaran = $this->can($userId, 'bk_kasus.view');
+        $canPrestasi = $this->can($userId, 'prestasi.view');
+        $canKartu = $this->can($userId, 'kartu_pelajar.view');
 
         return [
             'tahun_aktif' => $tahun,
+            'access' => [
+                'ews' => $canEws,
+                'pelanggaran' => $canPelanggaran,
+                'prestasi' => $canPrestasi,
+                'kartu' => $canKartu,
+            ],
             'master' => $this->masterSummary($idTahun),
             'presensi_hari_ini' => $this->presensiTodaySummary($idTahun),
             'jurnal_hari_ini' => $this->journalTodaySummary($idTahun),
-            'ews_count' => $this->can($userId, 'ews_radar.view') ? $this->ewsCount($idTahun) : null,
-            'ews_top' => $this->can($userId, 'ews_radar.view') ? $this->ewsTop($idTahun, null, 10) : [],
-            'kasus_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->caseCountThisMonth() : null,
-            'prestasi_terbaru' => $this->can($userId, 'prestasi.view') ? $this->latestPrestasi(5) : [],
-            'kartu' => $this->can($userId, 'kartu_pelajar.view') ? $this->cardSummary() : null,
+            'ews_count' => $canEws ? $this->ewsCount($idTahun) : null,
+            'ews_top' => $canEws ? $this->ewsTop($idTahun, null, 5) : [],
+            'kasus_bulan_ini' => $canPelanggaran ? $this->caseCountThisMonth() : null,
+            'prestasi_terbaru' => $canPrestasi ? $this->latestPrestasi(5) : [],
+            'kartu' => $canKartu ? $this->cardSummary() : null,
             'tren_presensi' => $this->trendAttendance($idTahun),
         ];
     }
@@ -124,12 +135,24 @@ class RoleAwareDashboardService extends DashboardService
         return $widgets;
     }
 
+    /**
+     * Siswa hanya menerima data milik sendiri dan availability flag agar UI
+     * tidak menyamakan "tidak punya permission" dengan "tidak ada data".
+     * Konseling BK sengaja tidak pernah menjadi bagian dashboard Siswa.
+     */
     protected function widgetsSiswa(int $userId): array
     {
         $widgets = parent::widgetsSiswa($userId);
         $widgets['presensi_hari_ini'] = null;
+        $widgets['access'] = [
+            'presensi' => $this->can($userId, 'presensi_siswa.view'),
+            'prestasi' => $this->can($userId, 'prestasi.view'),
+            'pelanggaran' => $this->can($userId, 'bk_kasus.view'),
+            'kartu' => $this->can($userId, 'kartu_pelajar.view'),
+            'profile' => $this->can($userId, 'profile_siswa.view'),
+        ];
 
-        if (! $this->can($userId, 'presensi_siswa.view')) {
+        if (! $widgets['access']['presensi']) {
             return $widgets;
         }
 
@@ -177,6 +200,10 @@ class RoleAwareDashboardService extends DashboardService
             ) {
                 $link['url'] = 'presensi/siswa?id_kelas=' . $idKelas;
             }
+
+            if (($link['label'] ?? '') === 'Pelanggaran Siswa') {
+                $link['label'] = 'Catatan Pelanggaran';
+            }
         }
         unset($link);
 
@@ -193,7 +220,7 @@ class RoleAwareDashboardService extends DashboardService
             ],
             [
                 'permission' => 'bk_kasus.view',
-                'label' => 'Pelanggaran Siswa',
+                'label' => 'Catatan Pelanggaran',
                 'url' => 'bk/kasus',
             ],
             [
