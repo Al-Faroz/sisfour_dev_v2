@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 
 <h4 class="mb-1">Dashboard BK</h4>
-<p class="text-muted mb-4">Prioritas catatan pelanggaran, EWS Presensi, dan prestasi. Konseling BK akan menjadi bagian utama pada G3.4.</p>
+<p class="text-muted mb-4">Ringkasan catatan pelanggaran, EWS Presensi, dan prestasi siswa.</p>
 
 <div class="row g-3 mb-4">
   <div class="col-md-3"><div class="card h-100"><div class="card-body"><small class="text-muted">Pelanggaran Bulan Ini</small><h3 class="mb-0"><?= (int)($widgets['kasus_bulan_ini']??0) ?></h3></div></div></div>
