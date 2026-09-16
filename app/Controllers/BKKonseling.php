@@ -32,7 +32,10 @@ class BKKonseling extends BaseController
             $this->renderWithLayout('bk/konseling', [
                 'title' => 'Konseling BK',
                 'initial' => $this->service->getPage($userId, []),
-                'extraJs' => ['assets/js/bk/konseling.js'],
+                'extraJs' => [
+                    'assets/js/bk/konseling.js',
+                    'assets/js/bk/konseling-detail-order.js',
+                ],
             ])
         );
     }
