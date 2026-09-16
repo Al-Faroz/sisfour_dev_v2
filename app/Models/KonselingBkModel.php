@@ -53,7 +53,7 @@ class KonselingBkModel
 
     public function getDetailById(int $id): ?array
     {
-        $row = $this->db
+        $builder = $this->db
             ->table('konseling_bk kb')
             ->select([
                 'kb.*',
@@ -63,14 +63,27 @@ class KonselingBkModel
                 'ta.nama_tahun',
                 'ta.semester',
                 'g.nama AS nama_guru_bk',
+                'u_creator.username AS username_pencatat',
             ])
+            ->select(
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username) AS nama_pencatat',
+                false
+            )
             ->join('siswa s', 's.id = kb.id_siswa')
             ->join('kelas k', 'k.id = kb.id_kelas')
             ->join('tahun_ajaran ta', 'ta.id = kb.id_tahun')
-            ->join('guru g', 'g.id = kb.id_guru_bk')
-            ->where('kb.id', $id)
-            ->get()
-            ->getRowArray();
+            ->join('guru g', 'g.id = kb.id_guru_bk', 'left')
+            ->join(
+                'users u_creator',
+                'u_creator.id = COALESCE(kb.created_by, kb.updated_by)',
+                'left',
+                false
+            )
+            ->join('guru g_creator', 'g_creator.id = u_creator.id_guru', 'left')
+            ->join('pegawai p_creator', 'p_creator.id = u_creator.id_pegawai', 'left')
+            ->where('kb.id', $id);
+
+        $row = $builder->get()->getRowArray();
 
         return $row ?: null;
     }
@@ -147,16 +160,30 @@ class KonselingBkModel
                 'kb.tanggal_berikutnya',
                 'kb.status',
                 'kb.id_guru_bk',
+                'kb.created_by',
                 'kb.created_at',
                 'kb.updated_at',
                 's.nisn',
                 's.nama AS nama_siswa',
                 'k.nama_kelas',
                 'g.nama AS nama_guru_bk',
+                'u_creator.username AS username_pencatat',
             ])
+            ->select(
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username) AS nama_pencatat',
+                false
+            )
             ->join('siswa s', 's.id = kb.id_siswa')
             ->join('kelas k', 'k.id = kb.id_kelas')
-            ->join('guru g', 'g.id = kb.id_guru_bk');
+            ->join('guru g', 'g.id = kb.id_guru_bk', 'left')
+            ->join(
+                'users u_creator',
+                'u_creator.id = COALESCE(kb.created_by, kb.updated_by)',
+                'left',
+                false
+            )
+            ->join('guru g_creator', 'g_creator.id = u_creator.id_guru', 'left')
+            ->join('pegawai p_creator', 'p_creator.id = u_creator.id_pegawai', 'left');
 
         if (! empty($filter['id_kelas'])) {
             $builder->where('kb.id_kelas', (int) $filter['id_kelas']);
