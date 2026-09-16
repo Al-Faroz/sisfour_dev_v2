@@ -44,8 +44,8 @@ class Routing extends BaseRouting
 
     /**
      * For Auto Routing.
-     * The default controller to use when no other controller has been
-     * specified.
+     * The default controller to use when no other controller has
+     * been specified.
      *
      * Default: 'Home'
      */
@@ -118,6 +118,8 @@ class Routing extends BaseRouting
     /**
      * For Defined Routes.
      * If TRUE, matched multiple URI segments will be passed as one parameter.
+     *
+     * If FALSE, will pass each URI segment as a separate parameter.
      */
     public bool $multipleSegmentsOneParam = false;
 
@@ -125,13 +127,24 @@ class Routing extends BaseRouting
      * For Auto Routing (Improved).
      * Map of URI segments and namespaces.
      *
+     * The key is the first URI segment. The value is the controller namespace.
+     * E.g.,
+     *   [
+     *       'blog' => 'Acme\Blog\Controllers',
+     *   ]
+     *
      * @var array<string, string>
      */
     public array $moduleRoutes = [];
 
     /**
      * For Auto Routing (Improved).
-     * Whether to translate dashes in URIs to CamelCase.
+     * Whether to translate dashes in URIs for controller/method to CamelCase.
+     * E.g., blog-controller -> BlogController
+     *
+     * If you enable this, $translateURIDashes is ignored.
+     *
+     * Default: false
      */
     public bool $translateUriToCamelCase = true;
 }
