@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 16 September 2026  
-**Development aktif:** G3.3 — Dashboard Guru/Wali  
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -76,7 +76,7 @@ Search tetap mendukung nama dan identifier untuk pencocokan/verifikasi.
 - Manajemen Siswa.
 - Presensi Siswa + Jurnal Mengajar.
 - Laporan/Matrix/EWS/Signage.
-- BK/Pelanggaran/Prestasi.
+- BK/Pelanggaran/Konseling/Prestasi.
 - Kartu Pelajar.
 - Profile/Personalia/Portofolio.
 - Settings/Maintenance/Backup/Log.
@@ -175,7 +175,8 @@ Urutan implementasi:
 ```text
 G3.1 Mobile foundation                  CLOSED / MERGED
 G3.2 Guru/Wali Presensi & Jurnal        CLOSED / MERGED
-G3.3 Dashboard Guru/Wali                ACTIVE
+G3.3 Dashboard Guru/Wali                CLOSED / MERGED
+G3.3.1 Fondasi BK + Konseling           ACTIVE
 G3.4 BK workflow + Dashboard BK
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
@@ -235,12 +236,12 @@ database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-### G3.3 Dashboard Guru/Wali — ACTIVE
+### G3.3 Dashboard Guru/Wali — CLOSED
 
-Branch aktif:
+G3.3 merged melalui PR #8 pada 16 September 2026 dengan merge commit:
 
 ```text
-feat/g3-dashboard-guru-wali-20260916
+06e4e559c045763096058fc889342da78d973314
 ```
 
 Dashboard Guru memprioritaskan:
@@ -250,7 +251,7 @@ Jadwal Hari Ini
 Belum Presensi
 Belum Jurnal
 Selesai
-Quick Action permission-aware
+Aksi Cepat permission-aware
 jadwal berikutnya / yang sedang berlangsung
 riwayat Jurnal singkat
 ```
@@ -262,22 +263,87 @@ kelas wali + jumlah siswa aktif
 rekap H/S/I/A Sesi Awal hari ini
 status data belum tersedia bila belum ada row
 EWS kelas
-absence terbaru
+ketidakhadiran terbaru
 quick link contextual sesuai permission
+Aksi Cepat Guru berbasis jadwal
 ```
 
 Mobile contract G3.3:
 
 ```text
 4 KPI = 2×2
-quick action compact 2×2
 jadwal mobile = card/list, bukan horizontal table
-EWS/absence mobile = list, bukan horizontal table
+EWS/ketidakhadiran mobile = list
+action Presensi/Jurnal server-generated
+Presensi = CTA solid primary bila actionable
+Jurnal = CTA solid success bila actionable
 jalur Presensi/Jurnal maksimal 1–2 tap
 business rule/time-window/authorization tetap server-side
 ```
 
 Tidak ada schema/database baru pada G3.3.
+
+### G3.3.1 Fondasi BK + Konseling — ACTIVE
+
+Branch aktif:
+
+```text
+feat/g3-bk-foundation-konseling-20260916
+```
+
+G3.3.1 dikerjakan sebelum G3.4 karena kontrak data BK berubah.
+
+Scope canonical:
+
+```text
+Catatan Kasus -> experience Catatan Pelanggaran Siswa
+sistem poin pelanggaran dihentikan
+Master Pelanggaran hanya nama + kategori
+Top Poin retired
+Konseling BK menjadi fitur terpisah
+Konseling BK bersifat rahasia dan BK-only
+Konseling create Tahap 1
+Konseling update Tahap 2
+Kelas searchable -> Siswa searchable dalam kelas
+server memvalidasi membership kelas/tahun aktif
+SQL eksplisit localhost + hosting
+```
+
+Tahap 1 Konseling:
+
+```text
+Siswa & Waktu
+Jenis Layanan
+```
+
+Tahap 2 Konseling:
+
+```text
+Uraian Masalah
+Hasil Pembahasan dan Kesepakatan
+Rencana Berikutnya
+Tanggal Pertemuan Berikutnya
+Status Proses/Selesai
+```
+
+SQL G3.3.1:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
+
+Permission baru:
+
+```text
+bk_konseling.view
+bk_konseling.manage
+bk_konseling.export
+```
+
+Detail kontrak BK canonical ada di `07_BK_PRESTASI_KARTU — SisisFour.md`.
+
+G3.4 baru dimulai setelah G3.3.1 lulus schema, static, dan browser regression.
 
 ## 11. G4 — Cordova APK
 
@@ -302,12 +368,13 @@ Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada
 ## 12. Release Rule
 
 ```text
-G2 CLOSED      → baseline business/admin stabil
-G3.1 CLOSED    → mobile foundation tersedia
-G3.2 CLOSED    → Presensi/Jurnal Guru/Wali mobile-ready + schema delta tervalidasi
-G3.3 PASS      → Dashboard Guru/Wali mobile-ready
-G3 PASS        → mobile/WebView UI ready
-G4 PASS        → APK distribution gate
+G2 CLOSED        → baseline business/admin stabil
+G3.1 CLOSED      → mobile foundation tersedia
+G3.2 CLOSED      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta tervalidasi
+G3.3 CLOSED      → Dashboard Guru/Wali mobile-ready
+G3.3.1 PASS      → fondasi BK tanpa poin + Konseling dua tahap siap
+G3 PASS          → mobile/WebView UI ready
+G4 PASS          → APK distribution gate
 ```
 
 Setiap merge/release tetap membutuhkan approval eksplisit pengguna.
