@@ -2,12 +2,12 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 16 September 2026  
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling (PASS / pending merge approval)  
+**Development aktif:** G3.3.1 closure patch — focused re-smoke pending  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
 
-SisisFour adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang untuk akademik, presensi, monitoring, BK, kartu pelajar, personalia, pelaporan, dan self-service pengguna.
+SisisFour adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang untuk akademik, Presensi, monitoring, BK, Kartu Pelajar, personalia, pelaporan, dan self-service pengguna.
 
 Stack utama:
 
@@ -28,7 +28,7 @@ Android Cordova WebView
 API /api/*
 ```
 
-Sumber UI utama tetap View CI4/Sneat yang sama. APK tidak direncanakan sebagai duplikasi SPA penuh.
+UI utama tetap View CI4/Sneat yang sama. APK tidak direncanakan sebagai SPA kedua.
 
 ## 3. Role
 
@@ -43,7 +43,7 @@ siswa
 
 Wali Kelas adalah context Guru berdasarkan mapping aktif, bukan role baru.
 
-Role experience canonical:
+Role experience:
 
 ```text
 Admin
@@ -57,14 +57,12 @@ Siswa
 
 ## 4. Identity UX
 
-Untuk penggunaan sehari-hari:
-
 ```text
 Nama lengkap = identitas visual utama
 NISN/NIP/NIK = identifier sekunder
 ```
 
-Search tetap mendukung nama dan identifier untuk pencocokan/verifikasi.
+Search tetap mendukung nama + identifier untuk verifikasi/disambiguasi.
 
 ## 5. Modul
 
@@ -76,11 +74,11 @@ Search tetap mendukung nama dan identifier untuk pencocokan/verifikasi.
 - Manajemen Siswa.
 - Presensi Siswa + Jurnal Mengajar.
 - Laporan/Matrix/EWS/Signage.
-- BK/Pelanggaran/Konseling/Prestasi.
+- BK: Catatan Pelanggaran, Tindak Lanjut, Konseling, Prestasi.
 - Kartu Pelajar.
 - Profile/Personalia/Portofolio.
 - Settings/Maintenance/Backup/Log.
-- Android Cordova pada phase G4.
+- Android Cordova pada G4.
 
 ## 6. Arsitektur
 
@@ -102,16 +100,14 @@ Ganjil → Genap tahun sama = Siapkan Genap
 Genap → Ganjil tahun berikutnya = Kenaikan/Kelulusan
 ```
 
-Siapkan Genap menyalin struktur akademik yang diperbolehkan secara transactional dan tidak menyalin Presensi/Jurnal historis.
-
-Kenaikan normal hanya memproses:
+Kenaikan normal:
 
 ```text
 7 → 8
 8 → 9
 ```
 
-Kelas 9 menggunakan workflow Kelulusan. Kenaikan menjaga membership/history target secara transactional dan memiliki guard anti-double-process.
+Kelas 9 memakai Kelulusan. Lifecycle menjaga membership/history/status/Kartu secara transactional; restore terminal hanya untuk event terbaru ketika exact periode sumber masih aktif. Histori terminal tidak dihapus.
 
 Status siswa:
 
@@ -122,9 +118,7 @@ Pindah
 Keluar
 ```
 
-Lifecycle terminal menjaga history, current membership, status, dan kartu secara konsisten. Restore terminal lifecycle hanya diperbolehkan untuk event terminal terbaru ketika exact periode sumber terminal masih aktif; histori terminal tidak dihapus.
-
-Status F06–F14: **PASS / CLOSED pada G2**.
+F06–F14: **PASS / CLOSED pada G2**.
 
 ## 8. UI/UX Hierarchy
 
@@ -135,21 +129,21 @@ Status F06–F14: **PASS / CLOSED pada G2**.
 → 11 Role Experience
 ```
 
-Pimpinan/BK/Guru/Wali/Siswa adalah mobile-first pada G3.
+Pimpinan/BK/Guru/Wali/Siswa mobile-first pada G3.
 
-Untuk halaman yang memiliki selector Tahun Ajaran sebagai filter baca/histori:
+Selector Tahun Ajaran untuk baca/histori:
 
 ```text
 default = periode aktif
 Reset   = periode aktif
-histori = tetap selectable bila didukung
+histori = selectable bila didukung
 ```
 
-UI tidak perlu menampilkan helper/alert yang hanya menjelaskan default tersebut. Workflow current-state mengikuti periode aktif langsung dari business context.
+Workflow current-state memakai periode aktif langsung dari business context.
 
-## 9. G2 — CLOSED
+## 9. G2 — CLOSED / MERGED
 
-G2 telah selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
+PR #5 merged 15 September 2026.
 
 ```text
 G2.1 Repository Hygiene     PASS
@@ -157,7 +151,6 @@ G2.2 Static Gate            PASS
 G2.3 Business Regression    PASS
 G2.4 Browser Regression     PASS
 G2.5 Closure Review         PASS
-PR #5                       MERGED
 ```
 
 Merge commit:
@@ -166,85 +159,76 @@ Merge commit:
 375766c07f3856515a71ffdb07f3681c3047ca31
 ```
 
-Scope G2 tidak dibuka ulang pada G3 kecuali ditemukan regression/blocker nyata.
-
 ## 10. G3 — Mobile Role UI
 
-Urutan implementasi:
+Urutan:
 
 ```text
 G3.1 Mobile foundation                  CLOSED / MERGED
 G3.2 Guru/Wali Presensi & Jurnal        CLOSED / MERGED
 G3.3 Dashboard Guru/Wali                CLOSED / MERGED
-G3.3.1 Fondasi BK + Konseling           PASS / PENDING MERGE APPROVAL
-G3.4 BK workflow + Dashboard BK
+G3.3.1 Fondasi BK + Konseling           CLOSURE PATCH / RE-SMOKE PENDING
+G3.4 BK workflow + Dashboard BK         NEXT setelah PR #9 merge
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
 G3.7 global mobile sweep
 G3.8 viewport/WebView readiness regression
 ```
 
-Target utama:
+Target G3:
 
 ```text
 no body horizontal overflow
-no horizontal table scroll untuk role operasional
+no horizontal table scroll role operasional
 compact spacing
 touch target 44–48px
 name-first identity
 safe-area/keyboard ready
-mobile filter/action density yang konsisten
+mobile filter/action density konsisten
 ```
 
-### G3.1 Mobile Foundation — CLOSED
+### G3.1 — CLOSED
 
-G3.1 merged melalui PR #6 dengan merge commit:
+PR #6 merge commit:
 
 ```text
 d10ced5d70ffc68642067aac44feeb6a91cacd29
 ```
 
-Foundation menyediakan role-aware shell, safe-area, mobile density, touch targets, adaptive table, sticky actions, KPI 2×2, compact pagination, dan overflow baseline.
+Foundation: role-aware shell, safe-area, mobile density, touch targets, adaptive table/list, sticky action, KPI 2×2, compact pagination, overflow baseline.
 
-### G3.2 Guru/Wali Presensi & Jurnal — CLOSED
+### G3.2 — CLOSED
 
-G3.2 merged melalui PR #7 pada 16 September 2026 dengan merge commit:
+PR #7 merge commit:
 
 ```text
 176e5f764850d030968524af47117f259449064c
 ```
 
-Hasil G3.2:
+Hasil:
 
 ```text
-Presensi Siswa Guru/Wali mobile name-first
+Presensi Guru/Wali name-first
 H/S/I/A touch-friendly
-Jurnal mobile keyboard-friendly
+Jurnal keyboard-friendly
 Catatan optional
-student exception Sakit/Izin/Alpha per pembelajaran
+exception siswa S/I/A per pembelajaran
 parent + child save/revisi atomic
 laporan parent-level + aggregate no N+1 + Detail lazy-load
-SQL schema explicit untuk localhost/hosting
+SQL local + hosting validated
 ```
 
-G3.2 mempertahankan RBAC, geofence, time-window, dan makna Presensi Siswa resmi. Child Jurnal tidak mengubah tabel `presensi`, Rekap/EWS/Signage Presensi, atau sesi resmi.
+Child Jurnal tidak mengubah Presensi resmi/EWS/Signage.
 
-Schema delta G3.2 dibawa melalui SQL eksplisit:
+### G3.3 — CLOSED
 
-```text
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
-```
-
-### G3.3 Dashboard Guru/Wali — CLOSED
-
-G3.3 merged melalui PR #8 pada 16 September 2026 dengan merge commit:
+PR #8 merge commit:
 
 ```text
 06e4e559c045763096058fc889342da78d973314
 ```
 
-Dashboard Guru memprioritaskan:
+Dashboard Guru:
 
 ```text
 Jadwal Hari Ini
@@ -252,82 +236,62 @@ Belum Presensi
 Belum Jurnal
 Selesai
 Aksi Cepat permission-aware
-jadwal berikutnya / yang sedang berlangsung
-riwayat Jurnal singkat
+jadwal berikutnya / sedang berlangsung
+riwayat Jurnal ringkas
 ```
 
-Dashboard Guru + Wali mewarisi seluruh experience Guru lalu menambah:
+Guru+Wali menambah kelas wali, jumlah siswa, H/S/I/A Sesi Awal, EWS, absence terbaru, quick link contextual.
 
-```text
-kelas wali + jumlah siswa aktif
-rekap H/S/I/A Sesi Awal hari ini
-status data belum tersedia bila belum ada row
-EWS kelas
-ketidakhadiran terbaru
-quick link contextual sesuai permission
-Aksi Cepat Guru berbasis jadwal
-```
-
-Mobile contract G3.3:
+Mobile:
 
 ```text
 4 KPI = 2×2
-jadwal mobile = card/list, bukan horizontal table
-EWS/ketidakhadiran mobile = list
-action Presensi/Jurnal server-generated
-Presensi = CTA solid primary bila actionable
-Jurnal = CTA solid success bila actionable
-jalur Presensi/Jurnal maksimal 1–2 tap
-business rule/time-window/authorization tetap server-side
+jadwal/EWS/absence = card/list
+Presensi/Jurnal maksimal 1–2 tap
+business/time-window/authorization server-side
 ```
 
-Tidak ada schema/database baru pada G3.3.
+### G3.3.1 — Fondasi BK + Konseling
 
-### G3.3.1 Fondasi BK + Konseling — PASS / PENDING MERGE APPROVAL
-
-Branch final:
+Branch:
 
 ```text
 feat/g3-bk-foundation-konseling-20260916
 ```
 
-G3.3.1 dikerjakan sebelum G3.4 karena kontrak data BK berubah.
-
-Scope canonical:
+Kontrak final:
 
 ```text
-Catatan Kasus -> experience Catatan Pelanggaran Siswa
-sistem poin pelanggaran dihentikan
+Catatan Kasus -> Catatan Pelanggaran Siswa
+poin pelanggaran dihentikan
 Master Pelanggaran hanya nama + kategori
 Top Poin retired
-Konseling BK menjadi fitur terpisah dan rahasia
-akses operasional Konseling = Admin + Operator + BK sesuai permission
-Pimpinan, Guru/Wali, Siswa tidak menerima surface/detail Konseling
+Konseling BK terpisah dan rahasia
 Konseling create Tahap 1
 Konseling update Tahap 2
-Kelas searchable -> Siswa searchable dalam kelas
-server memvalidasi membership kelas/tahun aktif
-Setting Form Konseling memakai setting_sistem, tanpa tabel baru
+Kelas -> Siswa divalidasi Tahun Ajaran aktif
+Settings Form Konseling memakai setting_sistem
 ```
 
-Tahap 1 Konseling:
+Tahap 1:
 
 ```text
-Siswa & Waktu
-Jenis Layanan
+Kelas → Siswa → Tanggal → Pertemuan ke-
+Bentuk Layanan → Cara Hadir → Bidang → Topik
+status awal Proses
 ```
 
-Tahap 2 Konseling:
+Tahap 2:
 
 ```text
 Uraian Masalah
-Hasil Pembahasan dan Kesepakatan
+Hasil Pembahasan & Kesepakatan
 Rencana Berikutnya
 Tanggal Pertemuan Berikutnya
 Status Proses/Selesai
 ```
 
-Permission Konseling:
+Permission:
 
 ```text
 bk_konseling.view       -> Admin, Operator, BK
@@ -336,15 +300,17 @@ bk_konseling.export     -> Admin, Operator, BK
 bk_konseling.settings   -> Admin, BK
 ```
 
-Identity/audit Konseling:
+Pimpinan/Guru/Wali/Siswa tidak menerima surface/detail/widget Konseling.
+
+Identity:
 
 ```text
 created_by -> users.id
-akun BK memakai users.id_pegawai -> pegawai.id
-id_guru_bk hanya metadata legacy nullable
+akun BK aktual -> users.id_pegawai -> pegawai.id
+id_guru_bk nullable legacy metadata
 ```
 
-SQL final G3.3.1:
+Final SQL:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
@@ -352,31 +318,58 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-SQL hosting dibuat setelah dump aktual `u473908839_sisfour2026` diaudit. SQL hosting telah dieksekusi dan smoke UAT hosting dinyatakan PASS pada 16 September 2026. FIX1/FIX2 localhost adalah patch transisi development dan tidak menjadi bagian branch final.
-
-Finalisasi lintas-role G3.3.1 memastikan:
+Broad gates yang telah PASS:
 
 ```text
-Pimpinan = agregat supervisi tanpa detail Konseling dan tanpa poin
-Wali = context Guru, quick link permission-aware, tanpa Konseling
-Siswa = self-service milik sendiri, tanpa Konseling dan tanpa poin
-mobile Pimpinan/Siswa = list/card, bukan tabel horizontal operasional
-```
-
-Gate G3.3.1 yang telah PASS:
-
-```text
-application/static regression
-localhost FINAL UAT
-security/privacy/cross-role audit
-hosting dump compatibility audit
+application/local static + UAT
+Catatan Pelanggaran + Tindak Lanjut
+export Pelanggaran 2 sheet + Kelas
+Prestasi create/edit + export Kelas
+Konseling Tahap 1/Tahap 2
+Settings persistence/backend validation
+cross-role privacy/responsive
+hosting dump audit
 hosting SQL execution
-hosting smoke UAT
+broad hosting smoke UAT
 ```
 
-Detail kontrak BK canonical ada di `07_BK_PRESTASI_KARTU — SisisFour.md`. Detail dashboard lintas-role ada di `08_DASHBOARD_SETTINGS_BACKUP — SisisFour.md`.
+#### Closure patch setelah full docs/source audit
 
-G3.4 dimulai setelah PR #9 memperoleh approval eksplisit dan G3.3.1 merged ke `main`.
+Ditemukan edge-case preservasi data historis:
+
+```text
+record lama menyimpan Rencana X
+→ X dihapus dari Pengaturan Form
+→ record lama harus tetap menampilkan dan boleh mempertahankan X
+```
+
+Patch hanya menyentuh Service + JS Konseling dan **tidak mengubah schema/SQL**. Nilai lama ditampilkan sebagai `(tersimpan)` hanya pada record terkait; record lain tetap tidak boleh memakai opsi yang sudah dinonaktifkan.
+
+Status patch:
+
+```text
+source patched
+canonical docs sync in branch
+local static/focused UAT pending
+focused hosting re-smoke pending
+```
+
+PR #9 tidak boleh Ready/Merge sebelum focused re-smoke PASS dan user memberi approval eksplisit.
+
+### G3.4 — NEXT setelah PR #9 merge
+
+Dashboard/Workflow BK memakai foundation final:
+
+```text
+Konseling Proses / follow-up terdekat
+Catatan Pelanggaran terbaru/berat tanpa poin
+Tindak Lanjut perlu perhatian
+EWS
+Prestasi
+quick action permission-aware
+mobile-first / no wide operational table
+privacy Konseling tetap ketat
+```
 
 ## 11. G4 — Cordova APK
 
@@ -396,18 +389,18 @@ real-device regression
 signed package/distribution
 ```
 
-Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT. Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
+Cordova wrapper tidak otomatis mengganti Web session dengan JWT.
 
 ## 12. Release Rule
 
 ```text
 G2 CLOSED        → baseline business/admin stabil
 G3.1 CLOSED      → mobile foundation tersedia
-G3.2 CLOSED      → Presensi/Jurnal Guru/Wali mobile-ready + schema delta tervalidasi
-G3.3 CLOSED      → Dashboard Guru/Wali mobile-ready
-G3.3.1 PASS      → fondasi BK tanpa poin + Konseling dua tahap lulus local+hosting gate
+G3.2 CLOSED      → Guru/Wali Presensi/Jurnal validated
+G3.3 CLOSED      → Dashboard Guru/Wali validated
+G3.3.1 PASS      → setelah closure focused re-smoke PASS
 G3 PASS          → mobile/WebView UI ready
 G4 PASS          → APK distribution gate
 ```
 
-Setiap merge/release tetap membutuhkan approval eksplisit pengguna.
+Setiap merge/release membutuhkan approval eksplisit pengguna.

@@ -288,6 +288,27 @@
     bootstrap.Modal.getOrCreateInstance(createModalEl).show();
   }
 
+  function setStoredRencana(select, value) {
+    if (!select) return;
+
+    select.querySelectorAll('option[data-stored-legacy="1"]').forEach((option) => option.remove());
+
+    const stored = String(value || '').trim();
+    if (!stored) {
+      select.value = '';
+      return;
+    }
+
+    const exists = Array.from(select.options).some((option) => option.value === stored);
+    if (!exists) {
+      const option = new Option(`${stored} (tersimpan)`, stored);
+      option.dataset.storedLegacy = '1';
+      select.add(option);
+    }
+
+    select.value = stored;
+  }
+
   function fillDetail(row) {
     document.getElementById('detailKonselingSiswa').textContent = `${row.nisn || '-'} — ${row.nama_siswa || '-'}`;
     document.getElementById('detailKonselingKelas').textContent = row.nama_kelas || '-';
@@ -309,7 +330,7 @@
       updateForm.elements.id.value = row.id || '';
       updateForm.elements.uraian_masalah.value = row.uraian_masalah || '';
       updateForm.elements.hasil_kesepakatan.value = row.hasil_kesepakatan || '';
-      updateForm.elements.rencana_berikutnya.value = row.rencana_berikutnya || '';
+      setStoredRencana(updateForm.elements.rencana_berikutnya, row.rencana_berikutnya || '');
       updateForm.elements.tanggal_berikutnya.value = row.tanggal_berikutnya || '';
       updateForm.elements.status.value = row.status || 'Proses';
     }

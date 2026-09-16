@@ -1,12 +1,12 @@
 # Deployment Production — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 16 September 2026  
+**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 closure patch pending focused re-smoke  
+**Production DB:** delta G3.2 + G3.3.1 applied; SQL/schema broad smoke PASS  
 **Target Domain:** `https://sisfour.mtsn4jombang.sch.id/`
 
-> Deployment baseline dilakukan melalui **manual ZIP upload Hostinger hPanel**, bukan Git deployment. Secret production tidak pernah disimpan di repository atau dokumen ini.
+> Deployment production menggunakan manual ZIP upload Hostinger hPanel. Secret production tidak disimpan di repository/docs.
 
 ## 1. Platform
 
@@ -20,7 +20,9 @@ Timezone       Asia/Jakarta
 Deployment     manual ZIP upload/extract
 ```
 
-Project root adalah Web root. Isi project harus berada langsung di `public_html/`, bukan `public_html/sisfour_dev_v2/` dan bukan hanya isi folder `public/`.
+Project root adalah Web root. Isi project harus langsung di `public_html/`.
+
+## 2. Paket Upload
 
 Struktur minimum:
 
@@ -39,26 +41,9 @@ public_html/
 └── spark
 ```
 
-## 2. Isi Paket Upload
+Jangan menyertakan `.git/`, `.env` lokal, backup dev, runtime log/cache/debugbar, atau secret.
 
-Paket production boleh menyertakan `vendor/` bila Composer tidak dijalankan di hosting.
-
-Jangan menyertakan:
-
-```text
-.git/
-.env lokal
-_step*_backup/
-build/
-writable/logs/* runtime lokal
-writable/cache/* runtime lokal
-writable/debugbar/* runtime lokal
-writable/backups/* backup dev
-```
-
-`docs/` boleh disertakan karena `.htaccess` production memblokir direct Web access, tetapi tidak diperlukan oleh runtime.
-
-## 3. PHP dan Extension
+## 3. PHP / Extension
 
 Minimum:
 
@@ -75,7 +60,7 @@ curl
 openssl
 ```
 
-Rekomendasi bila paket hosting mengizinkan:
+Rekomendasi resource bila paket hosting mendukung:
 
 ```text
 memory_limit        512M
@@ -87,40 +72,25 @@ max_input_vars      5000
 date.timezone       Asia/Jakarta
 ```
 
-Kartu/PDF dan spreadsheet lebih sensitif terhadap memory/time limit dibanding halaman biasa.
-
 ## 4. Composer
 
-Dependency runtime:
-
-```text
-codeigniter4/framework ^4.7
-dompdf/dompdf ^3.1
-endroid/qr-code ^6.0
-firebase/php-jwt ^7.1
-phpoffice/phpspreadsheet ^5.9
-```
-
-Jika `vendor/` tidak dibawa dari build lokal, jalankan di hosting:
+Dependency runtime mengikuti `composer.lock`. Jika `vendor/` tidak dibawa:
 
 ```bash
 composer install --no-dev --optimize-autoloader
+composer check-platform-reqs
 ```
-
-Setelah itu jalankan `composer check-platform-reqs` bila tersedia.
 
 ## 5. `.env` Production
 
-`.env` dibuat langsung di production dan **tidak di-commit**.
+`.env` dibuat langsung di production dan tidak di-commit.
 
-Template aman:
+Minimum:
 
 ```ini
 CI_ENVIRONMENT = production
-
 app.baseURL = 'https://sisfour.mtsn4jombang.sch.id/'
 app.forceGlobalSecureRequests = true
-app.CSPEnabled = false
 
 database.default.hostname = localhost
 database.default.database = '<DB_NAME>'
@@ -139,15 +109,69 @@ JWT_SECRET = '<RANDOM_SECRET_MIN_32_CHAR>'
 encryption.key = '<RANDOM_ENCRYPTION_KEY_BERBEDA>'
 ```
 
-Gunakan hostname yang benar-benar ditampilkan hPanel. Jangan menyalin secret lokal ke repository.
+## 6. Database Deployment Rule
 
-`JWT_SECRET` harus minimal 32 karakter. Secret JWT dan encryption key harus berbeda.
+Jangan menimpa production dengan dump development tanpa keputusan eksplisit.
 
-## 6. Database Import
+Untuk schema delta:
 
-Import dump resmi ke database production yang sudah dibuat.
+```text
+1. backup database production
+2. ambil/audit dump hosting aktual
+3. bandingkan schema/data/FK/index/permissions/menu
+4. susun SQL hosting spesifik environment
+5. static/review gate
+6. approval eksplisit
+7. execute
+8. verification query
+9. logout/login bila permission/menu session/cache terlibat
+10. smoke UAT production
+```
 
-Dump tidak boleh memaksa membuat/memilih database lokal yang salah. Setelah import environment baru:
+SQL G3.2:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+SQL G3.3.1:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
+
+SQL G3.3.1 dibuat setelah dump aktual `u473908839_sisfour2026` diaudit. Eksekusi, verification, dan broad hosting smoke telah PASS.
+
+## 7. Source Change Setelah Smoke
+
+Production smoke hanya membuktikan source yang benar-benar terpasang saat pengujian.
+
+Jika branch berubah sesudah smoke, lakukan focused redeploy/re-smoke sesuai area perubahan sebelum menganggap head terbaru production-verified.
+
+Closure audit PR #9 menemukan patch source tanpa schema change:
+
+```text
+app/Services/KonselingBkService.php
+assets/js/bk/konseling.js
+```
+
+Tujuan patch: menjaga `Rencana Berikutnya` historis yang sudah tersimpan bila opsi tersebut kemudian dihapus dari Pengaturan Form Konseling.
+
+Tidak ada SQL tambahan. Setelah static/local focused UAT PASS, deploy dua file source tersebut ke hosting lalu ulang focused smoke:
+
+```text
+record lama menyimpan Rencana X
+→ X dihapus dari Settings
+→ buka record lama
+→ X tetap terlihat sebagai "tersimpan"
+→ save tanpa mengganti X tetap sukses
+→ ganti ke opsi aktif Y sukses
+→ record lain tidak dapat memakai X sebagai opsi baru
+```
+
+Sampai focused hosting smoke ini PASS, PR #9 **belum** masuk Ready/Merge gate.
+
+## 8. Runtime/Auth State pada Fresh Import
 
 ```sql
 TRUNCATE TABLE ci_sessions;
@@ -157,11 +181,9 @@ TRUNCATE TABLE login_attempts;
 
 Jangan truncate business data lain.
 
-Session Web memakai `DatabaseHandler` dan tabel `ci_sessions`.
+## 9. Upload Runtime/Data File
 
-## 7. Upload Runtime/Data File
-
-File dinamis perlu diverifikasi terhadap paket release sebelum upload. Pada baseline `39da465`, sebagian asset Settings sudah tracked, sedangkan foto identitas dan dokumen personalia tetap bersifat runtime. Pastikan production memiliki file yang benar-benar direferensikan database, terutama:
+Pastikan file referensi database tersedia:
 
 ```text
 uploads/foto_siswa/
@@ -172,42 +194,9 @@ uploads/settings/kartu/
 writable/uploads/personalia/
 ```
 
-### Catatan Repo Hygiene Penting
+Default permission aman folder 755/file 644; jangan 777 sebagai default.
 
-Implementasi final Settings menulis ke:
-
-```text
-uploads/settings/branding/
-uploads/settings/kartu/
-```
-
-Pada baseline `39da465`, beberapa file branding dan background Kartu di dua folder `uploads/settings/...` tersebut **sudah tracked di repository**. Sementara itu, `.gitignore` masih memuat pola path historis seperti `uploads/branding/` dan `uploads/kartu_pelajar/`, bukan path final Settings. Artinya upload Settings berikutnya dapat ikut ter-track jika dilakukan `git add -A`. Ini adalah hygiene follow-up source: tentukan secara eksplisit apakah asset Settings akan diperlakukan sebagai release asset atau runtime-only, lalu selaraskan `.gitignore`. Jangan memindahkan path runtime yang sudah dipakai aplikasi hanya untuk mengatasi masalah ignore.
-
-## 8. Permission File
-
-Default aman:
-
-```text
-folder 755
-file   644
-```
-
-PHP harus dapat menulis ke:
-
-```text
-writable/cache/
-writable/logs/
-writable/backups/
-writable/uploads/
-uploads/settings/
-uploads/foto_*/
-```
-
-Jangan memakai `777` sebagai default. Perbaiki ownership melalui fasilitas hosting bila diperlukan.
-
-## 9. Web Security
-
-`.htaccess` root release melindungi file/folder internal.
+## 10. Web Security
 
 Production test:
 
@@ -219,43 +208,11 @@ Production test:
 /signage            -> 200
 ```
 
-`robots.txt` meminta crawler tidak mengindeks aplikasi. Ini bukan authorization boundary.
+HTTPS + secure cookie wajib setelah SSL aktif.
 
-## 10. HTTPS dan Cookie
+## 11. Production Smoke Umum
 
-SSL harus aktif sebelum memaksa HTTPS/cookie secure.
-
-Production:
-
-```text
-HTTPS                        ON
-app.forceGlobalSecureRequests true
-cookie.secure                 true
-cookie.httponly               true
-SameSite                      Lax
-```
-
-Jika hosting berada di balik proxy/CDN dan muncul redirect loop, konfigurasi proxy/HTTPS harus diperiksa sebelum menonaktifkan security secara permanen.
-
-## 11. Cache Hosting
-
-Jangan mengaktifkan full-page cache agresif untuk seluruh aplikasi authenticated.
-
-Data Dashboard, permission, Presensi, Settings, dan session bersifat dinamis. Gunakan caching selektif di aplikasi; Signage sendiri mempunyai server cache 240 detik.
-
-## 12. Production Smoke Test
-
-### Public/security
-
-```text
-/                       login dapat dibuka
-/signage                200
-/signage/data           JSON valid
-/kartu/verify/{valid}   readonly valid
-sensitive path          403/404
-```
-
-### Role Web
+Role minimum:
 
 ```text
 Admin
@@ -268,7 +225,7 @@ Siswa
 Pegawai identity bila digunakan
 ```
 
-### Core workflow
+Core workflow:
 
 ```text
 Dashboard
@@ -277,8 +234,7 @@ Manajemen Siswa
 Presensi Siswa
 Presensi Mengajar/Jurnal
 Laporan
-BK/Prestasi
-Kartu preview/download/cetak
+BK/Prestasi/Kartu
 Profile/Personalia
 Settings
 Backup
@@ -286,64 +242,54 @@ Maintenance
 Log Activity
 ```
 
-### API
+## 12. G3.3.1 Broad Smoke — PASS
+
+Telah diuji:
 
 ```text
-POST /api/auth/login       -> 200
-GET  /api/auth/me          -> 200 dengan Bearer
-GET  /api/dashboard        -> 200 bila permission
-GET  protected tanpa token -> 401
-POST /api/auth/logout      -> 200
-token revoked sesudah logout -> ditolak
+Catatan Pelanggaran tanpa poin
+Tindak Lanjut Pelanggaran
+Export Pelanggaran 2 sheet + Kelas
+Prestasi create/edit + export Kelas
+Konseling Tahap 1/Tahap 2
+Admin/BK Settings
+Operator Konseling tanpa Settings
+Pimpinan/Guru/Wali/Siswa tanpa Konseling
+Dashboard lintas-role tidak bocor Konseling
+responsive smoke role prioritas
 ```
 
-## 13. Deployment Rollback
+Closure focused smoke pada preservasi Rencana historis adalah gate tambahan setelah broad smoke tersebut.
 
-Sebelum overwrite production berikutnya:
+## 13. Rollback
+
+Sebelum overwrite production:
 
 1. backup database;
-2. backup `.env` production secara aman;
-3. backup upload runtime;
-4. simpan ZIP release sebelumnya bila perlu rollback;
-5. jangan menimpa database production dengan dump development tanpa keputusan eksplisit.
+2. backup `.env` production;
+3. backup runtime uploads;
+4. simpan ZIP release sebelumnya bila perlu;
+5. catat SQL delta yang sudah diaplikasikan;
+6. pertimbangkan compatibility schema/data ketika rollback source.
 
 ## 14. Secret Handling
 
-Dilarang memasukkan ke:
+DB password, JWT secret, encryption key, password account, token tidak boleh masuk Git/docs/screenshot publik/log.
 
-```text
-Git
-README/docs
-screenshot publik
-log aplikasi
-chat publik
-```
-
-untuk data berikut:
-
-```text
-DB password
-JWT secret
-encryption key
-password account
-access/refresh token
-```
-
-Jika secret pernah dibagikan ke tempat yang tidak semestinya, rotate secret tersebut dan perbarui `.env` production.
-
-
-## 11. UI/UX Change Deployment Rule
-
-Redesign Guru/Walas/Siswa tidak boleh langsung dipindahkan ke production dari mockup. Urutan production tetap:
+## 15. UI/UX Deployment Rule
 
 ```text
 source implemented
--> static lint
--> role/browser regression
--> canonical docs updated
--> build ZIP production
--> manual upload/extract hPanel
--> smoke test production
+→ static lint
+→ role/browser regression
+→ canonical docs updated
+→ build ZIP production
+→ manual upload/extract hPanel
+→ smoke test production
 ```
 
-Mockup/image hasil diskusi tidak termasuk payload aplikasi kecuali secara eksplisit dijadikan asset final.
+Mockup/image/HTML presentasi bukan payload aplikasi kecuali secara eksplisit dijadikan asset final.
+
+## 16. Current Release Boundary
+
+`main` tetap baseline PR #8 sampai PR #9 mendapat Ready + Merge approval eksplisit. Database hosting sudah menerima schema G3.3.1 yang backward-compatible dengan branch, tetapi latest closure source patch masih menunggu focused local + hosting re-smoke.

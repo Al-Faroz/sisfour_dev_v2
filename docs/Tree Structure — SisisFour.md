@@ -1,7 +1,7 @@
 # Tree Structure — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 16 September 2026
 
 ## 1. Root
 
@@ -54,12 +54,68 @@ Routes
 → View/JSON
 ```
 
-## 3. Frontend
+## 3. Route Files
+
+Route runtime tidak lagi hanya berasal dari `Routes.php`.
+
+```text
+app/Config/Routing.php
+app/Config/Routes.php
+app/Config/RoutesBKFoundation.php
+```
+
+`Routing::$routeFiles` mendaftarkan `Routes.php` lalu `RoutesBKFoundation.php`. File tambahan G3.3.1 memuat route Web Konseling/Settings Konseling.
+
+## 4. G3.3.1 BK Source
+
+Source utama yang ditambah/diubah untuk fondasi BK final:
+
+```text
+app/Controllers/BKKasus.php
+app/Controllers/BKKonseling.php
+app/Controllers/BKKonselingSettings.php
+app/Controllers/BKPelanggaran.php
+app/Controllers/BKPrestasi.php
+
+app/Models/BKKasusModel.php
+app/Models/KonselingBkModel.php
+
+app/Services/BkExportService.php
+app/Services/BkKonselingFormSettingsService.php
+app/Services/KonselingBkExportService.php
+app/Services/KonselingBkService.php
+app/Services/RoleAwareDashboardService.php
+
+app/Views/bk/kasus.php
+app/Views/bk/konseling.php
+app/Views/bk/konseling_settings.php
+app/Views/bk/pelanggaran.php
+
+assets/js/bk/kasus.js
+assets/js/bk/konseling.js
+assets/js/bk/konseling-detail-order.js
+assets/js/bk/konseling-settings.js
+assets/js/bk/pelanggaran.js
+assets/js/bk/prestasi.js
+```
+
+Dashboard cross-role yang disentuh G3.3.1:
+
+```text
+app/Views/dashboard_bk.php
+app/Views/dashboard_pimpinan.php
+app/Views/dashboard_siswa.php
+```
+
+Wali tetap memakai experience/dashboard Guru + context Wali; tidak ada role/view Konseling khusus Wali.
+
+## 5. Frontend
 
 ```text
 assets/
 ├── css/
-│   └── sisfour-ui.css
+│   ├── sisfour-ui.css
+│   └── sisfour-mobile.css
 ├── img/
 ├── js/
 │   ├── components/
@@ -76,11 +132,9 @@ assets/
 └── vendor/
 ```
 
-Reusable UI foundation berada di `sisfour-ui.css` dan `assets/js/components/`.
+Reusable UI foundation berada di global CSS/component. Vendor Sneat/Bootstrap tidak dipatch langsung.
 
-Vendor Sneat/Bootstrap tidak dipatch langsung.
-
-## 4. Layout Views
+## 6. Layout Views
 
 Project existing menggunakan partial root:
 
@@ -94,9 +148,30 @@ app/Views/_flash.php
 app/Views/_scripts.php
 ```
 
-Struktur ini valid walaupun standar global memberi contoh `layouts/partials/`; yang penting responsibility tetap terpisah.
+Path ini valid walaupun standar global memberi contoh `layouts/partials/`; responsibility lebih penting daripada nama folder.
 
-## 5. Upload Public
+## 7. SQL / Database Scripts
+
+SQL schema tidak memakai CodeIgniter migration untuk delta G3.2/G3.3.1.
+
+G3.2 final:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+G3.3.1 final:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
+
+FIX1/FIX2 localhost G3.3.1 adalah patch transisi development dan sudah dikeluarkan dari branch final.
+
+## 8. Upload Public
 
 ```text
 uploads/foto_siswa/
@@ -108,15 +183,15 @@ uploads/settings/kartu/
 
 Branding runtime direferensikan `setting_sistem`.
 
-## 6. Upload Non-Public
+## 9. Upload Non-Public
 
 ```text
 writable/uploads/personalia/
 ```
 
-Raw document hanya dikirim melalui controller/service yang sah.
+Raw document hanya dikirim melalui Controller/Service yang sah.
 
-## 7. Runtime Writable
+## 10. Runtime Writable
 
 ```text
 writable/cache/
@@ -126,7 +201,9 @@ writable/debugbar/
 writable/uploads/
 ```
 
-## 8. Canonical Docs
+## 11. Canonical Docs
+
+Current SSOT set:
 
 ```text
 00_POLA_PENGERJAAN___SisisFour.md
@@ -151,9 +228,9 @@ Routes Final — SisisFour.md
 Tree Structure — SisisFour.md
 ```
 
-`11_UI_UX_GURU_WALAS_SISWA — SisisFour.md` masih dapat ditemukan pada branch sebagai path lama, tetapi bukan entry SSOT utama; role contract canonical adalah `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`.
+Tidak ada entry SSOT lama `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md` pada tree current. Role contract canonical adalah `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`.
 
-## 9. UI Hierarchy
+## 12. UI Hierarchy
 
 ```text
 13 Global Sneat
@@ -162,29 +239,16 @@ Tree Structure — SisisFour.md
 → 11 Role Experience
 ```
 
-## 10. Cordova
+## 13. Cordova
 
-Project Cordova/APK **belum** menjadi bagian phase G2.
+Project Cordova/APK belum menjadi source phase G3. G4 dimulai setelah G3 Web/mobile stabil. Project/package Cordova harus mempunyai boundary jelas dan tidak mencampur build artifact Android ke source Web tanpa aturan.
 
-Ketika G4 dimulai, project/package Cordova sebaiknya berada pada boundary terpisah yang jelas dan tidak mencampur vendor Android build artefact ke source Web tanpa aturan.
-
-Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
-
-## 11. Phase Boundary
-
-```text
-G2 Master Data/lifecycle fixing + stabilization
-G3 Mobile role UI/WebView readiness
-G4 Cordova APK packaging/integration
-```
-
-## 12. Tidak Di-commit
+## 14. Tidak Di-commit
 
 Secara prinsip:
 
 ```text
 .env
-vendor/
 build output
 runtime cache/log/backup/debugbar
 raw personalia upload
@@ -192,12 +256,28 @@ credential/token/secret
 Cordova signing material
 ```
 
-## 13. Structural Change Rule
+`vendor/` mengikuti strategy deployment/project; jangan mengubah policy hanya karena artifact lokal.
 
-- business rule tetap di Service;
-- Controller menangani request/response;
+## 15. Structural Change Rule
+
+- business rule di Service;
+- Controller request/response;
 - JS page-specific per module;
 - route hanya ditambah bila endpoint nyata diperlukan;
+- setiap route file tambahan harus didaftarkan di `Routing::$routeFiles`;
 - reusable CSS/JS masuk foundation/component;
-- project mobile/APK tidak menduplikasi source business Web;
-- docs canonical disinkronkan sebelum phase ditutup.
+- SQL delta eksplisit di `database/`;
+- project APK tidak menduplikasi source business Web;
+- docs canonical disinkronkan sebelum phase merge/closure.
+
+## 16. Current Phase Boundary
+
+```text
+G2      CLOSED
+G3.1    CLOSED / MERGED
+G3.2    CLOSED / MERGED
+G3.3    CLOSED / MERGED
+G3.3.1  PASS / PENDING MERGE APPROVAL
+G3.4    NEXT setelah PR #9 merge
+G4      setelah G3 selesai
+```

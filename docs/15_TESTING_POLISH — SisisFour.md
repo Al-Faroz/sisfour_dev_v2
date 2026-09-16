@@ -1,10 +1,10 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 15 September 2026  
-**Phase aktif:** G3.2 — Guru/Wali Presensi & Jurnal
+**Tanggal Acuan:** 16 September 2026  
+**Phase aktif:** G3.3.1 closure patch — **focused re-smoke pending**
 
-> Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, dan Cordova tidak bercampur.
+> Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
 ## 1. Static Gate Umum
 
@@ -16,69 +16,18 @@ git diff --check
 git status --short
 ```
 
-Tidak boleh ada syntax error, route target hilang, file tidak sengaja terhapus, atau whitespace conflict.
+Tidak boleh ada syntax error, route target hilang, file tidak sengaja terhapus, atau whitespace conflict. Perubahan permission/schema harus dilengkapi audit SQL/runtime boundary.
 
-## 2. G2 Gate — CLOSED
-
-G2 telah selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
+## 2. G2 — CLOSED / MERGED
 
 ```text
-G2.1 Repository Hygiene     PASS
-G2.2 Static Gate            PASS
-G2.3 Business Regression    PASS
-G2.4 Browser Regression     PASS
-G2.5 Closure Review         PASS
-PR #5                       MERGED
+PR #5          MERGED
+merge commit   375766c07f3856515a71ffdb07f3681c3047ca31
 ```
 
-Merge commit:
+F06–F14 tidak dibuka ulang pada G3 tanpa regression/blocker nyata.
 
-```text
-375766c07f3856515a71ffdb07f3681c3047ca31
-```
-
-F06–F14 tidak dibuka ulang pada G3 tanpa regression/blocker baru yang terverifikasi.
-
-## 3. Contract G2 yang Tetap Berlaku
-
-### Tahun Ajaran
-
-```text
-initial load = periode aktif
-Reset        = periode aktif
-manual pilih histori tetap berfungsi bila halaman mendukung histori
-export/filter mengikuti periode yang sedang dipilih
-```
-
-### Semester & Lifecycle
-
-```text
-Ganjil → Genap tahun sama       = Siapkan Genap
-Genap → Ganjil tahun berikutnya = Kenaikan/Kelulusan
-7 → 8
-8 → 9
-kelas 9 → Kelulusan
-```
-
-### F11 Mapel
-
-- edit nama dengan kode sendiri valid;
-- duplicate code ditolak.
-
-### F14
-
-- penempatan/pindah;
-- mutasi;
-- kelulusan;
-- restore terminal lifecycle;
-- anti-double-process;
-- partial promotion;
-- progress per kelas;
-- transactional history/status/membership/card.
-
-Semua sudah PASS pada G2.
-
-## 4. G3 Gate — Mobile Role UI
+## 3. G3 Global Mobile Gate
 
 Role prioritas:
 
@@ -105,347 +54,265 @@ Viewport wajib:
 Acceptance global:
 
 - no body horizontal overflow;
-- no horizontal table scroll pada role operasional;
-- primary information berbasis Nama;
-- NISN/NIP/NIK sekunder;
+- no horizontal table scroll role operasional;
+- Nama sebagai primary identity;
+- identifier sekunder;
 - KPI 2×2 mobile bila ada KPI;
 - touch target utama 44–48px;
-- compact control minimum sekitar 40px;
 - modal/keyboard nyaman;
 - filter compact;
 - mutation busy guard;
-- network failure tidak menghapus input penting;
-- server-confirmed success untuk data akademik;
-- no uncaught browser error.
+- network failure mempertahankan input penting;
+- server-confirmed success;
+- no uncaught browser error;
+- direct URL tidak menembus RBAC/Service.
 
-## 5. G3.1 — Mobile Foundation — PASS / MERGED
-
-G3.1 telah lulus static/browser smoke dan merged melalui PR #6.
+## 4. G3.1 — Mobile Foundation — CLOSED / MERGED
 
 ```text
 PR #6          MERGED
 merge commit   d10ced5d70ffc68642067aac44feeb6a91cacd29
 ```
 
-Foundation yang telah diterima:
+Foundation accepted: safe-area, mobile density, touch target, adaptive operational table/list, mobile form/filter, sticky action, modal compatibility, compact pagination, loading/empty/error, dan WebView-friendly overflow baseline.
+
+## 5. G3.2 — Guru/Wali Presensi & Jurnal — CLOSED / MERGED
 
 ```text
-safe-area tokens
-mobile page spacing/density
-compact navbar/page header
-44px primary / 40px compact touch target
-adaptive operational table primitive
-primary/meta cell primitive
-compact row-action primitive
-mobile form/filter primitive
-sticky action primitive
-fullscreen/scrollable modal compatibility
-compact pagination
-empty/loading/error compact state
-WebView-friendly viewport/overflow baseline
+PR #7          MERGED
+merge commit   176e5f764850d030968524af47117f259449064c
 ```
 
-G3.1 tidak menambahkan Cordova project/plugin dan tidak merusak Admin desktop.
+Gate PASS mencakup Presensi name-first, H/S/I/A mobile, Guru/Wali scope, Jurnal Materi+Catatan, child exception S/I/A, roster validation, atomic parent+child, official-Presensi invariant, no N+1, Detail lazy-load, serta SQL local/hosting.
 
-## 6. G3.2 — Guru/Wali Presensi & Jurnal — ACTIVE
-
-### 6.1 Presensi Siswa
-
-Wajib diuji:
-
-- Nama siswa menjadi identitas utama pada mobile.
-- NISN tidak menjadi kolom rutin mobile.
-- tabel muat portrait tanpa horizontal scroll.
-- status H/S/I/A dapat disentuh nyaman pada 360–412px.
-- setiap status memiliki `aria-label`/label yang jelas.
-- default seluruh siswa tetap Hadir sesuai business rule.
-- Guru Terjadwal hanya kelas/jadwal yang diizinkan Service.
-- Wali hanya kelas wali sesuai mapping/scope Service.
-- Sesi Awal/Akhir tetap benar.
-- time-window dan geofence tetap server-authoritative.
-- satu submit kelas tetap atomic.
-- duplicate/revision guard tetap benar.
-- busy guard mencegah double-submit.
-- save gagal/network failure mempertahankan pilihan status di layar.
-- deep-link dengan kelas terpilih dapat memuat workflow tanpa tap tambahan yang tidak perlu.
-- success hanya muncul setelah server response sukses.
-
-### 6.2 SQL Schema Gate Jurnal G3.2
-
-Schema delta tidak memakai CodeIgniter migration.
-
-Localhost / development / UAT:
+Schema final:
 
 ```text
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
-```
-
-Hosting / production:
-
-```text
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-Sebelum UAT fitur Jurnal baru, pada **database localhost/staging copy** wajib:
+## 6. G3.3 — Dashboard Guru/Wali — CLOSED / MERGED
 
 ```text
-SQL localhost berhasil dieksekusi
-presensi_mengajar.catatan tersedia
-presensi_mengajar_siswa tersedia
-UNIQUE(parent,siswa) tersedia
-FK parent cascade tersedia
-FK siswa restrict tersedia
-index parent/siswa/status tersedia
-verification query PASS
+PR #8          MERGED
+merge commit   06e4e559c045763096058fc889342da78d973314
 ```
 
-SQL dirancang aman dijalankan ulang pada schema yang sudah memiliki delta G3.2. Production/hosting tidak disentuh saat regression development. Sebelum SQL hosting dijalankan wajib ada backup production, G3.2 PASS/merge/release disetujui, dan approval deploy eksplisit.
+Final acceptance: KPI Guru, Aksi Cepat permission-aware, Guru/Wali context benar, no fake Hadir when no row, mobile card/list, dan no horizontal operational overflow.
 
-### 6.3 Presensi Mengajar / Jurnal — Base Flow
+## 7. G3.3.1 — Fondasi BK + Konseling
 
-Wajib diuji:
+Seluruh gate besar sebelumnya telah PASS pada local + hosting, tetapi full docs/source audit menemukan satu closure edge-case. Karena source berubah setelah hosting smoke, PR #9 belum boleh masuk Ready sebelum focused re-smoke patch ini PASS.
 
-- Guru diri sendiri tidak perlu memilih Nama Guru berulang bila hanya satu identitas valid.
-- jika hanya satu Jadwal valid, workflow dapat langsung memuat Jurnal.
-- Admin/Operator tetap dapat memilih Guru lain sesuai scope SEMUA.
-- Wali tidak mendapat hak Jurnal karena status Wali; Jurnal tetap berdasarkan Jadwal Guru.
-- jadwal Sesi Awal/Akhir/Non Sesi tetap dapat memiliki Jurnal sesuai business rule.
-- status Guru Hadir/Izin/Sakit tetap valid.
-- materi/keterangan wajib.
-- catatan optional dapat disimpan/dikosongkan.
-- textarea nyaman saat keyboard mobile terbuka.
-- status button minimal 44px.
-- save button busy state terlihat dan tidak dapat double-submit.
-- revisi tetap hanya actor yang diizinkan Service.
-- time-window/geofence tetap server-authoritative.
-- success hanya setelah server response sukses.
-
-### 6.4 Exception Siswa pada Jurnal
-
-Kontrak yang wajib dibuktikan runtime:
+### 7.1 Business Contract — PASS
 
 ```text
-child status = Sakit / Izin / Alpha
-child bukan Presensi Siswa resmi
+Catatan Kasus -> Catatan Pelanggaran Siswa pada experience/UI
+poin tidak tampil/dihitung/diekspor/diranking
+kategori Ringan/Sedang/Berat tetap klasifikasi
+Top Poin retired
+Tindak Lanjut Pelanggaran 1:N
+Prestasi terpisah
+Konseling terpisah dan rahasia
 ```
 
-Uji minimal:
+### 7.2 Catatan Pelanggaran / Tindak Lanjut — PASS
 
-- search Nama menemukan siswa roster kelas Jurnal;
-- search NISN menemukan siswa yang sama;
-- siswa di luar roster kelas/tanggal tidak dapat dipilih dari UI;
-- forged request siswa di luar roster ditolak server;
-- siswa yang sama dua kali dalam satu payload ditolak;
-- status selain Sakit/Izin/Alpha ditolak;
-- siswa baru yang ditambahkan wajib memilih S/I/A sebelum save;
-- tidak ada default status child diam-diam;
-- status Guru `Hadir` boleh memiliki 0..N child;
-- status Guru `Izin/Sakit` dengan child ditolak server;
-- mengubah UI Guru `Hadir` → `Izin/Sakit` dengan child meminta konfirmasi sebelum mengosongkan list;
-- summary badge S/I/A sesuai selected state;
-- snapshot Nama/NISN child tersimpan;
-- `UNIQUE(id_presensi_mengajar,id_siswa)` terjaga.
+- create/edit Catatan Pelanggaran;
+- detail: Riwayat Tindak Lanjut sebelum form;
+- create/edit Tindak Lanjut;
+- actor `Dicatat oleh`;
+- export dua sheet + Kelas;
+- no points.
 
-### 6.5 Atomicity dan Official Presensi Invariant
+### 7.3 Prestasi — PASS
 
-Create dan revisi wajib membuktikan:
+- create/edit aman;
+- project confirmation untuk delete;
+- export memiliki Kelas;
+- permission/scope tidak regression.
+
+### 7.4 Konseling Tahap 1 — PASS
 
 ```text
-parent Jurnal + exact child list = satu transaction
+Kelas
+→ Siswa aktif anggota kelas/Tahun aktif
+→ Tanggal
+→ Pertemuan ke-
+→ Bentuk Layanan
+→ Cara Hadir
+→ Bidang
+→ Topik
+→ status Proses
 ```
 
-Uji:
+Server memvalidasi kelas/tahun, membership aktif, option, permission, dan actor `created_by -> users.id`. BK tidak wajib identity Guru.
 
-- create parent + beberapa child sukses semua;
-- revisi child mengganti exact state lama, tidak meninggalkan stale row;
-- kegagalan child tidak meninggalkan parent/child parsial;
-- activity log hanya mengikuti transaction sukses;
-- tabel `presensi` tidak bertambah/berubah akibat save child Jurnal;
-- Rekap/EWS/Signage Presensi resmi tidak berubah akibat child Jurnal.
-
-### 6.6 Laporan Jurnal dan Performance
-
-Listing wajib:
+### 7.5 Konseling Tahap 2 — Broad Flow PASS
 
 ```text
-1 row = 1 Jurnal
+Perkembangan Tersimpan
+→ Uraian Masalah
+→ Hasil Pembahasan & Kesepakatan
+→ Rencana Berikutnya
+→ Tanggal Berikutnya
+→ Status Proses/Selesai
 ```
 
-Uji:
+Invariant:
 
-- Materi dan Catatan tampil ringkas;
-- jumlah S/I/A sesuai child database;
-- satu Jurnal dengan banyak child tetap satu row parent;
-- pagination tetap berdasarkan jumlah parent Jurnal;
-- desktop table normal;
-- mobile memakai card/list tanpa horizontal scroll;
-- `Detail` lazy-load menampilkan exact child Name/NISN/status;
-- Detail actor scope tetap server-side;
-- tidak ada N+1 child query per row;
-- aggregate child dilakukan batch untuk parent IDs page aktif;
-- network failure pada listing/detail memberi state gagal yang jelas.
+- metadata Tahap 1 tidak berubah;
+- `Proses` boleh incomplete;
+- `Selesai` wajib Uraian + Hasil;
+- tanggal berikutnya tidak sebelum tanggal Konseling;
+- tidak ada delete workflow.
 
-### 6.7 Network Failure / Mutation Safety
+### 7.6 Closure Patch — Preservasi Rencana Historis
 
-Jika network/server gagal saat save:
+Kasus yang ditemukan saat audit:
 
 ```text
-Presensi Siswa → pilihan H/S/I/A tetap di layar
-Jurnal         → status Guru + materi + catatan + daftar siswa S/I/A tetap di layar
+record lama menyimpan Rencana X
+→ Admin/BK menghapus X dari Pengaturan Form
+→ record lama dibuka kembali
 ```
 
-Tidak ada offline queue atau sukses palsu.
-
-### 6.8 Viewport Focused G3.2
-
-Minimum runtime smoke:
+Kontrak final:
 
 ```text
-360×800
-390×844
-412×915
-768×1024
-1366×768
+Rencana X harus tetap terlihat sebagai nilai tersimpan
+record lama boleh mempertahankan X
+user boleh mengganti ke opsi aktif baru
+nilai X tidak boleh menjadi opsi baru global setelah dihapus
+forged X pada record lain tetap ditolak
 ```
 
-Pada 360/390/412 wajib cek:
+Patch source:
+
+- JS Detail menambahkan opsi bertanda `(tersimpan)` hanya untuk record yang sedang dibuka bila nilai tersebut sudah tidak ada di daftar aktif;
+- Service Stage 2 hanya menambahkan `existing.rencana_berikutnya` ke allowed set record tersebut;
+- tidak ada schema/SQL change.
+
+Status: **PATCHED / STATIC + FOCUSED RUNTIME RE-SMOKE PENDING**.
+
+Focused test minimum:
 
 ```text
-body overflow = none
-Presensi table horizontal scroll = none
-H/S/I/A Presensi fully reachable
-sticky save tidak menutup row terakhir
-Jurnal Materi/Catatan tetap usable dengan keyboard simulation
-search siswa tidak keluar viewport
-S/I/A child controls reachable
-SearchableSelect Guru tidak keluar viewport
-report card/list tidak horizontal-scroll
-modal Detail Jurnal vertical-scroll dan action reachable
-console clean
+1. buat/pilih record Konseling dengan Rencana X
+2. hapus X dari Pengaturan Form dan simpan
+3. buka ulang record lama
+4. pastikan X tampil sebagai nilai tersimpan
+5. klik Simpan tanpa mengganti X -> sukses dan X tetap
+6. ganti ke opsi aktif Y -> sukses
+7. record lain yang tidak pernah menyimpan X tidak boleh memakai X
+8. restore/reset Settings sesuai data UAT yang diinginkan
 ```
 
-### 6.9 Actor Minimum G3.2
+Lakukan local dulu, kemudian deploy dua file source yang berubah ke hosting dan ulang focused smoke yang sama. Tidak ada SQL hosting tambahan.
+
+### 7.7 Pengaturan Form Konseling — PASS selain focused interaction di atas
 
 ```text
-Guru terjadwal
-Guru + Wali
-Admin atau Operator untuk smoke compatibility + revisi
+storage = setting_sistem / bk_konseling_form_options
+Bentuk Layanan max 50
+Cara Hadir max 80
+Topik max 150
+Rencana max 100
+1..40 pilihan per group
+Bidang fixed = Pribadi/Sosial/Belajar/Karier
+Status fixed = Proses/Selesai
+fallback default aman
 ```
 
-Jika data memungkinkan, uji satu Guru biasa dan satu Guru yang juga Wali agar kedua context terbukti tidak saling menimpa.
+Access Settings: Admin/BK saja.
 
-## 7. G3.3 — Dashboard Guru/Wali
-
-Minimum:
+### 7.8 Privacy / RBAC — PASS
 
 ```text
-4 KPI = 2×2
-Quick Action = 2×2 bila relevan
-3–5 item penting
-Presensi/Jurnal maksimal 1–2 tap
-Wali context bukan role baru
+view/manage/export -> effective role Admin/Operator/BK + permission
+settings           -> effective role Admin/BK + permission
 ```
 
-## 8. G3.4 — BK
+Pimpinan/Guru/Wali/Siswa direct URL/menu/widget/detail ditolak/tidak dibentuk.
 
-Cek:
+### 7.9 SQL / Database — PASS, tidak berubah oleh closure patch
 
-- Kasus/Tindak Lanjut;
-- EWS;
-- Pelanggaran;
-- Prestasi;
-- dashboard BK;
-- no wide operational table;
-- primary identity by Name;
-- busy guard + network failure state.
+Final local:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+```
+
+Final hosting:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
+
+```text
+localhost SQL/UAT                 PASS
+hosting dump compatibility audit  PASS
+hosting SQL execution             PASS
+broad hosting smoke UAT           PASS
+closure patch SQL                 NOT REQUIRED
+```
+
+### 7.10 Cross-role / Responsive — PASS
+
+Pimpinan no points/no Konseling, Wali permission-aware/no Konseling, Siswa self-only/no points/no Konseling, viewport tested tanpa body horizontal overflow.
+
+### 7.11 PR Gate Saat Ini
+
+```text
+Broad application/static audit    PASS
+FINAL UAT localhost sebelumnya    PASS
+Security/privacy                  PASS
+Hosting SQL + broad smoke         PASS
+Full docs audit                   PASS setelah sync commit
+Closure patch source              PATCHED
+Closure patch local static/UAT    PENDING
+Closure patch hosting smoke       PENDING
+PR #9                             DRAFT / belum merge
+```
+
+PR hanya kembali ke FINAL PASS setelah dua focused gate patch selesai. Ready/Merge tetap approval eksplisit terpisah.
+
+## 8. G3.4 — BK Workflow + Dashboard BK — NEXT
+
+Hanya dimulai setelah PR #9 merged. Gunakan foundation final:
+
+```text
+Dashboard BK mobile-first
+Konseling Proses/follow-up terdekat
+Catatan Pelanggaran terbaru/berat tanpa poin
+Tindak Lanjut perlu perhatian
+EWS
+Prestasi
+quick action permission-aware
+no wide operational table
+name-first
+privacy Konseling tetap ketat
+```
 
 ## 9. G3.5 — Pimpinan
 
-Prioritas:
-
-```text
-kelas belum presensi
-jadwal belum jurnal
-EWS
-kasus BK / exception
-trend singkat
-```
-
-Dashboard adalah launcher/monitoring ringkas, bukan laporan penuh.
+Monitoring/decision; tidak mendapat detail Konseling.
 
 ## 10. G3.6 — Siswa
 
-Pola self-service:
-
-```text
-status kehadiran hari ini
-rekap bulan ini
-quick action
-kartu pelajar
-prestasi
-riwayat/kasus sesuai scope
-profil
-```
-
-Tidak memakai data-grid Admin sebagai UX utama.
+Self-service data diri; Catatan Pelanggaran tanpa poin; Konseling tidak tampil.
 
 ## 11. G3.7 — Global Mobile Sweep
 
-Audit ulang semua role prioritas terhadap:
+Audit seluruh role: overflow, density, modal, safe-area, touch target, pagination, name-first, loading/error, permission visibility.
 
-```text
-body overflow
-operational table overflow
-page padding
-navbar/header density
-filter density
-modal
-sticky action
-safe-area
-touch target
-empty/loading/error
-pagination
-name-first identity
-```
+## 12. G3.8 — Viewport/WebView Readiness
 
-## 12. G3.8 — Viewport/WebView Readiness Regression
+Fokus safe-area, keyboard/focus, layering, session-expiry Fetch, network failure, link behavior, dan no Cordova-plugin dependency sebelum G4.
 
-Uji seluruh viewport wajib dan browser mobile. Fokus WebView readiness:
-
-- safe-area;
-- keyboard/focus;
-- modal/offcanvas/dropdown layering;
-- session-expiry Fetch UX;
-- network failure state;
-- internal/external link behavior yang bisa diuji dari Web;
-- no dependency pada Cordova plugin sebelum G4.
-
-Real Android Cordova behavior tetap gate G4.
-
-## 13. Auth Web/API Baseline
-
-Web:
-
-- valid/invalid login;
-- inactive account;
-- lockout policy;
-- logout;
-- session DB;
-- multi-role;
-- CSRF mutation.
-
-API:
-
-- login/me/refresh/logout;
-- missing/invalid token;
-- effective permission/scope;
-- version/maintenance response.
-
-Cordova wrapper tidak otomatis mengganti Web session dengan JWT.
-
-## 14. RBAC
-
-Minimum actor:
+## 13. Auth / RBAC Regression Minimum
 
 ```text
 Admin
@@ -460,77 +327,28 @@ multi-role relevan
 
 Cek menu, direct URL, read, mutation, target scope, contextual Wali.
 
-## 15. Network / Mutation Safety
+## 14. Network / Mutation Safety
 
-Tidak ada silent offline queue canonical untuk:
+Tidak ada silent offline queue untuk Presensi, Jurnal, Catatan Pelanggaran, Tindak Lanjut, Konseling, atau Prestasi. Network failure bukan sukses palsu.
 
-```text
-Presensi
-Jurnal
-Kasus
-Prestasi
-```
+## 15. Performance
 
-Network failure = gagal/tertunda, bukan sukses palsu.
+Bounded query, index, no N+1, pagination, dashboard ringkas, DOM bounded, export/PDF dalam memory limit.
 
-Mutation wajib:
+## 16. G4 Gate — Cordova APK
 
-```text
-button disabled
-spinner / Menyimpan...
-server response
-success/error
-restore state pada gagal
-```
+G3 Web/mobile harus PASS sebelum architecture spike, real WebView, Back, keyboard, safe-area, geolocation, offline state, file/share, external link, security config, signed build, dan multi-device regression.
 
-## 16. Performance
-
-- bounded DB query;
-- index digunakan pada query besar;
-- no N+1;
-- pagination;
-- dashboard hanya data ringkas;
-- mobile tidak merender ratusan row tanpa kebutuhan;
-- chart mobile ringkas;
-- Kartu/PDF tetap dalam memory limit.
-
-Khusus laporan Jurnal child G3.2:
-
-```text
-parent page query
-+ 1 aggregate child query untuk seluruh parent pada page
-+ detail child hanya saat user meminta
-```
-
-Dilarang menjalankan satu child query untuk setiap row parent.
-
-## 17. G4 Gate — Cordova APK
-
-Sebelum build final:
-
-- G3 Web/mobile PASS;
-- Cordova architecture spike PASS;
-- real Android WebView test;
-- safe-area/status bar;
-- soft keyboard;
-- Android Back;
-- session/login behavior;
-- geolocation permission/device GPS;
-- network/offline state;
-- file preview/download/share;
-- internal/external link routing;
-- maintenance behavior;
-- no sensitive debug logging;
-- signed build + multi-device regression.
-
-## 18. Phase Release Rule
+## 17. Phase Release Rule
 
 ```text
 G2 CLOSED      → business/admin baseline
-G3.1 CLOSED    → mobile foundation baseline
-G3.2 PASS      → Guru/Wali Presensi & Jurnal mobile-ready + SQL schema delta Jurnal validated
-G3 PASS        → mobile/WebView UI dianggap siap
-G4 PASS        → APK dapat masuk distribution gate
+G3.1 CLOSED    → mobile foundation
+G3.2 CLOSED    → Guru/Wali Presensi & Jurnal
+G3.3 CLOSED    → Dashboard Guru/Wali
+G3.3.1 PASS    → hanya setelah closure focused re-smoke PASS
+G3 PASS        → mobile/WebView UI siap
+G4 PASS        → APK distribution gate
 ```
 
-Setiap merge/release tetap membutuhkan approval eksplisit pengguna.
+Setiap merge/release memerlukan approval eksplisit pengguna.

@@ -3,13 +3,11 @@
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 16 September 2026  
 **Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`  
-**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — PASS / pending merge approval
+**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — closure focused re-smoke pending
 
-> Dokumen ini menyatakan kontrak BK yang berlaku mulai G3.3.1. Authorization target tetap diputuskan Route/Filter + Service; View/JavaScript/menu bukan security boundary.
+> Dokumen ini menyatakan kontrak BK yang berlaku mulai G3.3.1. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
 ## 1. Ruang Lingkup
-
-Modul pada dokumen ini:
 
 ```text
 Master Pelanggaran
@@ -24,7 +22,7 @@ Public Verify Kartu
 
 ## 2. Master Pelanggaran — Tanpa Poin
 
-Tabel legacy tetap:
+Tabel legacy:
 
 ```text
 ref_pelanggaran
@@ -44,28 +42,28 @@ Permission:
 bk_pelanggaran_master.manage
 ```
 
-Mulai G3.3.1, **poin bukan lagi bagian dari business rule BK**.
+Mulai G3.3.1, **poin bukan business rule BK**.
 
 Kontrak:
 
-- UI Master Pelanggaran hanya mengelola nama dan kategori;
+- UI Master Pelanggaran hanya nama + kategori;
 - Catatan Pelanggaran tidak menampilkan poin;
 - export tidak membawa poin;
 - active dashboard payload tidak membawa poin;
 - dashboard tidak membuat ranking poin;
-- endpoint Top Poin dipensiunkan;
-- kolom database legacy `ref_pelanggaran.poin` belum di-drop pada tahap ini agar rollback aman;
-- create/update melalui aplikasi menulis nilai legacy `0` dan tidak pernah memakai nilai tersebut untuk keputusan bisnis.
+- Top Poin retired;
+- `ref_pelanggaran.poin` tetap legacy untuk rollback compatibility;
+- create/update aplikasi menulis legacy `0` dan tidak memakainya untuk keputusan bisnis.
 
 ## 3. Catatan Pelanggaran Siswa
 
-Tabel fisik tetap menggunakan nama legacy:
+Tabel fisik legacy:
 
 ```text
 catatan_kasus
 ```
 
-Nama experience/UI canonical:
+Nama UI canonical:
 
 ```text
 Catatan Pelanggaran Siswa
@@ -76,8 +74,8 @@ Relasi utama:
 ```text
 siswa
 ref_pelanggaran
-guru input (nullable)
-user updater (nullable)
+guru input nullable
+user updater nullable
 ```
 
 Permission:
@@ -101,7 +99,7 @@ Akses bisnis:
 
 Catatan Pelanggaran berisi kejadian, kategori, tanggal, keterangan, dan histori tindak lanjut. Tidak ada skor/poin.
 
-Modal detail mengikuti urutan:
+Modal detail:
 
 ```text
 Detail Pelanggaran
@@ -123,14 +121,16 @@ Relasi:
 catatan_kasus 1:N tindak_lanjut_kasus
 ```
 
-Tindak lanjut dibuat/diubah melalui permission `bk_kasus.manage` dan target divalidasi ulang di Service.
+Tindak lanjut dibuat/diubah melalui `bk_kasus.manage` dan target divalidasi ulang Service.
 
-Export Catatan Pelanggaran menggunakan satu XLSX dengan dua sheet:
+Export Catatan Pelanggaran menggunakan satu XLSX dua sheet:
 
 ```text
 Pelanggaran   = satu baris per catatan + Kelas + Jumlah Tindak Lanjut
-Tindak Lanjut = satu baris per tindak lanjut, terhubung lewat ID Catatan
+Tindak Lanjut = satu baris per tindak lanjut + ID Catatan + Kelas + Dicatat Oleh
 ```
+
+Tidak ada poin pada export.
 
 ## 5. Konseling BK — Data Rahasia
 
@@ -140,7 +140,7 @@ Tabel:
 konseling_bk
 ```
 
-Akses operasional Konseling hanya untuk effective role:
+Effective role operasional:
 
 ```text
 admin
@@ -148,9 +148,7 @@ operator
 bk
 ```
 
-dan tetap membutuhkan permission terkait.
-
-Permission operasional:
+Permission:
 
 ```text
 bk_konseling.view
@@ -158,62 +156,56 @@ bk_konseling.manage
 bk_konseling.export
 ```
 
-Ketiga permission menggunakan scope `SEMUA` untuk Admin, Operator, dan BK.
+Pimpinan, Guru/Wali, dan Siswa tidak memperoleh permission/menu/detail/widget Konseling.
 
-Pimpinan, Guru/Wali, dan Siswa tidak memperoleh permission/menu/detail/widget Konseling. Mengetahui URL tidak memberi akses karena route filter dan Service tetap memverifikasi authorization.
-
-Konseling **tidak mensyaratkan** akun mempunyai `users.id_guru`. Actor pencatat selalu direkam dari user login melalui:
+Konseling tidak mensyaratkan `users.id_guru`. Actor audit:
 
 ```text
 konseling_bk.created_by -> users.id
 ```
 
-Dump localhost dan hosting aktual mengonfirmasi akun role BK terhubung melalui:
+Akun role BK aktual:
 
 ```text
 users.id_pegawai -> pegawai.id
+users.id_guru = NULL
 ```
 
-Field `id_guru_bk` bersifat nullable/metadata legacy dan bukan identity audit utama.
+`id_guru_bk` nullable/metadata legacy dan bukan identity audit utama.
 
 ## 6. Workflow Konseling Dua Tahap
 
 ### Tahap 1 — Buat Catatan Awal
 
-Wajib diisi hanya:
+Wajib:
 
 ```text
-Siswa & Waktu
-- Kelas
-- Siswa
-- Tanggal
-- Pertemuan ke-
-
-Jenis Layanan
-- Bentuk layanan
-- Cara siswa hadir
-- Bidang
-- Topik
+Kelas
+Siswa
+Tanggal
+Pertemuan ke-
+Bentuk layanan
+Cara siswa hadir
+Bidang
+Topik
 ```
 
-Urutan selector siswa:
+Urutan:
 
 ```text
 Kelas aktif
-→ Siswa aktif yang menjadi anggota kelas tersebut pada Tahun Ajaran aktif
+→ Siswa aktif anggota kelas pada Tahun Ajaran aktif
 ```
 
-Kelas dan Siswa sama-sama searchable. Saat Kelas berubah, pilihan Siswa di-reset dan diambil ulang.
-
-Server selalu memvalidasi ulang:
+Server memvalidasi ulang:
 
 ```text
 kelas ∈ Tahun Ajaran aktif
-siswa ∈ anggota_kelas(kelas, Tahun Ajaran aktif)
+siswa ∈ anggota_kelas target
 siswa.status_aktif = Aktif
 ```
 
-Setelah Tahap 1 disimpan:
+Setelah simpan:
 
 ```text
 status = Proses
@@ -221,47 +213,71 @@ created_by = user login
 id_guru_bk = identity Guru actor bila tersedia, selain itu NULL
 ```
 
-### Tahap 2 — Lengkapi / Update
-
-Record yang sama kemudian dilengkapi dengan:
+### Tahap 2 — Lengkapi / Update Record yang Sama
 
 ```text
 Uraian Masalah
 Hasil Pembahasan dan Kesepakatan
 Rencana Berikutnya
 Tanggal Pertemuan Berikutnya
-Status: Proses | Selesai
+Status Proses | Selesai
 ```
 
 Ketentuan:
 
-- update Tahap 2 tidak mengubah identitas awal siswa/kelas/jenis layanan;
-- tanggal berikutnya, bila ada, tidak boleh lebih awal dari tanggal konseling;
-- status `Selesai` mewajibkan `Uraian Masalah` dan `Hasil Pembahasan dan Kesepakatan`;
-- tidak disediakan delete dari workflow G3.3.1 agar histori rahasia tidak mudah hilang.
+- metadata Tahap 1 tidak diubah;
+- tanggal berikutnya tidak boleh sebelum tanggal Konseling;
+- `Selesai` mewajibkan Uraian + Hasil;
+- `Proses` boleh belum lengkap;
+- tidak ada delete workflow G3.3.1.
 
-Modal detail mengikuti urutan:
+Modal detail:
 
 ```text
 Identitas Konseling
 → Perkembangan Tersimpan
-→ Form Tahap 2 / Update Tindak Lanjut
+→ Form Tahap 2
 ```
 
-`Perkembangan Tersimpan` adalah snapshot record Konseling yang sudah persisten, bukan multi-entry history. Histori Konseling 1:N, bila kelak diperlukan, harus menjadi perubahan schema tersendiri.
+`Perkembangan Tersimpan` adalah snapshot record persisten, bukan multi-entry history. Histori Konseling 1:N, bila dibutuhkan kelak, harus menjadi perubahan schema tersendiri.
 
-## 7. Pengaturan Isian Form Konseling
+## 7. Preservasi Rencana Berikutnya Historis
 
-Tidak ada tabel baru untuk master pilihan Form Konseling.
+Pengaturan Form adalah daftar pilihan aktif, tetapi perubahan daftar **tidak boleh merusak data Konseling yang sudah tersimpan**.
 
-Penyimpanan memakai tabel existing:
+Kontrak:
+
+```text
+record lama menyimpan Rencana X
+→ X kemudian dihapus dari Settings
+→ record lama dibuka
+→ X tetap tampil sebagai "X (tersimpan)"
+→ save tanpa mengganti X harus tetap valid
+→ user dapat mengganti X ke opsi aktif Y
+→ record lain yang tidak pernah menyimpan X tetap tidak boleh memakai X
+```
+
+Implementasi closure patch:
+
+- `assets/js/bk/konseling.js` menambahkan option lokal `(tersimpan)` hanya bila nilai record tidak lagi ada pada options aktif;
+- `KonselingBkService::validateStageTwo()` mengizinkan current stored rencana record tersebut selain daftar aktif;
+- opsi lama tidak dimasukkan kembali sebagai pilihan global Settings;
+- tidak ada perubahan schema/SQL.
+
+Patch ditemukan dari full docs/source audit setelah broad local + hosting smoke. Karena source berubah, patch ini wajib focused local + hosting re-smoke sebelum PR #9 Ready/Merge.
+
+## 8. Pengaturan Isian Form Konseling
+
+Tidak ada tabel master baru.
+
+Storage:
 
 ```text
 setting_sistem
 setting_key = bk_konseling_form_options
 ```
 
-Pilihan yang dapat dikelola:
+Configurable:
 
 ```text
 Bentuk Layanan
@@ -270,14 +286,14 @@ Topik per Bidang
 Rencana Berikutnya
 ```
 
-Pilihan yang tetap fixed karena domain/schema:
+Fixed:
 
 ```text
 Bidang = Pribadi | Sosial | Belajar | Karier
 Status = Proses | Selesai
 ```
 
-Permission pengaturan:
+Permission:
 
 ```text
 bk_konseling.settings
@@ -294,13 +310,23 @@ Guru/Wali = tidak
 Siswa = tidak
 ```
 
-UI dan backend validation membaca sumber setting yang sama. Jika setting belum ada/rusak/tidak valid, aplikasi menggunakan default aman dari kode.
+UI + backend membaca sumber setting sama. Missing/rusak/invalid memakai default aman.
 
-Setiap group minimal satu dan maksimal 40 pilihan. Panjang pilihan mengikuti schema Konseling: Bentuk Layanan maksimal 50 karakter, Cara Siswa Hadir 80, setiap Topik 150, dan Rencana Berikutnya 100. Duplikat case-insensitive dibersihkan sebelum disimpan.
+Constraint per group:
 
-## 8. Referensi Default Jenis Layanan Konseling
+```text
+minimal 1 pilihan
+maksimal 40 pilihan
+Bentuk Layanan max 50 karakter
+Cara Hadir max 80
+Topik max 150
+Rencana max 100
+deduplikasi case-insensitive
+```
 
-Bentuk layanan default:
+## 9. Referensi Default Konseling
+
+Bentuk layanan:
 
 ```text
 Konseling individu
@@ -308,7 +334,7 @@ Konseling kelompok
 Konsultasi
 ```
 
-Cara hadir default:
+Cara hadir:
 
 ```text
 Datang sendiri
@@ -328,9 +354,9 @@ Belajar
 Karier
 ```
 
-Topik mengikuti bidang. Referensi awal diadaptasi dari form BK yang disepakati pada G3.3.1 dan divalidasi server-side.
+Topik mengikuti bidang.
 
-Rencana berikutnya default:
+Rencana default:
 
 ```text
 Selesai
@@ -342,19 +368,19 @@ Rujuk ke UKS
 Rujuk ke psikolog atau Puskesmas
 ```
 
-## 9. Konseling — Export
+## 10. Konseling — Export
 
-Export XLSX hanya tersedia dengan permission:
+Permission:
 
 ```text
 bk_konseling.export
 ```
 
-Export memuat identitas siswa, kelas, data Tahap 1, isi Tahap 2, tindak lanjut, status, dan actor pencatat.
+Export memuat identitas siswa, kelas, Tahap 1, isi Tahap 2, rencana, tanggal berikutnya, status, dan actor pencatat.
 
-Data export tetap mengikuti boundary operasional Konseling: Admin, Operator, atau BK dengan permission terkait.
+Boundary tetap Admin/Operator/BK + permission.
 
-## 10. Prestasi Siswa
+## 11. Prestasi Siswa
 
 Tabel:
 
@@ -369,7 +395,7 @@ prestasi.view
 prestasi.manage
 ```
 
-Tingkat prestasi:
+Tingkat:
 
 ```text
 Madrasah
@@ -382,14 +408,14 @@ Internasional
 
 Akses baseline:
 
-- Admin/Operator/BK dapat manage sesuai permission;
-- Pimpinan dapat readonly bila mempunyai `prestasi.view`;
-- Wali dapat melihat kelas sendiri bila scope diberikan;
-- Siswa hanya data diri pada surface yang memang disediakan.
+- Admin/Operator/BK manage sesuai permission;
+- Pimpinan readonly bila mempunyai `prestasi.view`;
+- Wali kelas sendiri bila scope diberikan;
+- Siswa hanya diri sendiri pada surface yang disediakan.
 
-Form Tambah Prestasi menggunakan remote searchable siswa dan POST FormData. Controller wajib membaca `getPost()` untuk POST dan tetap mendukung raw input pada PUT/Edit.
+Form Tambah Prestasi memakai searchable siswa + POST FormData. Controller membaca `getPost()` untuk POST dan tetap mendukung raw input pada PUT/Edit.
 
-Export Prestasi memuat:
+Export:
 
 ```text
 NISN
@@ -402,7 +428,7 @@ Penyelenggara
 Keterangan
 ```
 
-## 11. Kartu Pelajar
+## 12. Kartu Pelajar
 
 Tabel:
 
@@ -410,7 +436,7 @@ Tabel:
 kartu_pelajar
 ```
 
-Field bisnis utama:
+Field utama:
 
 ```text
 id_siswa
@@ -420,7 +446,7 @@ tanggal_terbit
 status_aktif
 ```
 
-Database menjaga maksimum **satu kartu Aktif per siswa** melalui generated/unique contract.
+Database menjaga maksimum satu kartu Aktif per siswa.
 
 Permission:
 
@@ -429,63 +455,59 @@ kartu_pelajar.view
 kartu_pelajar.manage
 ```
 
-## 12. Generate / Reissue Kartu
+## 13. Generate / Reissue Kartu
 
-Generate hanya untuk siswa yang sah pada scope actor.
-
-Kontrak:
+Generate hanya untuk siswa sah pada scope actor.
 
 - satu request bulk maksimum 200 target;
 - seluruh target divalidasi;
-- operasi idempotent terhadap kartu yang sudah Aktif;
-- transaksi dan logging ditangani Service;
-- browser dapat mengulang batch sampai `remaining_count = 0`.
+- idempotent terhadap kartu Aktif;
+- transaksi/logging Service;
+- browser dapat mengulang batch sampai remaining 0.
 
-Reissue adalah lifecycle kartu berwenang dan tidak boleh digunakan untuk menembus scope siswa.
+Reissue tidak boleh menembus scope siswa.
 
-## 13. Canvas dan Background Kartu
+## 14. Canvas / Background Kartu
 
-Ukuran canonical:
+Canonical:
 
 ```text
 1011 × 638 px
 ```
 
-Default source:
+Default:
 
 ```text
 public/assets/kartu/default/background_kta_depan.jpg
 public/assets/kartu/default/background_kta_belakang.jpg
 ```
 
-Override runtime:
+Override:
 
 ```text
 setting_sistem.background_kta_depan
 setting_sistem.background_kta_belakang
 ```
 
-Upload template dari Settings dinormalisasi ke 1011×638 dan disimpan di `uploads/settings/kartu/`.
+Upload Settings dinormalisasi dan disimpan di `uploads/settings/kartu/`.
 
-## 14. QR dan Public Verify
+## 15. QR / Public Verify
 
-Payload QR:
+Payload:
 
 ```text
 SISFOUR|V1|NISN={nisn}|NAMA={nama_encoded}|VERIFY={kode_verifikasi}
 ```
 
-Route public:
+Public route:
 
 ```text
 GET /kartu/verify/{kode_verifikasi}
 ```
 
-Public verify readonly dan hanya menampilkan data minimum yang diperlukan untuk verifikasi kartu.
+Readonly, data minimum untuk verifikasi.
 
-## 15. Cetak Massal
-
-Kontrak:
+## 16. Cetak Massal
 
 ```text
 maksimum 200 kartu
@@ -495,56 +517,57 @@ A4 portrait
 side = front | back
 ```
 
-## 16. Lifecycle Siswa
+## 17. Lifecycle Siswa
 
-Saat siswa menjadi:
+Saat siswa Lulus/Pindah/Keluar, kartu Aktif dinonaktifkan oleh lifecycle Service. Histori Catatan Pelanggaran dan Konseling tetap dipertahankan.
 
-```text
-Lulus
-Pindah
-Keluar
-```
+## 18. SQL G3.3.1
 
-kartu Aktif dinonaktifkan melalui lifecycle Service yang berwenang. Histori Catatan Pelanggaran dan Konseling tetap disimpan sesuai relasinya.
-
-## 17. SQL G3.3.1
-
-SQL final:
+Localhost:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+```
+
+Hosting final dari audit dump aktual:
+
+```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-`FIX3_LOCALHOST` adalah finalization patch untuk database localhost yang telah melewati draft development. FIX1/FIX2 localhost merupakan patch transisi dan tidak menjadi bagian branch final.
+FIX1/FIX2 localhost adalah patch transisi dan tidak berada pada branch final.
 
-SQL hosting dibuat hanya setelah dump aktual `u473908839_sisfour2026` diaudit. Audit memastikan kompatibilitas schema/FK, identity BK berbasis Pegawai, permission/menu, serta karakteristik `menus.id` yang bukan AUTO_INCREMENT. SQL hosting telah dieksekusi tanpa error dan smoke UAT hosting dinyatakan PASS pada 16 September 2026.
+Broad schema execution local/hosting: **PASS**. Closure preservasi Rencana tidak membutuhkan SQL baru.
 
-## 18. Checkpoint G3.3.1 — PASS / PENDING MERGE APPROVAL
+## 19. Gate G3.3.1
 
-Seluruh checkpoint berikut telah PASS:
+Broad gates yang telah PASS:
 
 ```text
 Master Pelanggaran tanpa poin
 Catatan Pelanggaran tanpa poin
 Top Poin retired
-Export Pelanggaran dua sheet + Kelas
-Prestasi create/edit aman + export memiliki Kelas
-Konseling BK terpisah dari Catatan Pelanggaran
-Konseling Tahap 1 create
-Konseling Tahap 2 update
-Kelas -> Siswa terikat Tahun Ajaran aktif
-Pengaturan Form Konseling tersimpan di setting_sistem
-Admin + Operator + BK = operasional Konseling sesuai permission
-Admin + BK = Pengaturan Form Konseling
-Pimpinan + Guru/Wali + Siswa = tanpa surface/detail Konseling
-actor pencatat berbasis users.id, BK berupa Pegawai didukung
-mobile Pimpinan/Wali/Siswa memenuhi role visibility dan no horizontal operational overflow
-static gate + browser regression localhost PASS
-hosting dump audit PASS
-hosting SQL execution PASS
-hosting smoke UAT PASS
+Export Pelanggaran 2 sheet + Kelas
+Prestasi create/edit + export Kelas
+Konseling terpisah
+Konseling Tahap 1/Tahap 2
+Kelas -> Siswa Tahun aktif
+Settings persistence/backend validation
+Admin/Operator/BK operational matrix
+Admin/BK Settings
+Pimpinan/Guru/Wali/Siswa tanpa Konseling
+actor users.id / BK Pegawai
+mobile cross-role no overflow
+SQL local + hosting
+broad hosting smoke
 ```
 
-G3.4 Dashboard BK dimulai setelah PR #9 memperoleh approval eksplisit dan G3.3.1 merged ke `main`.
+Closure gate tambahan:
+
+```text
+historical Rencana preservation patch static/local focused UAT PENDING
+focused hosting re-smoke PENDING
+```
+
+G3.4 baru dimulai setelah closure gate PASS, PR #9 merged, dan user memberi approval eksplisit.

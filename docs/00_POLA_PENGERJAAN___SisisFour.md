@@ -1,12 +1,12 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 15 September 2026  
-**Development aktif:** G3.2 — Guru/Wali Presensi & Jurnal  
-**Branch aktif:** `feat/g3-guru-wali-presensi-jurnal-20260915`  
-**Baseline:** `main` setelah merge PR #6 / G3.1 CLOSED
+**Tanggal Acuan:** 16 September 2026  
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**closure patch / focused re-smoke pending**)  
+**Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
+**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
 
-> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog dan tidak menyimpan narasi revisi lama.
+> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. Keputusan domain yang lebih rinci tetap berada pada dokumen domain masing-masing.
 
 ## 1. Kedudukan `docs/`
 
@@ -22,7 +22,7 @@ Urutan baca canonical:
 04  Master Data & Student Lifecycle
 05  Presensi
 06  Laporan
-07  BK / Prestasi / Kartu
+07  BK / Konseling / Prestasi / Kartu
 08  Dashboard / Settings / Backup / Log
 09  Profile / Personalia
 10  Deployment Production
@@ -38,8 +38,6 @@ Tree Structure
 ```
 
 ## 2. Hirarki Standar UI
-
-Jika ada aturan visual yang berbeda, gunakan prioritas:
 
 ```text
 13 CI4 + Sneat Global
@@ -60,20 +58,20 @@ Business rule tetap mengikuti dokumen domain dan Service. View/JavaScript tidak 
 ## 3. Sumber Kebenaran Teknis
 
 ```text
-Database    -> dump SQL resmi terbaru + schema live + SQL schema delta yang belum dirilis
-Route       -> app/Config/Routes.php
+Database    -> dump SQL aktual + schema live + SQL delta final di database/
+Route       -> Config\Routing::$routeFiles + seluruh route file terdaftar
 Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
 Menu        -> menus, role_menus, MenuService
 Business    -> Service modul
 Persistence -> Model / Query Builder
-UI          -> View + assets/css/sisfour-ui.css + assets/css/sisfour-mobile.css + Vanilla JS
+UI          -> View + application CSS + Vanilla JS
 Global UI   -> docs/13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md
 Mobile UI   -> docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
 Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
 Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ```
 
-Schema delta development disimpan sebagai SQL eksplisit di `database/`, bukan CodeIgniter migration. SQL harus idempotent bila memungkinkan, memiliki query verifikasi, diuji pada localhost/staging copy lebih dulu, dan tidak diaplikasikan ke production tanpa backup + approval deploy eksplisit. `docs/02_DATABASE` baru dinaikkan menjadi baseline schema baru setelah SQL delta lulus UAT dan masuk release yang disetujui.
+Schema delta development memakai SQL eksplisit di `database/`, bukan CodeIgniter migration. SQL harus schema-aware, idempotent bila memungkinkan, memiliki verification query, diuji lokal/staging lebih dulu, dan tidak dijalankan ke hosting tanpa audit kondisi aktual + approval eksplisit.
 
 `PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
 
@@ -98,8 +96,6 @@ Android target   Apache Cordova / Android WebView
 Timezone         Asia/Jakarta
 ```
 
-jQuery boleh tetap menjadi dependency vendor, tetapi business JavaScript baru tidak bergantung pada jQuery.
-
 ## 5. Arsitektur Request
 
 ```text
@@ -122,184 +118,148 @@ View/JavaScript tidak menjadi authorization boundary.
 
 ## 6. Pola Perubahan Source
 
-Urutan normal:
-
 ```text
-1. baca docs domain + source + database aktual
+1. baca seluruh docs relevan + source + database aktual
 2. tentukan invariant/business rule
-3. Model/Query bila perlu
-4. Service
-5. Filter bila perlu
-6. Controller
-7. View
-8. JavaScript/CSS
-9. Routes hanya bila endpoint nyata diperlukan
-10. static gate
-11. runtime regression
-12. sinkronkan docs canonical
+3. audit schema/permission/menu bila domain berubah
+4. Model/Query bila perlu
+5. Service
+6. Filter bila perlu
+7. Controller
+8. View
+9. JavaScript/CSS
+10. Routes hanya bila endpoint nyata diperlukan
+11. static gate
+12. runtime regression
+13. localhost/staging SQL gate bila ada schema delta
+14. hosting dump audit sebelum menulis SQL hosting
+15. hosting smoke bila deployment disetujui
+16. sinkronkan docs canonical
+17. PR review / explicit merge approval
 ```
 
-Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah. Bila user menyetujui perluasan domain yang benar-benar memerlukan persistence baru, perubahan schema wajib memakai SQL script eksplisit yang aman/idempotent sesuai kemampuan MySQL/MariaDB, memiliki verification query, diuji pada localhost/staging lebih dulu, dan tidak diaplikasikan ke production tanpa backup + approval deploy eksplisit.
+Perubahan UI-only tidak boleh menyentuh Service/DB bila kebutuhan data dan business rule tidak berubah.
 
-## 7. Aturan Full File dan Git
+## 7. Aturan Git / Deployment
 
-- Revisi file diserahkan sebagai file utuh, bukan potongan source.
-- `Routes.php` dipertahankan bila endpoint baru tidak diperlukan.
-- Sebelum write GitHub, baca blob SHA aktual.
-- Perubahan berurutan pada path yang sama harus memakai SHA terbaru.
-- Jangan merge/deploy sebelum static + runtime gate lulus.
+- Sebelum write GitHub, baca state/blob aktual.
+- Perubahan berurutan pada path yang sama harus memakai state terbaru.
+- Jangan merge tanpa approval eksplisit pengguna.
+- Jangan deploy hanya karena PR mergeable.
 - Production DB tidak disentuh dalam regression development.
-- Setiap sub-phase besar memakai branch/PR terpisah agar scope tidak bercampur.
+- Jika SQL hosting diperlukan, audit dump hosting aktual lebih dulu lalu susun delta spesifik environment.
+- Setelah source berubah sesudah production smoke, smoke lama tidak otomatis membuktikan head baru; lakukan focused re-smoke sesuai area perubahan.
 
-## 8. G2 — CLOSED
-
-G2 resmi selesai dan merged ke `main` melalui PR #5 pada 15 September 2026.
-
-```text
-G2.1 Repository Hygiene     PASS
-G2.2 Static Gate            PASS
-G2.3 Business Regression    PASS
-G2.4 Browser Regression     PASS
-G2.5 Closure Review         PASS
-PR #5                       MERGED
-```
-
-Merge commit:
+## 8. Status G2 / G3
 
 ```text
-375766c07f3856515a71ffdb07f3681c3047ca31
+G2                         CLOSED / MERGED (PR #5)
+G3.1 Mobile foundation     CLOSED / MERGED (PR #6)
+G3.2 Guru/Wali Presensi    CLOSED / MERGED (PR #7)
+G3.3 Dashboard Guru/Wali   CLOSED / MERGED (PR #8)
+G3.3.1 Fondasi BK          CLOSURE PATCH / FOCUSED RE-SMOKE PENDING (PR #9)
+G3.4 Dashboard/Workflow BK NEXT setelah PR #9 merge
+G3.5 Pimpinan              setelah G3.4
+G3.6 Siswa                 setelah G3.5
+G3.7 Global mobile sweep
+G3.8 Viewport/WebView readiness
+G4 Cordova APK
 ```
 
-Scope F06–F14 tidak dibuka ulang di G3 tanpa blocker/regression baru yang terverifikasi.
-
-## 9. G3 — Mobile Role UI
-
-Tujuan G3:
+Merge baseline sebelum PR #9:
 
 ```text
-Web UI mobile-first untuk role operasional
-Cordova/WebView ready
-satu source UI CI4/Sneat
-no duplicate mobile application UI
+G2   375766c07f3856515a71ffdb07f3681c3047ca31
+G3.1 d10ced5d70ffc68642067aac44feeb6a91cacd29
+G3.2 176e5f764850d030968524af47117f259449064c
+G3.3 06e4e559c045763096058fc889342da78d973314
 ```
 
-Role prioritas:
+## 9. G3.3.1 — Kontrak Final BK
 
 ```text
-Pimpinan
-BK
-Guru
-Guru + Wali Kelas
-Siswa
+Catatan Kasus -> nama experience Catatan Pelanggaran Siswa
+poin pelanggaran dihentikan sebagai business rule
+kategori Ringan/Sedang/Berat tetap klasifikasi nonnumeric
+ref_pelanggaran.poin tetap legacy untuk rollback; aplikasi menulis 0 dan tidak memakainya
+Top Poin retired; route legacy hanya compatibility
+Tindak Lanjut Pelanggaran tetap 1:N terpisah
+Konseling BK fitur/tabel terpisah dan rahasia
+Prestasi fitur positif terpisah
 ```
 
-Admin/Operator tetap responsive, tetapi matrix administrasi berat boleh memiliki exception terdokumentasi.
+### Konseling dua tahap
 
-Urutan:
+Tahap 1:
 
 ```text
-G3.1 Mobile foundation                  CLOSED / MERGED
-G3.2 Guru/Wali — Presensi & Jurnal      ACTIVE
-G3.3 Dashboard Guru/Wali
-G3.4 BK workflow + Dashboard BK
-G3.5 Pimpinan monitoring
-G3.6 Siswa self-service
-G3.7 global mobile sweep
-G3.8 viewport/WebView readiness regression
+Kelas -> Siswa -> Tanggal -> Pertemuan ke-
+Bentuk Layanan -> Cara Hadir -> Bidang -> Topik
+status awal = Proses
 ```
 
-### G3.1 — CLOSED
-
-G3.1 lulus static/browser smoke dan merged melalui PR #6.
-
-Merge commit:
+Tahap 2:
 
 ```text
-d10ced5d70ffc68642067aac44feeb6a91cacd29
+Uraian Masalah
+Hasil Pembahasan & Kesepakatan
+Rencana Berikutnya
+Tanggal Pertemuan Berikutnya
+Status Proses / Selesai
 ```
 
-Foundation canonical yang sekarang tersedia:
+`Selesai` mewajibkan Uraian + Hasil. Tanggal berikutnya tidak boleh sebelum tanggal Konseling. Tidak ada delete Konseling pada G3.3.1.
+
+### Preservasi opsi historis
+
+Perubahan `Pengaturan Form Konseling` berlaku sebagai daftar pilihan aktif, tetapi **tidak boleh merusak nilai Rencana Berikutnya yang sudah tersimpan pada record lama**. Saat record lama dibuka, nilai yang sudah tersimpan tetap harus tampil dan boleh dipertahankan walaupun opsi tersebut kemudian dihapus dari Settings. Nilai legacy dari record lain tidak boleh menjadi bypass untuk memilih opsi yang sudah dinonaktifkan.
+
+Closure patch untuk invariant ini ditemukan saat full docs/source audit 16 September 2026. Patch tidak mengubah schema/SQL dan memerlukan focused local + hosting re-smoke sebelum PR #9 Ready/Merge.
+
+### Identity BK
 
 ```text
-role-aware shell classes
-safe-area tokens
-mobile spacing/density tokens
-44px primary / 40px compact touch target
-adaptive operational table primitive
-name-first primary/meta cell
-mobile form/filter/action primitive
-sticky action primitive
-2×2 KPI primitive
-compact pagination/empty state
-navbar/sidebar/footer mobile-safe baseline
-body/layout overflow baseline
+created_by -> users.id
+akun role BK aktual memakai users.id_pegawai -> pegawai.id
+id_guru_bk nullable/legacy metadata, bukan identity utama
+label actor UI/export = Dicatat oleh
 ```
 
-G3.1 tidak menambah project/plugin Cordova.
-
-## 10. G3.2 — Guru/Wali Presensi & Jurnal
-
-G3.2 mempertahankan authorization/scope Presensi dan Jurnal existing, sekaligus memuat **satu perluasan domain Jurnal yang disetujui user**: catatan Jurnal dan exception siswa Sakit/Izin/Alpha per pembelajaran. Perluasan ini tidak membuka ulang F06–F14 dan tidak mengubah makna Presensi Siswa resmi.
-
-### Presensi Siswa
-
-Target UI:
+### Permission / privacy
 
 ```text
-Siswa              Status
-Ahmad Fulan        [H] [S] [I] [A]
+bk_konseling.view      Admin, Operator, BK
+bk_konseling.manage    Admin, Operator, BK
+bk_konseling.export    Admin, Operator, BK
+bk_konseling.settings  Admin, BK
 ```
 
-Kontrak:
+Pimpinan, Guru/Wali, Siswa tidak mendapat menu/detail/widget Konseling. Route filter + Service tetap wajib.
 
-- Nama siswa menjadi identitas visual utama.
-- NISN bukan kolom rutin pada mobile; tetap tersedia pada desktop/audit bila dibutuhkan.
-- Status H/S/I/A memiliki target sentuh minimum 40px dan label aksesibel.
-- Tidak ada horizontal table scroll pada role operasional mobile.
-- Guru Terjadwal/Wali tetap mengikuti scope Service.
-- Geofence/time-window tetap server-authoritative.
-- Satu submit kelas tetap atomic.
-- Busy guard mencegah double submit.
-- Network failure tidak menghapus perubahan status yang belum tersimpan.
-- Success hanya setelah server mengonfirmasi.
+### Pengaturan Form Konseling
 
-### Presensi Mengajar / Jurnal
-
-Kontrak existing tetap:
-
-- Guru operasional tidak dipaksa memilih identitas dirinya sendiri bila hanya satu pilihan valid.
-- Jadwal dapat di-auto-load bila hanya satu Jadwal valid.
-- Wali tidak mendapat hak Jurnal hanya karena context Wali; hak tetap berdasarkan Jadwal Guru.
-- Geofence/time-window/duplicate/revision tetap Service-authoritative.
-
-Perluasan Jurnal G3.2:
+Gunakan existing:
 
 ```text
-presensi_mengajar.catatan                 = optional
-presensi_mengajar_siswa                  = child exception pembelajaran
-status child                              = Sakit / Izin / Alpha
+setting_sistem.setting_key = bk_konseling_form_options
 ```
 
-Rule wajib:
+Configurable: Bentuk Layanan, Cara Hadir, Topik per Bidang, Rencana Berikutnya.  
+Fixed: Bidang `Pribadi|Sosial|Belajar|Karier`, Status `Proses|Selesai`.
 
-- child siswa hanya berasal dari roster kelas Jurnal pada tanggal Jurnal;
-- Nama primary, NISN secondary search/disambiguation;
-- satu siswa maksimal satu row child per Jurnal;
-- child hanya boleh ada ketika status Guru `Hadir`;
-- parent + exact child list disimpan/revisi dalam satu transaction;
-- child **tidak pernah** menulis/mengubah tabel `presensi`;
-- child tidak masuk Rekap/EWS/Signage Presensi resmi;
-- laporan utama tetap `1 row = 1 Jurnal`, child hanya aggregate count dan detail lazy-load;
-- query listing tidak boleh N+1.
+## 10. SQL G3.3.1
 
-Schema delta canonical G3.2:
+Final scripts:
 
 ```text
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-Tidak ada CodeIgniter migration untuk delta G3.2 ini. SQL localhost dipakai untuk development/UAT dan aman dijalankan ulang. SQL hosting hanya dijalankan setelah backup, G3.2 PASS/merge/release disetujui, dan ada approval deploy eksplisit.
+FIX1/FIX2 localhost adalah patch transisi dan tidak menjadi bagian branch final.
+
+SQL hosting dibuat setelah dump aktual diaudit. SQL execution + broad hosting smoke telah PASS. Closure patch preservasi Rencana historis **tidak membutuhkan SQL baru**.
 
 ## 11. Core Mobile Contract G3
 
@@ -311,67 +271,13 @@ table horizontal scroll  = DILARANG
 nested horizontal scroll = DILARANG
 ```
 
-Gunakan prioritas informasi, metadata, hidden secondary columns, detail/modal/offcanvas—bukan `min-width` besar atau font ekstrem kecil.
-
 Identity canonical:
 
 > **Search with Name + Identifier, display primarily by Name.**
 
-Nama adalah identitas visual utama. NISN/NIP/NIK sekunder untuk search, verification, disambiguation, audit, import/export, dan integrasi.
+Touch target utama 44–48px; compact interactive control sekitar 40px.
 
-Touch target utama mobile: 44–48px; compact interactive control minimum sekitar 40px.
-
-## 12. Phase Setelahnya — G4 Cordova APK
-
-G4 dimulai setelah G3 Web/mobile stabil.
-
-```text
-G4.1 Cordova architecture spike
-G4.2 Android project/config
-G4.3 session/auth strategy verification
-G4.4 Android Back
-G4.5 safe-area/status bar/keyboard
-G4.6 geolocation permission
-G4.7 network/offline state
-G4.8 file/download/share/external links
-G4.9 real-device regression
-G4.10 signed APK/distribution
-```
-
-Cordova wrapper tidak otomatis mengganti Web session auth dengan JWT.
-
-## 13. Aturan Anti-Tabrakan Antar Phase
-
-- G3 tidak mengubah business rule F06–F14 tanpa issue/scope baru.
-- G3.2 hanya memiliki schema/business extension Jurnal yang tercatat eksplisit pada `docs/05_PRESENSI` dan SQL schema delta di `database/`.
-- G3 tidak menambahkan project/plugin Cordova.
-- G4 tidak menduplikasi halaman CI4 menjadi SPA kedua kecuali keputusan arsitektur baru dibuat eksplisit.
-- Cordova bridge/plugin tidak ditanam ke business Service.
-- CSS mobile reusable masuk foundation; adaptasi khusus halaman tetap scoped.
-- Page-specific exception harus terdokumentasi.
-
-## 14. Database-First
-
-Filtering/agregasi dataset besar dilakukan database:
-
-```text
-WHERE / JOIN / GROUP BY / HAVING / ORDER BY / LIMIT / OFFSET
-```
-
-Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
-
-## 15. Security Baseline
-
-- CSRF aktif untuk Web.
-- Mutation Fetch memakai helper CSRF project.
-- API memakai Bearer/JWT dan bukan CSRF Web.
-- Output user/data di-escape.
-- Upload divalidasi tipe, ukuran, isi dan path.
-- Dokumen personalia tetap non-public.
-- Cordova tidak boleh memindahkan authorization ke client.
-- Credential/token tidak ditulis ke log.
-
-## 16. Static Gate Minimum
+## 12. Static Gate Minimum
 
 ```powershell
 php -l path\file.php
@@ -381,37 +287,23 @@ git diff --check
 git status --short
 ```
 
-Branch dengan schema delta wajib menjalankan SQL localhost/staging copy yang sesuai dan memverifikasi schema hasilnya sebelum runtime UAT.
+## 13. Runtime Gate Minimum
 
-## 17. Runtime Gate Minimum
+Tidak boleh ada 404/500 tak disengaja, 403 palsu, privilege escalation, double mutation, partial transaction, histori putus, uncaught browser error, horizontal overflow, input penting hilang akibat network failure, atau sukses palsu.
 
-Tidak boleh ada:
+Khusus Konseling: tidak boleh ada akses role terlarang, siswa di luar kelas/tahun aktif, status Selesai tanpa field wajib, atau kehilangan nilai historis hanya karena Settings berubah.
 
-- 404/500 tak disengaja;
-- 403 palsu;
-- CSRF failure pada mutation sah;
-- IDOR/privilege escalation;
-- double mutation;
-- partial transaction;
-- histori putus;
-- uncaught browser error;
-- horizontal body overflow pada viewport wajib;
-- horizontal table scroll pada role operasional mobile;
-- input penting hilang hanya karena network failure;
-- data akademik dinyatakan sukses sebelum server mengonfirmasi.
-
-Untuk Jurnal G3.2 juga tidak boleh ada child siswa di luar roster, child ketika Guru Izin/Sakit, duplikasi child, perubahan tabel `presensi` akibat child Jurnal, atau laporan yang menggandakan row parent.
-
-## 18. Definition of Done per Sub-phase
-
-Sub-phase baru boleh ditutup/merge jika:
+## 14. Definition of Done per Sub-phase
 
 ```text
 source stabil
 static gate PASS
 SQL/schema gate PASS bila ada schema delta
 runtime gate PASS
+privacy/RBAC gate PASS bila data sensitif
 canonical docs sinkron
 PR review selesai
 user approval eksplisit
 ```
+
+G3.3.1 telah memenuhi seluruh gate besar sebelumnya; closure patch preservasi Rencana historis harus lulus focused re-smoke sebelum status kembali FINAL PASS dan PR #9 masuk Ready/Merge gate.

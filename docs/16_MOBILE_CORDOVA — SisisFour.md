@@ -1,16 +1,14 @@
 # Cordova Packaging & Integration — SisisFour
 
-**Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Status:** Canonical / Fresh SSOT  
+**Tanggal Acuan:** 16 September 2026  
 **Implementation Phase:** G4, setelah G3 Mobile UI selesai
 
-> SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
+> SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
 ## 1. Target Architecture
 
-SisisFour tidak membangun ulang seluruh aplikasi menjadi SPA mobile kedua.
-
-Target:
+SisisFour tidak membangun ulang aplikasi menjadi SPA mobile kedua.
 
 ```text
 CI4/Sneat Web Application
@@ -20,75 +18,65 @@ responsive mobile UI
 Cordova Android WebView wrapper
 ```
 
-Server tetap menjadi source of truth untuk auth, RBAC, scope, business rule, validation, transaction dan persistence.
+Server tetap source of truth untuk auth, RBAC, scope, business rule, validation, transaction, dan persistence.
 
 ## 2. Separation of Phases
 
 ```text
-G2  Master Data/lifecycle fixing + stabilization
-G3  Mobile role UI + WebView readiness
-G4  Cordova integration + APK packaging
+G2      Master Data/lifecycle fixing + stabilization
+G3      Mobile role UI + WebView readiness
+G3.3.1  BK foundation/Konseling privacy contract
+G4      Cordova integration + APK packaging
 ```
 
-Cordova project/plugin tidak ditambahkan ke G2 hanya untuk persiapan dini.
+Cordova project/plugin tidak ditambahkan ke G3 hanya untuk persiapan dini.
 
 ## 3. G4 Architecture Spike
 
-Sebelum implementasi APK penuh, buat spike minimal untuk membuktikan:
+Sebelum implementasi APK penuh, spike minimal membuktikan:
 
 ```text
-production/staging URL dapat dibuka aman dalam WebView
-session/login stabil
-redirect/login/logout normal
-Cordova deviceready tersedia sesuai architecture wrapper
-device back dapat dikontrol
+production/staging URL aman dibuka dalam WebView
+session/login/logout stabil
+redirect normal
+deviceready tersedia sesuai wrapper
+device Back dapat dikontrol
 geolocation permission bekerja
 download/open/share dapat ditangani
-external link dapat diarahkan keluar WebView
+external link diarahkan keluar WebView bila perlu
 ```
 
-Hasil spike menentukan detail `config.xml`, allow-navigation, whitelist dan plugin final.
-
-Jangan mengunci plugin/version berdasarkan dokumentasi lama sebelum spike.
+Plugin/version final ditentukan saat G4, bukan dikunci dari dokumentasi lama.
 
 ## 4. Web Auth vs API Auth
 
-Web UI tetap menggunakan Web session/CSRF sesuai aplikasi CI4.
+Web UI tetap memakai Web session + CSRF. API `/api/*` tetap memakai JWT/token.
 
-API `/api/*` tetap memakai JWT/token sesuai kontrak API.
-
-Cordova wrapper **tidak otomatis mengganti seluruh Web auth dengan JWT**.
-
-Jika kemudian ada feature native/local yang memanggil `/api/*`, feature tersebut mengikuti API auth secara terpisah.
+Cordova wrapper tidak otomatis mengganti seluruh Web auth dengan JWT.
 
 ## 5. Session Expiry UX
 
 Jika session Web berakhir saat AJAX/Fetch:
 
 ```text
-jangan render HTML login di dalam tabel/modal
-→ deteksi unauthenticated
-→ tampilkan pesan sesi berakhir
+jangan render HTML login di tabel/modal
+→ tampilkan sesi berakhir
 → arahkan ke login
 ```
 
-Setelah login, restore workflow hanya jika aman dan tidak menyebabkan mutation ulang.
+Restore workflow hanya jika aman dan tidak menyebabkan mutation ulang.
 
 ## 6. Cordova Mode
 
-Setelah `deviceready`, wrapper dapat menambah class:
+Setelah `deviceready`, wrapper dapat menambah:
 
 ```html
 <html class="sisfour-cordova">
 ```
 
-Digunakan hanya untuk perbedaan nyata WebView seperti safe-area/status bar/keyboard-specific behavior.
-
-Jangan membuat UI kedua di bawah `.sisfour-cordova`.
+Hanya untuk perbedaan WebView nyata; jangan membuat UI kedua.
 
 ## 7. Android Back
-
-Contract:
 
 ```text
 Modal terbuka       → tutup modal
@@ -99,31 +87,23 @@ Dirty form          → confirmation
 Dashboard/root      → exit confirmation/double-back sesuai keputusan final
 ```
 
-Presensi/Jurnal yang belum tersimpan tidak boleh hilang hanya karena tombol Back.
+Input Presensi/Jurnal/Catatan Pelanggaran/Konseling/Prestasi yang belum tersimpan tidak boleh hilang hanya karena Back.
 
 ## 8. Safe Area & Status Bar
 
-UI G3 sudah harus menggunakan safe-area token:
-
-```text
-env(safe-area-inset-top)
-env(safe-area-inset-right)
-env(safe-area-inset-bottom)
-env(safe-area-inset-left)
-```
-
-G4 memverifikasi behavior real device, status bar dan edge-to-edge configuration.
+G3 harus menggunakan safe-area token. G4 memverifikasi real device, status bar, dan edge-to-edge configuration.
 
 ## 9. Soft Keyboard
 
 Uji device nyata:
 
-- input aktif tetap terlihat;
-- modal scroll normal;
+- input aktif terlihat;
+- modal vertical-scroll normal;
 - sticky action tidak menutup field;
 - SearchableSelect/dropdown tidak tertutup keyboard;
-- textarea Jurnal/Kasus nyaman;
-- orientation change tidak merusak viewport.
+- textarea Jurnal dan Konseling nyaman;
+- orientation/viewport tidak merusak layout;
+- tidak ada horizontal overflow.
 
 ## 10. Geolocation
 
@@ -131,8 +111,7 @@ Flow:
 
 ```text
 user menjalankan action yang butuh lokasi
-→ cek permission
-→ minta permission jika perlu
+→ cek/minta permission
 → ambil lokasi
 → kirim koordinat ke server
 → server menentukan validitas geofence
@@ -140,31 +119,31 @@ user menjalankan action yang butuh lokasi
 
 Jangan meminta lokasi saat dashboard load.
 
-UX harus membedakan:
-
-```text
-permission denied
-GPS/service off
-position timeout
-akurasi buruk
-lokasi didapat
-di luar radius berdasarkan server response
-```
-
 ## 11. Network State
 
-APK adalah online-first.
+APK online-first.
 
-Saat offline:
+Saat offline/network gagal:
 
 ```text
-jelaskan tidak ada koneksi
+jelaskan tidak ada koneksi/gagal
 mutation tidak dinyatakan sukses
 pertahankan input bila aman
 sediakan retry
 ```
 
-Tidak ada background/offline replay otomatis untuk Presensi/Jurnal/Kasus/Prestasi tanpa desain transaksi baru.
+Tidak ada background/offline replay otomatis untuk:
+
+```text
+Presensi
+Jurnal
+Catatan Pelanggaran
+Tindak Lanjut Pelanggaran
+Konseling
+Prestasi
+```
+
+tanpa desain transaksi baru.
 
 ## 12. Mutation Safety
 
@@ -178,23 +157,36 @@ transaction backend
 idempotency/duplicate guard sesuai domain
 ```
 
-## 13. File / Download / Share
+## 13. Privacy Konseling BK
+
+G4 tidak boleh memperluas akses Konseling.
+
+```text
+Operasional Konseling = Admin / Operator / BK + permission
+Settings Konseling    = Admin / BK + permission
+Pimpinan/Guru/Wali/Siswa = tidak mendapat detail/widget/surface Konseling
+```
+
+WebView/Cordova tidak menjadi alasan menyimpan cache/export Konseling secara lokal tanpa policy baru.
+
+## 14. File / Download / Share
 
 Feature yang perlu diuji khusus APK:
 
 ```text
 Kartu PDF
-file export yang memang tersedia untuk role
+XLSX export yang memang tersedia untuk role
+export Catatan Pelanggaran
+export Prestasi
+export Konseling hanya actor yang berhak
 preview document
 open external app
 share file bila diputuskan
 ```
 
-Browser behavior tidak boleh diasumsikan otomatis identik dengan Android WebView.
+Browser behavior tidak diasumsikan identik dengan Android WebView.
 
-## 14. Navigation External
-
-Canonical intent:
+## 15. Navigation External
 
 ```text
 internal SisisFour URL → tetap di WebView
@@ -204,52 +196,40 @@ mailto/tel/maps/chat   → application intent bila didukung
 
 Whitelist/navigation policy hanya mengizinkan domain yang dibutuhkan.
 
-## 15. Security
+## 16. Security
 
 APK release:
 
 - HTTPS only;
 - tidak hardcode password/token/secret;
 - tidak log session/token/credential;
-- debug WebView dimatikan pada release;
-- domain/navigation dibatasi;
+- debug WebView off pada release;
+- navigation/domain dibatasi;
 - permission Android seminimal mungkin;
-- server tetap melakukan authorization;
-- file upload/download mengikuti validation server.
+- server tetap authorization boundary;
+- file upload/download mengikuti validation server;
+- data Konseling tidak bocor ke role/client yang tidak berhak.
 
-## 16. API
+## 17. API
 
-API core tetap tersedia untuk integration/native feature:
+API core tetap tersedia sesuai route runtime. Jangan mengasumsikan endpoint API ada hanya karena Web route ada.
 
-```text
-/api/auth/*
-/api/version
-/api/dashboard
-/api/presensi/*
-/api/profile/*
-... sesuai Routes Final
-```
+G3.3.1 menambah Web route Konseling melalui `RoutesBKFoundation.php`; **tidak menambah API Konseling**. Jika API Konseling dibutuhkan untuk feature native kelak, itu harus menjadi scope baru dengan permission/privacy gate yang sama atau lebih ketat.
 
-Jangan mengasumsikan endpoint API ada hanya karena Web route ada; lihat `Routes Final — SisisFour.md` dan source route aktual.
-
-## 17. Branding APK
-
-Icon/branding APK dan runtime branding sekolah adalah dua layer:
+## 18. Branding APK
 
 ```text
 APK launcher icon/splash = asset build Cordova
 runtime favicon/logo      = setting_sistem
 ```
 
-Launcher icon dapat menggunakan identitas sekolah yang disepakati, tetapi perubahan runtime `icon_sekolah` tidak otomatis mengganti icon launcher APK yang sudah terinstall.
+Perubahan runtime `icon_sekolah` tidak otomatis mengganti launcher icon APK yang sudah terpasang.
 
-## 18. Versioning
+## 19. Versioning
 
-APK memiliki app/build version sendiri. Server/API memiliki version sendiri.
+APK memiliki app/build version sendiri. Server/API memiliki version sendiri. Endpoint version dapat dipakai compatibility/update notice, bukan silent APK replacement.
 
-Client dapat mengecek endpoint version untuk compatibility/update notice, tetapi server tidak melakukan silent APK replacement.
-
-## 19. Distribution
+## 20. Distribution
 
 Tahap awal:
 
@@ -263,30 +243,28 @@ Produksi:
 signed APK/AAB dan kanal distribusi yang diputuskan madrasah
 ```
 
-Keystore/signing material tidak masuk repository publik/source biasa.
+Keystore/signing material tidak masuk source repository biasa.
 
-## 20. Device Test Matrix
+## 21. Device Test Matrix
 
 Minimum:
 
 ```text
 Android kecil 360px
 Android umum 390/412px
-minimal 2 versi Android yang masih menjadi target deployment
+minimal 2 versi Android target
 Wi-Fi stabil
 mobile data/lambat
 offline → online
-permission location allow/deny
+location allow/deny
 keyboard open/close
-back button
+Back button
 file download/open
 ```
 
-Versi Android/Cordova/plugin final ditentukan pada saat G4 karena tooling dapat berubah.
+## 22. G4 Gate
 
-## 21. G4 Gate
-
-Cordova/APK dinyatakan siap bila:
+Cordova/APK siap bila:
 
 ```text
 G3 mobile UI PASS
@@ -296,20 +274,22 @@ Back PASS
 keyboard PASS
 safe-area PASS
 geolocation PASS
-network/offline state PASS
+network/offline PASS
 file/download/share PASS
 external link PASS
-maintenance behavior PASS
+maintenance PASS
 security config PASS
 signed build PASS
 multi-device regression PASS
 ```
 
-## 22. Non-Goal
+## 23. Non-Goal
 
 G4 tidak digunakan untuk:
 
-- memperbaiki business rule Master Data yang seharusnya selesai di G2;
+- memperbaiki ulang business rule yang sudah ditutup di G2/G3;
+- menghidupkan kembali poin Pelanggaran;
+- membuka Konseling ke role lain;
 - redesign besar dashboard/table yang seharusnya selesai di G3;
 - memindahkan authorization ke JavaScript/Cordova;
-- membuat offline academic mutation tanpa design khusus.
+- membuat offline academic mutation tanpa desain khusus.
