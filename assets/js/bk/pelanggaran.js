@@ -47,27 +47,17 @@
   function setButtonBusy(button, busy, label = 'Memproses...') {
     if (!button) return;
 
-    const spinner = button.querySelector('.spinner-border');
-
     if (busy) {
       if (button.dataset.busy === '1') return;
       button.dataset.busy = '1';
       button.dataset.busyHtml = button.innerHTML;
       button.disabled = true;
-      if (spinner) {
-        spinner.classList.remove('d-none');
-      } else {
-        button.innerHTML = `
-          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${label}
-        `;
-      }
+      button.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${label}`;
       return;
     }
 
     button.disabled = false;
-    if (button.dataset.busyHtml !== undefined) {
-      button.innerHTML = button.dataset.busyHtml;
-    }
+    if (button.dataset.busyHtml !== undefined) button.innerHTML = button.dataset.busyHtml;
     delete button.dataset.busy;
     delete button.dataset.busyHtml;
   }
@@ -88,7 +78,6 @@
     });
 
     let payload;
-
     try {
       payload = await response.json();
     } catch (error) {
@@ -110,7 +99,6 @@
     form.elements.id.value = row?.dataset.id || '';
     form.elements.nama_pelanggaran.value = row?.dataset.nama || '';
     form.elements.kategori.value = row?.dataset.kategori || 'Ringan';
-    form.elements.poin.value = row?.dataset.poin || 0;
     modal.show();
   }
 
@@ -137,7 +125,7 @@
     const confirmation = await Swal.fire({
       icon: 'warning',
       title: 'Hapus pelanggaran?',
-      html: `<strong>${row.dataset.nama || ''}</strong><br><br>Data yang sudah digunakan pada Catatan Kasus tidak dapat dihapus.`,
+      html: `<strong>${row.dataset.nama || ''}</strong><br><br>Data yang sudah digunakan pada Catatan Pelanggaran tidak dapat dihapus.`,
       showCancelButton: true,
       confirmButtonText: 'Ya, hapus',
       cancelButtonText: 'Batal',
@@ -184,19 +172,14 @@
     fd.delete('id');
 
     let url = `${base}/bk/pelanggaran/create`;
-    let options = {
-      method: 'POST',
-      body: fd,
-    };
+    let options = { method: 'POST', body: fd };
 
     if (id) {
       url = `${base}/bk/pelanggaran/update/${id}`;
       options = {
         method: 'PUT',
         body: new URLSearchParams(fd),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       };
     }
 
