@@ -14,7 +14,7 @@ class BkExportService
 
     public function kasus(array $data, int $userId): array
     {
-        $headers = ['No', 'NISN', 'Nama Siswa', 'Tanggal', 'Pelanggaran', 'Kategori', 'Poin', 'Keterangan'];
+        $headers = ['No', 'NISN', 'Nama Siswa', 'Tanggal', 'Pelanggaran', 'Kategori', 'Keterangan'];
         $rows = [];
         $no = 1;
 
@@ -26,15 +26,19 @@ class BkExportService
                 $row['tanggal'],
                 $row['nama_pelanggaran'],
                 $row['kategori'],
-                (int) $row['poin'],
                 $row['keterangan'] ?? '',
             ];
         }
 
-        $result = $this->write('Catatan Kasus', $headers, $rows, 'catatan_kasus_' . date('Ymd_His') . '.xlsx');
+        $result = $this->write(
+            'Catatan Pelanggaran',
+            $headers,
+            $rows,
+            'catatan_pelanggaran_' . date('Ymd_His') . '.xlsx'
+        );
 
         if ($result['success']) {
-            $this->log($userId, 'BK Kasus', 'Export Catatan Kasus');
+            $this->log($userId, 'BK Pelanggaran', 'Export Catatan Pelanggaran');
         }
 
         return $result;
