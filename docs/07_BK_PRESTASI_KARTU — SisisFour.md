@@ -3,7 +3,7 @@
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 16 September 2026  
 **Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`  
-**Development aktif:** `feat/g3-bk-foundation-konseling-20260916`
+**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — PASS / pending merge approval
 
 > Dokumen ini menyatakan kontrak BK yang berlaku mulai G3.3.1. Authorization target tetap diputuskan Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
@@ -168,7 +168,7 @@ Konseling **tidak mensyaratkan** akun mempunyai `users.id_guru`. Actor pencatat 
 konseling_bk.created_by -> users.id
 ```
 
-Pada dump localhost aktual, akun role BK terhubung melalui:
+Dump localhost dan hosting aktual mengonfirmasi akun role BK terhubung melalui:
 
 ```text
 users.id_pegawai -> pegawai.id
@@ -507,33 +507,23 @@ Keluar
 
 kartu Aktif dinonaktifkan melalui lifecycle Service yang berwenang. Histori Catatan Pelanggaran dan Konseling tetap disimpan sesuai relasinya.
 
-## 17. SQL G3.3.1 dan Hosting Gate
+## 17. SQL G3.3.1
 
-Localhost canonical/finalization:
+SQL final:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX2_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-`FIX3_LOCALHOST` menambah permission/menu Setting Form Konseling dan secara eksplisit membersihkan accidental permission/menu Konseling untuk Pimpinan, Guru/Wali, dan Siswa.
+`FIX3_LOCALHOST` adalah finalization patch untuk database localhost yang telah melewati draft development. FIX1/FIX2 localhost merupakan patch transisi dan tidak menjadi bagian branch final.
 
-**Hosting dikerjakan terakhir.** Branch final localhost tidak menyertakan SQL hosting G3.3.1. Sebelum membuat syntax hosting:
+SQL hosting dibuat hanya setelah dump aktual `u473908839_sisfour2026` diaudit. Audit memastikan kompatibilitas schema/FK, identity BK berbasis Pegawai, permission/menu, serta karakteristik `menus.id` yang bukan AUTO_INCREMENT. SQL hosting telah dieksekusi tanpa error dan smoke UAT hosting dinyatakan PASS pada 16 September 2026.
 
-```text
-1. user mengirim dump SQL hosting aktual
-2. dump diaudit terhadap schema, permission, menu, identity, dan data existing
-3. syntax SQL hosting dibuat berdasarkan kondisi nyata dump
-4. dilakukan static/review gate
-5. baru dieksekusi dengan approval user
-```
+## 18. Checkpoint G3.3.1 — PASS / PENDING MERGE APPROVAL
 
-Tidak ada syntax G3.3.1 hosting yang dianggap canonical sebelum proses dump-audit tersebut selesai.
-
-## 18. Checkpoint G3.3.1
-
-G3.3.1 belum CLOSED sampai seluruh item berikut PASS:
+Seluruh checkpoint berikut telah PASS:
 
 ```text
 Master Pelanggaran tanpa poin
@@ -549,9 +539,12 @@ Pengaturan Form Konseling tersimpan di setting_sistem
 Admin + Operator + BK = operasional Konseling sesuai permission
 Admin + BK = Pengaturan Form Konseling
 Pimpinan + Guru/Wali + Siswa = tanpa surface/detail Konseling
-actor pencatat berbasis users.id, BK dapat berupa Pegawai
+actor pencatat berbasis users.id, BK berupa Pegawai didukung
 mobile Pimpinan/Wali/Siswa memenuhi role visibility dan no horizontal operational overflow
-static gate + browser regression PASS
+static gate + browser regression localhost PASS
+hosting dump audit PASS
+hosting SQL execution PASS
+hosting smoke UAT PASS
 ```
 
-G3.4 Dashboard BK baru boleh dimulai setelah checkpoint G3.3.1 localhost/application lulus regression. Hosting tetap mengikuti dump-audit gate tersendiri sebelum deployment.
+G3.4 Dashboard BK dimulai setelah PR #9 memperoleh approval eksplisit dan G3.3.1 merged ke `main`.
