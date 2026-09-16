@@ -12,6 +12,7 @@ class BkKonselingFormSettingsService
     private const SETTING_KEY = 'bk_konseling_form_options';
     private const MAX_ITEMS_PER_GROUP = 40;
     private const MAX_ITEM_LENGTH = 150;
+    private const ALLOWED_ROLES = ['admin', 'bk'];
 
     private const FIXED_BIDANG = [
         'Pribadi',
@@ -303,8 +304,11 @@ class BkKonselingFormSettingsService
 
     private function authorize(int $userId): ?array
     {
+        $roles = $this->authService->getUserRoles($userId);
+
         if (
             $userId > 0
+            && array_intersect(self::ALLOWED_ROLES, $roles) !== []
             && $this->authService->resolveScope('bk_konseling.settings', $userId) === 'SEMUA'
         ) {
             return null;
@@ -312,7 +316,7 @@ class BkKonselingFormSettingsService
 
         return $this->fail(
             'FORBIDDEN',
-            'Anda tidak memiliki izin mengubah Pengaturan Form Konseling.'
+            'Pengaturan Form Konseling hanya dapat dikelola oleh Admin atau BK yang memiliki permission terkait.'
         );
     }
 
