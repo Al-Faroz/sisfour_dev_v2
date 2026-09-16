@@ -33,7 +33,7 @@ class BKKasus extends BaseController
 
         return $this->response->setBody(
             $this->renderWithLayout('bk/kasus', [
-                'title' => 'Catatan Kasus',
+                'title' => 'Catatan Pelanggaran',
                 'initial' => $this->service->getKasusPage($userId, []),
                 'extraJs' => ['assets/js/bk/kasus.js'],
             ])
@@ -50,22 +50,28 @@ class BKKasus extends BaseController
         );
     }
 
+    /**
+     * Legacy route dipertahankan agar bookmark lama tidak menghasilkan 404.
+     * Fitur ranking poin sudah dihentikan pada G3.3.1.
+     */
     public function top()
     {
-        $result = $this->service->getTop20(
-            $this->currentActorUserId()
-        );
-
         if ($this->requestWantsJson()) {
-            return $this->respond($result);
+            return $this->response
+                ->setStatusCode(ResponseInterface::HTTP_GONE)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Fitur Top Poin Pelanggaran sudah tidak digunakan.',
+                    'data' => [
+                        'success' => false,
+                        'code' => 'FEATURE_RETIRED',
+                    ],
+                ]);
         }
 
-        return $this->response->setBody(
-            $this->renderWithLayout('bk/top', [
-                'title' => 'Top 20 Poin Pelanggaran',
-                'result' => $result,
-            ])
-        );
+        return redirect()
+            ->to(base_url('bk/kasus'))
+            ->with('info', 'Fitur Top Poin Pelanggaran sudah dihentikan.');
     }
 
     public function create()
