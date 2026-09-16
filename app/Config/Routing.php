@@ -44,8 +44,8 @@ class Routing extends BaseRouting
 
     /**
      * For Auto Routing.
-     * The default controller to use when no other controller has
-     * been specified.
+     * The default controller to use when no other controller has been
+     * specified.
      *
      * Default: 'Home'
      */
@@ -102,7 +102,7 @@ class Routing extends BaseRouting
      * class and methods that can run before and after the
      * controller/method.
      *
-     * If FALSE, will ignore them.
+     * If FALSE, will ignore any attributes.
      */
     public bool $useControllerAttributes = true;
 
@@ -119,7 +119,7 @@ class Routing extends BaseRouting
      * For Defined Routes.
      * If TRUE, matched multiple URI segments will be passed as one parameter.
      *
-     * If FALSE, will pass each URI segment as a separate parameter.
+     * Default: false
      */
     public bool $multipleSegmentsOneParam = false;
 
