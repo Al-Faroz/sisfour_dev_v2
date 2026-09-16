@@ -62,11 +62,14 @@ class KonselingBkModel
                 'k.nama_kelas',
                 'ta.nama_tahun',
                 'ta.semester',
-                'g.nama AS nama_guru_bk',
                 'u_creator.username AS username_pencatat',
             ])
             ->select(
-                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username) AS nama_pencatat',
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username, g.nama) AS nama_pencatat',
+                false
+            )
+            ->select(
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username, g.nama) AS nama_guru_bk',
                 false
             )
             ->join('siswa s', 's.id = kb.id_siswa')
@@ -166,11 +169,14 @@ class KonselingBkModel
                 's.nisn',
                 's.nama AS nama_siswa',
                 'k.nama_kelas',
-                'g.nama AS nama_guru_bk',
                 'u_creator.username AS username_pencatat',
             ])
             ->select(
-                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username) AS nama_pencatat',
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username, g.nama) AS nama_pencatat',
+                false
+            )
+            ->select(
+                'COALESCE(g_creator.nama, p_creator.nama, u_creator.username, g.nama) AS nama_guru_bk',
                 false
             )
             ->join('siswa s', 's.id = kb.id_siswa')
