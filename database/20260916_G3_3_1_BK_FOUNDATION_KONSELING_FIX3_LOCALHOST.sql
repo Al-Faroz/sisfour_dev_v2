@@ -63,14 +63,12 @@ SET @next_menu_id := (
     FROM `sisfour_dev_v2`.`menus`
 );
 
-SET @konseling_order := (
-    SELECT `urutan`
+-- Pakai urutan terakhir dalam parent untuk menghindari benturan UNIQUE/order existing.
+SET @next_menu_order := (
+    SELECT COALESCE(MAX(`urutan`), 0) + 1
     FROM `sisfour_dev_v2`.`menus`
-    WHERE `link` = 'bk/konseling'
-    LIMIT 1
+    WHERE (`parent_id` = @bk_parent_id OR (`parent_id` IS NULL AND @bk_parent_id IS NULL))
 );
-
-SET @next_menu_order := COALESCE(@konseling_order, 0) + 1;
 
 INSERT INTO `sisfour_dev_v2`.`menus`
     (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
