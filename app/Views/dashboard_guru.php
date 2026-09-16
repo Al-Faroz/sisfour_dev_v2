@@ -25,8 +25,8 @@ $jurnalLabels = [
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
   <div class="sisfour-page-header__copy">
-    <h4 class="mb-1">Dashboard Guru</h4>
-    <p class="text-muted mb-0">Tugas mengajar dan action yang perlu diperhatikan hari ini.</p>
+    <h4 class="mb-1">Dasbor Guru</h4>
+    <p class="text-muted mb-0">Tugas mengajar dan tindakan yang perlu diperhatikan hari ini.</p>
   </div>
 </div>
 
@@ -54,7 +54,7 @@ $jurnalLabels = [
 <?php if ($quickActions !== []): ?>
 <div class="card mb-4">
   <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
-    <h5 class="mb-0">Quick Action</h5>
+    <h5 class="mb-0">Aksi Cepat</h5>
     <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
       <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
     <?php endif; ?>
