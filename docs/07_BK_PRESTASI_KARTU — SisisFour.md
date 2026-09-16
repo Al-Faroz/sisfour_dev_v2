@@ -130,6 +130,13 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
+Bila SQL awal G3.3.1 sudah pernah diterapkan sebelum koreksi actor/access, jalankan patch:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX1_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX1_HOSTING.sql
+```
+
 Permission khusus:
 
 ```text
@@ -138,11 +145,23 @@ bk_konseling.manage
 bk_konseling.export
 ```
 
-Ketiga permission diberikan dengan scope `SEMUA` hanya kepada role `bk` pada SQL G3.3.1.
+Ketiga permission menggunakan scope `SEMUA` untuk role:
 
-Selain permission route, Service juga memverifikasi effective role `bk`. Dengan demikian Catatan Konseling tidak otomatis dapat dibuka Admin, Operator, Pimpinan, Guru/Wali, atau Siswa.
+```text
+admin
+operator
+bk
+```
 
-Guru BK yang mencatat diambil otomatis dari identity user login (`users.id_guru`), bukan field bebas dari browser.
+Service tetap memverifikasi effective role yang termasuk `admin`, `operator`, atau `bk` serta permission terkait. Pimpinan, Guru/Wali, dan Siswa tidak memperoleh akses Konseling BK hanya karena mengetahui URL.
+
+Konseling **tidak mensyaratkan** akun mempunyai `users.id_guru`. Actor pencatat selalu direkam dari user login melalui:
+
+```text
+konseling_bk.created_by -> users.id
+```
+
+Field `id_guru_bk` bersifat nullable/metadata tambahan bila actor memang terhubung dengan identity Guru.
 
 ## 6. Workflow Konseling Dua Tahap
 
@@ -185,7 +204,8 @@ Setelah Tahap 1 disimpan:
 
 ```text
 status = Proses
-id_guru_bk = Guru identity user login
+created_by = user login
+id_guru_bk = identity Guru actor bila tersedia, selain itu NULL
 ```
 
 ### Tahap 2 — Lengkapi / Update
@@ -259,9 +279,9 @@ Export XLSX hanya tersedia dengan permission:
 bk_konseling.export
 ```
 
-Export memuat identitas siswa, kelas, data Tahap 1, isi Tahap 2, tindak lanjut, status, dan Guru BK.
+Export memuat identitas siswa, kelas, data Tahap 1, isi Tahap 2, tindak lanjut, status, dan actor pencatat.
 
-Data export tetap mengikuti prinsip kerahasiaan role BK.
+Data export tetap mengikuti permission Konseling BK untuk Admin, Operator, dan BK.
 
 ## 9. Prestasi Siswa
 
@@ -411,9 +431,10 @@ Konseling BK terpisah dari Catatan Pelanggaran
 Konseling Tahap 1 create
 Konseling Tahap 2 update
 Kelas -> Siswa terikat Tahun Ajaran aktif
-confidential BK-only permission + Service role guard
+Admin + Operator + BK permission dengan Service guard
+actor pencatat berbasis users.id, tidak wajib identity Guru
 export Konseling BK
-SQL localhost + hosting
+SQL localhost + hosting + FIX1 untuk database yang sudah menerapkan draft awal
 ```
 
 G3.4 Dashboard BK baru boleh memakai data Konseling setelah checkpoint G3.3.1 lulus regression dan schema SQL diterapkan.
