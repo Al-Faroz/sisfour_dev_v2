@@ -7,6 +7,7 @@
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
   const pageCanManage = app.dataset.canManage === '1';
   const body = document.getElementById('kasusBody');
+  const mobileList = document.getElementById('kasusMobileList');
   const alertBox = document.getElementById('kasusAlert');
   const search = document.getElementById('kasusSearch');
   const kategori = document.getElementById('kasusKategori');
@@ -20,19 +21,13 @@
   const formTindak = document.getElementById('formTindakLanjut');
   const timeline = document.getElementById('timelineTindakLanjut');
 
-  if (!body) return;
+  if (!body || !mobileList) return;
 
-  const state = {
-    limit: 25,
-    offset: 0,
-    total: 0,
-  };
-
-  let currentDetail = null;
+  const state = { limit: 25, offset: 0, total: 0 };
 
   const pager = window.SisfourPagination?.mount(body, {
     id: 'bkKasusPager',
-    label: 'catatan kasus',
+    label: 'catatan pelanggaran',
     onChange: (next) => {
       state.limit = next.limit;
       state.offset = next.offset;
@@ -54,56 +49,6 @@
     return `${y}-${m}-${day}`;
   };
 
-  const params = (withPaging = true) => {
-    const p = new URLSearchParams({ format: 'json' });
-
-    if (withPaging) {
-      p.set('limit', String(state.limit));
-      p.set('offset', String(state.offset));
-    }
-
-    if (search?.value) p.set('search', search.value);
-    if (kategori?.value) p.set('kategori', kategori.value);
-    if (mulai?.value) p.set('tanggal_mulai', mulai.value);
-    if (selesai?.value) p.set('tanggal_selesai', selesai.value);
-
-    return p;
-  };
-
-  const syncUrl = () => {
-    const p = params(true);
-    p.delete('format');
-    const query = p.toString();
-
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${query ? `?${query}` : ''}`
-    );
-  };
-
-  const restoreState = () => {
-    const p = new URLSearchParams(window.location.search);
-    const limit = Number(p.get('limit') || 25);
-    const offset = Number(p.get('offset') || 0);
-
-    state.limit = [25, 50, 100].includes(limit) ? limit : 25;
-    state.offset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
-
-    [
-      ['search', search],
-      ['kategori', kategori],
-      ['tanggal_mulai', mulai],
-      ['tanggal_selesai', selesai],
-    ].forEach(([key, element]) => {
-      const value = p.get(key);
-
-      if (value !== null && element) {
-        element.value = value;
-      }
-    });
-  };
-
   function show(message, type = 'danger') {
     if (!alertBox) return;
     alertBox.className = `alert alert-${type}`;
@@ -119,93 +64,39 @@
 
     if (busy) {
       if (button.dataset.busy === '1') return;
-
       button.dataset.busy = '1';
       button.dataset.busyHtml = button.innerHTML;
       button.disabled = true;
-      button.innerHTML = `
-        <span
-          class="spinner-border spinner-border-sm me-2"
-          role="status"
-          aria-hidden="true"
-        ></span>${label}
-      `;
+      button.innerHTML = `<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>${label}`;
       return;
     }
 
     button.disabled = false;
-
     if (button.dataset.busyHtml !== undefined) {
       button.innerHTML = button.dataset.busyHtml;
     }
-
     delete button.dataset.busy;
     delete button.dataset.busyHtml;
   }
 
   function formSubmitButton(targetForm) {
-    return targetForm?.querySelector(
-      'button[type="submit"], input[type="submit"]'
-    ) || null;
+    return targetForm?.querySelector('button[type="submit"], input[type="submit"]') || null;
   }
 
   function setRemoteSelectValue(select, value, text) {
     if (!select) return;
 
-    window.SisfourSearchableSelect?.setValue(
-      select,
-      value,
-      text
-    );
+    window.SisfourSearchableSelect?.setValue(select, value, text);
 
     if (!window.SisfourSearchableSelect) {
-      let option = Array.from(select.options)
-        .find((item) => item.value === String(value));
-
-      if (!option) {
-        option = new Option(text, value, true, true);
+      const normalized = String(value ?? '');
+      let option = Array.from(select.options).find((item) => item.value === normalized);
+      if (!option && normalized !== '') {
+        option = new Option(text || normalized, normalized, true, true);
         select.add(option);
       }
-
-      select.value = String(value);
+      select.value = normalized;
     }
-  }
-
-  function openForm(row = null) {
-    if (!form || !modalEl) return;
-
-    form.reset();
-    form.dataset.busy = '0';
-    setButtonBusy(formSubmitButton(form), false);
-    form.elements.id.value = row?.id || '';
-
-    if (row) {
-      setRemoteSelectValue(
-        form.elements.id_siswa,
-        row.id_siswa,
-        `${row.nisn} — ${row.nama_siswa}`
-      );
-    } else {
-      setRemoteSelectValue(form.elements.id_siswa, '', '');
-    }
-
-    form.elements.id_pelanggaran.value =
-      row?.id_pelanggaran || '';
-
-    window.SisfourSearchableSelect?.sync(
-      form.elements.id_pelanggaran
-    );
-
-    form.elements.tanggal.value =
-      row?.tanggal || today();
-
-    form.elements.keterangan.value =
-      row?.keterangan || '';
-
-    document.getElementById('judulModalKasus').textContent =
-      row ? 'Edit Catatan Kasus' : 'Tambah Catatan Kasus';
-
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
   async function requestJson(url, options = {}) {
@@ -220,7 +111,6 @@
     });
 
     let payload;
-
     try {
       payload = await response.json();
     } catch (error) {
@@ -228,338 +118,278 @@
     }
 
     if (!response.ok || payload.status !== 'success') {
-      throw new Error(
-        payload.message || 'Proses gagal.'
-      );
+      throw new Error(payload.message || 'Proses gagal.');
     }
 
     return payload;
+  }
+
+  function params(withPaging = true) {
+    const p = new URLSearchParams({ format: 'json' });
+    if (withPaging) {
+      p.set('limit', String(state.limit));
+      p.set('offset', String(state.offset));
+    }
+    if (search?.value) p.set('search', search.value);
+    if (kategori?.value) p.set('kategori', kategori.value);
+    if (mulai?.value) p.set('tanggal_mulai', mulai.value);
+    if (selesai?.value) p.set('tanggal_selesai', selesai.value);
+    return p;
+  }
+
+  function categoryClass(value) {
+    if (value === 'Berat') return 'danger';
+    if (value === 'Sedang') return 'warning';
+    return 'secondary';
+  }
+
+  function renderRows(rows, canManage) {
+    body.innerHTML = rows.map((row) => `
+      <tr data-json="${encodeURIComponent(JSON.stringify(row))}">
+        <td class="text-nowrap">${esc(row.tanggal)}</td>
+        <td><strong>${esc(row.nama_siswa)}</strong><div class="small text-muted">NISN ${esc(row.nisn || '-')}</div></td>
+        <td>${esc(row.nama_pelanggaran)}</td>
+        <td><span class="badge bg-label-${categoryClass(row.kategori)}">${esc(row.kategori)}</span></td>
+        <td>${esc(row.keterangan || '-')}</td>
+        <td class="text-end text-nowrap">
+          <button type="button" class="btn btn-sm btn-outline-secondary btn-detail-kasus">Tindak Lanjut</button>
+          ${canManage ? `
+            <button type="button" class="btn btn-sm btn-outline-primary btn-edit-kasus">Edit</button>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-kasus">Hapus</button>
+          ` : ''}
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data.</td></tr>';
+
+    mobileList.innerHTML = rows.map((row) => `
+      <div class="list-group-item py-3" data-json="${encodeURIComponent(JSON.stringify(row))}">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <div class="sisfour-cell-primary">
+            <span class="sisfour-cell-title">${esc(row.nama_siswa)}</span>
+            <span class="sisfour-cell-meta">${esc(row.tanggal)} · NISN ${esc(row.nisn || '-')}</span>
+          </div>
+          <span class="badge bg-label-${categoryClass(row.kategori)} flex-shrink-0">${esc(row.kategori)}</span>
+        </div>
+        <div class="fw-semibold mb-1">${esc(row.nama_pelanggaran)}</div>
+        <div class="small text-muted mb-3">${esc(row.keterangan || 'Tanpa keterangan tambahan.')}</div>
+        <div class="sisfour-mobile-actions">
+          <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact btn-detail-kasus">Tindak Lanjut</button>
+          ${canManage ? `
+            <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-kasus">Edit</button>
+            <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-kasus">Hapus</button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('') || '<div class="list-group-item text-center text-muted py-4">Tidak ada data.</div>';
+
+    bindRows();
   }
 
   async function load() {
     pager?.setDisabled(true);
 
     try {
-      const payload = await requestJson(
-        `${base}/bk/kasus?${params(true)}`
-      );
-
-      hideAlert();
-
+      const payload = await requestJson(`${base}/bk/kasus?${params(true)}`);
       const data = payload.data || {};
-      const rows = Array.isArray(data.rows)
-        ? data.rows
-        : [];
+      const rows = Array.isArray(data.rows) ? data.rows : [];
 
       state.total = Number(data.total || 0);
       state.limit = Number(data.limit || state.limit);
       state.offset = Number(data.offset ?? state.offset);
 
-      if (
-        rows.length === 0
-        && state.total > 0
-        && state.offset >= state.total
-      ) {
-        state.offset = Math.floor(
-          (state.total - 1) / state.limit
-        ) * state.limit;
-
+      if (rows.length === 0 && state.total > 0 && state.offset >= state.total) {
+        state.offset = Math.floor((state.total - 1) / state.limit) * state.limit;
         await load();
         return;
       }
 
-      const canManage = Boolean(data.can_manage);
-
-      body.innerHTML = rows.map((row) => `
-        <tr data-json="${encodeURIComponent(JSON.stringify(row))}">
-          <td>${esc(row.tanggal)}</td>
-          <td>
-            ${esc(row.nisn)}
-            <br>
-            <strong>${esc(row.nama_siswa)}</strong>
-          </td>
-          <td>${esc(row.nama_pelanggaran)}</td>
-          <td>${esc(row.kategori)}</td>
-          <td>${Number(row.poin || 0)}</td>
-          <td>${esc(row.keterangan || '-')}</td>
-          <td class="text-end text-nowrap">
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary btn-detail-kasus"
-            >
-              Tindak Lanjut
-            </button>
-            ${canManage ? `
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary btn-edit-kasus"
-              >Edit</button>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-danger btn-delete-kasus"
-              >Hapus</button>
-            ` : ''}
-          </td>
-        </tr>
-      `).join('') || `
-        <tr>
-          <td colspan="7" class="text-center text-muted py-4">
-            Tidak ada data.
-          </td>
-        </tr>
-      `;
-
-      bindRows();
+      hideAlert();
+      renderRows(rows, Boolean(data.can_manage));
       pager?.render(state);
-      syncUrl();
     } catch (error) {
-      show(
-        error.message || 'Terjadi kesalahan jaringan.'
-      );
+      show(error.message || 'Data pelanggaran gagal dimuat.');
     } finally {
       pager?.setDisabled(false);
     }
   }
 
-  function rowData(button) {
-    return JSON.parse(
-      decodeURIComponent(
-        button.closest('tr').dataset.json
-      )
-    );
+  function itemData(element) {
+    const holder = element.closest('[data-json]');
+    if (!holder?.dataset.json) return null;
+
+    try {
+      return JSON.parse(decodeURIComponent(holder.dataset.json));
+    } catch (error) {
+      return null;
+    }
   }
 
   function bindRows() {
-    document
-      .querySelectorAll('.btn-detail-kasus')
-      .forEach((button) => {
-        button.addEventListener(
-          'click',
-          () => openDetail(rowData(button).id)
-        );
+    document.querySelectorAll('.btn-detail-kasus').forEach((button) => {
+      button.addEventListener('click', () => {
+        const row = itemData(button);
+        if (row?.id) openDetail(row.id);
       });
+    });
 
-    document
-      .querySelectorAll('.btn-edit-kasus')
-      .forEach((button) => {
-        button.addEventListener(
-          'click',
-          () => openForm(rowData(button))
-        );
+    document.querySelectorAll('.btn-edit-kasus').forEach((button) => {
+      button.addEventListener('click', () => {
+        const row = itemData(button);
+        if (row) openForm(row);
       });
+    });
 
-    document
-      .querySelectorAll('.btn-delete-kasus')
-      .forEach((button) => {
-        button.addEventListener('click', async () => {
-          if (button.dataset.busy === '1') return;
+    document.querySelectorAll('.btn-delete-kasus').forEach((button) => {
+      button.addEventListener('click', async () => {
+        if (button.dataset.busy === '1') return;
+        const row = itemData(button);
+        if (!row?.id) return;
 
-          const row = rowData(button);
-
-          if (!confirm(
-            `Hapus Catatan Kasus ${row.nama_siswa} beserta seluruh tindak lanjutnya?`
-          )) {
-            return;
-          }
-
-          setButtonBusy(button, true, 'Menghapus...');
-
-          try {
-            const payload = await requestJson(
-              `${base}/bk/kasus/delete/${row.id}`,
-              { method: 'DELETE' }
-            );
-
-            show(
-              payload.message || 'Berhasil.',
-              'success'
-            );
-
-            await load();
-          } catch (error) {
-            show(
-              error.message || 'Gagal menghapus.'
-            );
-          } finally {
-            setButtonBusy(button, false);
-          }
+        const result = await Swal.fire({
+          icon: 'warning',
+          title: 'Hapus catatan pelanggaran?',
+          text: `Catatan ${row.nama_siswa} dan seluruh tindak lanjutnya akan dihapus.`,
+          showCancelButton: true,
+          confirmButtonText: 'Ya, hapus',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#d33',
         });
+
+        if (!result.isConfirmed) return;
+
+        setButtonBusy(button, true, 'Menghapus...');
+        try {
+          const payload = await requestJson(`${base}/bk/kasus/delete/${row.id}`, { method: 'DELETE' });
+          show(payload.message || 'Catatan berhasil dihapus.', 'success');
+          await load();
+        } catch (error) {
+          show(error.message || 'Gagal menghapus catatan.');
+        } finally {
+          setButtonBusy(button, false);
+        }
       });
+    });
+  }
+
+  function openForm(row = null) {
+    if (!form || !modalEl) return;
+
+    form.reset();
+    form.dataset.busy = '0';
+    setButtonBusy(formSubmitButton(form), false);
+    form.elements.id.value = row?.id || '';
+
+    if (row) {
+      setRemoteSelectValue(form.elements.id_siswa, row.id_siswa, `${row.nisn || '-'} — ${row.nama_siswa || '-'}`);
+    } else {
+      setRemoteSelectValue(form.elements.id_siswa, '', '');
+    }
+
+    form.elements.id_pelanggaran.value = row?.id_pelanggaran || '';
+    window.SisfourSearchableSelect?.sync(form.elements.id_pelanggaran);
+    form.elements.tanggal.value = row?.tanggal || today();
+    form.elements.keterangan.value = row?.keterangan || '';
+
+    const title = document.getElementById('judulModalKasus');
+    if (title) title.textContent = row ? 'Edit Catatan Pelanggaran' : 'Tambah Catatan Pelanggaran';
+
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 
   async function openDetail(idKasus) {
     if (!detailModalEl) return;
 
-    const modal =
-      bootstrap.Modal.getOrCreateInstance(
-        detailModalEl
-      );
-
+    const modal = bootstrap.Modal.getOrCreateInstance(detailModalEl);
     modal.show();
     detailLoading?.classList.remove('d-none');
     detailContent?.classList.add('d-none');
+    if (detailLoading) detailLoading.textContent = 'Memuat data...';
 
     try {
-      const payload = await requestJson(
-        `${base}/bk/kasus/detail/${idKasus}`
-      );
-
-      currentDetail = payload.data || {};
-      renderDetail(currentDetail);
+      const payload = await requestJson(`${base}/bk/kasus/detail/${idKasus}`);
+      renderDetail(payload.data || {});
       detailLoading?.classList.add('d-none');
       detailContent?.classList.remove('d-none');
     } catch (error) {
-      if (detailLoading) {
-        detailLoading.textContent =
-          error.message || 'Detail gagal dimuat.';
-      }
+      if (detailLoading) detailLoading.textContent = error.message || 'Detail gagal dimuat.';
     }
   }
 
   function renderDetail(data) {
     const kasus = data.kasus || {};
 
-    document.getElementById('detailKasusSiswa').textContent =
-      `${kasus.nisn || '-'} — ${kasus.nama_siswa || '-'}`;
-
-    document.getElementById('detailKasusTanggal').textContent =
-      kasus.tanggal || '-';
-
-    document.getElementById('detailKasusKategori').textContent =
-      `${kasus.kategori || '-'} / ${Number(kasus.poin || 0)} poin`;
-
-    document.getElementById('detailKasusPelanggaran').textContent =
-      kasus.nama_pelanggaran || '-';
-
-    document.getElementById('detailKasusKeterangan').textContent =
-      kasus.keterangan || '-';
+    document.getElementById('detailKasusSiswa').textContent = `${kasus.nisn || '-'} — ${kasus.nama_siswa || '-'}`;
+    document.getElementById('detailKasusTanggal').textContent = kasus.tanggal || '-';
+    document.getElementById('detailKasusKategori').textContent = kasus.kategori || '-';
+    document.getElementById('detailKasusPelanggaran').textContent = kasus.nama_pelanggaran || '-';
+    document.getElementById('detailKasusKeterangan').textContent = kasus.keterangan || '-';
 
     if (formTindak) {
       resetTindakForm();
       formTindak.elements.id_kasus.value = kasus.id || '';
-
       const jenisSelect = formTindak.elements.tindak_lanjut;
-      jenisSelect.innerHTML =
-        '<option value="">Pilih tindak lanjut</option>';
-
-      (data.tindak_lanjut_options || [])
-        .forEach((label) => {
-          jenisSelect.add(new Option(label, label));
-        });
+      jenisSelect.innerHTML = '<option value="">Pilih tindak lanjut</option>';
+      (data.tindak_lanjut_options || []).forEach((label) => jenisSelect.add(new Option(label, label)));
     }
 
-    const rows = data.tindak_lanjut || [];
-
-    document.getElementById(
-      'jumlahTindakLanjut'
-    ).textContent = String(rows.length);
+    const rows = Array.isArray(data.tindak_lanjut) ? data.tindak_lanjut : [];
+    document.getElementById('jumlahTindakLanjut').textContent = String(rows.length);
 
     if (!timeline) return;
 
     timeline.innerHTML = rows.map((row) => `
-      <div
-        class="border rounded p-3"
-        data-tindak="${encodeURIComponent(JSON.stringify(row))}"
-      >
+      <div class="border rounded p-3" data-tindak="${encodeURIComponent(JSON.stringify(row))}">
         <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-          <div>
-            <strong>${esc(row.tindak_lanjut)}</strong>
-            <div class="small text-muted">
-              ${esc(row.tanggal)}
-            </div>
-          </div>
-          ${data.can_manage ? `
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-primary btn-edit-tindak"
-            >Edit</button>
-          ` : ''}
+          <div><strong>${esc(row.tindak_lanjut)}</strong><div class="small text-muted">${esc(row.tanggal)}</div></div>
+          ${data.can_manage ? '<button type="button" class="btn btn-sm btn-outline-primary btn-edit-tindak">Edit</button>' : ''}
         </div>
         <div>${esc(row.keterangan || '-')}</div>
-        <div class="small text-muted mt-2">
-          Dicatat oleh:
-          ${esc(row.nama_input || row.username_input || '-')}
-        </div>
+        <div class="small text-muted mt-2">Dicatat oleh: ${esc(row.nama_input || row.username_input || '-')}</div>
       </div>
-    `).join('') || `
-      <div class="text-center text-muted py-3">
-        Belum ada tindak lanjut.
-      </div>
-    `;
+    `).join('') || '<div class="text-center text-muted py-3">Belum ada tindak lanjut.</div>';
 
-    timeline
-      .querySelectorAll('.btn-edit-tindak')
-      .forEach((button) => {
-        button.addEventListener('click', () => {
-          const row = JSON.parse(
-            decodeURIComponent(
-              button.closest('[data-tindak]')
-                .dataset.tindak
-            )
-          );
-
+    timeline.querySelectorAll('.btn-edit-tindak').forEach((button) => {
+      button.addEventListener('click', () => {
+        try {
+          const row = JSON.parse(decodeURIComponent(button.closest('[data-tindak]').dataset.tindak));
           editTindak(row);
-        });
+        } catch (error) {
+          show('Data tindak lanjut tidak dapat dibaca.');
+        }
       });
+    });
   }
 
   function resetTindakForm() {
     if (!formTindak) return;
-
-    const idKasus =
-      formTindak.elements.id_kasus.value;
-
+    const idKasus = formTindak.elements.id_kasus.value;
     formTindak.reset();
     formTindak.dataset.busy = '0';
     setButtonBusy(formSubmitButton(formTindak), false);
     formTindak.elements.id.value = '';
     formTindak.elements.id_kasus.value = idKasus;
     formTindak.elements.tanggal.value = today();
-
-    document.getElementById(
-      'judulTindakLanjut'
-    ).textContent = 'Tambah Tindak Lanjut';
-
-    document.getElementById(
-      'btnBatalEditTindak'
-    )?.classList.add('d-none');
+    document.getElementById('judulTindakLanjut').textContent = 'Tambah Tindak Lanjut';
+    document.getElementById('btnBatalEditTindak')?.classList.add('d-none');
   }
 
   function editTindak(row) {
     if (!formTindak) return;
-
-    formTindak.elements.id.value = row.id;
-    formTindak.elements.tanggal.value =
-      row.tanggal || '';
-
-    formTindak.elements.tindak_lanjut.value =
-      row.tindak_lanjut || '';
-
-    formTindak.elements.keterangan.value =
-      row.keterangan || '';
-
-    document.getElementById(
-      'judulTindakLanjut'
-    ).textContent = 'Edit Tindak Lanjut';
-
-    document.getElementById(
-      'btnBatalEditTindak'
-    )?.classList.remove('d-none');
-
-    formTindak.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
+    formTindak.elements.id.value = row.id || '';
+    formTindak.elements.tanggal.value = row.tanggal || '';
+    formTindak.elements.tindak_lanjut.value = row.tindak_lanjut || '';
+    formTindak.elements.keterangan.value = row.keterangan || '';
+    document.getElementById('judulTindakLanjut').textContent = 'Edit Tindak Lanjut';
+    document.getElementById('btnBatalEditTindak')?.classList.remove('d-none');
+    formTindak.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  document.getElementById('btnKasusBaru')
-    ?.addEventListener('click', () => openForm());
+  document.getElementById('btnKasusBaru')?.addEventListener('click', () => openForm());
 
-  document.getElementById('btnKasusCari')
-    ?.addEventListener('click', () => {
-      state.offset = 0;
-      load();
-    });
+  document.getElementById('btnKasusCari')?.addEventListener('click', () => {
+    state.offset = 0;
+    load();
+  });
 
   search?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
@@ -569,157 +399,92 @@
     }
   });
 
-  document.getElementById('btnKasusExport')
-    ?.addEventListener('click', (event) => {
-      event.preventDefault();
-
-      const p = params(false);
-      p.delete('format');
-
-      window.location.href =
-        `${base}/bk/kasus/export?${p}`;
-    });
+  document.getElementById('btnKasusExport')?.addEventListener('click', (event) => {
+    event.preventDefault();
+    const p = params(false);
+    p.delete('format');
+    window.location.href = `${base}/bk/kasus/export?${p.toString()}`;
+  });
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
-
     if (form.dataset.busy === '1') return;
 
     form.dataset.busy = '1';
-    const submitButton = formSubmitButton(form);
-    setButtonBusy(submitButton, true, 'Menyimpan...');
+    const button = formSubmitButton(form);
+    setButtonBusy(button, true, 'Menyimpan...');
 
     const fd = new FormData(form);
     const id = String(fd.get('id') || '');
-
     fd.delete('id');
 
     let url = `${base}/bk/kasus/create`;
-    let options = {
-      method: 'POST',
-      body: fd,
-    };
+    let options = { method: 'POST', body: fd };
 
     if (id) {
       url = `${base}/bk/kasus/update/${id}`;
       options = {
         method: 'PUT',
         body: new URLSearchParams(fd),
-        headers: {
-          'Content-Type':
-            'application/x-www-form-urlencoded',
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       };
     }
 
     try {
-      const payload = await requestJson(
-        url,
-        options
-      );
-
-      bootstrap.Modal
-        .getInstance(modalEl)
-        ?.hide();
-
-      show(
-        payload.message || 'Berhasil.',
-        'success'
-      );
-
+      const payload = await requestJson(url, options);
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+      show(payload.message || 'Catatan pelanggaran berhasil disimpan.', 'success');
       await load();
-
-      if (!id && payload.data?.id) {
-        await openDetail(payload.data.id);
-      }
+      if (!id && payload.data?.id) await openDetail(payload.data.id);
     } catch (error) {
-      show(
-        error.message || 'Gagal menyimpan.'
-      );
+      show(error.message || 'Catatan pelanggaran gagal disimpan.');
     } finally {
       form.dataset.busy = '0';
-      setButtonBusy(submitButton, false);
+      setButtonBusy(button, false);
     }
   });
 
-  formTindak?.addEventListener(
-    'submit',
-    async (event) => {
-      event.preventDefault();
+  formTindak?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (formTindak.dataset.busy === '1') return;
 
-      if (formTindak.dataset.busy === '1') return;
+    formTindak.dataset.busy = '1';
+    const button = formSubmitButton(formTindak);
+    setButtonBusy(button, true, 'Menyimpan...');
 
-      formTindak.dataset.busy = '1';
-      const submitButton = formSubmitButton(formTindak);
-      setButtonBusy(submitButton, true, 'Menyimpan...');
+    const fd = new FormData(formTindak);
+    const id = String(fd.get('id') || '');
+    const idKasus = String(fd.get('id_kasus') || '');
+    fd.delete('id');
+    fd.delete('id_kasus');
 
-      const fd = new FormData(formTindak);
-      const id = String(fd.get('id') || '');
-      const idKasus = String(
-        fd.get('id_kasus') || ''
-      );
+    let url = `${base}/bk/kasus/${idKasus}/tindak-lanjut`;
+    let options = { method: 'POST', body: fd };
 
-      fd.delete('id');
-      fd.delete('id_kasus');
-
-      let url =
-        `${base}/bk/kasus/${idKasus}/tindak-lanjut`;
-
-      let options = {
-        method: 'POST',
-        body: fd,
+    if (id) {
+      url = `${base}/bk/kasus/tindak-lanjut/${id}`;
+      options = {
+        method: 'PUT',
+        body: new URLSearchParams(fd),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       };
-
-      if (id) {
-        url =
-          `${base}/bk/kasus/tindak-lanjut/${id}`;
-
-        options = {
-          method: 'PUT',
-          body: new URLSearchParams(fd),
-          headers: {
-            'Content-Type':
-              'application/x-www-form-urlencoded',
-          },
-        };
-      }
-
-      try {
-        const payload = await requestJson(
-          url,
-          options
-        );
-
-        show(
-          payload.message
-            || 'Tindak lanjut berhasil disimpan.',
-          'success'
-        );
-
-        await openDetail(idKasus);
-      } catch (error) {
-        show(
-          error.message
-            || 'Tindak lanjut gagal disimpan.'
-        );
-      } finally {
-        formTindak.dataset.busy = '0';
-        setButtonBusy(submitButton, false);
-      }
     }
-  );
 
-  document.getElementById(
-    'btnBatalEditTindak'
-  )?.addEventListener(
-    'click',
-    resetTindakForm
-  );
+    try {
+      const payload = await requestJson(url, options);
+      show(payload.message || 'Tindak lanjut berhasil disimpan.', 'success');
+      await openDetail(idKasus);
+    } catch (error) {
+      show(error.message || 'Tindak lanjut gagal disimpan.');
+    } finally {
+      formTindak.dataset.busy = '0';
+      setButtonBusy(button, false);
+    }
+  });
 
-  if (!pageCanManage && formTindak) {
-    formTindak.classList.add('d-none');
-  }
+  document.getElementById('btnBatalEditTindak')?.addEventListener('click', resetTindakForm);
 
-  restoreState();
+  if (!pageCanManage && formTindak) formTindak.classList.add('d-none');
+
   load();
 })();
