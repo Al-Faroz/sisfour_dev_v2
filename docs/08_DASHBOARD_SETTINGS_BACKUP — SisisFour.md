@@ -42,11 +42,23 @@ Prioritas:
 kelas belum Presensi
 jadwal belum Jurnal
 EWS
-kasus/pelanggaran penting
+catatan pelanggaran
 trend singkat
 ```
 
 Statistik jumlah master berada di bawah data exception.
+
+Finalisasi G3.3.1:
+
+```text
+Pimpinan hanya menerima agregat supervisi BK
+Catatan Pelanggaran ditampilkan sebagai jumlah, bukan ranking poin
+Konseling BK tidak menjadi widget/sumber data Dashboard Pimpinan
+widget yang tidak memiliki permission ditampilkan sebagai tidak tersedia, bukan angka 0 palsu
+KPI mobile memakai grid 2×2
+trend Presensi memakai list pada mobile dan tabel pada desktop
+EWS dibatasi ringkas maksimal 5 siswa pada dashboard
+```
 
 ## 4. BK
 
@@ -59,6 +71,8 @@ EWS
 Tindak Lanjut
 Prestasi
 ```
+
+G3.3.1 mengganti istilah bisnis `Kasus` menjadi `Catatan Pelanggaran` pada surface yang disentuh dan menghentikan sistem poin. G3.4 tetap menjadi tahap redesign Dashboard BK secara khusus.
 
 ## 5. Guru
 
@@ -115,6 +129,15 @@ quick link ditampilkan hanya bila permission sumber valid
 mobile EWS/absence memakai list, bukan horizontal table
 ```
 
+Finalisasi G3.3.1:
+
+```text
+quick link BK memakai label Catatan Pelanggaran
+Catatan Pelanggaran tetap mengikuti scope permission Service
+Konseling BK tidak ditampilkan pada dashboard atau quick link Wali
+mengetahui URL Konseling tidak memberi akses tanpa permission route + Service
+```
+
 Wali tetap context Guru; tidak ada role atau permission baru.
 
 ## 7. Siswa
@@ -127,13 +150,39 @@ rekap bulan berjalan
 recent absence
 Kartu Pelajar
 Prestasi
-Kasus/Pelanggaran diri
+Catatan Pelanggaran diri
 Profile
 ```
 
 Tidak ada row Sesi Awal berarti data belum tersedia, bukan otomatis Hadir.
 
-## 8. Settings User
+Finalisasi G3.3.1:
+
+```text
+KPI Presensi mobile memakai grid 2×2
+recent absence memakai list pada mobile, tabel hanya desktop
+Prestasi dan Catatan Pelanggaran hanya data diri sesuai scope
+section yang tidak memiliki permission tidak boleh tampil sebagai "data kosong"
+Konseling BK tidak pernah ditampilkan pada Dashboard Siswa
+Catatan Pelanggaran tidak mengandung poin/ranking
+```
+
+## 8. Boundary Kerahasiaan Konseling BK
+
+Konseling BK adalah data rahasia dan bukan sumber dashboard lintas-role pada G3.3.1.
+
+```text
+Admin       akses operasional sesuai bk_konseling.*
+Operator    akses operasional sesuai bk_konseling.*
+BK          akses operasional sesuai bk_konseling.*
+Pimpinan    tidak menerima detail/widget Konseling
+Guru/Wali   tidak menerima detail/widget/quick link Konseling
+Siswa       tidak menerima detail/widget Konseling
+```
+
+Authorization tetap ditentukan route filter dan Service. Visibility menu/dashboard bukan security boundary.
+
+## 9. Settings User
 
 Permission: `settings_user.manage`.
 
@@ -148,7 +197,7 @@ Fitur:
 
 Mutation memakai busy guard.
 
-## 9. Settings Menu
+## 10. Settings Menu
 
 Permission: `settings_menu.manage`.
 
@@ -156,7 +205,7 @@ Permission: `settings_menu.manage`.
 
 Sidebar data-driven dan hanya menampilkan context/menu yang relevan.
 
-## 10. Settings Sistem
+## 11. Settings Sistem
 
 Permission: `settings_sistem.manage`.
 
@@ -176,7 +225,9 @@ uploads/settings/kartu/
 
 `icon_sekolah` menjadi favicon login + authenticated shell bila file valid. URL favicon diberi cache-busting. Setting UI menampilkan preview/path asset aktif.
 
-## 11. Maintenance
+Setting Form Konseling G3.3.1 memakai tabel existing `setting_sistem` dengan key `bk_konseling_form_options`; tidak membuat tabel setting baru.
+
+## 12. Maintenance
 
 Global filter.
 
@@ -190,7 +241,7 @@ AJAX/API      → 503 JSON
 
 Confirmation memakai UI project, bukan browser native dialog.
 
-## 12. Backup
+## 13. Backup
 
 Permission: `backup.manage`.
 
@@ -202,13 +253,13 @@ writable/backups/
 
 Create/download/delete menggunakan validation path dan permission. Backup adalah pekerjaan Admin desktop, bukan target utama APK role operasional.
 
-## 13. Log Activity
+## 14. Log Activity
 
 Permission: `log_activity.view`.
 
 Log tidak boleh menyimpan password/hash/token/cookie/session id/secret. Filter/pagination/export mengikuti UI canonical.
 
-## 14. G3.3 Acceptance — Dashboard Guru/Wali
+## 15. G3.3 Acceptance — Dashboard Guru/Wali
 
 G3.3 PASS bila:
 
@@ -224,11 +275,26 @@ G3.3 PASS bila:
 - route/RBAC/business rule G3.2 tidak berubah;
 - tidak ada schema/database baru.
 
-## 15. Phase Boundary
+## 16. G3.3.1 Cross-role Acceptance
+
+G3.3.1 finalization PASS bila:
+
+- Pimpinan melihat agregat exception tanpa poin dan tanpa detail Konseling;
+- Pimpinan tidak menampilkan 0 palsu untuk widget yang tidak memiliki permission;
+- Wali hanya mendapat quick link Catatan Pelanggaran jika permission sumber valid;
+- Wali tidak mendapat surface Konseling BK;
+- Siswa hanya melihat Prestasi/Catatan Pelanggaran milik sendiri sesuai scope;
+- Siswa tidak mendapat surface Konseling BK;
+- mobile Pimpinan/Siswa tidak memakai tabel horizontal untuk daftar operasional;
+- route `bk/konseling*` tetap dilindungi permission dan Service;
+- perubahan ini tidak menambah permission untuk Pimpinan/Guru/Wali/Siswa.
+
+## 17. Phase Boundary
 
 ```text
 G2      → dashboard/settings stabilization only
 G3.3    → Dashboard Guru/Wali mobile-first
+G3.3.1  → fondasi BK/Konseling + finalisasi lintas-role
 G3.4+   → role dashboard berikutnya
 G4      → Cordova integration
 ```
