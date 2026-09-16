@@ -169,15 +169,15 @@ class BKKasus extends BaseController
             }
         }
 
+        // Untuk POST multipart/FormData, getPost() adalah sumber yang benar.
+        // Raw input tetap dipakai untuk PUT/PATCH urlencoded.
+        $post = $this->request->getPost();
         $raw = $this->request->getRawInput();
 
-        if (is_array($raw) && $raw !== []) {
-            return $raw;
-        }
+        $post = is_array($post) ? $post : [];
+        $raw = is_array($raw) ? $raw : [];
 
-        $post = $this->request->getPost();
-
-        return is_array($post) ? $post : [];
+        return array_replace($raw, $post);
     }
 
     private function downloadAndCleanup(string $path, string $filename)
