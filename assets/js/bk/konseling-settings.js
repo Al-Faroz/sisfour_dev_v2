@@ -62,6 +62,25 @@
     return payload;
   }
 
+  async function askResetConfirmation() {
+    if (!window.Swal?.fire) {
+      show('Dialog konfirmasi tidak tersedia. Muat ulang halaman lalu coba lagi.');
+      return false;
+    }
+
+    const result = await window.Swal.fire({
+      title: 'Kembalikan pengaturan?',
+      text: 'Seluruh pilihan Form Konseling akan dikembalikan ke default.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, kembalikan',
+      cancelButtonText: 'Batal',
+      reverseButtons: true,
+    });
+
+    return Boolean(result.isConfirmed);
+  }
+
   function fill(options = {}) {
     const topik = options.topik || {};
     const setLines = (name, values) => {
@@ -102,10 +121,7 @@
 
   resetButton?.addEventListener('click', async () => {
     if (resetButton.dataset.busy === '1') return;
-
-    if (!confirm('Kembalikan seluruh pilihan Form Konseling ke default?')) {
-      return;
-    }
+    if (!await askResetConfirmation()) return;
 
     setBusy(resetButton, true, 'Memulihkan...');
 
