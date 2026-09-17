@@ -40,7 +40,7 @@ app/
 └── Views/
 ```
 
-Flow:
+Flow teknis:
 
 ```text
 Routes
@@ -50,6 +50,28 @@ Routes
 → Model/Query
 → DB
 → View/JSON
+```
+
+Flow keputusan global sebelum implementasi mengikuti `docs/00A_GLOBAL_STANDARD_SISFOUR.md`:
+
+```text
+Menu/Fitur
+→ Use Case
+→ SSOT/Domain
+→ Access Boundary
+→ Capability
+→ Scope
+→ Period Context
+→ Target Validation
+→ Business Invariant
+→ Persistence
+→ Service Boundary
+→ Presentation UI
+→ Output Channel
+→ Audit
+→ Testing/Regression
+→ Docs Sync
+→ Deployment Gate
 ```
 
 ## 3. Route Files
@@ -134,7 +156,7 @@ konseling_bk
 
 Routes follow-up berada di `RoutesBKFoundation.php`; Model follow-up berada di `KonselingBkFollowUpModel.php`; business rule berada di `KonselingBkService.php`.
 
-Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling.
+Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling pada kontrak G3.3.1 saat ini.
 
 ## 6. Frontend
 
@@ -240,6 +262,7 @@ writable/uploads/
 
 ```text
 00_POLA_PENGERJAAN___SisisFour.md
+00A_GLOBAL_STANDARD_SISFOUR.md
 01_MASTERPLAN — SisisFour.md
 02_DATABASE — SisisFour.md
 03_AUTH_RBAC_MENU — SisisFour.md
@@ -261,6 +284,8 @@ Routes Final — SisisFour.md
 Tree Structure — SisisFour.md
 ```
 
+`00` + `00A` adalah entry point wajib sebelum dokumen domain.
+
 ## 11. UI Hierarchy
 
 ```text
@@ -272,6 +297,9 @@ Tree Structure — SisisFour.md
 
 ## 12. Structural Change Rule
 
+- baca `00` + `00A` sebelum feature/domain work;
+- kunci Access Boundary sebelum Capability;
+- kunci Capability sebelum Scope/Period/Target;
 - business rule di Service;
 - Controller request/response;
 - JS page-specific per module;
@@ -280,6 +308,7 @@ Tree Structure — SisisFour.md
 - reusable CSS/JS masuk foundation/component;
 - SQL delta eksplisit di `database/`;
 - period context server-side tidak digantikan helper UI;
+- output channel (listing/detail/dashboard/export/API) harus konsisten terhadap contract yang sama;
 - docs canonical disinkronkan sebelum phase merge/closure.
 
 ## 13. Current Phase Boundary
