@@ -2,12 +2,12 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 17 September 2026  
-**Development aktif:** G3.3.1 rework — periodic Tahun Ajaran + Konseling follow-up 1:N / local gate pending  
+**Development aktif:** G3.3.1 rework — periodic Tahun Ajaran + Konseling follow-up 1:N  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
 
-SisisFour adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang untuk akademik, Presensi, monitoring, BK, Kartu Pelajar, personalia, pelaporan, dan self-service pengguna.
+SisisFour adalah Sistem Informasi Manajemen Madrasah MTsN 4 Jombang untuk akademik, Presensi, monitoring, BK, UKS/Kesehatan, PTSP, Kartu Pelajar, personalia, pelaporan, dan self-service pengguna.
 
 Stack utama:
 
@@ -25,10 +25,13 @@ Vanilla JavaScript + Fetch
 Desktop/laptop browser
 Mobile browser
 Android Cordova WebView
+Authenticated Web
+Public PTSP Landing
 API /api/*
+Public aggregate statistics API PTSP
 ```
 
-UI utama tetap View CI4/Sneat yang sama; APK tidak menjadi SPA kedua.
+UI authenticated utama tetap View CI4/Sneat yang sama; APK tidak menjadi SPA kedua. PTSP mempunyai public landing terpisah untuk public form.
 
 ## 3. Role
 
@@ -39,9 +42,11 @@ pimpinan
 bk
 guru
 siswa
+kesehatan
+ptsp
 ```
 
-Wali Kelas adalah context Guru, bukan role baru.
+Wali Kelas adalah context Guru, bukan role baru. Kesehatan dan PTSP memakai identity Pegawai. Multi-role diperbolehkan.
 
 ## 4. Identity UX
 
@@ -63,6 +68,8 @@ Search tetap mendukung nama + identifier untuk verifikasi/disambiguasi.
 - Presensi Siswa + Jurnal Mengajar.
 - Laporan/Matrix/EWS/Signage.
 - BK: Catatan Pelanggaran, Tindak Lanjut Pelanggaran, Konseling, Tindak Lanjut Konseling, Prestasi.
+- UKS/Kesehatan: Data CKG + Catatan Harian UKS.
+- PTSP: Layanan, Polling Kepuasan, Pengaduan, public landing, public statistics API.
 - Kartu Pelajar.
 - Profile/Personalia/Portofolio.
 - Settings/Maintenance/Backup/Log.
@@ -81,6 +88,8 @@ Client
 
 Service adalah business/security boundary. View/JS tidak menentukan authorization final.
 
+Public PTSP tetap melewati Service validation; public form tidak memberikan akses internal administration.
+
 ## 7. Semester & Lifecycle
 
 ```text
@@ -93,31 +102,49 @@ kelas 9 → Kelulusan
 
 Lifecycle menjaga membership/history/status/Kartu secara transactional. Histori terminal tidak dihapus.
 
-## 8. UI/UX Global
+## 8. Global Standard
 
-Hirarki:
+SSOT global:
 
 ```text
-13 CI4 + Sneat Global
-→ 11 UI/UX SisisFour
-→ 14 Mobile & Cordova UI/UX
-→ 11 Role Experience
+docs/00_POLA_PENGERJAAN___SisisFour.md
+docs/00A_GLOBAL_STANDARD_SISFOUR.md
 ```
 
-Kontrak global yang ditegaskan 17 September 2026:
+Canonical mapping:
 
 ```text
-filter desktop padat tidak dipaksa 1 baris
+Menu/Fitur
+→ Use Case
+→ Domain
+→ Access Boundary
+→ Capability
+→ Scope
+→ Period Context
+→ Target Validation
+→ Business Invariant
+→ Persistence
+→ Service Boundary
+→ UI
+→ Output/API
+→ Audit
+→ Testing
+→ Docs Sync
+→ Deployment Gate
+```
+
+Global UI/UX:
+
+```text
+filter desktop padat tidak dipaksa satu baris
 periodic/history table -> filter Tahun Ajaran
 Tahun Ajaran default/reset -> periode aktif
 export periodik -> mengikuti periode terpilih
-create operational -> Service snapshot periode aktif
+create parent periodik -> Service snapshot periode aktif
 no body horizontal overflow
 no horizontal table scroll role operasional
 name-first identity
 ```
-
-Tabel global/non-periodik tidak diberi filter Tahun Ajaran palsu.
 
 ## 9. Phase Closed
 
@@ -145,7 +172,7 @@ Branch:
 feat/g3-bk-foundation-konseling-20260916
 ```
 
-Baseline decisions yang tetap berlaku:
+Keputusan utama:
 
 ```text
 Catatan Kasus -> Catatan Pelanggaran Siswa
@@ -156,9 +183,12 @@ Konseling BK terpisah dan rahasia
 Settings Form Konseling memakai setting_sistem
 created_by -> users.id
 akun BK aktual -> users.id_pegawai -> pegawai.id
+Catatan Pelanggaran/Konseling/Prestasi = periodik Tahun Ajaran
+Konseling parent + Tindak Lanjut 1:N
+no delete parent/follow-up Konseling pada contract sekarang
 ```
 
-Permission:
+Permission Konseling:
 
 ```text
 bk_konseling.view       -> Admin, Operator, BK
@@ -167,51 +197,25 @@ bk_konseling.export     -> Admin, Operator, BK
 bk_konseling.settings   -> Admin, BK
 ```
 
-Pimpinan/Guru/Wali/Siswa tidak menerima detail/surface Konseling.
+Pimpinan/Guru/Wali/Siswa/Kesehatan/PTSP tidak menerima surface/detail Konseling.
 
-### 10.1 Tahun Ajaran Periodik BK
-
-Catatan Pelanggaran, Konseling, dan Prestasi adalah surface periodik.
+### Period Context BK
 
 ```text
 listing default = Tahun Ajaran aktif
 Reset           = Tahun Ajaran aktif
 history         = selectable
 export          = mengikuti period filter
-create baru     = selalu snapshot Tahun Ajaran aktif di server
+create parent   = snapshot Tahun Ajaran aktif server-side
+update existing = tetap period record
+follow-up       = mengikuti parent
 ```
 
-Rework menambah `id_tahun` pada `catatan_kasus` dan `catatan_prestasi`; `konseling_bk` sudah memilikinya.
-
-### 10.2 Konseling Parent
-
-Tahap 1:
-
-```text
-Kelas → Siswa → Tanggal → Pertemuan ke-
-Bentuk Layanan → Cara Hadir → Bidang → Topik
-status awal Proses
-```
-
-Tahap 2 parent/pertemuan awal:
-
-```text
-Uraian Masalah
-Hasil Pembahasan & Kesepakatan
-Rencana Berikutnya
-Tanggal Pertemuan Berikutnya
-Status Proses/Selesai
-```
-
-### 10.3 Tindak Lanjut Konseling 1:N
-
-Keputusan 17 September mengganti model satu-rencana-lanjutan menjadi histori:
+### Konseling 1:N
 
 ```text
 konseling_bk 1:N tindak_lanjut_konseling_bk
 ```
-
-Setiap follow-up mempunyai tanggal, perkembangan, hasil/kesepakatan, rencana, tanggal berikutnya, status, dan actor audit.
 
 Canonical detail:
 
@@ -222,50 +226,13 @@ Identitas
 → Form Tambah/Edit Tindak Lanjut
 ```
 
-Tidak ada Delete parent Konseling dan tidak ada Delete Tindak Lanjut Konseling.
-
-### 10.4 Historical Rencana
-
-Nilai Rencana lama yang dihapus dari Settings tetap dapat dipertahankan pada record yang sudah menyimpannya sebagai `(tersimpan)`, tetapi tidak menjadi pilihan global lagi.
-
-Parent historical-Rencana focused local UAT sebelumnya PASS. Follow-up 1:N wajib mengulang invariant yang sama.
-
-### 10.5 SQL
-
-Baseline yang sudah PASS local/hosting:
-
-```text
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
-```
-
-Rework local:
-
-```text
-database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
-```
-
-Target delta:
-
-```text
-catatan_kasus.id_tahun
-catatan_prestasi.id_tahun
-tindak_lanjut_konseling_bk
-```
-
-Belum ada hosting SQL untuk rework ini.
-
-### 10.6 Current Gate
+### Current Gate
 
 ```text
 baseline G3.3.1 local/hosting                   PASS
 parent historical-Rencana focused local UAT    PASS
-17 Sep source implementation                    IMPLEMENTED
-17 Sep canonical docs sync                      IN PROGRESS
-17 Sep localhost delta SQL                      PREPARED
-17 Sep localhost SQL execution                  PENDING
-17 Sep local runtime UAT                        PENDING
+17 Sep localhost SQL execution                  PASS (user evidence)
+17 Sep local runtime UAT                        PASS (user evidence)
 17 Sep final static gate                        PENDING
 17 Sep hosting dump audit/delta/re-smoke        NOT STARTED
 PR #9                                           DRAFT / BELUM MERGE
@@ -274,15 +241,61 @@ PR #9                                           DRAFT / BELUM MERGE
 ## 11. G3 Roadmap Setelah PR #9
 
 ```text
-G3.4 BK Workflow + Dashboard BK
-G3.5 Pimpinan
-G3.6 Siswa
-G3.7 Global Mobile Sweep
-G3.8 Viewport/WebView Readiness
-G4   Cordova APK
+G3.4  BK Workflow + Dashboard BK
+G3.5  Pimpinan
+G3.6  Siswa
+G3.6A UKS / Kesehatan
+G3.6B PTSP
+G3.7  Global Mobile Sweep
+G3.8  Viewport/WebView Readiness
+G4    Cordova APK
 ```
 
-G3.4 memakai foundation final:
+### G3.6A — UKS / Kesehatan
+
+SSOT: `17_UKS_KESEHATAN — SisisFour.md`.
+
+Target:
+
+```text
+Role Kesehatan = Pegawai
+Data CKG + import Excel
+Catatan Harian UKS
+periodik Tahun Ajaran
+Admin/Operator/Kesehatan Full Access domain UKS
+Pimpinan ReadOnly SEMUA + Export
+Wali ReadOnly kelas wali
+Siswa ReadOnly data dirinya sendiri
+soft delete UKS/CKG
+```
+
+UKS ditempatkan setelah Pimpinan dan Siswa agar scope lintas-role telah mempunyai foundation stabil.
+
+### G3.6B — PTSP
+
+SSOT: `18_PTSP — SisisFour.md`.
+
+Target:
+
+```text
+Role PTSP = Pegawai
+public landing page
+public Layanan PTSP
+public Polling Kepuasan
+public Pengaduan anonim
+Admin/Operator/PTSP Full Access domain PTSP
+Pimpinan ReadOnly SEMUA + Export
+Hard delete PTSP = Admin/Operator/PTSP
+Tahun Ajaran snapshot/filter
+thermal print bukti pengisian TANPA nomor tiket
+public aggregate statistics API per form untuk WordPress/portal
+```
+
+PTSP diletakkan setelah UKS karena menambah public surface + public API yang memerlukan regression khusus di luar authenticated role experience.
+
+## 12. G3.4 Foundation Target
+
+G3.4 memakai foundation final BK:
 
 ```text
 Konseling Proses/follow-up terdekat
@@ -295,7 +308,7 @@ mobile-first
 privacy Konseling ketat
 ```
 
-## 12. G4 — Cordova APK
+## 13. G4 — Cordova APK
 
 Setelah G3 stable:
 
@@ -313,17 +326,8 @@ real-device regression
 signed package/distribution
 ```
 
-## 13. Release Rule
+## 14. Release Rule
 
-```text
-G3.3.1 PASS hanya setelah:
-SSOT sync
-+ localhost SQL/UAT
-+ final static gate
-+ hosting dump audit/delta execution
-+ focused hosting smoke
-+ explicit Ready approval
-+ explicit Merge approval
-```
+Setiap phase harus melewati SSOT + local/static/runtime + regression + production gate sesuai `00/00A/15`.
 
-Setiap merge/release membutuhkan approval eksplisit pengguna.
+Tidak ada auto-deploy, auto-Ready, atau auto-merge. Setiap deploy/Ready/Merge membutuhkan approval eksplisit pengguna.
