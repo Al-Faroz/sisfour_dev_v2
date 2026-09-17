@@ -16,11 +16,6 @@ class BkExportService
     public function kasus(array $data, int $userId): array
     {
         $caseRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
-        $studentIds = array_values(array_unique(array_filter(array_map(
-            static fn (array $row): int => (int) ($row['id_siswa'] ?? 0),
-            $caseRows
-        ))));
-        $classMap = $this->activeClassMap($studentIds);
         $followUps = $this->followUpRows($caseRows);
         $followUpCount = [];
 
@@ -32,6 +27,7 @@ class BkExportService
         $headers = [
             'No',
             'ID Catatan',
+            'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
             'Kelas',
@@ -47,13 +43,17 @@ class BkExportService
 
         foreach ($caseRows as $row) {
             $idKasus = (int) ($row['id'] ?? 0);
-            $idSiswa = (int) ($row['id_siswa'] ?? 0);
-            $kelas = $classMap[$idSiswa] ?? '-';
-            $caseMap[$idKasus] = $row + ['nama_kelas' => $kelas];
+            $tahun = $this->periodLabel($row);
+            $kelas = trim((string) ($row['nama_kelas'] ?? '')) ?: '-';
+            $caseMap[$idKasus] = $row + [
+                'tahun_label' => $tahun,
+                'nama_kelas' => $kelas,
+            ];
 
             $rows[] = [
                 $no++,
                 $idKasus,
+                $tahun,
                 $row['nisn'] ?? '',
                 $row['nama_siswa'] ?? '',
                 $kelas,
@@ -68,6 +68,7 @@ class BkExportService
         $followUpHeaders = [
             'No',
             'ID Catatan',
+            'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
             'Kelas',
@@ -88,6 +89,7 @@ class BkExportService
             $followUpExportRows[] = [
                 $noFollowUp++,
                 $idKasus,
+                $case['tahun_label'] ?? $this->periodLabel($case),
                 $case['nisn'] ?? '',
                 $case['nama_siswa'] ?? '',
                 $case['nama_kelas'] ?? '-',
@@ -126,7 +128,7 @@ class BkExportService
         }
 
         if ($result['success']) {
-            $this->log($userId, 'BK Pelanggaran', 'Export Catatan Pelanggaran + Tindak Lanjut');
+            $this->log($userId, 'BK Pelanggaran', 'Export Catatan Pelanggaran + Tindak Lanjut berdasarkan Tahun Ajaran terpilih');
         }
 
         return $result;
@@ -135,14 +137,10 @@ class BkExportService
     public function prestasi(array $data, int $userId): array
     {
         $prestasiRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
-        $studentIds = array_values(array_unique(array_filter(array_map(
-            static fn (array $row): int => (int) ($row['id_siswa'] ?? 0),
-            $prestasiRows
-        ))));
-        $classMap = $this->activeClassMap($studentIds);
 
         $headers = [
             'No',
+            'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
             'Kelas',
@@ -158,9 +156,10 @@ class BkExportService
         foreach ($prestasiRows as $row) {
             $rows[] = [
                 $no++,
+                $this->periodLabel($row),
                 $row['nisn'] ?? '',
                 $row['nama_siswa'] ?? '',
-                $classMap[(int) ($row['id_siswa'] ?? 0)] ?? '-',
+                trim((string) ($row['nama_kelas'] ?? '')) ?: '-',
                 $row['tanggal'] ?? '',
                 $row['nama_prestasi'] ?? '',
                 $row['tingkat'] ?? '',
@@ -172,45 +171,22 @@ class BkExportService
         $result = $this->write('Prestasi', $headers, $rows, 'prestasi_' . date('Ymd_His') . '.xlsx');
 
         if ($result['success']) {
-            $this->log($userId, 'Prestasi', 'Export Prestasi dengan Kelas');
+            $this->log($userId, 'Prestasi', 'Export Prestasi berdasarkan Tahun Ajaran terpilih');
         }
 
         return $result;
     }
 
-    private function activeClassMap(array $studentIds): array
+    private function periodLabel(array $row): string
     {
-        if ($studentIds === []) {
-            return [];
+        $tahun = trim((string) ($row['nama_tahun'] ?? ''));
+        $semester = trim((string) ($row['semester'] ?? ''));
+
+        if ($tahun === '') {
+            return '-';
         }
 
-        $db = db_connect();
-        $tahun = $db->table('tahun_ajaran')
-            ->select('id')
-            ->where('status_aktif', 1)
-            ->where('deleted_at', null)
-            ->get()
-            ->getRowArray();
-        $idTahun = (int) ($tahun['id'] ?? 0);
-
-        if ($idTahun <= 0) {
-            return [];
-        }
-
-        $rows = $db->table('anggota_kelas ak')
-            ->select('ak.id_siswa, k.nama_kelas')
-            ->join('kelas k', 'k.id = ak.id_kelas')
-            ->where('ak.id_tahun', $idTahun)
-            ->whereIn('ak.id_siswa', $studentIds)
-            ->get()
-            ->getResultArray();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[(int) $row['id_siswa']] = (string) ($row['nama_kelas'] ?? '-');
-        }
-
-        return $map;
+        return $semester !== '' ? $tahun . ' - ' . $semester : $tahun;
     }
 
     private function followUpRows(array $caseRows): array
