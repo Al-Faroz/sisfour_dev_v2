@@ -1,7 +1,7 @@
 # Cordova Packaging & Integration — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
 **Implementation Phase:** G4, setelah G3 Mobile UI selesai
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.

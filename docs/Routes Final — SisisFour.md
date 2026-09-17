@@ -1,7 +1,7 @@
 # Routes Final — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
 **Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework branch
 
 > Runtime source of truth adalah seluruh route file yang terdaftar pada `Config\Routing::$routeFiles`, bukan hanya `Routes.php`.

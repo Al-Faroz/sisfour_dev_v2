@@ -1,7 +1,7 @@
 # Master Data & Student Lifecycle — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 16 September 2026
 **Business baseline:** G2 CLOSED; dependency tambahan G3.2/G3.3.1 telah disinkronkan
 
 > Dokumen ini menyatakan business contract Master Data dan Manajemen Siswa. UI detail mengikuti dokumen UI; authorization final tetap ditentukan Service + permission database.

@@ -1,8 +1,8 @@
 # PTSP — SisisFour
 
-**Status:** Canonical Target / Belum Diimplementasikan  
-**Tanggal Acuan:** 17 September 2026  
-**Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`  
+**Status:** Canonical Target / Belum Diimplementasikan
+**Tanggal Acuan:** 17 September 2026
+**Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`
 **Source field:** workbook `field-form-UKS-CKG-PTSP.xlsx`, sheet `Form Layanan PTSP`, `Pengaduan`, dan `Form Polling Kepuasan`.
 
 > Dokumen ini adalah SSOT domain PTSP. Keputusan user terbaru mengalahkan catatan lama pada workbook bila ada konflik.

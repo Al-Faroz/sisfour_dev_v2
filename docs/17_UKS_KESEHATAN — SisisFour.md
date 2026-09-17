@@ -1,8 +1,8 @@
 # UKS / Kesehatan — SisisFour
 
-**Status:** Canonical Target / Belum Diimplementasikan  
-**Tanggal Acuan:** 17 September 2026  
-**Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`  
+**Status:** Canonical Target / Belum Diimplementasikan
+**Tanggal Acuan:** 17 September 2026
+**Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`
 **Source field:** workbook `field-form-UKS-CKG-PTSP.xlsx`, sheet `Form UKS` dan `Form CKG`.
 
 > Dokumen ini adalah SSOT domain UKS/Kesehatan. Keputusan user terbaru mengalahkan catatan lama pada workbook bila ada konflik.

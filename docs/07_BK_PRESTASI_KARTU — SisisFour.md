@@ -1,8 +1,8 @@
 # BK, Konseling, Prestasi & Kartu Pelajar — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`
 **Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — **BK periodic-year + Konseling follow-up 1:N rework / local gate pending**
 
 > Dokumen ini menyatakan kontrak BK canonical. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.

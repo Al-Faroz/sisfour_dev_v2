@@ -1,10 +1,10 @@
 # Pola Pengerjaan — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework**)  
-**Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
-**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework**)
+**Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`
+**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.

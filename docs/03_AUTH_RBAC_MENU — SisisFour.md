@@ -1,8 +1,8 @@
 # Authentication, RBAC & Menu — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework
 
 > Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 

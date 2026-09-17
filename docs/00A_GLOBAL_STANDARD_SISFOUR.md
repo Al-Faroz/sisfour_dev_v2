@@ -1,7 +1,7 @@
 # Global Standard SisisFour
 
-**Status:** Canonical / Global SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Global SSOT
+**Tanggal Acuan:** 17 September 2026
 **Kedudukan:** companion wajib `00_POLA_PENGERJAAN___SisisFour.md`; dibaca sebelum dokumen domain/fitur.
 
 > Dokumen ini menetapkan **cara berpikir dan mapping global** untuk semua fitur SisisFour. Ia tidak menggantikan business rule domain. Dokumen domain menjelaskan *apa* aturannya; dokumen ini memastikan aturan diterapkan konsisten dari authorization sampai UI, persistence, export, audit, API, testing, dan deployment.

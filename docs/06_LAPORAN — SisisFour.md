@@ -1,8 +1,8 @@
 # Laporan & Export — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Released baseline:** G3.3 merged / `main` @ `06e4e559c045763096058fc889342da78d973314`  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Released baseline:** G3.3 merged / `main` @ `06e4e559c045763096058fc889342da78d973314`
 **Development:** G3.3.1 rework — local gate pending
 
 > Dokumen ini menyatakan kontrak laporan/export current. Detail business domain tetap mengacu ke dokumen Presensi dan BK.

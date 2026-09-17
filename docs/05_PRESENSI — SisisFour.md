@@ -1,8 +1,8 @@
 # Presensi Siswa & Presensi Mengajar — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Business baseline:** G2 CLOSED  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 16 September 2026
+**Business baseline:** G2 CLOSED
 **Mobile implementation:** G3.2 — Guru/Wali Presensi & Jurnal **CLOSED / MERGED PR #7**
 
 > Dokumen ini menyatakan business contract Presensi/Jurnal yang tetap berlaku dan UX contract G3.2. UI mobile tidak mengubah authorization, geofence, time-window, transaksi, atau scope server.

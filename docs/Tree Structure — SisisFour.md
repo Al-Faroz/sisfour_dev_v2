@@ -1,6 +1,6 @@
 # Tree Structure — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
+**Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 17 September 2026
 
 ## 1. Root

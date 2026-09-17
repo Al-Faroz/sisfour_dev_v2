@@ -1,7 +1,7 @@
 # UI/UX Role Experience — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
 **Role experience:** Admin, Operator, Pimpinan, BK, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.

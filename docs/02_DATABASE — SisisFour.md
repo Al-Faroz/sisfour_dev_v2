@@ -1,8 +1,8 @@
 # Database — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 branch  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 branch
 **Database state:** baseline G3.3.1 local+hosting PASS; rework 17 September **localhost SQL prepared / execution+UAT pending**
 
 > Database adalah sumber integritas persistence. Exact DDL runtime tetap harus diverifikasi dari schema live/dump aktual dan SQL final di `database/`; dokumen ini menyatakan kontrak schema/business yang berlaku.

@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Development aktif:** G3.3.1 rework — periodic Tahun Ajaran + Konseling follow-up 1:N  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Development aktif:** G3.3.1 rework — periodic Tahun Ajaran + Konseling follow-up 1:N
 **Target:** Web + Android Cordova
 
 ## 1. Sistem

@@ -1,7 +1,7 @@
 # Testing, Regression & Release Gate — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
 **Phase aktif:** G3.3.1 rework — **periodic Tahun Ajaran + Konseling follow-up 1:N / local runtime PASS, static gate pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.

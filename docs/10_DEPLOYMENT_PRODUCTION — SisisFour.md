@@ -1,9 +1,9 @@
 # Deployment Production — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
-**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 rework  
-**Production DB:** baseline G3.3.1 applied + broad smoke PASS; **17 Sep rework belum diterapkan**  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 rework
+**Production DB:** baseline G3.3.1 applied + broad smoke PASS; **17 Sep rework belum diterapkan**
 **Target Domain:** `https://sisfour.mtsn4jombang.sch.id/`
 
 > Deployment production menggunakan manual ZIP upload Hostinger hPanel. Secret production tidak disimpan di repository/docs.

@@ -1,7 +1,7 @@
 # UI/UX Standard — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 17 September 2026  
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
 **Stack:** CodeIgniter 4 + Sneat Free v3 + Bootstrap 5.3.x + Vanilla JavaScript
 
 > Dokumen ini menetapkan kontrak UI/UX SisisFour secara umum. Baseline vendor dan pola reusable CI4 ada di `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`. Aturan mobile/WebView yang lebih ketat ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
