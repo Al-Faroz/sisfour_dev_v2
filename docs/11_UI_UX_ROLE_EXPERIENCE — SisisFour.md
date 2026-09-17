@@ -1,7 +1,7 @@
 # UI/UX Role Experience — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
+**Tanggal Acuan:** 18 September 2026
 **Role experience:** Admin, Operator, Pimpinan, BK, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
@@ -148,7 +148,7 @@ Tidak ada Delete parent Konseling dan tidak ada Delete Tindak Lanjut Konseling.
 
 ### Filter BK
 
-Catatan Pelanggaran, Konseling, dan Prestasi adalah surface periodik. Tahun Ajaran selalu tersedia sebagai filter list, default aktif, dan Reset kembali aktif.
+Catatan Pelanggaran, Konseling, dan Prestasi adalah surface periodik. Tahun Ajaran selalu tersedia sebagai Period Context, default aktif, dan Reset kembali aktif pada experience yang memiliki tombol Reset.
 
 Jika filter desktop banyak seperti Konseling, layout boleh dua baris dan tidak dipaksa menjadi satu baris sempit.
 
@@ -201,6 +201,24 @@ Konseling BK tidak pernah ditampilkan ke Siswa
 section tanpa permission tidak disamarkan sebagai data kosong
 ```
 
+Untuk surface periodik **Catatan Pelanggaran** dan **Prestasi** dengan effective scope `DIRI_SENDIRI`, experience canonical adalah:
+
+```text
+Tahun Ajaran = tetap tampil sebagai Period Context
+initial       = Tahun Ajaran aktif
+history       = dapat dipilih
+pergantian TA = langsung memuat daftar periode terpilih
+Pencarian     = tidak ditampilkan
+Kategori      = tidak ditampilkan pada Catatan Pelanggaran
+Tingkat       = tidak ditampilkan pada Prestasi
+Dari/Sampai   = tidak ditampilkan
+Reset         = tidak ditampilkan
+Tampilkan     = tidak ditampilkan
+daftar        = langsung data diri sendiri; bila kosong tampil empty state
+```
+
+Penyederhanaan ini adalah presentation/role experience saja. Scope `DIRI_SENDIRI` tetap ditentukan dan ditegakkan server-side; UI tidak boleh dipakai sebagai security boundary.
+
 ## 12. Quick Action Mobile
 
 ```text
@@ -227,7 +245,7 @@ Pimpinan/BK/Guru/Wali/Siswa mobile wajib no-horizontal-table-scroll.
 
 ## 14. Search Strategy
 
-Search entity menerima Nama + identifier. Result menonjolkan Nama; identifier menjadi context sekunder.
+Search entity menerima Nama + identifier. Result menonjolkan Nama; identifier menjadi context sekunder. Search tidak perlu dirender pada surface self-only bila target data tidak dapat berubah dari identity user login.
 
 ## 15. Dashboard Data Limit
 
@@ -280,7 +298,7 @@ Wajib busy guard, server-confirmed success, input penting dipertahankan pada fai
 G3.1 Mobile foundation            CLOSED / MERGED
 G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali          CLOSED / MERGED
-G3.3.1 Fondasi BK                 REWORK / LOCAL GATE PENDING
+G3.3.1 Fondasi BK                 REWORK / STUDENT SELF-FILTER UAT PENDING
 G3.4 BK role experience           NEXT setelah PR #9 merge
 ```
 
@@ -293,6 +311,7 @@ Role experience ACC bila:
 - action penting mudah ditemukan;
 - shortcut tidak melampaui permission;
 - periodic tables konsisten memakai Tahun Ajaran;
+- Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
 - filter padat tidak dipaksa satu baris sempit;
 - mobile role table/list tidak horizontal-scroll;
 - data lengkap tetap dapat dicapai melalui Detail/report;
