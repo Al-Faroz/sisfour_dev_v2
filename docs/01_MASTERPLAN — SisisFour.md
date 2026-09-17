@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Development aktif:** G3.3.1 closure patch — focused re-smoke pending  
+**Tanggal Acuan:** 17 September 2026  
+**Development aktif:** G3.3.1 closure patch — focused local runtime PASS / static + hosting re-smoke pending  
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -167,7 +167,7 @@ Urutan:
 G3.1 Mobile foundation                  CLOSED / MERGED
 G3.2 Guru/Wali Presensi & Jurnal        CLOSED / MERGED
 G3.3 Dashboard Guru/Wali                CLOSED / MERGED
-G3.3.1 Fondasi BK + Konseling           CLOSURE PATCH / RE-SMOKE PENDING
+G3.3.1 Fondasi BK + Konseling           LOCAL CLOSURE RUNTIME PASS / STATIC+HOSTING PENDING
 G3.4 BK workflow + Dashboard BK         NEXT setelah PR #9 merge
 G3.5 Pimpinan monitoring
 G3.6 Siswa self-service
@@ -345,16 +345,26 @@ record lama menyimpan Rencana X
 
 Patch hanya menyentuh Service + JS Konseling dan **tidak mengubah schema/SQL**. Nilai lama ditampilkan sebagai `(tersimpan)` hanya pada record terkait; record lain tetap tidak boleh memakai opsi yang sudah dinonaktifkan.
 
+Focused local runtime UAT pada 17 September 2026: **PASS** untuk seluruh skenario utama:
+
+```text
+nilai lama tetap tampil sebagai (tersimpan)
+save tanpa mengganti nilai lama berhasil
+nilai lama dapat diganti ke opsi aktif baru
+nilai lama tidak muncul pada record lain
+```
+
 Status patch:
 
 ```text
 source patched
-canonical docs sync in branch
-local static/focused UAT pending
+canonical docs synced
+focused local runtime UAT PASS
+closure static gate evidence pending
 focused hosting re-smoke pending
 ```
 
-PR #9 tidak boleh Ready/Merge sebelum focused re-smoke PASS dan user memberi approval eksplisit.
+PR #9 tidak boleh Ready/Merge sebelum static gate head terbaru + focused hosting re-smoke PASS dan user memberi approval eksplisit.
 
 ### G3.4 — NEXT setelah PR #9 merge
 
@@ -398,7 +408,7 @@ G2 CLOSED        → baseline business/admin stabil
 G3.1 CLOSED      → mobile foundation tersedia
 G3.2 CLOSED      → Guru/Wali Presensi/Jurnal validated
 G3.3 CLOSED      → Dashboard Guru/Wali validated
-G3.3.1 PASS      → setelah closure focused re-smoke PASS
+G3.3.1 PASS      → setelah closure static + focused hosting re-smoke PASS
 G3 PASS          → mobile/WebView UI ready
 G4 PASS          → APK distribution gate
 ```
