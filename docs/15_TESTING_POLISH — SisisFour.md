@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 17 September 2026  
-**Phase aktif:** G3.3.1 rework — **periodic Tahun Ajaran + Konseling follow-up 1:N / local gate pending**
+**Phase aktif:** G3.3.1 rework — **periodic Tahun Ajaran + Konseling follow-up 1:N / local runtime PASS, static gate pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -82,8 +82,8 @@ Hasil historical Rencana yang sudah terbukti lokal:
 ```text
 opsi lama setelah dihapus Settings tetap tampil di record lama   PASS
 record lama dapat disimpan tanpa mengganti opsi lama             PASS
-opsi lama dapat diganti ke opsi aktif baru                        PASS
-opsi lama tidak muncul pada record lain                           PASS
+opsi lama dapat diganti ke opsi aktif baru                       PASS
+opsi lama tidak muncul pada record lain                          PASS
 ```
 
 ## 5. Rework 17 September 2026
@@ -148,6 +148,8 @@ jumlah legacy id_tahun NULL diketahui, bukan diam-diam diabaikan
 ```
 
 Record legacy hanya di-backfill jika siswa mempunyai tepat satu Tahun Ajaran pada histori membership. Record ambigu boleh tetap NULL dan harus tercatat pada verification count.
+
+Execution local 17 September sudah dilaporkan user **PASS**. Exact verification count legacy NULL tidak diinventarisir di SSOT karena user hanya melaporkan overall execution PASS.
 
 ## 7. UAT Tahun Ajaran — Catatan Pelanggaran
 
@@ -234,6 +236,8 @@ Buat satu parent Konseling, lengkapi pertemuan awal, lalu:
 6. follow-up lain yang tidak pernah menyimpan X tidak boleh memilih X
 ```
 
+Focused local runtime UAT rework telah dilaporkan user **PASS** untuk Tahun Ajaran periodik, export periodik, Konseling follow-up 1:N, historical Rencana tindak lanjut, no-delete/RBAC, dan responsive. Detail individual checklist tetap menjadi regression checklist untuk final/hosting smoke; jangan mengubah PASS user menjadi klaim CI/static.
+
 ## 11. Export Konseling Rework
 
 XLSX wajib mempunyai:
@@ -252,7 +256,7 @@ view/manage/export -> effective role Admin/Operator/BK + permission
 settings           -> effective role Admin/BK + permission
 ```
 
-Pimpinan/Guru/Wali/Siswa tidak boleh memperoleh menu/detail/widget/direct access Konseling.
+Pimpinan/Guru/Wali/Siswa/Kesehatan/PTSP tidak boleh memperoleh menu/detail/widget/direct access Konseling.
 
 ## 13. No-delete Contract Konseling
 
@@ -303,34 +307,48 @@ Baseline hosting PASS **tidak membuktikan rework 17 September**.
 Setelah localhost PASS:
 
 ```text
-1. audit dump/schema hosting aktual lagi
-2. buat delta hosting khusus state aktual
-3. review SQL hosting
-4. execution hanya dengan approval eksplisit user
-5. focused hosting UAT period filter + follow-up 1:N
-6. final docs sync
-7. PR Ready hanya dengan approval user
-8. merge hanya dengan approval merge terpisah
+1. final static gate pada head final
+2. audit dump/schema hosting aktual lagi
+3. buat delta hosting khusus state aktual
+4. review SQL hosting
+5. execution hanya dengan approval eksplisit user
+6. focused hosting UAT period filter + follow-up 1:N
+7. final docs sync
+8. PR Ready hanya dengan approval user
+9. merge hanya dengan approval merge terpisah
 ```
 
 ## 16. Current Status
 
 ```text
 Broad G3.3.1 baseline                     PASS
-Historical Rencana parent local UAT        PASS
-17 Sep source implementation               IMPLEMENTED
-17 Sep docs canonical sync                 PASS / branch
-17 Sep localhost delta SQL                 PREPARED
-17 Sep localhost SQL execution             PENDING
-17 Sep local runtime UAT                   PENDING
-17 Sep final static gate                   PENDING
-17 Sep hosting dump audit/delta/re-smoke   NOT STARTED
-PR #9                                      DRAFT / BELUM MERGE
-G3.4                                       BELUM DIMULAI
+Historical Rencana parent local UAT       PASS
+17 Sep source implementation              IMPLEMENTED
+17 Sep canonical docs sync                PASS / branch
+17 Sep localhost delta SQL                PREPARED
+17 Sep localhost SQL execution            PASS / user evidence
+17 Sep local runtime UAT                  PASS / user evidence
+17 Sep final static gate                  PENDING
+17 Sep hosting dump audit/delta/re-smoke  NOT STARTED
+PR #9                                     DRAFT / BELUM MERGE
+G3.4                                      BELUM DIMULAI
 ```
+
+`PASS / user evidence` berarti user telah menjalankan/memeriksa runtime lokal. Ini tidak boleh dipresentasikan sebagai CI/static evidence.
 
 ## 17. G3.4 dan Seterusnya
 
-G3.4 Dashboard/Workflow BK baru dimulai setelah rework G3.3.1 PASS dan PR #9 merged. G3.5 Pimpinan, G3.6 Siswa, G3.7 global mobile sweep, G3.8 WebView readiness, lalu G4 Cordova.
+```text
+G3.4   Dashboard/Workflow BK
+G3.5   Pimpinan
+G3.6   Siswa
+G3.6A  UKS / Kesehatan
+G3.6B  PTSP
+G3.7   Global Mobile Sweep
+G3.8   WebView Readiness
+G4     Cordova APK
+```
+
+G3.4 baru dimulai setelah rework G3.3.1 selesai dan PR #9 merged. G3.6A/G3.6B mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md` dan `18_PTSP — SisisFour.md`.
 
 Setiap merge/release memerlukan approval eksplisit pengguna.
