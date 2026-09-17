@@ -26,13 +26,14 @@ class PrestasiService
 
     public function getPage(int $userId, array $input): array
     {
-        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
-        if (! $scope['success']) return $scope;
-
         $period = $this->periodContext->resolve($input);
         if (! $period['success']) return $period;
 
-        $input['id_tahun'] = (int) $period['selected']['id'];
+        $idTahun = (int) $period['selected']['id'];
+        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId, $idTahun);
+        if (! $scope['success']) return $scope;
+
+        $input['id_tahun'] = $idTahun;
         $filter = $this->filter($input);
         if (! $filter['success']) return $filter;
 
@@ -108,13 +109,14 @@ class PrestasiService
 
     public function getExport(int $userId, array $input): array
     {
-        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
-        if (! $scope['success']) return $scope;
-
         $period = $this->periodContext->resolve($input);
         if (! $period['success']) return $period;
 
-        $input['id_tahun'] = (int) $period['selected']['id'];
+        $idTahun = (int) $period['selected']['id'];
+        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId, $idTahun);
+        if (! $scope['success']) return $scope;
+
+        $input['id_tahun'] = $idTahun;
         $filter = $this->filter($input);
         if (! $filter['success']) return $filter;
 
