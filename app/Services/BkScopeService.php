@@ -25,7 +25,8 @@ class BkScopeService
 
     public function resolveStudentIds(
         string $permission,
-        int $userId
+        int $userId,
+        ?int $idTahun = null
     ): array {
         $scope = $this->authService->resolveScope($permission, $userId);
 
@@ -60,21 +61,33 @@ class BkScopeService
                 return $this->fail('NO_GURU_IDENTITY', 'User tidak memiliki identitas Guru.');
             }
 
-            $tahun = $this->db
-                ->table('tahun_ajaran')
-                ->select('id')
-                ->where('status_aktif', 1)
-                ->where('deleted_at', null)
-                ->get()
-                ->getRowArray();
+            $resolvedYear = (int) ($idTahun ?? 0);
+            if ($resolvedYear <= 0) {
+                $tahun = $this->db
+                    ->table('tahun_ajaran')
+                    ->select('id')
+                    ->where('status_aktif', 1)
+                    ->where('deleted_at', null)
+                    ->get()
+                    ->getRowArray();
+                $resolvedYear = (int) ($tahun['id'] ?? 0);
+            } else {
+                $exists = $this->db
+                    ->table('tahun_ajaran')
+                    ->where('id', $resolvedYear)
+                    ->where('deleted_at', null)
+                    ->countAllResults() > 0;
 
-            $idTahun = (int) ($tahun['id'] ?? 0);
+                if (! $exists) {
+                    return $this->fail('INVALID_PERIOD', 'Tahun Ajaran tidak valid.');
+                }
+            }
 
-            if ($idTahun <= 0) {
+            if ($resolvedYear <= 0) {
                 return $this->fail('NO_ACTIVE_YEAR', 'Tidak ada Tahun Ajaran aktif.');
             }
 
-            $kelasIds = $this->authService->getKelasDiampu($idGuru, $idTahun);
+            $kelasIds = $this->authService->getKelasDiampu($idGuru, $resolvedYear);
 
             if ($kelasIds === []) {
                 return [
@@ -87,7 +100,7 @@ class BkScopeService
             $rows = $this->db
                 ->table('anggota_kelas')
                 ->select('id_siswa')
-                ->where('id_tahun', $idTahun)
+                ->where('id_tahun', $resolvedYear)
                 ->whereIn('id_kelas', $kelasIds)
                 ->get()
                 ->getResultArray();
