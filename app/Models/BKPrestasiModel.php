@@ -30,8 +30,7 @@ class BKPrestasiModel
 
     public function countFiltered(array $filter, ?array $allowedStudentIds): int
     {
-        return $this->baseBuilder($filter, $allowedStudentIds)
-            ->countAllResults();
+        return $this->baseBuilder($filter, $allowedStudentIds)->countAllResults();
     }
 
     public function getForExport(
@@ -87,6 +86,7 @@ class BKPrestasiModel
             ->table('catatan_prestasi cp')
             ->select([
                 'cp.id',
+                'cp.id_tahun',
                 'cp.id_siswa',
                 'cp.nama_prestasi',
                 'cp.tingkat',
@@ -96,8 +96,11 @@ class BKPrestasiModel
                 'cp.created_at',
                 's.nisn',
                 's.nama AS nama_siswa',
+                'ta.nama_tahun',
+                'ta.semester',
             ])
-            ->join('siswa s', 's.id = cp.id_siswa');
+            ->join('siswa s', 's.id = cp.id_siswa')
+            ->join('tahun_ajaran ta', 'ta.id = cp.id_tahun', 'left');
 
         if (is_array($allowedStudentIds)) {
             if ($allowedStudentIds === []) {
@@ -107,19 +110,23 @@ class BKPrestasiModel
             }
         }
 
-        if (!empty($filter['tingkat'])) {
+        if (! empty($filter['id_tahun'])) {
+            $builder->where('cp.id_tahun', (int) $filter['id_tahun']);
+        }
+
+        if (! empty($filter['tingkat'])) {
             $builder->where('cp.tingkat', (string) $filter['tingkat']);
         }
 
-        if (!empty($filter['tanggal_mulai'])) {
+        if (! empty($filter['tanggal_mulai'])) {
             $builder->where('cp.tanggal >=', (string) $filter['tanggal_mulai']);
         }
 
-        if (!empty($filter['tanggal_selesai'])) {
+        if (! empty($filter['tanggal_selesai'])) {
             $builder->where('cp.tanggal <=', (string) $filter['tanggal_selesai']);
         }
 
-        if (!empty($filter['search'])) {
+        if (! empty($filter['search'])) {
             $search = trim((string) $filter['search']);
             $builder->groupStart()
                 ->like('s.nama', $search)
