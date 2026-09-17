@@ -98,9 +98,12 @@ class BKPrestasiModel
                 's.nama AS nama_siswa',
                 'ta.nama_tahun',
                 'ta.semester',
+                'k.nama_kelas',
             ])
             ->join('siswa s', 's.id = cp.id_siswa')
-            ->join('tahun_ajaran ta', 'ta.id = cp.id_tahun', 'left');
+            ->join('tahun_ajaran ta', 'ta.id = cp.id_tahun', 'left')
+            ->join('anggota_kelas ak', 'ak.id_siswa = cp.id_siswa AND ak.id_tahun = cp.id_tahun', 'left', false)
+            ->join('kelas k', 'k.id = ak.id_kelas', 'left');
 
         if (is_array($allowedStudentIds)) {
             if ($allowedStudentIds === []) {
