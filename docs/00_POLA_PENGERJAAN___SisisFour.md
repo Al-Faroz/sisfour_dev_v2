@@ -1,8 +1,8 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**closure patch / focused re-smoke pending**)  
+**Tanggal Acuan:** 17 September 2026  
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**closure patch / focused local runtime PASS / static + hosting re-smoke pending**)  
 **Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
 **Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
 
@@ -157,7 +157,7 @@ G2                         CLOSED / MERGED (PR #5)
 G3.1 Mobile foundation     CLOSED / MERGED (PR #6)
 G3.2 Guru/Wali Presensi    CLOSED / MERGED (PR #7)
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED (PR #8)
-G3.3.1 Fondasi BK          CLOSURE PATCH / FOCUSED RE-SMOKE PENDING (PR #9)
+G3.3.1 Fondasi BK          CLOSURE PATCH / LOCAL RUNTIME PASS / STATIC+HOSTING PENDING (PR #9)
 G3.4 Dashboard/Workflow BK NEXT setelah PR #9 merge
 G3.5 Pimpinan              setelah G3.4
 G3.6 Siswa                 setelah G3.5
@@ -214,7 +214,7 @@ Status Proses / Selesai
 
 Perubahan `Pengaturan Form Konseling` berlaku sebagai daftar pilihan aktif, tetapi **tidak boleh merusak nilai Rencana Berikutnya yang sudah tersimpan pada record lama**. Saat record lama dibuka, nilai yang sudah tersimpan tetap harus tampil dan boleh dipertahankan walaupun opsi tersebut kemudian dihapus dari Settings. Nilai legacy dari record lain tidak boleh menjadi bypass untuk memilih opsi yang sudah dinonaktifkan.
 
-Closure patch untuk invariant ini ditemukan saat full docs/source audit 16 September 2026. Patch tidak mengubah schema/SQL dan memerlukan focused local + hosting re-smoke sebelum PR #9 Ready/Merge.
+Closure patch untuk invariant ini ditemukan saat full docs/source audit 16 September 2026 dan tidak mengubah schema/SQL. Focused local runtime UAT pada 17 September 2026 telah **PASS**: nilai lama tetap tampil sebagai `(tersimpan)`, dapat dipertahankan saat save, dapat diganti ke opsi aktif baru, dan tidak muncul pada record lain. Evidence static gate head terbaru dan focused hosting re-smoke masih wajib sebelum PR #9 Ready/Merge.
 
 ### Identity BK
 
@@ -306,4 +306,4 @@ PR review selesai
 user approval eksplisit
 ```
 
-G3.3.1 telah memenuhi seluruh gate besar sebelumnya; closure patch preservasi Rencana historis harus lulus focused re-smoke sebelum status kembali FINAL PASS dan PR #9 masuk Ready/Merge gate.
+G3.3.1 telah memenuhi seluruh gate besar sebelumnya dan focused local runtime UAT closure patch sudah PASS. Yang tersisa sebelum status kembali FINAL PASS adalah evidence static gate head terbaru dan focused hosting re-smoke, lalu approval eksplisit untuk Ready/Merge.
