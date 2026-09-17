@@ -6,7 +6,7 @@
 **Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
 **Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
 
-> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. Keputusan domain yang lebih rinci tetap berada pada dokumen domain masing-masing.
+> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. Keputusan domain yang lebih rinci tetap berada pada dokumen domain masing-masing. **`00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib dokumen ini dan menetapkan mapping global yang harus digunakan sebelum coding/review fitur apa pun.**
 
 ## 1. Kedudukan `docs/`
 
@@ -15,27 +15,52 @@ Folder `docs/` adalah Single Source of Truth untuk business rule, arsitektur, da
 Urutan baca canonical:
 
 ```text
-00  Pola Pengerjaan
-01  Masterplan
-02  Database
-03  Auth / RBAC / Menu
-04  Master Data & Student Lifecycle
-05  Presensi
-06  Laporan
-07  BK / Konseling / Prestasi / Kartu
-08  Dashboard / Settings / Backup / Log
-09  Profile / Personalia
-10  Deployment Production
-11  UI/UX SisisFour
-11  UI/UX Role Experience
-12  Audit UI/UX Admin
-13  CI4 + Sneat Global Layout Standard
-14  SisisFour Mobile & Cordova UI/UX Standard
-15  Testing / Regression / Release Gate
-16  Cordova Packaging & Integration
+00   Pola Pengerjaan
+00A  Global Standard SisisFour (WAJIB sebelum dokumen domain)
+01   Masterplan
+02   Database
+03   Auth / RBAC / Menu
+04   Master Data & Student Lifecycle
+05   Presensi
+06   Laporan
+07   BK / Konseling / Prestasi / Kartu
+08   Dashboard / Settings / Backup / Log
+09   Profile / Personalia
+10   Deployment Production
+11   UI/UX SisisFour
+11   UI/UX Role Experience
+12   Audit UI/UX Admin
+13   CI4 + Sneat Global Layout Standard
+14   SisisFour Mobile & Cordova UI/UX Standard
+15   Testing / Regression / Release Gate
+16   Cordova Packaging & Integration
 Routes Final
 Tree Structure
 ```
+
+`00A_GLOBAL_STANDARD_SISFOUR.md` wajib digunakan untuk memetakan setiap fitur melalui urutan:
+
+```text
+Menu/Fitur
+→ Use Case
+→ SSOT/Domain
+→ Access Boundary
+→ Capability
+→ Scope
+→ Period Context
+→ Target Validation
+→ Business Invariant
+→ Persistence
+→ Service Boundary
+→ Presentation UI
+→ Output Channel
+→ Audit
+→ Testing/Regression
+→ Docs Sync
+→ Deployment Gate
+```
+
+Jangan mulai keputusan business/security dari tombol UI, tabel, query, atau struktur database.
 
 ## 2. Hirarki Standar UI
 
@@ -56,6 +81,7 @@ Aturan yang bersifat global harus diterapkan konsisten pada feature yang sedang 
 ## 3. Sumber Kebenaran Teknis
 
 ```text
+Global Map  -> docs/00A_GLOBAL_STANDARD_SISFOUR.md
 Database    -> dump SQL aktual + schema live + SQL delta final di database/
 Route       -> Config\Routing::$routeFiles + seluruh route file terdaftar
 Auth/RBAC   -> users, user_roles, permissions, role_permissions + Service
@@ -74,22 +100,26 @@ Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ## 4. Pola Perubahan Source
 
 ```text
-1. baca docs canonical + source + database aktual
-2. kunci invariant/business rule
-3. audit schema/permission/menu bila domain berubah
-4. sinkronkan SSOT keputusan baru
-5. Model/Query
-6. Service
-7. Controller/Routes
-8. View/JS/CSS
-9. SQL localhost bila schema berubah
-10. static gate
-11. runtime/UAT localhost
-12. audit dump hosting sebelum SQL hosting
-13. hosting execution/smoke hanya dengan approval
-14. final docs/PR sync
-15. PR Ready / merge hanya dengan approval eksplisit
+1. baca 00 + 00A + docs domain + source + database aktual
+2. petakan fitur dengan Global Standard: access/capability/scope/period/target/invariant
+3. kunci invariant/business rule
+4. audit schema/permission/menu bila domain berubah
+5. sinkronkan SSOT keputusan baru
+6. Model/Query
+7. Service
+8. Controller/Routes
+9. View/JS/CSS
+10. SQL localhost bila schema berubah
+11. static gate
+12. runtime/UAT localhost
+13. cross-role + period/historical + output-channel regression
+14. audit dump hosting sebelum SQL hosting
+15. hosting execution/smoke hanya dengan approval
+16. final docs/PR sync
+17. PR Ready / merge hanya dengan approval eksplisit
 ```
+
+Jika mapping Global Standard belum jelas pada bagian yang menyentuh business rule/security/data integrity, jangan menebak dan jangan lanjut coding sebelum keputusan dikunci.
 
 ## 5. Aturan Git / Deployment
 
@@ -119,12 +149,15 @@ Keputusan 17 September 2026:
 
 > Semua tabel/list periodik atau historis yang memang mempunyai dimensi Tahun Ajaran wajib menyediakan filter Tahun Ajaran.
 
+Canonical period mapping mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md`:
+
 ```text
-initial = Tahun Ajaran aktif
-Reset   = Tahun Ajaran aktif
-history = selectable bila domain mendukung
-export  = mengikuti Tahun Ajaran terpilih
-create  = Service snapshot Tahun Ajaran aktif
+Read / History           = Tahun Ajaran filter
+Create Parent Baru       = Tahun Ajaran aktif
+Update Existing Record   = tetap Tahun Ajaran record
+Create Child / Follow-up = mengikuti Tahun Ajaran parent
+Export                   = mengikuti period yang sedang dibaca
+Reset filter             = kembali Tahun Ajaran aktif
 ```
 
 Jangan menambahkan filter Tahun Ajaran palsu pada tabel global/non-periodik seperti User, Permission, Menu, Setting, Log, Master Pelanggaran.
@@ -217,6 +250,20 @@ Focused local UAT parent historical-Rencana sebelumnya PASS. Behavior yang sama 
 
 ## 9. Permission / Privacy
 
+Access Boundary Konseling:
+
+```text
+Admin     = masuk domain Konseling
+Operator  = masuk domain Konseling
+BK        = masuk domain Konseling
+
+Pimpinan  = TIDAK memiliki akses Konseling
+Guru/Wali = TIDAK memiliki akses Konseling
+Siswa     = TIDAK memiliki akses Konseling
+```
+
+Capability hanya dibahas untuk actor yang sudah lolos Access Boundary:
+
 ```text
 bk_konseling.view      Admin, Operator, BK
 bk_konseling.manage    Admin, Operator, BK
@@ -224,7 +271,7 @@ bk_konseling.export    Admin, Operator, BK
 bk_konseling.settings  Admin, BK
 ```
 
-Pimpinan/Guru/Wali/Siswa tidak mendapat menu/detail/widget Konseling. Route filter + Service tetap wajib.
+Pimpinan/Guru/Wali/Siswa tidak mendapat menu/detail/widget Konseling. Route filter + Service tetap wajib. Jangan menuliskan role di luar Access Boundary sebagai sekadar "tidak boleh edit/delete" karena itu mengaburkan bahwa mereka tidak mempunyai akses domain sama sekali.
 
 ## 10. SQL G3.3.1
 
@@ -266,10 +313,13 @@ git status
 
 Runtime wajib memeriksa Tahun Ajaran default/reset/history/export, filter Konseling 2 baris, follow-up Konseling multiple entry, historical Rencana, no-delete, RBAC/privacy, dan no horizontal overflow.
 
+Cross-role/period/output-channel regression mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md` dan `15_TESTING_POLISH — SisisFour.md`.
+
 ## 12. Definition of Done G3.3.1 Rework
 
 ```text
 SSOT sinkron
+Global Standard mapping konsisten
 source stabil
 localhost SQL PASS
 local runtime UAT PASS
