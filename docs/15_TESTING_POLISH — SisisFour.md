@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Phase aktif:** G3.3.1 closure patch — **focused re-smoke pending**
+**Tanggal Acuan:** 17 September 2026  
+**Phase aktif:** G3.3.1 closure patch — **focused local runtime PASS / static + hosting re-smoke pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -103,7 +103,7 @@ Final acceptance: KPI Guru, Aksi Cepat permission-aware, Guru/Wali context benar
 
 ## 7. G3.3.1 — Fondasi BK + Konseling
 
-Seluruh gate besar sebelumnya telah PASS pada local + hosting, tetapi full docs/source audit menemukan satu closure edge-case. Karena source berubah setelah hosting smoke, PR #9 belum boleh masuk Ready sebelum focused re-smoke patch ini PASS.
+Seluruh gate besar sebelumnya telah PASS pada local + hosting. Full docs/source audit menemukan satu closure edge-case preservasi Rencana historis. Patch telah lolos focused local runtime UAT, tetapi PR #9 belum boleh masuk Ready sebelum static gate head terbaru dan focused hosting re-smoke PASS.
 
 ### 7.1 Business Contract — PASS
 
@@ -194,24 +194,27 @@ Patch source:
 - Service Stage 2 hanya menambahkan `existing.rencana_berikutnya` ke allowed set record tersebut;
 - tidak ada schema/SQL change.
 
-Status: **PATCHED / STATIC + FOCUSED RUNTIME RE-SMOKE PENDING**.
+Focused local runtime UAT 17 September 2026: **PASS**.
 
-Focused test minimum:
+Evidence user:
 
 ```text
-1. buat/pilih record Konseling dengan Rencana X
-2. hapus X dari Pengaturan Form dan simpan
-3. buka ulang record lama
-4. pastikan X tampil sebagai nilai tersimpan
-5. klik Simpan tanpa mengganti X -> sukses dan X tetap
-6. ganti ke opsi aktif Y -> sukses
-7. record lain yang tidak pernah menyimpan X tidak boleh memakai X
-8. restore/reset Settings sesuai data UAT yang diinginkan
+A. opsi lama sesudah dihapus Settings tetap tampil di record lama   PASS
+B. record lama dapat disimpan tanpa mengganti opsi lama             PASS
+C. opsi lama dapat diganti ke opsi aktif baru                        PASS
+D. opsi lama tidak muncul pada record lain                           PASS
 ```
 
-Lakukan local dulu, kemudian deploy dua file source yang berubah ke hosting dan ulang focused smoke yang sama. Tidak ada SQL hosting tambahan.
+Yang masih wajib sebelum PR Ready:
 
-### 7.7 Pengaturan Form Konseling — PASS selain focused interaction di atas
+```text
+closure static gate head terbaru   PENDING
+focused hosting re-smoke           PENDING
+```
+
+Tidak ada SQL hosting tambahan.
+
+### 7.7 Pengaturan Form Konseling — PASS
 
 ```text
 storage = setting_sistem / bk_konseling_form_options
@@ -270,14 +273,15 @@ Broad application/static audit    PASS
 FINAL UAT localhost sebelumnya    PASS
 Security/privacy                  PASS
 Hosting SQL + broad smoke         PASS
-Full docs audit                   PASS setelah sync commit
+Full docs audit                   PASS
 Closure patch source              PATCHED
-Closure patch local static/UAT    PENDING
-Closure patch hosting smoke       PENDING
+Closure focused local runtime UAT PASS
+Closure static gate latest head   PENDING
+Closure hosting smoke             PENDING
 PR #9                             DRAFT / belum merge
 ```
 
-PR hanya kembali ke FINAL PASS setelah dua focused gate patch selesai. Ready/Merge tetap approval eksplisit terpisah.
+PR hanya kembali ke FINAL PASS setelah static gate head terbaru dan focused hosting re-smoke selesai. Ready/Merge tetap approval eksplisit terpisah.
 
 ## 8. G3.4 — BK Workflow + Dashboard BK — NEXT
 
@@ -346,7 +350,7 @@ G2 CLOSED      → business/admin baseline
 G3.1 CLOSED    → mobile foundation
 G3.2 CLOSED    → Guru/Wali Presensi & Jurnal
 G3.3 CLOSED    → Dashboard Guru/Wali
-G3.3.1 PASS    → hanya setelah closure focused re-smoke PASS
+G3.3.1 PASS    → hanya setelah closure static + focused hosting re-smoke PASS
 G3 PASS        → mobile/WebView UI siap
 G4 PASS        → APK distribution gate
 ```
