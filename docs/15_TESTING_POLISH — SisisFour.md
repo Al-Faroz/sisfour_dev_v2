@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 17 September 2026  
-**Phase aktif:** G3.3.1 closure patch — **focused local runtime PASS / static + hosting re-smoke pending**
+**Phase aktif:** G3.3.1 rework — **periodic Tahun Ajaran + Konseling follow-up 1:N / local gate pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -12,32 +12,22 @@
 php -l path\file.php
 node --check path\file.js
 php spark routes
-git diff --check
-git status --short
+git diff --check origin/main...HEAD
+git status
 ```
 
-Tidak boleh ada syntax error, route target hilang, file tidak sengaja terhapus, atau whitespace conflict. Perubahan permission/schema harus dilengkapi audit SQL/runtime boundary.
+Tidak boleh ada syntax error, route target hilang, file tidak sengaja terhapus, atau whitespace conflict. Perubahan schema harus dilengkapi SQL local + verification sebelum hosting.
 
-## 2. G2 — CLOSED / MERGED
+## 2. Phase Closed
 
 ```text
-PR #5          MERGED
-merge commit   375766c07f3856515a71ffdb07f3681c3047ca31
+G2     CLOSED / MERGED — PR #5
+G3.1   CLOSED / MERGED — PR #6
+G3.2   CLOSED / MERGED — PR #7
+G3.3   CLOSED / MERGED — PR #8
 ```
 
-F06–F14 tidak dibuka ulang pada G3 tanpa regression/blocker nyata.
-
-## 3. G3 Global Mobile Gate
-
-Role prioritas:
-
-```text
-Pimpinan
-BK
-Guru
-Guru + Wali
-Siswa
-```
+## 3. Global UI/UX Regression
 
 Viewport wajib:
 
@@ -56,303 +46,272 @@ Acceptance global:
 - no body horizontal overflow;
 - no horizontal table scroll role operasional;
 - Nama sebagai primary identity;
-- identifier sekunder;
-- KPI 2×2 mobile bila ada KPI;
+- filter desktop yang banyak tidak dipaksa menjadi satu baris sempit;
+- tabel/list periodik mempunyai Tahun Ajaran default aktif;
+- Reset period filter kembali ke Tahun Ajaran aktif;
+- export mengikuti period filter;
 - touch target utama 44–48px;
 - modal/keyboard nyaman;
-- filter compact;
-- mutation busy guard;
-- network failure mempertahankan input penting;
-- server-confirmed success;
+- busy guard;
+- network failure tidak menjadi sukses palsu;
 - no uncaught browser error;
 - direct URL tidak menembus RBAC/Service.
 
-## 4. G3.1 — Mobile Foundation — CLOSED / MERGED
+## 4. G3.3.1 — Gate Lama yang Tetap Valid
+
+Sudah PASS sebelum rework 17 September:
 
 ```text
-PR #6          MERGED
-merge commit   d10ced5d70ffc68642067aac44feeb6a91cacd29
+poin pelanggaran retired
+Catatan Pelanggaran + Tindak Lanjut 1:N baseline
+Prestasi baseline
+Konseling Tahap 1/Tahap 2 baseline
+Settings Form Konseling
+Admin/Operator/BK operational matrix
+Admin/BK Settings
+Pimpinan/Guru/Wali/Siswa tanpa Konseling
+actor users.id / BK Pegawai
+baseline SQL local + hosting
+baseline broad hosting smoke
+historical Rencana parent focused local UAT
 ```
 
-Foundation accepted: safe-area, mobile density, touch target, adaptive operational table/list, mobile form/filter, sticky action, modal compatibility, compact pagination, loading/empty/error, dan WebView-friendly overflow baseline.
-
-## 5. G3.2 — Guru/Wali Presensi & Jurnal — CLOSED / MERGED
+Hasil historical Rencana yang sudah terbukti lokal:
 
 ```text
-PR #7          MERGED
-merge commit   176e5f764850d030968524af47117f259449064c
+opsi lama setelah dihapus Settings tetap tampil di record lama   PASS
+record lama dapat disimpan tanpa mengganti opsi lama             PASS
+opsi lama dapat diganti ke opsi aktif baru                        PASS
+opsi lama tidak muncul pada record lain                           PASS
 ```
 
-Gate PASS mencakup Presensi name-first, H/S/I/A mobile, Guru/Wali scope, Jurnal Materi+Catatan, child exception S/I/A, roster validation, atomic parent+child, official-Presensi invariant, no N+1, Detail lazy-load, serta SQL local/hosting.
+## 5. Rework 17 September 2026
 
-Schema final:
+Keputusan baru:
 
 ```text
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
-database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+A. Filter banyak desktop boleh/wajib dipecah 2 baris bila padat.
+B. Semua tabel periodik/historis memakai filter Tahun Ajaran default aktif.
+C. Catatan Pelanggaran dan Prestasi mendapat snapshot id_tahun.
+D. Konseling mempunyai Tindak Lanjut 1:N.
+E. Tidak ada delete Konseling atau Tindak Lanjut Konseling.
+F. Semua aturan global UI/UX tetap berlaku.
 ```
 
-## 6. G3.3 — Dashboard Guru/Wali — CLOSED / MERGED
+Source target utama:
 
 ```text
-PR #8          MERGED
-merge commit   06e4e559c045763096058fc889342da78d973314
+app/Services/PeriodContextService.php
+app/Models/BKKasusModel.php
+app/Models/BKPrestasiModel.php
+app/Models/KonselingBkModel.php
+app/Models/KonselingBkFollowUpModel.php
+app/Services/BkService.php
+app/Services/PrestasiService.php
+app/Services/KonselingBkService.php
+app/Services/KonselingBkExportService.php
+app/Controllers/BKKonseling.php
+app/Config/RoutesBKFoundation.php
+app/Views/bk/kasus.php
+app/Views/bk/prestasi.php
+app/Views/bk/konseling.php
+assets/js/bk/kasus.js
+assets/js/bk/prestasi.js
+assets/js/bk/konseling.js
 ```
 
-Final acceptance: KPI Guru, Aksi Cepat permission-aware, Guru/Wali context benar, no fake Hadir when no row, mobile card/list, dan no horizontal operational overflow.
-
-## 7. G3.3.1 — Fondasi BK + Konseling
-
-Seluruh gate besar sebelumnya telah PASS pada local + hosting. Full docs/source audit menemukan satu closure edge-case preservasi Rencana historis. Patch telah lolos focused local runtime UAT, tetapi PR #9 belum boleh masuk Ready sebelum static gate head terbaru dan focused hosting re-smoke PASS.
-
-### 7.1 Business Contract — PASS
+SQL local:
 
 ```text
-Catatan Kasus -> Catatan Pelanggaran Siswa pada experience/UI
-poin tidak tampil/dihitung/diekspor/diranking
-kategori Ringan/Sedang/Berat tetap klasifikasi
-Top Poin retired
-Tindak Lanjut Pelanggaran 1:N
-Prestasi terpisah
-Konseling terpisah dan rahasia
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
 ```
 
-### 7.2 Catatan Pelanggaran / Tindak Lanjut — PASS
+## 6. Gate SQL Local Rework
 
-- create/edit Catatan Pelanggaran;
-- detail: Riwayat Tindak Lanjut sebelum form;
-- create/edit Tindak Lanjut;
-- actor `Dicatat oleh`;
-- export dua sheet + Kelas;
-- no points.
+Import SQL local hanya setelah source terbaru dipull.
 
-### 7.3 Prestasi — PASS
-
-- create/edit aman;
-- project confirmation untuk delete;
-- export memiliki Kelas;
-- permission/scope tidak regression.
-
-### 7.4 Konseling Tahap 1 — PASS
+Wajib verifikasi:
 
 ```text
-Kelas
-→ Siswa aktif anggota kelas/Tahun aktif
-→ Tanggal
-→ Pertemuan ke-
-→ Bentuk Layanan
-→ Cara Hadir
-→ Bidang
-→ Topik
-→ status Proses
+catatan_kasus.id_tahun tersedia
+catatan_prestasi.id_tahun tersedia
+index tahun+tanggal tersedia
+tindak_lanjut_konseling_bk tersedia
+FK parent Konseling = RESTRICT
+FK actor = SET NULL
+jumlah legacy id_tahun NULL diketahui, bukan diam-diam diabaikan
 ```
 
-Server memvalidasi kelas/tahun, membership aktif, option, permission, dan actor `created_by -> users.id`. BK tidak wajib identity Guru.
+Record legacy hanya di-backfill jika siswa mempunyai tepat satu Tahun Ajaran pada histori membership. Record ambigu boleh tetap NULL dan harus tercatat pada verification count.
 
-### 7.5 Konseling Tahap 2 — Broad Flow PASS
+## 7. UAT Tahun Ajaran — Catatan Pelanggaran
+
+Minimum:
 
 ```text
-Perkembangan Tersimpan
-→ Uraian Masalah
-→ Hasil Pembahasan & Kesepakatan
-→ Rencana Berikutnya
-→ Tanggal Berikutnya
-→ Status Proses/Selesai
+1. buka Catatan Pelanggaran -> Tahun Ajaran aktif terpilih default
+2. Reset -> kembali ke Tahun Ajaran aktif
+3. pilih Tahun historis -> tabel hanya data period tersebut
+4. kembali ke aktif -> data aktif kembali
+5. create Catatan baru -> tersimpan dengan id_tahun aktif walau filter sebelumnya historis
+6. export -> hanya period yang dipilih
+7. mobile tidak overflow horizontal
 ```
 
-Invariant:
+## 8. UAT Tahun Ajaran — Prestasi
 
-- metadata Tahap 1 tidak berubah;
-- `Proses` boleh incomplete;
-- `Selesai` wajib Uraian + Hasil;
-- tanggal berikutnya tidak sebelum tanggal Konseling;
-- tidak ada delete workflow.
-
-### 7.6 Closure Patch — Preservasi Rencana Historis
-
-Kasus yang ditemukan saat audit:
+Minimum:
 
 ```text
-record lama menyimpan Rencana X
-→ Admin/BK menghapus X dari Pengaturan Form
-→ record lama dibuka kembali
+1. default Tahun Ajaran aktif
+2. Reset kembali aktif
+3. histori period dapat dipilih
+4. create baru selalu snapshot periode aktif server
+5. export mengikuti period terpilih
+6. mobile/table tetap sesuai global no-horizontal-overflow rule
 ```
 
-Kontrak final:
+## 9. UAT Tahun Ajaran — Konseling
+
+Minimum:
 
 ```text
-Rencana X harus tetap terlihat sebagai nilai tersimpan
-record lama boleh mempertahankan X
-user boleh mengganti ke opsi aktif baru
-nilai X tidak boleh menjadi opsi baru global setelah dihapus
-forged X pada record lain tetap ditolak
+1. default Tahun Ajaran aktif
+2. filter desktop tampil 2 baris, tidak dipaksa satu baris
+3. ganti Tahun Ajaran -> opsi Kelas pada filter ikut period terpilih
+4. Reset -> Tahun aktif + filter lain kosong
+5. create Konseling tetap hanya kelas/siswa Tahun aktif
+6. listing/export mengikuti Tahun terpilih
+7. no horizontal overflow desktop/mobile
 ```
 
-Patch source:
+## 10. UAT Konseling Follow-up 1:N
 
-- JS Detail menambahkan opsi bertanda `(tersimpan)` hanya untuk record yang sedang dibuka bila nilai tersebut sudah tidak ada di daftar aktif;
-- Service Stage 2 hanya menambahkan `existing.rencana_berikutnya` ke allowed set record tersebut;
-- tidak ada schema/SQL change.
-
-Focused local runtime UAT 17 September 2026: **PASS**.
-
-Evidence user:
+Buat satu parent Konseling, lengkapi pertemuan awal, lalu:
 
 ```text
-A. opsi lama sesudah dihapus Settings tetap tampil di record lama   PASS
-B. record lama dapat disimpan tanpa mengganti opsi lama             PASS
-C. opsi lama dapat diganti ke opsi aktif baru                        PASS
-D. opsi lama tidak muncul pada record lain                           PASS
+1. Tambah Tindak Lanjut #1 status Proses                  PASS/FAIL
+2. Tambah Tindak Lanjut #2 status Proses                  PASS/FAIL
+3. histori menampilkan #1 dan #2 tanpa overwrite          PASS/FAIL
+4. Edit #1 hanya mengubah #1                              PASS/FAIL
+5. parent status mengikuti entry terbaru                  PASS/FAIL
+6. Tambah #3 status Selesai + hasil wajib                 PASS/FAIL
+7. parent status menjadi Selesai                          PASS/FAIL
+8. tanggal follow-up < tanggal parent ditolak             PASS/FAIL
+9. tanggal berikutnya < tanggal follow-up ditolak         PASS/FAIL
+10. status Selesai tanpa Hasil/Kesepakatan ditolak        PASS/FAIL
+11. tidak ada tombol/route delete parent                  PASS/FAIL
+12. tidak ada tombol/route delete follow-up               PASS/FAIL
 ```
 
-Yang masih wajib sebelum PR Ready:
+### Historical Rencana pada Follow-up
 
 ```text
-closure static gate head terbaru   PENDING
-focused hosting re-smoke           PENDING
+1. follow-up menyimpan Rencana X
+2. X dihapus dari Settings
+3. buka follow-up lama -> X (tersimpan)
+4. save tanpa mengganti X -> sukses
+5. ganti ke opsi aktif Y -> sukses
+6. follow-up lain yang tidak pernah menyimpan X tidak boleh memilih X
 ```
 
-Tidak ada SQL hosting tambahan.
+## 11. Export Konseling Rework
 
-### 7.7 Pengaturan Form Konseling — PASS
+XLSX wajib mempunyai:
 
 ```text
-storage = setting_sistem / bk_konseling_form_options
-Bentuk Layanan max 50
-Cara Hadir max 80
-Topik max 150
-Rencana max 100
-1..40 pilihan per group
-Bidang fixed = Pribadi/Sosial/Belajar/Karier
-Status fixed = Proses/Selesai
-fallback default aman
+Sheet 1 = Konseling BK parent/pertemuan awal
+Sheet 2 = Tindak Lanjut 1:N
 ```
 
-Access Settings: Admin/BK saja.
+Export mengikuti filter Tahun Ajaran dan privacy boundary Admin/Operator/BK.
 
-### 7.8 Privacy / RBAC — PASS
+## 12. Privacy / RBAC Regression
 
 ```text
 view/manage/export -> effective role Admin/Operator/BK + permission
 settings           -> effective role Admin/BK + permission
 ```
 
-Pimpinan/Guru/Wali/Siswa direct URL/menu/widget/detail ditolak/tidak dibentuk.
+Pimpinan/Guru/Wali/Siswa tidak boleh memperoleh menu/detail/widget/direct access Konseling.
 
-### 7.9 SQL / Database — PASS, tidak berubah oleh closure patch
+## 13. No-delete Contract Konseling
 
-Final local:
-
-```text
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
-```
-
-Final hosting:
+Dilarang pada rework ini:
 
 ```text
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+DELETE route parent Konseling
+DELETE route tindak_lanjut_konseling_bk
+tombol Hapus Konseling
+tombol Hapus Tindak Lanjut Konseling
+cascade delete histori follow-up dari aplikasi
 ```
+
+Edit tetap diperbolehkan sesuai permission dan harus tercatat pada audit actor/update fields.
+
+## 14. Static Gate Setelah Local UAT
+
+Jalankan pada **head final setelah semua source/docs selesai**:
+
+```powershell
+$phpFiles = git diff --name-only origin/main...HEAD -- '*.php'
+foreach ($file in $phpFiles) {
+    php -l $file
+    if ($LASTEXITCODE -ne 0) { throw "PHP lint failed: $file" }
+}
+
+$jsFiles = git diff --name-only origin/main...HEAD -- '*.js'
+foreach ($file in $jsFiles) {
+    node --check $file
+    if ($LASTEXITCODE -ne 0) { throw "JS check failed: $file" }
+}
+
+php spark routes
+if ($LASTEXITCODE -ne 0) { throw "Route check failed" }
+
+git diff --check origin/main...HEAD
+if ($LASTEXITCODE -ne 0) { throw "git diff --check failed" }
+
+git status
+```
+
+Jangan klaim PASS tanpa output user/CI.
+
+## 15. Hosting Gate
+
+Baseline hosting PASS **tidak membuktikan rework 17 September**.
+
+Setelah localhost PASS:
 
 ```text
-localhost SQL/UAT                 PASS
-hosting dump compatibility audit  PASS
-hosting SQL execution             PASS
-broad hosting smoke UAT           PASS
-closure patch SQL                 NOT REQUIRED
+1. audit dump/schema hosting aktual lagi
+2. buat delta hosting khusus state aktual
+3. review SQL hosting
+4. execution hanya dengan approval eksplisit user
+5. focused hosting UAT period filter + follow-up 1:N
+6. final docs sync
+7. PR Ready hanya dengan approval user
+8. merge hanya dengan approval merge terpisah
 ```
 
-### 7.10 Cross-role / Responsive — PASS
-
-Pimpinan no points/no Konseling, Wali permission-aware/no Konseling, Siswa self-only/no points/no Konseling, viewport tested tanpa body horizontal overflow.
-
-### 7.11 PR Gate Saat Ini
+## 16. Current Status
 
 ```text
-Broad application/static audit    PASS
-FINAL UAT localhost sebelumnya    PASS
-Security/privacy                  PASS
-Hosting SQL + broad smoke         PASS
-Full docs audit                   PASS
-Closure patch source              PATCHED
-Closure focused local runtime UAT PASS
-Closure static gate latest head   PENDING
-Closure hosting smoke             PENDING
-PR #9                             DRAFT / belum merge
+Broad G3.3.1 baseline                     PASS
+Historical Rencana parent local UAT        PASS
+17 Sep source implementation               IMPLEMENTED
+17 Sep docs canonical sync                 IN PROGRESS / branch
+17 Sep localhost delta SQL                 PREPARED
+17 Sep localhost SQL execution             PENDING
+17 Sep local runtime UAT                   PENDING
+17 Sep final static gate                   PENDING
+17 Sep hosting dump audit/delta/re-smoke   NOT STARTED
+PR #9                                      DRAFT / BELUM MERGE
+G3.4                                       BELUM DIMULAI
 ```
 
-PR hanya kembali ke FINAL PASS setelah static gate head terbaru dan focused hosting re-smoke selesai. Ready/Merge tetap approval eksplisit terpisah.
+## 17. G3.4 dan Seterusnya
 
-## 8. G3.4 — BK Workflow + Dashboard BK — NEXT
-
-Hanya dimulai setelah PR #9 merged. Gunakan foundation final:
-
-```text
-Dashboard BK mobile-first
-Konseling Proses/follow-up terdekat
-Catatan Pelanggaran terbaru/berat tanpa poin
-Tindak Lanjut perlu perhatian
-EWS
-Prestasi
-quick action permission-aware
-no wide operational table
-name-first
-privacy Konseling tetap ketat
-```
-
-## 9. G3.5 — Pimpinan
-
-Monitoring/decision; tidak mendapat detail Konseling.
-
-## 10. G3.6 — Siswa
-
-Self-service data diri; Catatan Pelanggaran tanpa poin; Konseling tidak tampil.
-
-## 11. G3.7 — Global Mobile Sweep
-
-Audit seluruh role: overflow, density, modal, safe-area, touch target, pagination, name-first, loading/error, permission visibility.
-
-## 12. G3.8 — Viewport/WebView Readiness
-
-Fokus safe-area, keyboard/focus, layering, session-expiry Fetch, network failure, link behavior, dan no Cordova-plugin dependency sebelum G4.
-
-## 13. Auth / RBAC Regression Minimum
-
-```text
-Admin
-Operator
-Pimpinan
-BK
-Guru
-Guru + Wali
-Siswa
-multi-role relevan
-```
-
-Cek menu, direct URL, read, mutation, target scope, contextual Wali.
-
-## 14. Network / Mutation Safety
-
-Tidak ada silent offline queue untuk Presensi, Jurnal, Catatan Pelanggaran, Tindak Lanjut, Konseling, atau Prestasi. Network failure bukan sukses palsu.
-
-## 15. Performance
-
-Bounded query, index, no N+1, pagination, dashboard ringkas, DOM bounded, export/PDF dalam memory limit.
-
-## 16. G4 Gate — Cordova APK
-
-G3 Web/mobile harus PASS sebelum architecture spike, real WebView, Back, keyboard, safe-area, geolocation, offline state, file/share, external link, security config, signed build, dan multi-device regression.
-
-## 17. Phase Release Rule
-
-```text
-G2 CLOSED      → business/admin baseline
-G3.1 CLOSED    → mobile foundation
-G3.2 CLOSED    → Guru/Wali Presensi & Jurnal
-G3.3 CLOSED    → Dashboard Guru/Wali
-G3.3.1 PASS    → hanya setelah closure static + focused hosting re-smoke PASS
-G3 PASS        → mobile/WebView UI siap
-G4 PASS        → APK distribution gate
-```
+G3.4 Dashboard/Workflow BK baru dimulai setelah rework G3.3.1 PASS dan PR #9 merged. G3.5 Pimpinan, G3.6 Siswa, G3.7 global mobile sweep, G3.8 WebView readiness, lalu G4 Cordova.
 
 Setiap merge/release memerlukan approval eksplisit pengguna.
