@@ -50,6 +50,7 @@ Acceptance global:
 - tabel/list periodik mempunyai Tahun Ajaran default aktif;
 - Reset period filter kembali ke Tahun Ajaran aktif;
 - export mengikuti period filter;
+- class/scope historis mengikuti Tahun Ajaran yang dipilih, bukan Tahun aktif;
 - touch target utama 44–48px;
 - modal/keyboard nyaman;
 - busy guard;
@@ -93,20 +94,24 @@ Keputusan baru:
 A. Filter banyak desktop boleh/wajib dipecah 2 baris bila padat.
 B. Semua tabel periodik/historis memakai filter Tahun Ajaran default aktif.
 C. Catatan Pelanggaran dan Prestasi mendapat snapshot id_tahun.
-D. Konseling mempunyai Tindak Lanjut 1:N.
-E. Tidak ada delete Konseling atau Tindak Lanjut Konseling.
-F. Semua aturan global UI/UX tetap berlaku.
+D. Scope kelas historis memakai Tahun Ajaran terpilih.
+E. Export Kelas/Tahun membaca membership periode record, bukan kelas aktif saat ini.
+F. Konseling mempunyai Tindak Lanjut 1:N.
+G. Tidak ada delete Konseling atau Tindak Lanjut Konseling.
+H. Semua aturan global UI/UX tetap berlaku.
 ```
 
 Source target utama:
 
 ```text
 app/Services/PeriodContextService.php
+app/Services/BkScopeService.php
 app/Models/BKKasusModel.php
 app/Models/BKPrestasiModel.php
 app/Models/KonselingBkModel.php
 app/Models/KonselingBkFollowUpModel.php
 app/Services/BkService.php
+app/Services/BkExportService.php
 app/Services/PrestasiService.php
 app/Services/KonselingBkService.php
 app/Services/KonselingBkExportService.php
@@ -152,10 +157,22 @@ Minimum:
 1. buka Catatan Pelanggaran -> Tahun Ajaran aktif terpilih default
 2. Reset -> kembali ke Tahun Ajaran aktif
 3. pilih Tahun historis -> tabel hanya data period tersebut
-4. kembali ke aktif -> data aktif kembali
-5. create Catatan baru -> tersimpan dengan id_tahun aktif walau filter sebelumnya historis
-6. export -> hanya period yang dipilih
-7. mobile tidak overflow horizontal
+4. Kelas pada data/export berasal dari membership periode record, bukan kelas aktif sekarang
+5. kembali ke aktif -> data aktif kembali
+6. create Catatan baru -> tersimpan dengan id_tahun aktif walau filter sebelumnya historis
+7. export -> hanya period yang dipilih + Tahun/Kelas historis benar
+8. mobile tidak overflow horizontal
+```
+
+### Scope KELAS_DIAMPU historis
+
+Bila tersedia account/scope pengujian:
+
+```text
+pilih Tahun historis
+→ siswa yang terlihat mengikuti kelas yang diampu pada Tahun historis itu
+→ bukan kelas Tahun aktif
+→ direct detail record id_tahun NULL harus ditolak untuk KELAS_DIAMPU
 ```
 
 ## 8. UAT Tahun Ajaran — Prestasi
@@ -166,9 +183,11 @@ Minimum:
 1. default Tahun Ajaran aktif
 2. Reset kembali aktif
 3. histori period dapat dipilih
-4. create baru selalu snapshot periode aktif server
-5. export mengikuti period terpilih
-6. mobile/table tetap sesuai global no-horizontal-overflow rule
+4. kelas pada list/export mengikuti membership periode record
+5. create baru selalu snapshot periode aktif server
+6. export mengikuti period terpilih
+7. KELAS_DIAMPU bila digunakan mengikuti Tahun terpilih
+8. mobile/table tetap sesuai global no-horizontal-overflow rule
 ```
 
 ## 9. UAT Tahun Ajaran — Konseling
@@ -300,7 +319,7 @@ Setelah localhost PASS:
 Broad G3.3.1 baseline                     PASS
 Historical Rencana parent local UAT        PASS
 17 Sep source implementation               IMPLEMENTED
-17 Sep docs canonical sync                 IN PROGRESS / branch
+17 Sep docs canonical sync                 PASS / branch
 17 Sep localhost delta SQL                 PREPARED
 17 Sep localhost SQL execution             PENDING
 17 Sep local runtime UAT                   PENDING
