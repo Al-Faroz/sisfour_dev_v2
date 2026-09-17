@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\BkWorkflowDashboardService;
 use App\Services\RoleAwareDashboardService;
 
 /**
@@ -16,7 +17,7 @@ class Dashboard extends BaseController
 
     public function __construct()
     {
-        $this->dashboardService = new RoleAwareDashboardService();
+        $this->dashboardService = new BkWorkflowDashboardService();
     }
 
     public function index()
