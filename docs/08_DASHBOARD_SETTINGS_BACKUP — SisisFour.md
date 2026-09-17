@@ -1,7 +1,7 @@
 # Dashboard, Settings, Maintenance, Backup & Log — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026
+**Tanggal Acuan:** 17 September 2026
 
 ## 1. Dashboard by Experience
 
@@ -42,31 +42,31 @@ Catatan Pelanggaran
 trend singkat
 ```
 
-Final G3.3.1:
+Contract:
 
 ```text
 Catatan Pelanggaran = jumlah/exception, bukan ranking poin
 Konseling BK bukan widget/source data Pimpinan
-widget tanpa permission = "tidak tersedia", bukan 0 palsu
-KPI mobile 2×2
-trend Presensi list mobile / tabel desktop
-EWS ringkas
+widget tanpa permission = tidak tersedia, bukan 0 palsu
 ```
 
-## 4. BK — Baseline G3.4
+## 4. BK — Foundation untuk G3.4
 
-Foundation G3.3.1:
+Foundation target G3.3.1 setelah rework 17 September:
 
 ```text
 Catatan Pelanggaran tanpa poin
-Konseling dua tahap dan rahasia
 Tindak Lanjut Pelanggaran 1:N
+Konseling parent Tahap 1/Tahap 2
+Tindak Lanjut Konseling 1:N
+Konseling rahasia
+Catatan Pelanggaran/Konseling/Prestasi period-aware
 EWS
 Prestasi
 Pengaturan Form Konseling
 ```
 
-Priority G3.4:
+Priority G3.4 nanti:
 
 ```text
 Konseling Proses / follow-up terdekat
@@ -77,7 +77,7 @@ Prestasi ringkas
 quick action permission-aware
 ```
 
-G3.4 tidak boleh menghidupkan poin atau membuka Konseling ke role lain.
+G3.4 tidak boleh menghidupkan poin, membuka Konseling ke role lain, atau mengabaikan filter Tahun Ajaran pada surface historis.
 
 ## 5. Guru
 
@@ -89,7 +89,7 @@ Selesai
 Quick Action
 ```
 
-G3.3 contract: KPI 2×2, task summary server, action permission-aware, jadwal berikutnya dari server time state, mobile card/list, riwayat Jurnal ringkas.
+G3.3 contract tetap: KPI 2×2, task summary server, action permission-aware, mobile card/list.
 
 ## 6. Guru + Wali
 
@@ -103,13 +103,7 @@ ketidakhadiran terbaru
 quick link contextual
 ```
 
-G3.3.1:
-
-```text
-quick link = Catatan Pelanggaran bila permission sah
-Konseling tidak tampil pada dashboard/quick link
-Direct URL Konseling tetap ditolak
-```
+Catatan Pelanggaran dapat muncul bila permission sah. Konseling tidak tampil pada dashboard/quick link dan direct URL tetap ditolak.
 
 ## 7. Siswa
 
@@ -125,17 +119,7 @@ Catatan Pelanggaran diri sesuai permission
 Profile
 ```
 
-No row Sesi Awal = data belum tersedia, bukan Hadir.
-
-G3.3.1:
-
-```text
-recent absence list mobile
-Prestasi/Pelanggaran hanya diri sendiri
-section tanpa permission tidak tampil sebagai data kosong
-Konseling tidak dibentuk/ditampilkan
-Pelanggaran tanpa poin
-```
+No row Sesi Awal = data belum tersedia, bukan Hadir. Konseling tidak dibentuk/ditampilkan. Pelanggaran tanpa poin.
 
 ## 8. Boundary Konseling
 
@@ -150,26 +134,13 @@ Siswa       tidak menerima detail/widget
 
 Authorization Route/Filter + Service; menu bukan security boundary.
 
-## 9. Settings User
+## 9. Settings User / Menu / Sistem
 
-Permission `settings_user.manage`:
+- `settings_user.manage`: account/role/identity/security state.
+- `settings_menu.manage`: visibility/navigation; bukan authorization.
+- `settings_sistem.manage`: settings umum.
 
-- create/update account;
-- primary/secondary role;
-- identity relation;
-- aktif/nonaktif;
-- reset credential;
-- auth invalidation bila security state berubah.
-
-## 10. Settings Menu
-
-Permission `settings_menu.manage`. `role_menus` hanya visibility/navigation.
-
-## 11. Settings Sistem & Pengaturan Konseling
-
-Settings Sistem umum memakai `settings_sistem.manage`.
-
-Pengaturan Form Konseling adalah surface khusus:
+Pengaturan Form Konseling:
 
 ```text
 permission = bk_konseling.settings
@@ -179,11 +150,23 @@ access     = Admin + BK
 
 Operator tidak mendapat Settings Konseling.
 
-Perubahan daftar Rencana tidak boleh menghapus/mengosongkan nilai historis record Konseling yang sudah tersimpan. Closure patch membuat nilai lama tetap tersedia hanya sebagai `(tersimpan)` pada record terkait; opsi tersebut tidak hidup kembali sebagai pilihan global.
+## 10. Historical Rencana Konseling
 
-## 12. Maintenance
+Perubahan daftar Rencana tidak boleh merusak nilai historis parent maupun Tindak Lanjut Konseling.
 
-Saat aktif:
+```text
+Rencana X tersimpan
+→ X dihapus dari Settings
+→ X tetap tampil sebagai X (tersimpan) pada record terkait
+→ boleh dipertahankan / diganti opsi aktif
+→ tidak menjadi pilihan global lagi
+```
+
+Parent invariant sudah focused-local PASS sebelum rework; follow-up 1:N wajib diuji ulang.
+
+## 11. Maintenance / Backup / Log
+
+Maintenance:
 
 ```text
 Admin efektif → recovery policy
@@ -191,35 +174,37 @@ Non-Admin Web → 503 HTML
 AJAX/API      → 503 JSON
 ```
 
-Confirmation memakai komponen project, bukan native `confirm()`.
+Backup: `backup.manage`, storage `writable/backups/`.
 
-## 13. Backup
+Log Activity: `log_activity.view`; tidak menyimpan password/hash/token/cookie/session id/secret.
 
-Permission `backup.manage`, storage `writable/backups/`. Fokus Admin desktop.
+## 12. Period Context pada Dashboard vs Listing
 
-## 14. Log Activity
+Dashboard current-state boleh tetap memakai Tahun Ajaran aktif sesuai business context. Listing/history periodik wajib menyediakan selector Tahun Ajaran sesuai global UI contract.
 
-Permission `log_activity.view`. Log tidak menyimpan password/hash/token/cookie/session id/secret.
+Jangan menambah selector Tahun Ajaran pada dashboard hanya untuk kosmetik bila seluruh KPI memang current-state aktif.
 
-## 15. Gate Status
+## 13. Gate Status
 
 ```text
-G3.3 Dashboard Guru/Wali              CLOSED / MERGED
-G3.3.1 broad local UAT                PASS
-G3.3.1 privacy/RBAC                   PASS
-G3.3.1 SQL local + hosting            PASS
-G3.3.1 broad hosting smoke            PASS
-G3.3.1 historical-Rencana closure     PATCHED / focused re-smoke PENDING
-PR #9                                 DRAFT / NOT MERGED
-G3.4                                  NEXT setelah closure + merge
+G3.3 Dashboard Guru/Wali                     CLOSED / MERGED
+G3.3.1 baseline local/hosting                PASS
+Historical-Rencana parent local UAT          PASS
+17 Sep periodic/follow-up source             IMPLEMENTED
+17 Sep localhost delta SQL                   PREPARED
+17 Sep localhost SQL/UAT                     PENDING
+17 Sep final static                          PENDING
+17 Sep hosting audit/delta/re-smoke          NOT STARTED
+PR #9                                        DRAFT / NOT MERGED
+G3.4                                         NEXT setelah PR #9 merge
 ```
 
-## 16. Phase Boundary
+## 14. Phase Boundary
 
 ```text
 G2      dashboard/settings stabilization
 G3.3    Dashboard Guru/Wali
-G3.3.1  fondasi BK/Konseling + cross-role finalization
+G3.3.1  fondasi BK/Konseling + rework period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5+   role berikutnya
 G4      Cordova integration
