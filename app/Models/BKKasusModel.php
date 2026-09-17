@@ -78,10 +78,13 @@ class BKKasusModel
                 'rp.kategori',
                 'ta.nama_tahun',
                 'ta.semester',
+                'k.nama_kelas',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
             ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
             ->join('tahun_ajaran ta', 'ta.id = ck.id_tahun', 'left')
+            ->join('anggota_kelas ak', 'ak.id_siswa = ck.id_siswa AND ak.id_tahun = ck.id_tahun', 'left', false)
+            ->join('kelas k', 'k.id = ak.id_kelas', 'left')
             ->where('ck.id', $id)
             ->get()
             ->getRowArray();
@@ -175,10 +178,13 @@ class BKKasusModel
                 'rp.kategori',
                 'ta.nama_tahun',
                 'ta.semester',
+                'k.nama_kelas',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
             ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
-            ->join('tahun_ajaran ta', 'ta.id = ck.id_tahun', 'left');
+            ->join('tahun_ajaran ta', 'ta.id = ck.id_tahun', 'left')
+            ->join('anggota_kelas ak', 'ak.id_siswa = ck.id_siswa AND ak.id_tahun = ck.id_tahun', 'left', false)
+            ->join('kelas k', 'k.id = ak.id_kelas', 'left');
 
         if (is_array($allowedStudentIds)) {
             if ($allowedStudentIds === []) {
