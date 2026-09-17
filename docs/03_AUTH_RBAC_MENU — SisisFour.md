@@ -96,7 +96,7 @@ users.id_guru
 → Tahun Ajaran aktif
 ```
 
-Untuk **pembacaan histori periodik**, scope kelas harus dievaluasi pada Tahun Ajaran yang sedang dipilih, bukan selalu Tahun aktif.
+Untuk pembacaan histori periodik, scope kelas dievaluasi pada Tahun Ajaran yang sedang dipilih, bukan selalu Tahun aktif.
 
 ## 7. Scope
 
@@ -112,19 +112,17 @@ TIDAK_ADA
 
 ### Period-aware scope
 
-Keputusan 17 September 2026:
-
-> Jika surface periodik memilih `id_tahun`, maka `KELAS_DIAMPU`/scope kelas yang relevan harus dihitung terhadap periode tersebut.
-
-Contoh:
+Jika surface periodik memilih `id_tahun`, maka `KELAS_DIAMPU`/scope kelas yang relevan dihitung terhadap periode tersebut.
 
 ```text
-user memilih Tahun Ajaran 2025/2026
-→ mapping/jadwal/membership yang dipakai untuk authorization histori = 2025/2026
-→ jangan memakai kelas Tahun aktif 2026/2027
+user memilih Tahun Ajaran historis
+→ mapping/jadwal/membership authorization memakai Tahun historis
+→ jangan memakai kelas Tahun aktif
 ```
 
-Record legacy dengan period snapshot `NULL` tidak boleh diberikan ke scope kelas bila periodenya tidak dapat diverifikasi secara aman. Actor `SEMUA` tetap dapat menangani audit/maintenance sesuai permission.
+Source closure 17 September mengubah `BkScopeService::resolveStudentIds()` agar menerima period context eksplisit untuk Catatan Pelanggaran/Prestasi.
+
+Record legacy dengan period snapshot `NULL` tidak boleh diberikan ke scope kelas bila periodenya tidak dapat diverifikasi aman. Actor `SEMUA` tetap dapat menangani audit/maintenance sesuai permission.
 
 ## 8. Karakter Role
 
@@ -172,9 +170,7 @@ Konseling operasional -> effective role admin/operator/bk + permission
 Settings Konseling    -> effective role admin/bk + permission
 ```
 
-Pimpinan, Guru/Wali, dan Siswa ditolak walaupun URL diketahui.
-
-Permission yang sama mengikat parent Konseling dan Tindak Lanjut Konseling 1:N.
+Pimpinan, Guru/Wali, dan Siswa ditolak walaupun URL diketahui. Permission yang sama mengikat parent Konseling dan Tindak Lanjut Konseling 1:N.
 
 ## 11. Menu
 
