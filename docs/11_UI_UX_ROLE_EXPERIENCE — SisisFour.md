@@ -219,6 +219,8 @@ daftar        = langsung data diri sendiri; bila kosong tampil empty state
 
 Penyederhanaan ini adalah presentation/role experience saja. Scope `DIRI_SENDIRI` tetap ditentukan dan ditegakkan server-side; UI tidak boleh dipakai sebagai security boundary.
 
+Focused local UAT 18 September 2026 untuk experience ini: **PASS / user evidence**.
+
 ## 12. Quick Action Mobile
 
 ```text
@@ -298,7 +300,7 @@ Wajib busy guard, server-confirmed success, input penting dipertahankan pada fai
 G3.1 Mobile foundation            CLOSED / MERGED
 G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali          CLOSED / MERGED
-G3.3.1 Fondasi BK                 REWORK / STUDENT SELF-FILTER UAT PENDING
+G3.3.1 Fondasi BK                 LOCAL FINAL GATE PASS / HOSTING SOURCE RE-SMOKE PENDING
 G3.4 BK role experience           NEXT setelah PR #9 merge
 ```
 
