@@ -3,7 +3,6 @@
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 17 September 2026  
 **Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework  
-**Database state:** baseline G3.3.1 local+hosting PASS; 17 Sep rework local gate pending
 
 > Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
@@ -39,35 +38,59 @@ pimpinan
 bk
 guru
 siswa
+kesehatan
+ptsp
 ```
 
-Tidak ada role `pegawai` dan tidak ada role `wali`/`walas`.
+Tidak ada role `pegawai` dan tidak ada role `wali`/`walas`. Wali Kelas adalah context Guru.
+
+Multi-role = YA.
 
 ## 3. Identity
 
 ```text
-Guru     -> users.id_guru
-Pegawai  -> users.id_pegawai
-Siswa    -> users.id_siswa
+Guru       -> users.id_guru
+Siswa      -> users.id_siswa
+BK         -> users.id_pegawai
+Kesehatan  -> users.id_pegawai
+PTSP       -> users.id_pegawai
 ```
 
-Akun role BK aktual memakai:
+Role berbasis Pegawai tidak boleh dipaksa memiliki `users.id_guru`.
+
+## 4. Access Boundary vs Capability vs Scope
+
+Canonical order:
 
 ```text
-users.role = bk
-users.id_pegawai -> pegawai.id
-users.id_guru = NULL
+Effective Role
+→ Access Boundary
+→ Permission / Capability
+→ Scope
+→ Period
+→ Target Validation
+→ Business Invariant
 ```
 
-Karena itu fitur BK tidak boleh mensyaratkan identity Guru.
+Role di luar Access Boundary tidak ditulis sebagai sekadar `tidak boleh edit`; role tersebut **tidak memiliki akses domain**.
 
-## 4. Login / Credential
+Global stance:
+
+```text
+DEFAULT DENY
+```
+
+Role/context yang tidak disebut pada domain tidak otomatis mendapat akses.
+
+`Full Access` bersifat domain-specific dan tidak berarti akses seluruh aplikasi.
+
+## 5. Login / Credential
 
 User harus aktif dan credential valid. `auth_version` digunakan untuk invalidation security state. Credential/token/session secret tidak ditulis ke log.
 
-## 5. API Authentication
+## 6. API Authentication
 
-Public:
+Public baseline:
 
 ```text
 POST /api/auth/login
@@ -75,20 +98,24 @@ POST /api/auth/refresh
 GET  /api/version
 ```
 
-Protected:
+Protected baseline:
 
 ```text
 POST /api/auth/logout
 GET  /api/auth/me
 ```
 
-API protected memakai Bearer/token; Web memakai session + CSRF.
+API protected memakai Bearer/token; Web authenticated memakai session + CSRF.
 
-## 6. Wali Kelas
+Domain boleh mempunyai public endpoint bila SSOT eksplisit menetapkannya. Public endpoint tidak otomatis memberi akses ke admin/list/detail internal.
+
+PTSP target mempunyai public submission + public aggregate statistics API sesuai `18_PTSP — SisisFour.md`.
+
+## 7. Wali Kelas
 
 Wali adalah context Guru berdasarkan mapping, bukan role baru.
 
-Untuk workflow current-state:
+Workflow current-state:
 
 ```text
 users.id_guru
@@ -96,9 +123,17 @@ users.id_guru
 → Tahun Ajaran aktif
 ```
 
-Untuk pembacaan histori periodik, scope kelas dievaluasi pada Tahun Ajaran yang sedang dipilih, bukan selalu Tahun aktif.
+Pembacaan histori periodik:
 
-## 7. Scope
+```text
+scope wali / kelas relevan
+→ dievaluasi pada Tahun Ajaran record/filter
+→ bukan selalu Tahun aktif
+```
+
+Untuk UKS, Guru+Wali hanya ReadOnly **kelas wali**. Guru non-Wali tidak mendapat akses UKS.
+
+## 8. Scope
 
 Canonical scope:
 
@@ -106,37 +141,29 @@ Canonical scope:
 SEMUA
 KELAS_DIAMPU
 KELAS_TERJADWAL
+KELAS_WALI
 DIRI_SENDIRI
+UNIT / DOMAIN KHUSUS
 TIDAK_ADA
 ```
 
-### Period-aware scope
+Period-aware scope wajib menggunakan periode yang sedang berlaku untuk action tersebut.
 
-Jika surface periodik memilih `id_tahun`, maka `KELAS_DIAMPU`/scope kelas yang relevan dihitung terhadap periode tersebut.
-
-```text
-user memilih Tahun Ajaran historis
-→ mapping/jadwal/membership authorization memakai Tahun historis
-→ jangan memakai kelas Tahun aktif
-```
-
-Source closure 17 September mengubah `BkScopeService::resolveStudentIds()` agar menerima period context eksplisit untuk Catatan Pelanggaran/Prestasi.
-
-Record legacy dengan period snapshot `NULL` tidak boleh diberikan ke scope kelas bila periodenya tidak dapat diverifikasi aman. Actor `SEMUA` tetap dapat menangani audit/maintenance sesuai permission.
-
-## 8. Karakter Role
+## 9. Karakter Role
 
 | Role/Context | Karakter Utama |
 |---|---|
-| Admin | Full system, settings, backup, master/operasional sesuai permission |
-| Operator | Administrasi operasional luas; Settings/Backup tidak otomatis |
-| Pimpinan | Supervisi/read-only sesuai permission; tidak menerima detail Konseling |
-| BK | Catatan Pelanggaran, Konseling, tindak lanjut, EWS, Prestasi |
-| Guru | Jadwal, Presensi, Jurnal, Profile |
-| Guru + Wali | Guru + hak contextual kelas wali; tidak otomatis mendapat Konseling |
-| Siswa | Read-only/self-service data diri; tidak mendapat Konseling |
+| Admin | Full system sesuai permission; bukan bypass business rule |
+| Operator | Administrasi operasional luas sesuai permission |
+| Pimpinan | Supervisi/read-only sesuai permission/domain |
+| BK | Domain BK: Pelanggaran, Konseling, EWS, Prestasi |
+| Guru | Jadwal, Presensi, Jurnal, Profile sesuai permission |
+| Guru + Wali | Guru + scope contextual kelas wali |
+| Siswa | Self-service/read-only pada domain yang diberikan |
+| Kesehatan | Full Access **domain UKS**; identity Pegawai |
+| PTSP | Full Access **domain PTSP**; identity Pegawai |
 
-## 9. Permission Boundary
+## 10. Permission Boundary
 
 ```text
 PermissionFilter = route gate
@@ -147,7 +174,9 @@ View/JS          = presentation only
 
 Semua target ID dan period ID client divalidasi ulang server-side.
 
-## 10. Permission Konseling G3.3.1
+## 11. Konseling G3.3.1
+
+Permission:
 
 ```text
 bk_konseling.view
@@ -159,77 +188,139 @@ bk_konseling.settings
 Mapping:
 
 ```text
-view/manage/export  -> Admin, Operator, BK / SEMUA
-settings            -> Admin, BK / SEMUA
+view/manage/export -> Admin, Operator, BK / SEMUA
+settings           -> Admin, BK / SEMUA
 ```
 
-Boundary Service:
+Access Boundary Konseling:
 
 ```text
-Konseling operasional -> effective role admin/operator/bk + permission
-Settings Konseling    -> effective role admin/bk + permission
+Admin / Operator / BK = masuk domain sesuai permission
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses Konseling
 ```
 
-Pimpinan, Guru/Wali, dan Siswa ditolak walaupun URL diketahui. Permission yang sama mengikat parent Konseling dan Tindak Lanjut Konseling 1:N.
+Permission parent dan Tindak Lanjut Konseling 1:N mengikuti boundary yang sama.
 
-## 11. Menu
+## 12. UKS / Kesehatan — Target RBAC
 
-Menu G3.3.1:
+SSOT domain: `17_UKS_KESEHATAN — SisisFour.md`.
 
 ```text
-Catatan Pelanggaran       bk/kasus
-Konseling BK              bk/konseling
-Pengaturan Form Konseling bk/konseling/settings
+Admin       = Full Access UKS / SEMUA
+Operator    = Full Access UKS / SEMUA
+Kesehatan   = Full Access UKS / SEMUA
+Pimpinan    = ReadOnly SEMUA + Export
+Guru + Wali = ReadOnly KELAS_WALI
+Siswa       = ReadOnly DIRI_SENDIRI
+Guru non-Wali / BK / PTSP / role lain = DENY
 ```
 
-Visibility:
+Full Access UKS target mencakup capability domain yang dikunci pada docs/17, termasuk create/update/import/export/soft-delete/master. Ia **tidak memberi akses domain PTSP/BK**.
+
+## 13. PTSP — Target RBAC
+
+SSOT domain: `18_PTSP — SisisFour.md`.
+
+Internal administration:
+
+```text
+Admin     = Full Access PTSP / SEMUA
+Operator  = Full Access PTSP / SEMUA
+PTSP      = Full Access PTSP / SEMUA
+Pimpinan  = ReadOnly SEMUA + Export
+role lain = DENY internal PTSP administration
+```
+
+Public submission:
+
+```text
+Layanan PTSP     = public tanpa login
+Polling Kepuasan = public tanpa login
+Pengaduan        = public anonim tanpa login
+```
+
+Public submission tidak memberi view/list/detail internal.
+
+Hard delete PTSP adalah capability eksplisit Admin/Operator/PTSP dan tidak diwariskan ke domain lain.
+
+Public statistics API PTSP hanya aggregate read-only; tidak boleh membocorkan PII/raw record.
+
+## 14. Menu Visibility
+
+Menu visibility mengikuti Access Boundary + permission, tetapi bukan authorization final.
+
+G3.3.1:
 
 ```text
 Konseling BK              -> admin, operator, bk
 Pengaturan Form Konseling -> admin, bk
-pimpinan/guru/siswa       -> tidak mendapat dua menu tersebut
-Wali                       -> context Guru, tidak otomatis mendapat Konseling
+role lain                 -> tidak mendapat menu tersebut
 ```
 
-Menu visibility bukan authorization boundary.
+Target UKS:
 
-## 12. Experience Priority
+```text
+UKS -> Admin, Operator, Kesehatan, Pimpinan, Guru+Wali, Siswa
+```
+
+Target PTSP internal:
+
+```text
+PTSP administration -> Admin, Operator, PTSP, Pimpinan
+```
+
+Public PTSP landing berada di luar menu authenticated.
+
+## 15. Experience Priority
+
+Priority existing yang sudah digunakan:
 
 ```text
 admin > operator > pimpinan > bk > guru > siswa
 ```
 
-BK berada di atas Guru agar account multi-role BK+Guru tetap mendapat experience BK. Wali tetap context pada experience Guru.
+Role `kesehatan` dan `ptsp` mempunyai role experience tersendiri pada phase implementasinya, tetapi **posisi exact dalam priority multi-role belum dikunci**. Jangan menebak priority sebelum G3.6A/G3.6B implementation mapping.
 
-## 13. Security Rules
+Wali tetap context pada experience Guru.
+
+## 16. Security Rules
 
 - Browser tidak menentukan role/scope/period authorization.
 - UI redesign tidak boleh memperluas akses data.
-- Data Konseling/follow-up tidak boleh dikirim ke role terlarang lalu hanya disembunyikan.
-- Period filter tidak boleh menjadi cara melewati class scope.
-- Direct ID access selalu divalidasi terhadap target record dan period record.
-- CSRF tetap aktif untuk Web mutation.
-- API memakai Bearer/JWT.
+- Data tidak boleh dikirim ke role terlarang lalu hanya disembunyikan.
+- Period filter tidak boleh melewati scope.
+- Direct ID access selalu divalidasi terhadap target + period.
+- Authenticated Web mutation memakai CSRF.
+- Public form mengikuti public contract domain + server validation.
+- Public statistics API hanya aggregate dan tidak menjadi backdoor raw data.
+- Role multi-role tidak boleh mendapat cross-domain access hanya karena salah satu role memiliki Full Access pada domain lain.
 
-## 14. G3.3.1 Gate
+## 17. Regression Matrix
 
-Gate baseline 16 September telah PASS untuk RBAC/privacy. Rework 17 September mengubah period handling dan follow-up history, sehingga regression berikut wajib diulang:
-
-```text
-Admin/Operator/BK Konseling sesuai permission
-Pimpinan/Guru/Wali/Siswa tetap ditolak Konseling
-KELAS_DIAMPU current year benar
-KELAS_DIAMPU historical year memakai period terpilih
-legacy id_tahun NULL tidak bocor ke scope kelas
-follow-up Konseling memakai boundary parent yang sama
-```
-
-Status:
+Setiap domain baru wajib diuji terhadap:
 
 ```text
-baseline RBAC/privacy                PASS
-17 Sep period-aware scope source     IMPLEMENTED / UAT PENDING
-17 Sep follow-up RBAC                IMPLEMENTED / UAT PENDING
-hosting rework                       NOT STARTED
-PR #9                                DRAFT / BELUM MERGE
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
+Siswa
+Kesehatan
+PTSP
 ```
+
+Expected `DENY` tetap merupakan test case wajib.
+
+Public PTSP surface diuji terpisah dari authenticated role matrix.
+
+## 18. Status Implementasi
+
+```text
+Konseling G3.3.1     = source aktif / PR #9
+UKS/Kesehatan        = SSOT target / BELUM implementasi source/schema/permission/menu
+PTSP                  = SSOT target / BELUM implementasi source/schema/permission/menu/API
+```
+
+Tidak ada permission/menu/route UKS/PTSP yang dianggap tersedia hanya karena sudah tercatat pada dokumen target.
