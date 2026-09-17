@@ -2,12 +2,12 @@
 
 **Status:** Canonical / Fresh SSOT  
 **Tanggal Acuan:** 17 September 2026  
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework / local gate pending**)  
+**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework**)  
 **Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
 **Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)  
-**Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru, bukan role.
+**Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
-> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. Keputusan domain yang lebih rinci tetap berada pada dokumen domain masing-masing. **`00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib dokumen ini dan menetapkan mapping global yang harus digunakan sebelum coding/review fitur apa pun.**
+> Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
 
 ## 1. Kedudukan `docs/`
 
@@ -17,7 +17,7 @@ Urutan baca canonical:
 
 ```text
 00   Pola Pengerjaan
-00A  Global Standard SisisFour (WAJIB sebelum dokumen domain)
+00A  Global Standard SisisFour
 01   Masterplan
 02   Database
 03   Auth / RBAC / Menu
@@ -35,11 +35,13 @@ Urutan baca canonical:
 14   SisisFour Mobile & Cordova UI/UX Standard
 15   Testing / Regression / Release Gate
 16   Cordova Packaging & Integration
+17   UKS / Kesehatan
+18   PTSP
 Routes Final
 Tree Structure
 ```
 
-`00A_GLOBAL_STANDARD_SISFOUR.md` wajib digunakan untuk memetakan setiap fitur melalui urutan:
+Setiap fitur wajib dipetakan melalui:
 
 ```text
 Menu/Fitur
@@ -63,23 +65,7 @@ Menu/Fitur
 
 Jangan mulai keputusan business/security dari tombol UI, tabel, query, atau struktur database.
 
-## 2. Hirarki Standar UI
-
-```text
-13 CI4 + Sneat Global
-        ↓
-11 UI/UX SisisFour
-        ↓
-14 Mobile & Cordova UI/UX
-        ↓
-11 Role Experience
-        ↓
-aturan khusus halaman
-```
-
-Aturan yang bersifat global harus diterapkan konsisten pada feature yang sedang disentuh. Aturan domain tidak boleh diubah oleh View/JavaScript.
-
-## 3. Sumber Kebenaran Teknis
+## 2. Sumber Kebenaran Teknis
 
 ```text
 Global Map  -> docs/00A_GLOBAL_STANDARD_SISFOUR.md
@@ -96,11 +82,11 @@ Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
 Release     -> docs/15_TESTING_POLISH — SisisFour.md
 ```
 
-`PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
+`PermissionFilter` adalah route gate. Service tetap authoritative security/business boundary untuk target data, scope, period, transaksi, lifecycle, dan side effect.
 
-## 3A. Role Registry & Domain Baru
+## 3. Role Registry
 
-Role resmi SisisFour:
+Role resmi:
 
 ```text
 admin
@@ -113,134 +99,209 @@ kesehatan
 ptsp
 ```
 
-`Wali Kelas` tetap **context Guru**, bukan role baru. Account multi-role tetap mengikuti effective-role + permission + scope; nama role saja tidak menggantikan permission/Service validation.
+`Wali Kelas` adalah context Guru, bukan role baru.
+
+Identity:
+
+```text
+Guru       -> users.id_guru
+Siswa      -> users.id_siswa
+BK         -> users.id_pegawai
+Kesehatan  -> users.id_pegawai
+PTSP       -> users.id_pegawai
+```
+
+Multi-role diperbolehkan. Effective role tetap mengikuti `users.role UNION user_roles.role`, kemudian permission + domain Access Boundary + capability + scope.
 
 ### Default deny
 
-Jika suatu role/context tidak disebut sebagai bagian Access Boundary domain, maka role/context tersebut **tidak mendapat akses** sampai ada keputusan SSOT eksplisit. Jangan menebak akses dari kemiripan jabatan/menu.
+Role/context yang tidak disebut sebagai bagian Access Boundary suatu domain **tidak mendapat akses** sampai ada keputusan SSOT eksplisit.
 
-### Domain UKS — target contract
+### Makna Full Access
 
-Menu `UKS`:
+`Full Access` selalu **domain-specific**. Full Access UKS tidak memberi akses PTSP/BK/domain lain; Full Access PTSP tidak memberi akses UKS/BK/domain lain.
 
-```text
-Data CKG  -> Data Kesehatan Siswa
-Data UKS  -> Catatan Harian UKS
-```
+Full Access tidak otomatis berarti hard-delete/cancel/settings/approval. Destructive capability ditetapkan eksplisit per domain.
 
-Access/capability yang sudah diputuskan:
+## 4. Domain Baseline — UKS / Kesehatan
 
-```text
-Kesehatan       = Full Access
-Admin           = Full Access
-Operator        = Full Access
-Pimpinan        = ReadOnly
-Guru + Wali     = ReadOnly, scope KELAS_DIAMPU / kelas wali
-Siswa           = ReadOnly, scope DIRI_SENDIRI
-```
+SSOT rinci: `docs/17_UKS_KESEHATAN — SisisFour.md`.
 
-Catatan penting:
+Menu:
 
 ```text
-Guru tanpa context Wali tidak otomatis mendapat akses UKS.
-BK/PTSP/role lain tidak otomatis mendapat akses UKS.
-Scope Pimpinan belum dinyatakan eksplisit dan tidak boleh diasumsikan sebelum domain UKS diimplementasikan.
+UKS
+├── Data CKG
+└── Data UKS / Catatan Harian UKS
 ```
 
-### Domain PTSP — target contract
-
-Menu `PTSP`:
+Access:
 
 ```text
-Layanan PTSP      -> Form Pendaftaran Layanan PTSP
-Polling Kepuasan  -> Form Polling Kepuasan Layanan Madrasah/PTSP
-Pengaduan         -> Form Pengaduan intern maupun ekstern
+Admin       = Full Access UKS / scope SEMUA
+Operator    = Full Access UKS / scope SEMUA
+Kesehatan   = Full Access UKS / scope SEMUA
+Pimpinan    = ReadOnly SEMUA + Export
+Guru + Wali = ReadOnly hanya kelas wali
+Siswa       = ReadOnly seluruh data kesehatan dirinya sendiri
+Guru non-Wali / BK / PTSP / role lain = DEFAULT DENY
 ```
 
-Access/capability yang sudah diputuskan:
+Kesehatan = Pegawai; multi-role = YA.
+
+Domain periodik Tahun Ajaran:
 
 ```text
-PTSP      = Full Access
-Admin     = Full Access
-Operator  = Full Access
-Pimpinan  = ReadOnly
+Read/History  = Tahun Ajaran filter
+Create        = Tahun Ajaran aktif server-side
+Update        = tetap period record
+Export        = Tahun terpilih + scope
 ```
 
-Catatan penting:
+CKG:
 
 ```text
-Kesehatan/BK/Guru/Wali/Siswa/role lain tidak otomatis mendapat akses PTSP.
-Scope Pimpinan belum dinyatakan eksplisit dan tidak boleh diasumsikan sebelum domain PTSP diimplementasikan.
-Istilah pengaduan "ekstern" belum menetapkan anonymous/public access.
-Public/external submission route, authentication model, rate limit, moderation, dan privacy harus diputuskan eksplisit sebelum implementasi.
+multiple pemeriksaan per siswa per Tahun Ajaran
+data field mengikuti workbook source
+import Excel
+siswa + tanggal duplikat -> UPDATE existing
+stable import identity tidak boleh hanya nama; key final dikunci saat implementasi
 ```
 
-### Makna Full Access / ReadOnly
-
-Canonical interpretation mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md`:
+Catatan Harian UKS:
 
 ```text
-Full Access = seluruh capability operasional yang memang didefinisikan domain.
-ReadOnly    = capability baca saja pada scope yang sah.
+1 kunjungan = 1 parent record
+khusus siswa
+Hasil = disposition kunjungan
+edit diperbolehkan Admin/Operator/Kesehatan
+soft delete Admin/Operator/Kesehatan
+alasan delete tidak wajib
 ```
 
-`Full Access` **tidak otomatis berarti hard delete, cancel/void, settings, approval, credential/security mutation, atau destructive action lain**. Capability berisiko tinggi harus diputuskan eksplisit pada domain.
+Pimpinan dapat melihat detail per siswa dan export XLSX. Siswa hanya view, tanpa export.
 
-Penambahan role/domain Kesehatan dan PTSP adalah **keputusan SSOT untuk roadmap/implementasi berikutnya**. Ia tidak otomatis memperluas scope source G3.3.1/PR #9 sebelum phase implementasinya ditetapkan.
+## 5. Domain Baseline — PTSP
 
-## 4. Pola Perubahan Source
+SSOT rinci: `docs/18_PTSP — SisisFour.md`.
+
+Menu/internal domain:
 
 ```text
-1. baca 00 + 00A + docs domain + source + database aktual
-2. petakan fitur dengan Global Standard: access/capability/scope/period/target/invariant
-3. kunci invariant/business rule
-4. audit schema/permission/menu bila domain berubah
-5. sinkronkan SSOT keputusan baru
-6. Model/Query
-7. Service
-8. Controller/Routes
-9. View/JS/CSS
-10. SQL localhost bila schema berubah
-11. static gate
-12. runtime/UAT localhost
-13. cross-role + period/historical + output-channel regression
-14. audit dump hosting sebelum SQL hosting
-15. hosting execution/smoke hanya dengan approval
-16. final docs/PR sync
-17. PR Ready / merge hanya dengan approval eksplisit
+PTSP
+├── Layanan PTSP
+├── Polling Kepuasan
+└── Pengaduan
 ```
 
-Jika mapping Global Standard belum jelas pada bagian yang menyentuh business rule/security/data integrity, jangan menebak dan jangan lanjut coding sebelum keputusan dikunci.
+PTSP mempunyai public landing page tersendiri dengan ketiga form public tanpa login.
 
-## 5. Aturan Git / Deployment
-
-- Sebelum write GitHub, baca state/blob aktual.
-- Jangan merge tanpa approval eksplisit pengguna.
-- Jangan deploy hanya karena PR mergeable.
-- Production DB tidak disentuh dalam regression development.
-- SQL hosting dibuat setelah audit dump hosting aktual; jangan copy buta localhost.
-- Setelah source/schema berubah sesudah smoke production, smoke lama tidak membuktikan head baru.
-
-## 6. Global UI/UX yang Wajib Dijaga
-
-### Filter padat
-
-Desktop tidak boleh memaksa terlalu banyak filter menjadi satu baris sempit. Jika filter padat, pecah menjadi dua baris yang seimbang.
-
-Canonical Konseling:
+Access internal:
 
 ```text
-Baris 1: Tahun Ajaran | Pencarian | Kelas
-Baris 2: Status | Bidang | Dari | Sampai | Reset/Tampilkan
+Admin     = Full Access PTSP / SEMUA
+Operator  = Full Access PTSP / SEMUA
+PTSP      = Full Access PTSP / SEMUA
+Pimpinan  = ReadOnly SEMUA + Export
+role lain = DEFAULT DENY internal administration
 ```
 
-### Tahun Ajaran untuk tabel periodik
+PTSP = Pegawai; multi-role = YA.
 
-Keputusan 17 September 2026:
+Semua submission PTSP snapshot Tahun Ajaran aktif server-side; history/export/statistik mengikuti context period yang sah.
 
-> Semua tabel/list periodik atau historis yang memang mempunyai dimensi Tahun Ajaran wajib menyediakan filter Tahun Ajaran.
+### Layanan PTSP
 
-Canonical period mapping mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md`:
+```text
+workflow = Baru -> Diproses -> Selesai
+status mutation = Admin/Operator/PTSP
+no follow-up 1:N
+no SLA
+```
+
+Catatan workbook lama tentang `tiket antrian` digantikan keputusan terbaru:
+
+```text
+setelah submit -> dapat dicetak printer thermal
+fungsi cetak    -> bukti sudah mengisi
+NO nomor tiket
+NO nomor antrean
+NO tracking code
+```
+
+### Polling
+
+```text
+public
+semua pihak boleh isi
+submission berulang boleh
+label kepuasan tetap disimpan
+score statistik 5..1 ikut disimpan
+```
+
+### Pengaduan
+
+```text
+public
+1 form anonim
+internal/eksternal tidak dibedakan
+status = Masuk -> Diverifikasi -> Diproses/Selesai
+lampiran image/PDF opsional
+no public tracking code
+```
+
+### Hard Delete PTSP
+
+Layanan/Polling/Pengaduan dapat di-hard-delete oleh:
+
+```text
+Admin
+Operator
+PTSP
+```
+
+Pimpinan tetap ReadOnly.
+
+### Public Statistics API
+
+PTSP wajib mempunyai API statistik aggregate-only untuk masing-masing form agar dapat dipasang di WordPress/portal madrasah:
+
+```text
+Layanan statistics
+Polling statistics
+Pengaduan statistics
+```
+
+API public tidak boleh mengeluarkan PII/raw record seperti nama, WhatsApp, judul/isi pengaduan, atau lampiran. Target route dan output rinci berada pada docs/18.
+
+## 6. Global UI/UX
+
+Hirarki:
+
+```text
+13 CI4 + Sneat Global
+→ 11 UI/UX SisisFour
+→ 14 Mobile & Cordova UI/UX
+→ 11 Role Experience
+→ aturan khusus halaman/domain
+```
+
+Global rule:
+
+```text
+Name-first identity
+SearchableSelect untuk entity besar
+loading / empty / error state
+busy guard
+project confirmation untuk destructive action
+no unwanted body horizontal overflow
+no horizontal table scroll role operasional
+safe-area + touch target mobile
+```
+
+Filter desktop yang padat boleh/harus dipecah menjadi dua atau lebih baris yang seimbang.
+
+### Tahun Ajaran periodik
 
 ```text
 Read / History           = Tahun Ajaran filter
@@ -248,116 +309,86 @@ Create Parent Baru       = Tahun Ajaran aktif
 Update Existing Record   = tetap Tahun Ajaran record
 Create Child / Follow-up = mengikuti Tahun Ajaran parent
 Export                   = mengikuti period yang sedang dibaca
-Reset filter             = kembali Tahun Ajaran aktif
+Reset filter             = Tahun Ajaran aktif
 ```
 
-Jangan menambahkan filter Tahun Ajaran palsu pada tabel global/non-periodik seperti User, Permission, Menu, Setting, Log, Master Pelanggaran.
+Jangan menambah Tahun Ajaran palsu ke tabel non-periodik.
 
-### Mobile/WebView
+## 7. Pola Perubahan Source
 
 ```text
-body horizontal scroll   = DILARANG
-table horizontal scroll  = DILARANG untuk role operasional
-nested horizontal scroll = DILARANG
+1. baca 00 + 00A + docs domain + source + database aktual
+2. petakan access/capability/scope/period/target/invariant
+3. kunci business rule yang belum jelas
+4. audit schema/permission/menu
+5. sinkronkan SSOT
+6. Model/Query
+7. Service
+8. Controller/Routes
+9. View/JS/CSS
+10. SQL localhost bila schema berubah
+11. static gate
+12. runtime/UAT localhost
+13. cross-role + period + output-channel regression
+14. audit dump hosting
+15. hosting execution/smoke hanya dengan approval
+16. final docs/PR sync
+17. PR Ready / merge hanya dengan approval eksplisit
 ```
 
-Name-first, SearchableSelect, busy guard, loading/empty/error, project confirmation, safe-area, dan touch target tetap global.
+Jika mapping business/security/data integrity belum jelas, jangan menebak dan jangan lanjut coding.
 
-## 7. Status G2 / G3
+## 8. Aturan Git / Deployment
+
+- Sebelum write GitHub, baca state/blob aktual.
+- Jangan merge tanpa approval eksplisit pengguna.
+- Jangan deploy hanya karena PR mergeable.
+- Production DB tidak disentuh dalam regression development.
+- SQL hosting dibuat setelah audit dump hosting aktual.
+- Smoke hosting lama tidak membuktikan head baru setelah source/schema berubah.
+
+## 9. Roadmap
 
 ```text
-G2                         CLOSED / MERGED (PR #5)
-G3.1 Mobile foundation     CLOSED / MERGED (PR #6)
-G3.2 Guru/Wali Presensi    CLOSED / MERGED (PR #7)
-G3.3 Dashboard Guru/Wali   CLOSED / MERGED (PR #8)
-G3.3.1 Fondasi BK          REWORK / LOCAL GATE PENDING (PR #9)
-G3.4 Dashboard/Workflow BK NEXT setelah PR #9 merge
+G2                         CLOSED / MERGED
+G3.1 Mobile foundation     CLOSED / MERGED
+G3.2 Guru/Wali Presensi    CLOSED / MERGED
+G3.3 Dashboard Guru/Wali   CLOSED / MERGED
+G3.3.1 Fondasi BK          REWORK / PR #9
+G3.4 Dashboard/Workflow BK setelah PR #9 merge
 G3.5 Pimpinan              setelah G3.4
 G3.6 Siswa                 setelah G3.5
+G3.6A UKS / Kesehatan      setelah G3.6
+G3.6B PTSP                 setelah G3.6A
 G3.7 Global mobile sweep
 G3.8 Viewport/WebView readiness
 G4 Cordova APK
 ```
 
-Kesehatan/UKS dan PTSP sudah tercatat sebagai domain/role canonical, tetapi phase implementasinya belum ditetapkan pada dokumen ini.
+UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
 
-## 8. G3.3.1 — Kontrak BK Final Target
+## 10. G3.3.1 — Kontrak BK yang Tetap Berlaku
 
 ```text
 Catatan Kasus -> Catatan Pelanggaran Siswa
 poin pelanggaran retired
 kategori Ringan/Sedang/Berat nonnumeric
-ref_pelanggaran.poin legacy only; aplikasi menulis 0
 Tindak Lanjut Pelanggaran 1:N
 Konseling BK rahasia
 Prestasi terpisah
-Catatan Pelanggaran/Konseling/Prestasi = tabel periodik berfilter Tahun Ajaran
+Catatan Pelanggaran/Konseling/Prestasi = periodik Tahun Ajaran
+Konseling parent + follow-up 1:N
+tidak ada delete parent/follow-up Konseling pada contract sekarang
 ```
-
-### Konseling parent
-
-Tahap 1:
-
-```text
-Kelas -> Siswa -> Tanggal -> Pertemuan ke-
-Bentuk Layanan -> Cara Hadir -> Bidang -> Topik
-status awal = Proses
-```
-
-Tahap 2 parent:
-
-```text
-Uraian Masalah
-Hasil Pembahasan & Kesepakatan
-Rencana Berikutnya
-Tanggal Pertemuan Berikutnya
-Status Proses / Selesai
-```
-
-### Tindak Lanjut Konseling 1:N
-
-Keputusan 17 September 2026 mengganti kontrak lama yang hanya mempunyai satu rencana lanjutan.
-
-```text
-konseling_bk 1:N tindak_lanjut_konseling_bk
-```
-
-Setiap tindak lanjut memiliki tanggal, perkembangan, hasil/kesepakatan, rencana, tanggal berikutnya, status, dan actor audit.
-
-Canonical detail:
-
-```text
-Identitas
-→ Hasil Pertemuan Awal
-→ Riwayat Tindak Lanjut
-→ Form Tambah/Edit Tindak Lanjut
-```
-
-**Tidak ada delete parent Konseling dan tidak ada delete Tindak Lanjut Konseling.**
-
-### Historical Rencana
-
-Nilai Rencana yang sudah tersimpan tetap boleh ditampilkan/dipertahankan sebagai `(tersimpan)` walaupun dihapus dari Settings; record lain tidak boleh memakai opsi nonaktif tersebut.
-
-Focused local UAT parent historical-Rencana sebelumnya PASS. Behavior yang sama wajib diuji ulang pada follow-up 1:N.
-
-## 9. Permission / Privacy
 
 Access Boundary Konseling:
 
 ```text
-Admin     = masuk domain Konseling
-Operator  = masuk domain Konseling
-BK        = masuk domain Konseling
-
-Pimpinan  = TIDAK memiliki akses Konseling
-Guru/Wali = TIDAK memiliki akses Konseling
-Siswa     = TIDAK memiliki akses Konseling
-Kesehatan = TIDAK otomatis memiliki akses Konseling
-PTSP      = TIDAK otomatis memiliki akses Konseling
+Admin / Operator / BK = domain access sesuai permission
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses Konseling
 ```
 
-Capability hanya dibahas untuk actor yang sudah lolos Access Boundary:
+Capability:
 
 ```text
 bk_konseling.view      Admin, Operator, BK
@@ -366,35 +397,7 @@ bk_konseling.export    Admin, Operator, BK
 bk_konseling.settings  Admin, BK
 ```
 
-Pimpinan/Guru/Wali/Siswa/Kesehatan/PTSP tidak mendapat menu/detail/widget Konseling kecuali ada keputusan domain baru yang eksplisit. Route filter + Service tetap wajib. Jangan menuliskan role di luar Access Boundary sebagai sekadar "tidak boleh edit/delete" karena itu mengaburkan bahwa mereka tidak mempunyai akses domain sama sekali.
-
-## 10. SQL G3.3.1
-
-Baseline yang sudah lulus local+hosting:
-
-```text
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
-database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
-```
-
-Rework localhost 17 September:
-
-```text
-database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
-```
-
-Delta:
-
-```text
-catatan_kasus.id_tahun
-catatan_prestasi.id_tahun
-tindak_lanjut_konseling_bk
-```
-
-Belum ada SQL hosting untuk rework ini.
-
-## 11. Static / Runtime Gate
+## 11. G3.3.1 Gate
 
 Minimum final-head gate:
 
@@ -406,17 +409,12 @@ git diff --check origin/main...HEAD
 git status
 ```
 
-Runtime wajib memeriksa Tahun Ajaran default/reset/history/export, filter Konseling 2 baris, follow-up Konseling multiple entry, historical Rencana, no-delete, RBAC/privacy, dan no horizontal overflow.
+Jangan klaim static/runtime PASS tanpa output user/CI.
 
-Cross-role/period/output-channel regression mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md` dan `15_TESTING_POLISH — SisisFour.md`.
-
-Saat domain UKS/PTSP mulai diimplementasikan, regression matrix wajib memasukkan role `kesehatan` dan `ptsp`, Wali sebagai context Guru, default-deny role lain, serta scope yang telah dikunci.
-
-## 12. Definition of Done G3.3.1 Rework
+Definition of Done rework:
 
 ```text
 SSOT sinkron
-Global Standard mapping konsisten
 source stabil
 localhost SQL PASS
 local runtime UAT PASS
@@ -429,4 +427,4 @@ approval Ready eksplisit
 approval Merge eksplisit
 ```
 
-PR #9 tetap Draft sampai semua gate baru ini selesai. G3.4 belum dimulai.
+PR #9 tetap Draft sampai gate selesai dan approval eksplisit diberikan.
