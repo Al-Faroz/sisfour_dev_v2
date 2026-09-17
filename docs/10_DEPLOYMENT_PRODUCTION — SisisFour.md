@@ -1,12 +1,12 @@
 # Deployment Production — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 17 September 2026
+**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 rework
+**Production DB:** baseline G3.3.1 applied + broad smoke PASS; **17 Sep rework belum diterapkan**
 **Target Domain:** `https://sisfour.mtsn4jombang.sch.id/`
 
-> Deployment baseline dilakukan melalui **manual ZIP upload Hostinger hPanel**, bukan Git deployment. Secret production tidak pernah disimpan di repository atau dokumen ini.
+> Deployment production menggunakan manual ZIP upload Hostinger hPanel. Secret production tidak disimpan di repository/docs.
 
 ## 1. Platform
 
@@ -20,9 +20,9 @@ Timezone       Asia/Jakarta
 Deployment     manual ZIP upload/extract
 ```
 
-Project root adalah Web root. Isi project harus berada langsung di `public_html/`, bukan `public_html/sisfour_dev_v2/` dan bukan hanya isi folder `public/`.
+Project root adalah Web root. Isi project langsung di `public_html/`.
 
-Struktur minimum:
+## 2. Paket Upload
 
 ```text
 public_html/
@@ -39,26 +39,9 @@ public_html/
 └── spark
 ```
 
-## 2. Isi Paket Upload
+Jangan menyertakan `.git/`, `.env` lokal, backup dev, runtime log/cache/debugbar, atau secret.
 
-Paket production boleh menyertakan `vendor/` bila Composer tidak dijalankan di hosting.
-
-Jangan menyertakan:
-
-```text
-.git/
-.env lokal
-_step*_backup/
-build/
-writable/logs/* runtime lokal
-writable/cache/* runtime lokal
-writable/debugbar/* runtime lokal
-writable/backups/* backup dev
-```
-
-`docs/` boleh disertakan karena `.htaccess` production memblokir direct Web access, tetapi tidak diperlukan oleh runtime.
-
-## 3. PHP dan Extension
+## 3. PHP / Extension
 
 Minimum:
 
@@ -75,79 +58,144 @@ curl
 openssl
 ```
 
-Rekomendasi bila paket hosting mengizinkan:
-
-```text
-memory_limit        512M
-max_execution_time  300
-max_input_time      300
-upload_max_filesize 64M
-post_max_size       64M
-max_input_vars      5000
-date.timezone       Asia/Jakarta
-```
-
-Kartu/PDF dan spreadsheet lebih sensitif terhadap memory/time limit dibanding halaman biasa.
-
 ## 4. Composer
 
-Dependency runtime:
-
-```text
-codeigniter4/framework ^4.7
-dompdf/dompdf ^3.1
-endroid/qr-code ^6.0
-firebase/php-jwt ^7.1
-phpoffice/phpspreadsheet ^5.9
-```
-
-Jika `vendor/` tidak dibawa dari build lokal, jalankan di hosting:
+Dependency runtime mengikuti `composer.lock`.
 
 ```bash
 composer install --no-dev --optimize-autoloader
+composer check-platform-reqs
 ```
-
-Setelah itu jalankan `composer check-platform-reqs` bila tersedia.
 
 ## 5. `.env` Production
 
-`.env` dibuat langsung di production dan **tidak di-commit**.
+`.env` dibuat langsung di production dan tidak di-commit. HTTPS/secure cookie wajib. DB credential/JWT/encryption secret tidak boleh masuk docs/repo.
 
-Template aman:
+## 6. Database Deployment Rule
 
-```ini
-CI_ENVIRONMENT = production
+Jangan menimpa production dengan dump development tanpa keputusan eksplisit.
 
-app.baseURL = 'https://sisfour.mtsn4jombang.sch.id/'
-app.forceGlobalSecureRequests = true
-app.CSPEnabled = false
+Schema delta:
 
-database.default.hostname = localhost
-database.default.database = '<DB_NAME>'
-database.default.username = '<DB_USER>'
-database.default.password = '<DB_PASSWORD>'
-database.default.DBDriver = MySQLi
-database.default.DBPrefix =
-database.default.port = 3306
-database.default.DBDebug = false
-
-cookie.secure = true
-cookie.httponly = true
-cookie.samesite = Lax
-
-JWT_SECRET = '<RANDOM_SECRET_MIN_32_CHAR>'
-encryption.key = '<RANDOM_ENCRYPTION_KEY_BERBEDA>'
+```text
+1. backup database production
+2. ambil/audit dump hosting aktual
+3. bandingkan schema/data/FK/index/permissions/menu
+4. susun SQL hosting spesifik environment
+5. review/static gate
+6. approval eksplisit
+7. execute
+8. verification query
+9. logout/login bila permission/menu state terlibat
+10. smoke UAT production
 ```
 
-Gunakan hostname yang benar-benar ditampilkan hPanel. Jangan menyalin secret lokal ke repository.
+Baseline yang sudah diterapkan:
 
-`JWT_SECRET` harus minimal 32 karakter. Secret JWT dan encryption key harus berbeda.
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
 
-## 6. Database Import
+Baseline G3.3.1 execution + broad hosting smoke telah PASS.
 
-Import dump resmi ke database production yang sudah dibuat.
+## 7. Rework 17 September 2026 — BELUM HOSTING
 
-Dump tidak boleh memaksa membuat/memilih database lokal yang salah. Setelah import environment baru:
+Keputusan baru setelah baseline smoke:
+
+```text
+Catatan Pelanggaran + Prestasi snapshot id_tahun
+periodic table filter Tahun Ajaran
+Konseling follow-up 1:N
+tidak ada delete Konseling/follow-up
+filter Konseling desktop 2 baris
+```
+
+SQL localhost yang disiapkan:
+
+```text
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+```
+
+Delta target:
+
+```text
++ catatan_kasus.id_tahun
++ catatan_prestasi.id_tahun
++ tindak_lanjut_konseling_bk
+```
+
+**Tidak ada SQL hosting untuk rework ini saat ini.**
+
+Alasan: source/schema berubah setelah broad hosting smoke. Sesuai gate, localhost SQL + UAT + static harus PASS dulu, lalu dump hosting aktual diaudit ulang sebelum SQL hosting baru dibuat.
+
+## 8. Source Rework yang Nanti Perlu Deploy
+
+Area utama:
+
+```text
+app/Config/RoutesBKFoundation.php
+app/Controllers/BKKonseling.php
+app/Models/BKKasusModel.php
+app/Models/BKPrestasiModel.php
+app/Models/KonselingBkModel.php
+app/Models/KonselingBkFollowUpModel.php
+app/Services/BkService.php
+app/Services/PrestasiService.php
+app/Services/PeriodContextService.php
+app/Services/KonselingBkService.php
+app/Services/KonselingBkExportService.php
+app/Views/bk/kasus.php
+app/Views/bk/prestasi.php
+app/Views/bk/konseling.php
+assets/js/bk/kasus.js
+assets/js/bk/prestasi.js
+assets/js/bk/konseling.js
+```
+
+Jangan upload subset source yang bergantung pada schema baru sebelum database production siap sesuai urutan deploy yang disetujui.
+
+## 9. Urutan Hosting Rework Nanti
+
+Setelah localhost PASS dan user menyetujui hosting gate:
+
+```text
+A. ambil/audit dump hosting terbaru
+B. buat delta SQL hosting spesifik
+C. backup hosting
+D. execute SQL hosting
+E. verification schema/data
+F. upload source head final
+G. clear/cache/session bila memang diperlukan
+H. smoke Tahun Ajaran + follow-up Konseling
+I. final docs/PR sync
+```
+
+Tidak ada eksekusi production otomatis oleh ChatGPT.
+
+## 10. Focused Hosting Smoke Rework
+
+Minimum:
+
+```text
+Catatan Pelanggaran default Tahun aktif + history + export
+Prestasi default Tahun aktif + history + export
+Konseling filter Tahun aktif + Kelas periodik
+Konseling desktop filter 2 baris
+Konseling parent Tahap 1/Tahap 2
+Tambah follow-up #1 dan #2 tanpa overwrite
+Edit follow-up existing
+status parent sinkron dengan follow-up terbaru
+historical Rencana pada follow-up tetap terjaga
+no Delete parent/follow-up
+Admin/Operator/BK access tetap benar
+Pimpinan/Guru/Wali/Siswa tetap tanpa Konseling
+mobile no horizontal overflow
+```
+
+## 11. Runtime/Auth State pada Fresh Import
+
+Hanya untuk fresh environment sesuai kebutuhan:
 
 ```sql
 TRUNCATE TABLE ci_sessions;
@@ -157,11 +205,9 @@ TRUNCATE TABLE login_attempts;
 
 Jangan truncate business data lain.
 
-Session Web memakai `DatabaseHandler` dan tabel `ci_sessions`.
+## 12. Upload Runtime/Data File
 
-## 7. Upload Runtime/Data File
-
-File dinamis perlu diverifikasi terhadap paket release sebelum upload. Pada baseline `39da465`, sebagian asset Settings sudah tracked, sedangkan foto identitas dan dokumen personalia tetap bersifat runtime. Pastikan production memiliki file yang benar-benar direferensikan database, terutama:
+Pastikan file referensi database tersedia:
 
 ```text
 uploads/foto_siswa/
@@ -172,42 +218,9 @@ uploads/settings/kartu/
 writable/uploads/personalia/
 ```
 
-### Catatan Repo Hygiene Penting
+Default permission aman folder 755/file 644.
 
-Implementasi final Settings menulis ke:
-
-```text
-uploads/settings/branding/
-uploads/settings/kartu/
-```
-
-Pada baseline `39da465`, beberapa file branding dan background Kartu di dua folder `uploads/settings/...` tersebut **sudah tracked di repository**. Sementara itu, `.gitignore` masih memuat pola path historis seperti `uploads/branding/` dan `uploads/kartu_pelajar/`, bukan path final Settings. Artinya upload Settings berikutnya dapat ikut ter-track jika dilakukan `git add -A`. Ini adalah hygiene follow-up source: tentukan secara eksplisit apakah asset Settings akan diperlakukan sebagai release asset atau runtime-only, lalu selaraskan `.gitignore`. Jangan memindahkan path runtime yang sudah dipakai aplikasi hanya untuk mengatasi masalah ignore.
-
-## 8. Permission File
-
-Default aman:
-
-```text
-folder 755
-file   644
-```
-
-PHP harus dapat menulis ke:
-
-```text
-writable/cache/
-writable/logs/
-writable/backups/
-writable/uploads/
-uploads/settings/
-uploads/foto_*/
-```
-
-Jangan memakai `777` sebagai default. Perbaiki ownership melalui fasilitas hosting bila diperlukan.
-
-## 9. Web Security
-
-`.htaccess` root release melindungi file/folder internal.
+## 13. Web Security
 
 Production test:
 
@@ -219,131 +232,31 @@ Production test:
 /signage            -> 200
 ```
 
-`robots.txt` meminta crawler tidak mengindeks aplikasi. Ini bukan authorization boundary.
+## 14. Rollback
 
-## 10. HTTPS dan Cookie
-
-SSL harus aktif sebelum memaksa HTTPS/cookie secure.
-
-Production:
-
-```text
-HTTPS                        ON
-app.forceGlobalSecureRequests true
-cookie.secure                 true
-cookie.httponly               true
-SameSite                      Lax
-```
-
-Jika hosting berada di balik proxy/CDN dan muncul redirect loop, konfigurasi proxy/HTTPS harus diperiksa sebelum menonaktifkan security secara permanen.
-
-## 11. Cache Hosting
-
-Jangan mengaktifkan full-page cache agresif untuk seluruh aplikasi authenticated.
-
-Data Dashboard, permission, Presensi, Settings, dan session bersifat dinamis. Gunakan caching selektif di aplikasi; Signage sendiri mempunyai server cache 240 detik.
-
-## 12. Production Smoke Test
-
-### Public/security
-
-```text
-/                       login dapat dibuka
-/signage                200
-/signage/data           JSON valid
-/kartu/verify/{valid}   readonly valid
-sensitive path          403/404
-```
-
-### Role Web
-
-```text
-Admin
-Operator
-Pimpinan
-BK
-Guru
-Guru + Wali
-Siswa
-Pegawai identity bila digunakan
-```
-
-### Core workflow
-
-```text
-Dashboard
-Master Data
-Manajemen Siswa
-Presensi Siswa
-Presensi Mengajar/Jurnal
-Laporan
-BK/Prestasi
-Kartu preview/download/cetak
-Profile/Personalia
-Settings
-Backup
-Maintenance
-Log Activity
-```
-
-### API
-
-```text
-POST /api/auth/login       -> 200
-GET  /api/auth/me          -> 200 dengan Bearer
-GET  /api/dashboard        -> 200 bila permission
-GET  protected tanpa token -> 401
-POST /api/auth/logout      -> 200
-token revoked sesudah logout -> ditolak
-```
-
-## 13. Deployment Rollback
-
-Sebelum overwrite production berikutnya:
+Sebelum overwrite production:
 
 1. backup database;
-2. backup `.env` production secara aman;
-3. backup upload runtime;
-4. simpan ZIP release sebelumnya bila perlu rollback;
-5. jangan menimpa database production dengan dump development tanpa keputusan eksplisit.
+2. backup `.env`;
+3. backup runtime uploads;
+4. simpan ZIP release sebelumnya;
+5. catat SQL delta yang diaplikasikan;
+6. pastikan rollback source kompatibel dengan schema yang tersisa.
 
-## 14. Secret Handling
+## 15. Secret Handling
 
-Dilarang memasukkan ke:
+DB password, JWT secret, encryption key, password account, token tidak boleh masuk Git/docs/screenshot publik/log.
 
-```text
-Git
-README/docs
-screenshot publik
-log aplikasi
-chat publik
-```
-
-untuk data berikut:
+## 16. Current Release Boundary
 
 ```text
-DB password
-JWT secret
-encryption key
-password account
-access/refresh token
+main                                  = PR #8 baseline
+hosting baseline G3.3.1               = PASS
+17 Sep rework localhost SQL/UAT       = PENDING
+17 Sep rework final static            = PENDING
+17 Sep hosting dump audit/delta       = NOT STARTED
+17 Sep hosting smoke                  = NOT STARTED
+PR #9                                 = DRAFT / BELUM MERGE
 ```
 
-Jika secret pernah dibagikan ke tempat yang tidak semestinya, rotate secret tersebut dan perbarui `.env` production.
-
-
-## 11. UI/UX Change Deployment Rule
-
-Redesign Guru/Walas/Siswa tidak boleh langsung dipindahkan ke production dari mockup. Urutan production tetap:
-
-```text
-source implemented
--> static lint
--> role/browser regression
--> canonical docs updated
--> build ZIP production
--> manual upload/extract hPanel
--> smoke test production
-```
-
-Mockup/image hasil diskusi tidak termasuk payload aplikasi kecuali secara eksplisit dijadikan asset final.
+Production baseline yang sudah PASS tidak boleh dipakai sebagai bukti untuk source/schema rework 17 September.

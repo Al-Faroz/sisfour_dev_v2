@@ -1,12 +1,10 @@
 # Authentication, RBAC & Menu — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 12 September 2026
-**Baseline Aplikasi:** `main` @ `39da4651acd29adcd575677d7a37c058bf32269d`
-**Baseline Database:** `sisfour_dev_v2 (33).sql`
+**Tanggal Acuan:** 17 September 2026
+**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework
 
-
-> Dokumen ini menyatakan kontrak yang berlaku pada baseline di atas. Dokumen ini **bukan changelog** dan tidak menyimpan narasi fase lama.
+> Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
 ## 1. Web Authentication
 
@@ -25,97 +23,10 @@ auth_version
 logged_in
 ```
 
-`session.role` hanya primary role dan boleh NULL untuk account tertentu, khususnya Pegawai sebelum role operasional diberikan.
-
-## 2. Login dan Lockout
-
-Syarat login:
-
-- username dan password terisi;
-- user aktif;
-- password hash valid.
-
-Lima kegagalan berturut-turut menghasilkan lock sementara 5 menit.
-
-Login berhasil:
-
-- mencatat attempt berhasil;
-- membentuk session actor;
-- mencatat LOGIN;
-- **tidak menaikkan `auth_version`**.
-
-`auth_version` hanya berubah ketika credential/state keamanan diubah oleh Service berwenang.
-
-## 3. Credential Managed
-
-### Guru/Pegawai
+## 2. Effective Role
 
 ```text
-identifier = NIP bila tersedia
-             selain itu NIK
-username   = identifier
-default/reset password managed = identifier
-```
-
-Jika NIP baru ditambahkan pada account yang sebelumnya memakai NIK:
-
-```text
-username -> NIP
-password -> reset ke NIP
-auth_version -> increment
-```
-
-Perubahan dilakukan atomically.
-
-### Siswa
-
-```text
-username = NISN
-default password = NISN
-```
-
-## 4. API Authentication
-
-Public:
-
-```text
-POST /api/auth/login
-POST /api/auth/refresh
-GET  /api/version
-```
-
-Protected:
-
-```text
-POST /api/auth/logout
-GET  /api/auth/me
-```
-
-Bearer access token dan refresh token disimpan di `api_tokens`.
-
-Canonical RequestContext:
-
-```text
-api_user
-api_access_token
-api_token_row
-api_claims
-```
-
-Kontrak:
-
-- access token sekitar 1 jam;
-- refresh token sekitar 30 hari;
-- token dapat direvoke;
-- `auth_version` token harus sama dengan user current.
-
-## 5. Effective Role
-
-```text
-effective_roles =
-users.role
-UNION
-user_roles.role
+effective_roles = users.role UNION user_roles.role
 ```
 
 Role resmi:
@@ -127,113 +38,289 @@ pimpinan
 bk
 guru
 siswa
+kesehatan
+ptsp
 ```
 
-Tidak ada role `pegawai`.
+Tidak ada role `pegawai` dan tidak ada role `wali`/`walas`. Wali Kelas adalah context Guru.
 
-## 6. Wali Kelas
+Multi-role = YA.
 
-Wali bukan role.
+## 3. Identity
+
+```text
+Guru       -> users.id_guru
+Siswa      -> users.id_siswa
+BK         -> users.id_pegawai
+Kesehatan  -> users.id_pegawai
+PTSP       -> users.id_pegawai
+```
+
+Role berbasis Pegawai tidak boleh dipaksa memiliki `users.id_guru`.
+
+## 4. Access Boundary vs Capability vs Scope
+
+Canonical order:
+
+```text
+Effective Role
+→ Access Boundary
+→ Permission / Capability
+→ Scope
+→ Period
+→ Target Validation
+→ Business Invariant
+```
+
+Role di luar Access Boundary tidak ditulis sebagai sekadar `tidak boleh edit`; role tersebut **tidak memiliki akses domain**.
+
+Global stance:
+
+```text
+DEFAULT DENY
+```
+
+Role/context yang tidak disebut pada domain tidak otomatis mendapat akses.
+
+`Full Access` bersifat domain-specific dan tidak berarti akses seluruh aplikasi.
+
+## 5. Login / Credential
+
+User harus aktif dan credential valid. `auth_version` digunakan untuk invalidation security state. Credential/token/session secret tidak ditulis ke log.
+
+## 6. API Authentication
+
+Public baseline:
+
+```text
+POST /api/auth/login
+POST /api/auth/refresh
+GET  /api/version
+```
+
+Protected baseline:
+
+```text
+POST /api/auth/logout
+GET  /api/auth/me
+```
+
+API protected memakai Bearer/token; Web authenticated memakai session + CSRF.
+
+Domain boleh mempunyai public endpoint bila SSOT eksplisit menetapkannya. Public endpoint tidak otomatis memberi akses ke admin/list/detail internal.
+
+PTSP target mempunyai public submission + public aggregate statistics API sesuai `18_PTSP — SisisFour.md`.
+
+## 7. Wali Kelas
+
+Wali adalah context Guru berdasarkan mapping, bukan role baru.
+
+Workflow current-state:
 
 ```text
 users.id_guru
--> mapping_wali_kelas
--> tahun aktif
--> mapping aktif
+→ mapping_wali_kelas
+→ Tahun Ajaran aktif
 ```
 
-Hak Wali **menambah** hak Guru, bukan menggantikan.
+Pembacaan histori periodik:
 
-Dalam desain UI, istilah **Walas** berarti experience Guru yang memiliki mapping Wali aktif. Jangan membuat role `walas` baru hanya untuk kebutuhan tampilan.
+```text
+scope wali / kelas relevan
+→ dievaluasi pada Tahun Ajaran record/filter
+→ bukan selalu Tahun aktif
+```
 
-## 7. Scope
+Untuk UKS, Guru+Wali hanya ReadOnly **kelas wali**. Guru non-Wali tidak mendapat akses UKS.
+
+## 8. Scope
+
+Canonical scope:
 
 ```text
 SEMUA
 KELAS_DIAMPU
 KELAS_TERJADWAL
+KELAS_WALI
 DIRI_SENDIRI
+UNIT / DOMAIN KHUSUS
 TIDAK_ADA
 ```
 
-Service dapat menggunakan multi-scope/dual-context bila workflow membutuhkannya.
+Period-aware scope wajib menggunakan periode yang sedang berlaku untuk action tersebut.
 
-## 8. Karakter Role
+## 9. Karakter Role
 
 | Role/Context | Karakter Utama |
 |---|---|
-| Admin | Full system, settings, backup, seluruh master/operasional |
-| Operator | Administrasi operasional luas; tidak otomatis Settings/Backup |
-| Pimpinan | Supervisi/read-only sesuai permission |
-| BK | Monitoring BK, kasus, prestasi, EWS |
-| Guru | Jadwal, Presensi, Jurnal, Profile |
-| Guru + Wali | Guru + hak contextual kelas wali |
-| Siswa | Read-only data diri, Profile, Kartu diri |
+| Admin | Full system sesuai permission; bukan bypass business rule |
+| Operator | Administrasi operasional luas sesuai permission |
+| Pimpinan | Supervisi/read-only sesuai permission/domain |
+| BK | Domain BK: Pelanggaran, Konseling, EWS, Prestasi |
+| Guru | Jadwal, Presensi, Jurnal, Profile sesuai permission |
+| Guru + Wali | Guru + scope contextual kelas wali |
+| Siswa | Self-service/read-only pada domain yang diberikan |
+| Kesehatan | Full Access **domain UKS**; identity Pegawai |
+| PTSP | Full Access **domain PTSP**; identity Pegawai |
 
-## 9. Permission Boundary
-
-- PermissionFilter = route gate.
-- Service = authoritative scope/target.
-- Menu = navigation only.
-- View/JS = presentation only.
-- Tidak ada hardcoded Admin bypass pada business rule.
-
-## 10. Menu
-
-Menu dibentuk dari:
+## 10. Permission Boundary
 
 ```text
-menus
-role_menus
-effective role
-permission
-contextual Wali
-MenuService
+PermissionFilter = route gate
+Service          = authoritative role/scope/target/period/business rule
+Menu             = navigation only
+View/JS          = presentation only
 ```
 
-Parent `#` tanpa child visible tidak ditampilkan. Untuk URL bertumpuk, item paling spesifik menjadi active item.
+Semua target ID dan period ID client divalidasi ulang server-side.
 
-### Prinsip UI Guru/Wali/Siswa
+## 11. Konseling G3.3.1
 
-- menu yang terlihat bukan sumber authorization;
-- menyembunyikan menu yang tidak relevan boleh dilakukan untuk UX, tetapi direct URL tetap harus aman di Filter/Service;
-- Guru non-Wali dan Guru+Wali boleh memiliki sidebar berbeda secara contextual tanpa menambah role baru;
-- Siswa hanya mendapat navigasi yang mengarah ke data diri sendiri;
-- keputusan final tentang penyederhanaan sidebar tiga experience tersebut harus dicatat di dokumen UI/UX dan diuji sebelum source dianggap final.
+Permission:
 
-## 11. Experience Role UI
+```text
+bk_konseling.view
+bk_konseling.manage
+bk_konseling.export
+bk_konseling.settings
+```
 
-Priority dashboard:
+Mapping:
+
+```text
+view/manage/export -> Admin, Operator, BK / SEMUA
+settings           -> Admin, BK / SEMUA
+```
+
+Access Boundary Konseling:
+
+```text
+Admin / Operator / BK = masuk domain sesuai permission
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses Konseling
+```
+
+Permission parent dan Tindak Lanjut Konseling 1:N mengikuti boundary yang sama.
+
+## 12. UKS / Kesehatan — Target RBAC
+
+SSOT domain: `17_UKS_KESEHATAN — SisisFour.md`.
+
+```text
+Admin       = Full Access UKS / SEMUA
+Operator    = Full Access UKS / SEMUA
+Kesehatan   = Full Access UKS / SEMUA
+Pimpinan    = ReadOnly SEMUA + Export
+Guru + Wali = ReadOnly KELAS_WALI
+Siswa       = ReadOnly DIRI_SENDIRI
+Guru non-Wali / BK / PTSP / role lain = DENY
+```
+
+Full Access UKS target mencakup capability domain yang dikunci pada docs/17, termasuk create/update/import/export/soft-delete/master. Ia **tidak memberi akses domain PTSP/BK**.
+
+## 13. PTSP — Target RBAC
+
+SSOT domain: `18_PTSP — SisisFour.md`.
+
+Internal administration:
+
+```text
+Admin     = Full Access PTSP / SEMUA
+Operator  = Full Access PTSP / SEMUA
+PTSP      = Full Access PTSP / SEMUA
+Pimpinan  = ReadOnly SEMUA + Export
+role lain = DENY internal PTSP administration
+```
+
+Public submission:
+
+```text
+Layanan PTSP     = public tanpa login
+Polling Kepuasan = public tanpa login
+Pengaduan        = public anonim tanpa login
+```
+
+Public submission tidak memberi view/list/detail internal.
+
+Hard delete PTSP adalah capability eksplisit Admin/Operator/PTSP dan tidak diwariskan ke domain lain.
+
+Public statistics API PTSP hanya aggregate read-only; tidak boleh membocorkan PII/raw record.
+
+## 14. Menu Visibility
+
+Menu visibility mengikuti Access Boundary + permission, tetapi bukan authorization final.
+
+G3.3.1:
+
+```text
+Konseling BK              -> admin, operator, bk
+Pengaturan Form Konseling -> admin, bk
+role lain                 -> tidak mendapat menu tersebut
+```
+
+Target UKS:
+
+```text
+UKS -> Admin, Operator, Kesehatan, Pimpinan, Guru+Wali, Siswa
+```
+
+Target PTSP internal:
+
+```text
+PTSP administration -> Admin, Operator, PTSP, Pimpinan
+```
+
+Public PTSP landing berada di luar menu authenticated.
+
+## 15. Experience Priority
+
+Priority existing yang sudah digunakan:
 
 ```text
 admin > operator > pimpinan > bk > guru > siswa
 ```
 
-BK berada di atas Guru agar akun BK dengan identity/secondary role Guru tetap memperoleh Dashboard BK.
+Role `kesehatan` dan `ptsp` mempunyai role experience tersendiri pada phase implementasinya, tetapi **posisi exact dalam priority multi-role belum dikunci**. Jangan menebak priority sebelum G3.6A/G3.6B implementation mapping.
 
-Wali tidak masuk priority role karena merupakan context di dalam Dashboard Guru.
+Wali tetap context pada experience Guru.
 
-## 12. Maintenance
+## 16. Security Rules
 
-Saat ON:
+- Browser tidak menentukan role/scope/period authorization.
+- UI redesign tidak boleh memperluas akses data.
+- Data tidak boleh dikirim ke role terlarang lalu hanya disembunyikan.
+- Period filter tidak boleh melewati scope.
+- Direct ID access selalu divalidasi terhadap target + period.
+- Authenticated Web mutation memakai CSRF.
+- Public form mengikuti public contract domain + server validation.
+- Public statistics API hanya aggregate dan tidak menjadi backdoor raw data.
+- Role multi-role tidak boleh mendapat cross-domain access hanya karena salah satu role memiliki Full Access pada domain lain.
+
+## 17. Regression Matrix
+
+Setiap domain baru wajib diuji terhadap:
 
 ```text
-effective Admin -> tetap dapat akses/login
-non-Admin Web   -> 503 HTML
-non-Admin API   -> 503 JSON
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
+Siswa
+Kesehatan
+PTSP
 ```
 
-AJAX Admin yang session-authenticated tetap dapat beroperasi agar maintenance dapat dimatikan.
+Expected `DENY` tetap merupakan test case wajib.
 
-## 13. CSRF dan Session Recovery
+Public PTSP surface diuji terpisah dari authenticated role matrix.
 
-Web mutation `POST/PUT/PATCH/DELETE` diproteksi CSRF.
+## 18. Status Implementasi
 
-`assets/js/csrf-fetch.js` memasang token pada same-origin mutation dan mendeteksi session-expired redirect ke `/auth/login`.
+```text
+Konseling G3.3.1     = source aktif / PR #9
+UKS/Kesehatan        = SSOT target / BELUM implementasi source/schema/permission/menu
+PTSP                  = SSOT target / BELUM implementasi source/schema/permission/menu/API
+```
 
-## 14. Security Rules
-
-- Browser tidak menentukan role/scope.
-- Menu bukan security boundary.
-- Semua target ID dari client harus divalidasi ulang server-side.
-- UI redesign tidak boleh memperluas akses data hanya karena link/tombol ditambahkan.
+Tidak ada permission/menu/route UKS/PTSP yang dianggap tersedia hanya karena sudah tercatat pada dokumen target.

@@ -6,7 +6,7 @@
         <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Master Pelanggaran</h4>
             <p class="text-muted mb-0">
-                Kelola referensi jenis pelanggaran, kategori, dan poin yang digunakan pada Catatan Kasus.
+                Kelola referensi jenis dan kategori pelanggaran untuk Catatan Pelanggaran Siswa.
             </p>
         </div>
 
@@ -32,14 +32,13 @@
                     <tr>
                         <th>Nama</th>
                         <th>Kategori</th>
-                        <th>Poin</th>
                         <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="pelanggaranBody">
                     <?php if (empty($rows)): ?>
                         <tr class="sisfour-empty-row">
-                            <td colspan="4" class="text-muted">Belum ada Master Pelanggaran.</td>
+                            <td colspan="3" class="text-muted">Belum ada Master Pelanggaran.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
@@ -47,11 +46,9 @@
                                 data-id="<?= (int) $row['id'] ?>"
                                 data-nama="<?= esc($row['nama_pelanggaran'], 'attr') ?>"
                                 data-kategori="<?= esc($row['kategori'], 'attr') ?>"
-                                data-poin="<?= (int) $row['poin'] ?>"
                             >
                                 <td class="fw-semibold"><?= esc($row['nama_pelanggaran']) ?></td>
                                 <td><span class="badge bg-label-secondary"><?= esc($row['kategori']) ?></span></td>
-                                <td><?= (int) $row['poin'] ?></td>
                                 <td class="text-end">
                                     <div class="sisfour-row-actions justify-content-end">
                                         <button type="button" class="btn btn-sm btn-outline-primary btn-edit" title="Edit" aria-label="Edit pelanggaran">
@@ -83,17 +80,13 @@
                         <label class="form-label" for="namaPelanggaran">Nama Pelanggaran</label>
                         <input id="namaPelanggaran" name="nama_pelanggaran" class="form-control" maxlength="150" required>
                     </div>
-                    <div class="mb-3">
+                    <div>
                         <label class="form-label" for="kategoriPelanggaran">Kategori</label>
                         <select id="kategoriPelanggaran" name="kategori" class="form-select" required data-searchable-off="1">
                             <option value="Ringan">Ringan</option>
                             <option value="Sedang">Sedang</option>
                             <option value="Berat">Berat</option>
                         </select>
-                    </div>
-                    <div>
-                        <label class="form-label" for="poinPelanggaran">Poin</label>
-                        <input id="poinPelanggaran" name="poin" type="number" min="0" max="10000" class="form-control" required>
                     </div>
                 </div>
                 <div class="modal-footer sisfour-modal-actions">

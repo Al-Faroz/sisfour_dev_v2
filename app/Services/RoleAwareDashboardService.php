@@ -28,6 +28,60 @@ class RoleAwareDashboardService extends DashboardService
         return 'guru';
     }
 
+    /**
+     * G3.3.1: Pimpinan hanya menerima agregat supervisi.
+     * Data Konseling BK tidak pernah dibentuk untuk dashboard Pimpinan.
+     */
+    protected function widgetsPimpinan(int $userId): array
+    {
+        $tahun = $this->tahunAktif();
+        $idTahun = (int) ($tahun['id'] ?? 0);
+        $canEws = $this->can($userId, 'ews_radar.view');
+        $canPelanggaran = $this->can($userId, 'bk_kasus.view');
+        $canPrestasi = $this->can($userId, 'prestasi.view');
+        $canKartu = $this->can($userId, 'kartu_pelajar.view');
+
+        return [
+            'tahun_aktif' => $tahun,
+            'access' => [
+                'ews' => $canEws,
+                'pelanggaran' => $canPelanggaran,
+                'prestasi' => $canPrestasi,
+                'kartu' => $canKartu,
+            ],
+            'master' => $this->masterSummary($idTahun),
+            'presensi_hari_ini' => $this->presensiTodaySummary($idTahun),
+            'jurnal_hari_ini' => $this->journalTodaySummary($idTahun),
+            'ews_count' => $canEws ? $this->ewsCount($idTahun) : null,
+            'ews_top' => $canEws ? $this->ewsTop($idTahun, null, 5) : [],
+            'kasus_bulan_ini' => $canPelanggaran ? $this->caseCountThisMonth() : null,
+            'prestasi_terbaru' => $canPrestasi ? $this->latestPrestasi(5) : [],
+            'kartu' => $canKartu ? $this->cardSummary() : null,
+            'tren_presensi' => $this->trendAttendance($idTahun),
+        ];
+    }
+
+    /**
+     * G3.3.1: BK memakai jumlah catatan/kategori, bukan poin.
+     * G3.4 akan merancang ulang widget BK dengan Konseling sebagai sumber baru.
+     */
+    protected function widgetsBk(int $userId): array
+    {
+        $tahun = $this->tahunAktif();
+        $idTahun = (int) ($tahun['id'] ?? 0);
+
+        return [
+            'tahun_aktif' => $tahun,
+            'kasus_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->caseCountThisMonth() : null,
+            'pelanggaran_berat_bulan_ini' => $this->can($userId, 'bk_kasus.view') ? $this->severeCaseCountThisMonth() : null,
+            'ews_count' => $this->can($userId, 'ews_radar.view') ? $this->ewsCount($idTahun) : null,
+            'prestasi_bulan_ini' => $this->can($userId, 'prestasi.view') ? $this->prestasiCountThisMonth() : null,
+            'ews_top' => $this->can($userId, 'ews_radar.view') ? $this->ewsTop($idTahun, null, 10) : [],
+            'kasus_terbaru' => $this->can($userId, 'bk_kasus.view') ? $this->latestCases(8) : [],
+            'prestasi_terbaru' => $this->can($userId, 'prestasi.view') ? $this->latestPrestasi(8) : [],
+        ];
+    }
+
     protected function widgetsGuru(int $userId, bool $isWali): array
     {
         $widgets = parent::widgetsGuru($userId, $isWali);
@@ -81,12 +135,24 @@ class RoleAwareDashboardService extends DashboardService
         return $widgets;
     }
 
+    /**
+     * Siswa hanya menerima data milik sendiri dan availability flag agar UI
+     * tidak menyamakan "tidak punya permission" dengan "tidak ada data".
+     * Konseling BK sengaja tidak pernah menjadi bagian dashboard Siswa.
+     */
     protected function widgetsSiswa(int $userId): array
     {
         $widgets = parent::widgetsSiswa($userId);
         $widgets['presensi_hari_ini'] = null;
+        $widgets['access'] = [
+            'presensi' => $this->can($userId, 'presensi_siswa.view'),
+            'prestasi' => $this->can($userId, 'prestasi.view'),
+            'pelanggaran' => $this->can($userId, 'bk_kasus.view'),
+            'kartu' => $this->can($userId, 'kartu_pelajar.view'),
+            'profile' => $this->can($userId, 'profile_siswa.view'),
+        ];
 
-        if (! $this->can($userId, 'presensi_siswa.view')) {
+        if (! $widgets['access']['presensi']) {
             return $widgets;
         }
 
@@ -123,6 +189,53 @@ class RoleAwareDashboardService extends DashboardService
         return $widgets;
     }
 
+    /**
+     * Override helper legacy DashboardService supaya payload aktif tidak lagi
+     * membawa poin pelanggaran. Ranking, bila pernah dipanggil, berbasis jumlah
+     * catatan dan bukan SUM poin.
+     */
+    protected function topViolations(int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id_siswa, s.nama, COUNT(ck.id) AS total_catatan', false)
+            ->join('siswa s', 's.id = ck.id_siswa')
+            ->groupBy('ck.id_siswa, s.nama')
+            ->orderBy('total_catatan', 'DESC')
+            ->orderBy('s.nama', 'ASC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
+    protected function latestCases(int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id, ck.id_siswa, ck.tanggal, ck.keterangan, s.nama, rp.nama_pelanggaran, rp.kategori')
+            ->join('siswa s', 's.id = ck.id_siswa')
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->orderBy('ck.tanggal', 'DESC')
+            ->orderBy('ck.id', 'DESC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
+    protected function studentCases(int $idSiswa, int $limit): array
+    {
+        return $this->db
+            ->table('catatan_kasus ck')
+            ->select('ck.id, ck.tanggal, ck.keterangan, rp.nama_pelanggaran, rp.kategori')
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->where('ck.id_siswa', $idSiswa)
+            ->orderBy('ck.tanggal', 'DESC')
+            ->orderBy('ck.id', 'DESC')
+            ->limit(max(1, min(20, $limit)))
+            ->get()
+            ->getResultArray();
+    }
+
     protected function waliQuickLinks(int $userId, int $idKelas): array
     {
         $links = parent::waliQuickLinks($userId, $idKelas);
@@ -133,6 +246,10 @@ class RoleAwareDashboardService extends DashboardService
                 && isset($link['url'])
             ) {
                 $link['url'] = 'presensi/siswa?id_kelas=' . $idKelas;
+            }
+
+            if (($link['label'] ?? '') === 'Pelanggaran Siswa') {
+                $link['label'] = 'Catatan Pelanggaran';
             }
         }
         unset($link);
@@ -150,7 +267,7 @@ class RoleAwareDashboardService extends DashboardService
             ],
             [
                 'permission' => 'bk_kasus.view',
-                'label' => 'Kasus Siswa',
+                'label' => 'Catatan Pelanggaran',
                 'url' => 'bk/kasus',
             ],
             [

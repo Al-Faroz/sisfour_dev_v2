@@ -1,11 +1,9 @@
 # Tree Structure — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 17 September 2026
 
 ## 1. Root
-
-SisisFour memakai project root sebagai Web root.
 
 ```text
 sisfour_dev_v2/
@@ -25,7 +23,7 @@ sisfour_dev_v2/
 └── writable/
 ```
 
-`.htaccess` root melindungi file/folder internal dan meneruskan request ke CI4.
+Project root adalah Web root; `.htaccess` melindungi internal files/folders dan meneruskan request ke CI4.
 
 ## 2. Application
 
@@ -42,7 +40,7 @@ app/
 └── Views/
 ```
 
-Flow:
+Flow teknis:
 
 ```text
 Routes
@@ -51,15 +49,171 @@ Routes
 → Service
 → Model/Query
 → DB
-→ View/JSON
+→ View/JSON/File
 ```
 
-## 3. Frontend
+Flow keputusan global mengikuti `docs/00A_GLOBAL_STANDARD_SISFOUR.md`:
+
+```text
+Menu/Fitur
+→ Use Case
+→ SSOT/Domain
+→ Access Boundary
+→ Capability
+→ Scope
+→ Period Context
+→ Target Validation
+→ Business Invariant
+→ Persistence
+→ Service Boundary
+→ Presentation UI
+→ Output Channel/API
+→ Audit
+→ Testing/Regression
+→ Docs Sync
+→ Deployment Gate
+```
+
+## 3. Route Files
+
+```text
+app/Config/Routing.php
+app/Config/Routes.php
+app/Config/RoutesBKFoundation.php
+```
+
+`Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
+
+Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
+
+## 4. G3.3.1 BK Source
+
+Controller:
+
+```text
+app/Controllers/BKKasus.php
+app/Controllers/BKKonseling.php
+app/Controllers/BKKonselingSettings.php
+app/Controllers/BKPelanggaran.php
+app/Controllers/BKPrestasi.php
+```
+
+Models:
+
+```text
+app/Models/BKKasusModel.php
+app/Models/BKPrestasiModel.php
+app/Models/KonselingBkModel.php
+app/Models/KonselingBkFollowUpModel.php
+```
+
+Services:
+
+```text
+app/Services/BkExportService.php
+app/Services/BkKonselingFormSettingsService.php
+app/Services/KonselingBkExportService.php
+app/Services/KonselingBkService.php
+app/Services/PeriodContextService.php
+app/Services/PrestasiService.php
+app/Services/RoleAwareDashboardService.php
+```
+
+Views:
+
+```text
+app/Views/bk/kasus.php
+app/Views/bk/konseling.php
+app/Views/bk/konseling_settings.php
+app/Views/bk/pelanggaran.php
+app/Views/bk/prestasi.php
+```
+
+Feature JS:
+
+```text
+assets/js/bk/kasus.js
+assets/js/bk/konseling.js
+assets/js/bk/konseling-detail-order.js
+assets/js/bk/konseling-settings.js
+assets/js/bk/pelanggaran.js
+assets/js/bk/prestasi.js
+```
+
+Reusable period helper:
+
+```text
+assets/js/components/active-year-default.js
+```
+
+`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server.
+
+## 5. Konseling Rework Structure
+
+```text
+konseling_bk
+   1
+   └── N tindak_lanjut_konseling_bk
+```
+
+Routes follow-up berada di `RoutesBKFoundation.php`; Model follow-up berada di `KonselingBkFollowUpModel.php`; business rule berada di `KonselingBkService.php`.
+
+Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling pada kontrak G3.3.1 saat ini.
+
+## 6. Future Domain Structure — UKS / Kesehatan
+
+SSOT target:
+
+```text
+docs/17_UKS_KESEHATAN — SisisFour.md
+```
+
+Domain target:
+
+```text
+UKS
+├── Data CKG
+└── Catatan Harian UKS
+```
+
+Role `kesehatan` memakai identity Pegawai. Source/schema/menu/permission belum dibuat sampai phase G3.6A.
+
+## 7. Future Domain Structure — PTSP
+
+SSOT target:
+
+```text
+docs/18_PTSP — SisisFour.md
+```
+
+Domain target:
+
+```text
+PTSP authenticated administration
+├── Layanan PTSP
+├── Polling Kepuasan
+└── Pengaduan
+
+PTSP public landing
+├── Public Layanan Form
+├── Public Polling Form
+└── Public Pengaduan Form
+
+Public API
+├── Layanan aggregate statistics
+├── Polling aggregate statistics
+└── Pengaduan aggregate statistics
+```
+
+Role `ptsp` memakai identity Pegawai. Source/schema/menu/route/API belum dibuat sampai phase G3.6B.
+
+## 8. Frontend
 
 ```text
 assets/
 ├── css/
-│   └── sisfour-ui.css
+│   ├── sisfour-ui.css
+│   └── sisfour-mobile.css
 ├── img/
 ├── js/
 │   ├── components/
@@ -76,13 +230,11 @@ assets/
 └── vendor/
 ```
 
-Reusable UI foundation berada di `sisfour-ui.css` dan `assets/js/components/`.
+Reusable UI foundation berada di global CSS/component; vendor Sneat/Bootstrap tidak dipatch langsung.
 
-Vendor Sneat/Bootstrap tidak dipatch langsung.
+PTSP public landing akan mempunyai presentation khusus, tetapi tetap mengikuti global responsive/loading/error/busy-guard standards.
 
-## 4. Layout Views
-
-Project existing menggunakan partial root:
+## 9. Layout Views
 
 ```text
 app/Views/main.php
@@ -94,9 +246,36 @@ app/Views/_flash.php
 app/Views/_scripts.php
 ```
 
-Struktur ini valid walaupun standar global memberi contoh `layouts/partials/`; yang penting responsibility tetap terpisah.
+Responsibility lebih penting daripada nama folder.
 
-## 5. Upload Public
+## 10. SQL / Database Scripts
+
+G3.2 final:
+
+```text
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
+database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
+```
+
+G3.3.1 baseline yang sudah diuji:
+
+```text
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
+database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
+```
+
+G3.3.1 rework local:
+
+```text
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+```
+
+Belum ada SQL/schema delta UKS/PTSP karena domain tersebut belum masuk phase implementation.
+
+## 11. Upload / Writable
+
+Public upload existing:
 
 ```text
 uploads/foto_siswa/
@@ -106,17 +285,13 @@ uploads/settings/branding/
 uploads/settings/kartu/
 ```
 
-Branding runtime direferensikan `setting_sistem`.
-
-## 6. Upload Non-Public
+Non-public personalia:
 
 ```text
 writable/uploads/personalia/
 ```
 
-Raw document hanya dikirim melalui controller/service yang sah.
-
-## 7. Runtime Writable
+Runtime:
 
 ```text
 writable/cache/
@@ -126,10 +301,13 @@ writable/debugbar/
 writable/uploads/
 ```
 
-## 8. Canonical Docs
+Upload Pengaduan PTSP belum mempunyai final physical path sampai phase G3.6B; docs/18 hanya menetapkan tipe file image/PDF.
+
+## 12. Canonical Docs
 
 ```text
 00_POLA_PENGERJAAN___SisisFour.md
+00A_GLOBAL_STANDARD_SISFOUR.md
 01_MASTERPLAN — SisisFour.md
 02_DATABASE — SisisFour.md
 03_AUTH_RBAC_MENU — SisisFour.md
@@ -147,57 +325,55 @@ writable/uploads/
 14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
 15_TESTING_POLISH — SisisFour.md
 16_MOBILE_CORDOVA — SisisFour.md
+17_UKS_KESEHATAN — SisisFour.md
+18_PTSP — SisisFour.md
 Routes Final — SisisFour.md
 Tree Structure — SisisFour.md
 ```
 
-`11_UI_UX_GURU_WALAS_SISWA — SisisFour.md` masih dapat ditemukan pada branch sebagai path lama, tetapi bukan entry SSOT utama; role contract canonical adalah `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`.
+`00` + `00A` adalah entry point wajib sebelum dokumen domain.
 
-## 9. UI Hierarchy
+## 13. UI Hierarchy
 
 ```text
 13 Global Sneat
 → 11 SisisFour UI
 → 14 Mobile/Cordova UI
 → 11 Role Experience
+→ domain-specific public surface bila ada
 ```
 
-## 10. Cordova
+## 14. Structural Change Rule
 
-Project Cordova/APK **belum** menjadi bagian phase G2.
-
-Ketika G4 dimulai, project/package Cordova sebaiknya berada pada boundary terpisah yang jelas dan tidak mencampur vendor Android build artefact ke source Web tanpa aturan.
-
-Detail ada di `16_MOBILE_CORDOVA — SisisFour.md`.
-
-## 11. Phase Boundary
-
-```text
-G2 Master Data/lifecycle fixing + stabilization
-G3 Mobile role UI/WebView readiness
-G4 Cordova APK packaging/integration
-```
-
-## 12. Tidak Di-commit
-
-Secara prinsip:
-
-```text
-.env
-vendor/
-build output
-runtime cache/log/backup/debugbar
-raw personalia upload
-credential/token/secret
-Cordova signing material
-```
-
-## 13. Structural Change Rule
-
-- business rule tetap di Service;
-- Controller menangani request/response;
+- baca `00` + `00A` sebelum feature/domain work;
+- kunci Access Boundary sebelum Capability;
+- kunci Capability sebelum Scope/Period/Target;
+- business rule di Service;
+- Controller request/response;
 - JS page-specific per module;
+- public API aggregate tidak boleh bypass privacy/access rules;
 - route hanya ditambah bila endpoint nyata diperlukan;
+- setiap route file tambahan didaftarkan di `Routing::$routeFiles`;
 - reusable CSS/JS masuk foundation/component;
-- project mobile/APK tidak menduplikasi source business Web;
-- docs canonical disinkronkan sebelum phase ditutup.
+- SQL delta eksplisit di `database/`;
+- period context server-side tidak digantikan helper UI;
+- output channel listing/detail/dashboard/export/API harus konsisten terhadap contract yang sama;
+- docs canonical disinkronkan sebelum phase merge/closure.
+
+## 15. Current / Planned Phase Boundary
+
+```text
+G2      CLOSED
+G3.1    CLOSED / MERGED
+G3.2    CLOSED / MERGED
+G3.3    CLOSED / MERGED
+G3.3.1  REWORK / PR #9 DRAFT
+G3.4    NEXT setelah PR #9 merge
+G3.5    Pimpinan
+G3.6    Siswa
+G3.6A   UKS / Kesehatan
+G3.6B   PTSP
+G3.7    Global Mobile Sweep
+G3.8    Viewport/WebView Readiness
+G4      Cordova APK
+```

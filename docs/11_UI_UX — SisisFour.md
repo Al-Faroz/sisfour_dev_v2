@@ -1,7 +1,7 @@
 # UI/UX Standard — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 15 September 2026
+**Tanggal Acuan:** 17 September 2026
 **Stack:** CodeIgniter 4 + Sneat Free v3 + Bootstrap 5.3.x + Vanilla JavaScript
 
 > Dokumen ini menetapkan kontrak UI/UX SisisFour secara umum. Baseline vendor dan pola reusable CI4 ada di `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`. Aturan mobile/WebView yang lebih ketat ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
@@ -44,24 +44,11 @@ Canonical root:
 <html lang="id" class="layout-menu-fixed layout-compact">
 ```
 
-Layout:
-
-```text
-layout-wrapper
-→ layout-container
-  → sidebar
-  → layout-page
-    → navbar
-    → content-wrapper
-      → container-xxl flex-grow-1 container-p-y
-      → footer
-```
-
-Viewport memakai `viewport-fit=cover`.
+Viewport memakai `viewport-fit=cover`. Feature tidak boleh membuat width yang memicu body horizontal overflow.
 
 ## 4. Title Contract
 
-Controller mengirim satu title canonical.
+Controller mengirim satu title canonical:
 
 ```text
 title/pageTitle normalized
@@ -69,8 +56,6 @@ title/pageTitle normalized
 → navbar context
 → page heading
 ```
-
-Tidak boleh ada navbar bertuliskan halaman lain.
 
 ## 5. Markup First
 
@@ -116,7 +101,7 @@ card pad    24px native
 
 Mobile density mengikuti dokumen `14`, bukan sekadar mengecilkan semua font/control.
 
-## 8. Typography
+## 8. Typography & Identity
 
 ```text
 Font          Public Sans
@@ -126,11 +111,9 @@ Card title    18px desktop
 Metadata      13px
 ```
 
-Mobile scale mengikuti `14`.
-
 Nama manusia adalah identitas visual utama. NISN/NIP/NIK adalah identifier sekunder untuk search/verifikasi/disambiguasi.
 
-## 9. Filter
+## 9. Filter — Global Contract
 
 Canonical:
 
@@ -142,41 +125,84 @@ Canonical:
 </div>
 ```
 
+Rules:
+
 - label selalu ada;
 - entity besar memakai SearchableSelect;
 - enum kecil boleh native select;
-- apply filter mengembalikan page ke awal;
-- mobile filter dapat collapse/offcanvas sesuai `14`.
+- Apply/Tampilkan mengembalikan pagination ke awal;
+- Reset mengembalikan semua filter ke canonical default;
+- mobile filter dapat stack/collapse/offcanvas sesuai `14`;
+- field tidak dipersempit secara berlebihan hanya agar muat satu baris.
 
-### Default Tahun Ajaran
+### 9.1 Filter Banyak di Desktop
 
-Pada halaman yang memiliki selector Tahun Ajaran untuk membaca data operasional/historis:
+Jika filter mulai padat atau field berjumlah banyak, **jangan dipaksa satu baris**. Gunakan dua baris `row g-3 align-items-end` yang seimbang.
+
+Pedoman:
+
+```text
+<= 4 field sederhana                  boleh 1 baris
+5+ field / ada search + date range    prioritaskan 2 baris
+field penting                         beri lebar lebih besar
+Reset/Tampilkan                       dikelompokkan sebagai action
+```
+
+Contoh canonical Konseling:
+
+```text
+Baris 1: Tahun Ajaran | Pencarian | Kelas
+Baris 2: Status | Bidang | Dari | Sampai | Reset/Tampilkan
+```
+
+Tujuannya readability dan konsistensi spacing, bukan mengejar jumlah baris minimum.
+
+### 9.2 Tahun Ajaran untuk Tabel Periodik
+
+Keputusan global 17 September 2026:
+
+> **Setiap halaman tabel/list periodik atau historis yang datanya memiliki dimensi Tahun Ajaran wajib menyediakan filter Tahun Ajaran.**
+
+Kontrak:
 
 ```text
 initial value = Tahun Ajaran aktif
-Reset         = kembali ke Tahun Ajaran aktif
-manual select = periode historis tetap boleh bila scope mendukung
+Reset         = Tahun Ajaran aktif
+manual select = histori boleh dipilih bila domain mendukung
+request       = id_tahun eksplisit pada list/export
+create baru   = Service snapshot Tahun Ajaran aktif; jangan percaya period dari client
 ```
 
-Default harus terlihat langsung dari option yang terpilih. Jangan menambah helper/alert yang hanya menjelaskan bahwa default adalah Tahun Ajaran aktif.
+Default harus terlihat langsung dari option terpilih. Jangan menambah alert/helper hanya untuk menjelaskan bahwa default adalah periode aktif.
 
-Surface canonical yang mengikuti pola ini:
+Contoh surface periodik:
 
 ```text
-Master Siswa
-Master Kelas
-Mapping Wali
-Assign Wali
-Master Jadwal Guru
-Import Jadwal Guru
+Master Siswa/Kelas bila membaca histori periode
+Mapping/Assign Wali
+Master/Import Jadwal Guru
 Laporan Jurnal
-Matrix Presensi
-Export Presensi
+Matrix/Export Presensi
+Catatan Pelanggaran
+Konseling BK
+Prestasi Siswa
+surface periodik lain yang mempunyai id_tahun / period context
 ```
 
-Workflow current-state yang business contract-nya memang selalu memakai periode aktif tidak perlu diberi selector Tahun Ajaran tambahan, antara lain Penempatan/Pindah, Mutasi, Kelulusan, Kenaikan, Presensi/Jurnal operasional, dan Kartu Pelajar operasional.
+Tidak diberi filter Tahun Ajaran palsu:
 
-Master Tahun Ajaran adalah pengecualian karena fungsi halaman tersebut adalah mengelola seluruh periode.
+```text
+User
+Permission
+Menu
+Setting Sistem
+Log Activity
+Master Pelanggaran
+Master Tahun Ajaran itu sendiri
+workflow current-state seperti Kenaikan/Mutasi/Kartu operasional bila kontraknya selalu periode aktif
+```
+
+Jika tabel legacy periodik belum menyimpan snapshot periode, schema/business layer harus dibenahi lebih dulu. UI tidak boleh membuat filter Tahun Ajaran yang secara teknis memetakan data dengan tebakan.
 
 ## 10. Forms
 
@@ -186,6 +212,8 @@ Master Tahun Ajaran adalah pengecualian karena fungsi halaman tersebut adalah me
 - mutation punya busy guard;
 - data identifier panjang diperlakukan string;
 - mobile complex form dapat fullscreen modal/sticky action sesuai `14`.
+
+Workflow histori 1:N harus menampilkan **riwayat sebelum form Tambah/Edit** bila keputusan baru membutuhkan konteks sebelumnya.
 
 ## 11. SearchableSelect
 
@@ -198,7 +226,7 @@ nama
 + NISN/NIP/NIK bila relevan
 ```
 
-Hasil menonjolkan nama, identifier menjadi metadata.
+Hasil menonjolkan nama; identifier menjadi metadata.
 
 ## 12. Button Hierarchy
 
@@ -209,9 +237,7 @@ Export    outline-success
 Danger    destructive
 ```
 
-Satu konteks idealnya memiliki satu primary action.
-
-Row action desktop dapat icon/button compact. Mobile mengikuti `14`: action utama + menu sekunder bila aksi banyak.
+Satu konteks idealnya memiliki satu primary action. Icon-only wajib accessible label.
 
 ## 13. Card
 
@@ -224,9 +250,7 @@ card
 → card-footer pager/action bila perlu
 ```
 
-Table di card selalu `mb-0`.
-
-Jangan menambah card di dalam card tanpa kebutuhan hierarchy.
+Table di card selalu `mb-0`. Jangan menambah card di dalam card tanpa kebutuhan hierarchy.
 
 ## 14. Table — General
 
@@ -242,9 +266,7 @@ Desktop canonical:
 - description boleh wrap;
 - jangan nowrap seluruh tabel.
 
-### Mobile operational roles
-
-Untuk Pimpinan/BK/Guru/Wali/Siswa, **aturan `14` berlaku**:
+Untuk Pimpinan/BK/Guru/Wali/Siswa, aturan `14` berlaku:
 
 ```text
 NO horizontal table scroll
@@ -259,15 +281,12 @@ Admin/Operator matrix boleh exception terdokumentasi.
 
 Gunakan satu komponen `SisfourPagination`.
 
-Admin desktop umum:
-
 ```text
-25 / 50 / 100
+Admin desktop umum: 25 / 50 / 100
+Role operasional mobile: 10–15 bila paginated
 ```
 
-Role operasional mobile dapat default 10–15 sesuai `14`.
-
-Tidak boleh menyisakan manual Prev/Next lama bersamaan dengan paginator baru.
+Tidak boleh menyisakan paginator lama paralel dengan komponen baru.
 
 ## 16. Modal
 
@@ -279,9 +298,7 @@ body
 footer: Batal + primary action
 ```
 
-Gunakan `modal-dialog-scrollable` untuk content panjang.
-
-Mobile complex form/detail menggunakan `modal-fullscreen-sm-down` bila sesuai.
+Gunakan `modal-dialog-scrollable` untuk content panjang. Mobile complex form/detail menggunakan `modal-fullscreen-sm-down` bila sesuai.
 
 ## 17. Confirmation & Feedback
 
@@ -295,9 +312,7 @@ confirm()
 prompt()
 ```
 
-Inline alert tetap digunakan untuk state halaman yang perlu persistent.
-
-Informasi yang sudah jelas dari state control tidak perlu diulang sebagai alert/helper. Contoh: bila Tahun Ajaran aktif sudah terpilih, tidak perlu teks “Default menampilkan Tahun Ajaran yang sedang aktif.”
+Inline alert tetap untuk persistent page state.
 
 ## 18. Loading / Empty / Error
 
@@ -316,14 +331,12 @@ Mutation:
 disabled + busy
 server response
 success/error visible
-restore pada failure
+restore input/state pada failure bila aman
 ```
 
 ## 19. Dashboard
 
 Dashboard role mengikuti experience, bukan meniru Admin.
-
-General:
 
 ```text
 KPI penting
@@ -332,83 +345,31 @@ quick action bila perlu
 Lihat Semua untuk detail
 ```
 
-Mobile compact rule ada di `14`.
-
 ## 20. Tabs / Secondary Navigation
 
-Tab utama ditulis di View. Mobile boleh scroll horizontal untuk **tabs/navigation**, karena ini berbeda dari tabel data.
-
-Tab penting tidak boleh hilang pada mobile.
+Tab utama ditulis di View. Mobile boleh scroll horizontal untuk tabs/navigation; ini berbeda dari tabel data. Tab penting tidak boleh hilang.
 
 ## 21. Sidebar
 
-Data-driven dari menu/role/context.
-
-- satu active item paling spesifik;
-- parent open bila child active;
-- parent kosong tidak tampil;
-- mobile menggunakan offcanvas/overlay Sneat;
-- menu bukan security boundary.
+Data-driven dari menu/role/context. Menu bukan security boundary.
 
 ## 22. Branding
 
-`nama_sekolah`, `logo_sekolah`, `icon_sekolah` berasal dari setting sistem.
-
-Favicon:
-
-```text
-setting path
-→ physical file check
-→ cache-busted URL
-→ fallback bila tidak ada
-```
-
-Login dan authenticated shell memakai source branding yang sama.
+`nama_sekolah`, `logo_sekolah`, `icon_sekolah` berasal dari setting sistem. Login dan authenticated shell memakai source branding yang sama.
 
 ## 23. Login
 
-Show/hide password memakai semantic button dan tidak bergantung pada dashboard script.
-
-Wajib update:
-
-```text
-input type
-icon
-aria-label
-aria-pressed
-```
+Show/hide password memakai semantic button dan update `input type`, icon, `aria-label`, dan `aria-pressed`.
 
 ## 24. CSS Architecture
 
-Reusable pattern masuk:
-
-```text
-assets/css/sisfour-ui.css
-```
-
-CSS module hanya untuk layout yang benar-benar unik.
-
-Dilarang membuat patch chain seperti `fix.css`, `fix2.css`, `final-fix.css`.
+Reusable pattern masuk `assets/css/sisfour-ui.css`. CSS module hanya untuk layout yang benar-benar unik. Dilarang membuat patch chain `fix.css`, `fix2.css`, `final-fix.css`.
 
 ## 25. JavaScript Architecture
 
-Feature JS dibatasi oleh root element.
+Feature JS dibatasi root element. JS boleh fetch/render/bind/pagination/busy/validation UX, tetapi tidak membuat header/filter/tab/action statis setelah load.
 
-JS boleh:
-
-```text
-fetch
-render data dinamis
-bind modal
-pagination
-busy/loading
-validation UX
-event handler
-```
-
-JS tidak membuat page header/filter/tab/action statis setelah load.
-
-Default behavior lintas halaman yang benar-benar generic boleh masuk komponen reusable, misalnya `active-year-default.js`, selama tidak mengubah business authorization dan tidak menimpa pilihan eksplisit user/server.
+`active-year-default.js` boleh menjadi helper generic, tetapi server tetap sumber kebenaran period context dan pilihan eksplisit server/user tidak boleh ditimpa.
 
 ## 26. Accessibility
 
@@ -425,26 +386,20 @@ Minimum:
 ## 27. Responsive Contract
 
 ### >=1200px
-
-Desktop Sneat penuh.
+Desktop Sneat penuh; filter padat boleh 2 baris.
 
 ### 768–1199px
-
-Sidebar mobile/offcanvas; header/action tidak dipaksa terlalu padat.
+Sidebar mobile/offcanvas; header/action/filter tidak dipaksa terlalu padat.
 
 ### <768px
-
 Mobile hierarchy berlaku.
 
 ### Role operasional portrait
-
 `14` menjadi kontrak final, terutama no-horizontal-table-scroll dan density/touch rules.
 
 ## 28. Cordova Awareness
 
-Web UI tidak memasukkan plugin Cordova ke business layer.
-
-G3 membuat UI WebView-ready. G4 baru menangani Cordova bridge, Android Back, permission, download/share, safe-area, dan packaging.
+Web UI tidak memasukkan plugin Cordova ke business layer. G3 membuat UI WebView-ready; G4 menangani bridge/native integration.
 
 ## 29. Acceptance
 
@@ -453,19 +408,18 @@ UI dinyatakan konsisten bila:
 - title sinkron;
 - tidak ada layout shift statis akibat JS;
 - header/filter/card/modal memakai pola canonical;
-- selector Tahun Ajaran yang relevan default ke periode aktif tanpa explanatory noise;
-- Reset mengembalikan selector Tahun Ajaran ke periode aktif;
-- pilihan histori tetap bekerja pada surface yang mendukung histori;
-- paginator konsisten;
-- search entity konsisten;
-- no body overflow;
-- mobile operational tables memenuhi `14` setelah G3;
+- filter banyak desktop tidak dipaksa menjadi satu baris sempit;
+- tabel periodik memiliki filter Tahun Ajaran default-active;
+- Reset kembali ke Tahun Ajaran aktif;
+- pilihan histori bekerja sesuai domain;
+- export mengikuti period filter;
+- paginator/search entity konsisten;
+- no body horizontal overflow;
+- mobile operational tables memenuhi `14`;
 - loading/empty/error jelas;
 - browser console bersih;
-- business rule/permission tidak berubah karena refactor visual.
+- business rule/permission tetap ditentukan server.
 
 ## 30. Phase Rule
 
-Pada G2, dokumen ini digunakan untuk **stabilization/regression**, bukan alasan melakukan redesign mobile besar.
-
-Implementasi mobile menyeluruh dimulai pada G3 setelah G2 closed.
+Aturan di dokumen ini bersifat global. Sub-phase baru wajib mengikutinya, dan ketika ditemukan feature existing yang sedang disentuh tetapi menyimpang, penyimpangan tersebut harus diperbaiki atau dicatat eksplisit sebagai exception.

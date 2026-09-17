@@ -115,15 +115,16 @@ class BKPrestasi extends BaseController
             }
         }
 
+        // POST Tambah Prestasi memakai multipart/FormData, sehingga getPost()
+        // adalah sumber utama. Raw input tetap dibaca agar PUT urlencoded
+        // pada Edit Prestasi tetap didukung.
+        $post = $this->request->getPost();
         $raw = $this->request->getRawInput();
 
-        if (is_array($raw) && $raw !== []) {
-            return $raw;
-        }
+        $post = is_array($post) ? $post : [];
+        $raw = is_array($raw) ? $raw : [];
 
-        $post = $this->request->getPost();
-
-        return is_array($post) ? $post : [];
+        return array_replace($raw, $post);
     }
 
     private function downloadAndCleanup(string $path, string $filename)

@@ -1,7 +1,7 @@
 # UI/UX Role Experience — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 14 September 2026
+**Tanggal Acuan:** 18 September 2026
 **Role experience:** Admin, Operator, Pimpinan, BK, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
@@ -17,11 +17,11 @@ guru
 siswa
 ```
 
-Wali Kelas **bukan role**. Experience Wali aktif ketika Guru memiliki mapping Wali Kelas pada Tahun Ajaran aktif.
+Wali Kelas bukan role. Experience Wali aktif ketika Guru memiliki mapping Wali aktif pada Tahun Ajaran aktif.
 
 ## 2. Prinsip Experience
 
-UI harus mengutamakan:
+UI mengutamakan:
 
 ```text
 apa yang paling sering dikerjakan user
@@ -33,16 +33,27 @@ bukan urutan tabel database atau struktur menu teknis.
 
 ## 3. Identitas Manusia
 
-Pada seluruh role operasional:
-
 ```text
 Nama lengkap = informasi utama
 NISN/NIP/NIK = identifier sekunder
 ```
 
-Identifier digunakan untuk search, verifikasi, pencocokan, nama sama, audit, export dan integrasi.
+Search tetap menerima nama + identifier untuk verifikasi/disambiguasi.
 
-## 4. Admin
+## 4. Aturan Periodik Lintas Role
+
+Untuk tabel/list yang mempunyai dimensi Tahun Ajaran:
+
+```text
+default = Tahun Ajaran aktif
+Reset   = Tahun Ajaran aktif
+history = selectable bila domain mendukung
+export  = mengikuti Tahun Ajaran terpilih
+```
+
+Aturan ini tidak membuat filter Tahun Ajaran palsu pada tabel global/non-periodik.
+
+## 5. Admin
 
 Tujuan:
 
@@ -53,20 +64,9 @@ operasional lintas modul
 kontrol sistem
 ```
 
-Admin dapat memakai data-grid lebih padat dan beberapa matrix yang tidak cocok untuk role operasional.
+Admin dapat memakai data-grid lebih padat. Mobile tetap responsive, tetapi desktop/laptop adalah surface utama administrasi berat.
 
-Prioritas:
-
-```text
-system health
-master integrity
-operational exception
-settings / backup / log
-```
-
-Mobile tetap responsive, tetapi desktop/laptop adalah surface utama pekerjaan administrasi berat.
-
-## 5. Operator
+## 6. Operator
 
 Tujuan:
 
@@ -75,81 +75,86 @@ administrasi harian
 master data
 presensi/laporan operasional
 kartu dan workflow siswa sesuai permission
+Konseling operasional bila memiliki bk_konseling.*
 ```
 
-Operator tidak otomatis memiliki Settings/Backup; effective permission tetap server-side.
+Operator boleh Konseling view/manage/export tetapi tidak `bk_konseling.settings`.
 
-UI lebih task-oriented daripada Admin, tetapi tetap dapat memakai tabel administratif bila diperlukan.
+## 7. Pimpinan
 
-## 6. Pimpinan
+Pimpinan adalah experience monitoring/decision, umumnya readonly.
 
-Pimpinan adalah experience **monitoring/decision**, umumnya readonly.
-
-Pertanyaan utama:
-
-```text
-kelas mana belum presensi?
-guru/jadwal mana belum jurnal?
-siapa yang masuk EWS?
-apa kasus penting terbaru?
-bagaimana trend operasional?
-```
-
-Dashboard priority:
+Priority:
 
 ```text
 1. exception KPI
 2. trend singkat
-3. EWS/kasus/pelanggaran penting
+3. EWS / Catatan Pelanggaran penting
 4. statistik umum
 ```
 
-Tidak perlu memenuhi dashboard dengan master count di area paling atas.
-
-Mobile:
+Contract:
 
 ```text
-4 KPI = 2×2
-summary table 2–3 kolom
-Top 5 + Lihat Semua
+Catatan Pelanggaran = agregat/jumlah, tanpa poin
+Konseling BK = tidak menjadi widget/detail/source data Pimpinan
+widget tanpa permission = tidak tersedia, bukan angka 0 palsu
 ```
 
-## 7. BK
+## 8. BK
 
 Tujuan:
 
 ```text
 search siswa cepat
-catat kasus cepat
-lihat history cepat
-buat tindak lanjut cepat
+catat Catatan Pelanggaran cepat
+lihat riwayat Tindak Lanjut Pelanggaran
+buat/lanjutkan Konseling rahasia
+lihat riwayat Tindak Lanjut Konseling
 monitor EWS
+catat Prestasi
 ```
 
-Priority:
+Priority G3.4 nanti:
 
 ```text
-kasus urgent
+Konseling Proses / follow-up terdekat
+Catatan Pelanggaran terbaru/berat
+Tindak Lanjut yang perlu perhatian
 EWS
-follow-up
-pelanggaran berat
-prestasi
+Prestasi
 ```
 
-Catatan Kasus pada mobile tidak mempertahankan seluruh kolom desktop. Nama siswa dan kasus menjadi primary information; tanggal/kategori/poin menjadi metadata; keterangan/history masuk Detail.
+### Catatan Pelanggaran
 
-## 8. Guru
+Nama siswa + pelanggaran adalah primary information; tanggal/kategori metadata; keterangan/history masuk Detail. Poin tidak ditampilkan/dihitung.
+
+### Konseling
+
+Konseling hanya surface Admin/Operator/BK sesuai permission. Pengaturan Form hanya Admin/BK.
+
+Workflow detail canonical:
+
+```text
+Identitas Konseling
+→ Hasil Pertemuan Awal
+→ Riwayat Tindak Lanjut Konseling
+→ Form Tambah/Edit Tindak Lanjut
+```
+
+Satu Konseling dapat memiliki banyak tindak lanjut. Riwayat harus terlihat sebelum form agar Guru BK mengetahui context sebelumnya.
+
+Tidak ada Delete parent Konseling dan tidak ada Delete Tindak Lanjut Konseling.
+
+### Filter BK
+
+Catatan Pelanggaran, Konseling, dan Prestasi adalah surface periodik. Tahun Ajaran selalu tersedia sebagai Period Context, default aktif, dan Reset kembali aktif pada experience yang memiliki tombol Reset.
+
+Jika filter desktop banyak seperti Konseling, layout boleh dua baris dan tidak dipaksa menjadi satu baris sempit.
+
+## 9. Guru
 
 Tujuan utama Guru adalah mengajar.
-
-Pertanyaan utama:
-
-```text
-apa jadwal saya hari ini?
-presensi mana belum diisi?
-jurnal mana belum diisi?
-apa action yang bisa dilakukan sekarang?
-```
 
 Dashboard priority:
 
@@ -162,192 +167,158 @@ Dashboard priority:
 6. Jadwal berikutnya / ringkasan aktivitas
 ```
 
-Jalur ke Presensi/Jurnal ideal maksimal 1–2 tap.
+Jalur Presensi/Jurnal ideal maksimal 1–2 tap. Action mengikuti authorization server.
 
-Action mengikuti time-window dan authorization server.
-
-## 9. Guru + Wali Kelas
+## 10. Guru + Wali Kelas
 
 Wali mewarisi seluruh experience Guru dan mendapat context kelas wali.
 
-Priority:
+Quick link contextual dapat mencakup Presensi, Rekap, Data Siswa, Matrix/EWS, Catatan Pelanggaran, Prestasi, Kartu sesuai permission.
 
-```text
-1. tugas sebagai Guru
-2. kondisi kelas wali
-3. Presensi kelas
-4. EWS kelas
-5. quick action kelas
-6. history/insight
-```
+Guru/Wali **tidak** mendapat surface/detail/quick link Konseling BK.
 
-Wali dapat memperoleh quick link sesuai permission/context:
-
-```text
-Presensi Kelas
-Rekap Presensi
-Data Siswa
-Matrix/EWS
-Kasus
-Prestasi
-Kartu
-```
-
-Link yang terlihat tidak menggantikan authorization Service.
-
-## 10. Siswa
+## 11. Siswa
 
 Tujuan adalah self-service readonly/limited action atas data diri.
 
-Pertanyaan utama:
-
-```text
-bagaimana kehadiran saya hari ini?
-bagaimana rekap saya?
-di mana kartu saya?
-apa prestasi/riwayat saya?
-```
-
 Priority:
 
 ```text
-1. status Sesi Awal hari ini
-2. rekap bulan berjalan
-3. quick action
-4. kartu pelajar
-5. prestasi
-6. riwayat kasus/pelanggaran
-7. profile
+status Sesi Awal hari ini
+rekap bulan berjalan
+quick action
+Kartu Pelajar
+Prestasi
+Catatan Pelanggaran diri sesuai permission
+profile
 ```
 
 Tidak adanya Presensi Sesi Awal berarti data belum tersedia, bukan otomatis Hadir.
 
-Siswa tidak menggunakan pola data-grid Admin bila list/card lebih natural.
+```text
+Catatan Pelanggaran diri tidak mengandung poin/ranking
+Konseling BK tidak pernah ditampilkan ke Siswa
+section tanpa permission tidak disamarkan sebagai data kosong
+```
 
-## 11. Quick Action Mobile
+Untuk surface periodik **Catatan Pelanggaran** dan **Prestasi** dengan effective scope `DIRI_SENDIRI`, experience canonical adalah:
 
-Recommended:
+```text
+Tahun Ajaran = tetap tampil sebagai Period Context
+initial       = Tahun Ajaran aktif
+history       = dapat dipilih
+pergantian TA = langsung memuat daftar periode terpilih
+Pencarian     = tidak ditampilkan
+Kategori      = tidak ditampilkan pada Catatan Pelanggaran
+Tingkat       = tidak ditampilkan pada Prestasi
+Dari/Sampai   = tidak ditampilkan
+Reset         = tidak ditampilkan
+Tampilkan     = tidak ditampilkan
+daftar        = langsung data diri sendiri; bila kosong tampil empty state
+```
+
+Penyederhanaan ini adalah presentation/role experience saja. Scope `DIRI_SENDIRI` tetap ditentukan dan ditegakkan server-side; UI tidak boleh dipakai sebagai security boundary.
+
+Focused local UAT 18 September 2026 untuk experience ini: **PASS / user evidence**.
+
+## 12. Quick Action Mobile
 
 ```text
 Pimpinan  Rekap / Jurnal / EWS / Laporan
 Guru      Presensi / Jurnal / Jadwal / Profil
 Wali      Presensi / Rekap Kelas / EWS / Data Siswa
-BK        Tambah Kasus / EWS / Pelanggaran / Prestasi
+BK        Konseling / Catatan Pelanggaran / EWS / Prestasi
 Siswa     Presensi Saya / Kartu / Prestasi / Profil
 ```
 
-Quick Action tidak menambah permission; ia hanya shortcut ke route yang memang diizinkan.
+Quick Action tidak menambah permission.
 
-## 12. Table Strategy by Role
+## 13. Table / List Strategy
 
 ```text
 Admin/Operator    boleh dense table/matrix bila perlu
-Pimpinan          summary/adaptive table
-Guru/Wali         task table compact
-BK                case-oriented adaptive table
+Pimpinan          summary/adaptive table/list
+Guru/Wali         task table compact / list
+BK                case/service-oriented adaptive table/list
 Siswa             list/card atau table sangat sederhana
 ```
 
-Pimpinan/BK/Guru/Wali/Siswa mobile wajib no-horizontal-table-scroll sesuai dokumen `14`.
+Pimpinan/BK/Guru/Wali/Siswa mobile wajib no-horizontal-table-scroll.
 
-## 13. Search Strategy
+## 14. Search Strategy
 
-User sehari-hari mencari orang dari nama.
+Search entity menerima Nama + identifier. Result menonjolkan Nama; identifier menjadi context sekunder. Search tidak perlu dirender pada surface self-only bila target data tidak dapat berubah dari identity user login.
 
-Search entity harus menerima:
+## 15. Dashboard Data Limit
 
-```text
-Nama
-NISN/NIP/NIK bila relevan
-```
-
-Result menampilkan:
-
-```text
-Nama
-context manusia · identifier
-```
-
-Nama tetap visual dominant.
-
-## 14. Dashboard Data Limit
-
-Dashboard bukan laporan lengkap.
+Dashboard bukan laporan lengkap:
 
 ```text
 3–5 recent/top item
 + Lihat Semua
 ```
 
-`Top 20` tetap dapat ada pada halaman detail/report, bukan harus 20 row di dashboard mobile.
+`Top` tidak berarti ranking poin Pelanggaran.
 
-## 15. Role Context & Security
+## 16. Role Context & Security
 
-- BK yang juga Guru tetap dipilih berdasarkan effective role priority yang ditetapkan aplikasi.
+- BK yang juga Guru dipilih berdasarkan effective role priority aplikasi.
 - Wali tetap contextual, bukan secondary role baru.
-- Direct URL harus tetap diperiksa authorization.
+- Direct URL diperiksa authorization.
 - Hidden menu/button bukan security control.
-- Scope `DIRI_SENDIRI`, kelas wali, kelas terjadwal, atau semua data tetap ditentukan server.
+- Scope tetap server-side.
+- Data Konseling tidak boleh dikirim ke role terlarang lalu hanya disembunyikan di UI.
 
-## 16. Loading / Empty / Error
+## 17. Loading / Empty / Error
 
-Setiap role harus memahami kondisi tanpa membaca console:
+Setiap role harus membedakan:
 
 ```text
 Loading
 Belum ada data
 Tidak ada data pada filter
+Data tidak tersedia karena tidak punya akses
 Sesi berakhir
-Tidak punya akses
 Network gagal
 ```
 
-Pesan disesuaikan context role dan tidak menggunakan istilah teknis internal bila tidak perlu.
+Jangan menampilkan `0` sebagai pengganti data yang tidak boleh/tidak tersedia.
 
-## 17. Mutation UX
-
-Role yang melakukan mutation:
+## 18. Mutation UX
 
 ```text
 Guru/Wali  Presensi/Jurnal
-BK         Kasus/Tindak Lanjut/Prestasi sesuai hak
+BK         Catatan Pelanggaran/Tindak Lanjut Pelanggaran/Konseling/Tindak Lanjut Konseling/Prestasi
 Admin/Operator sesuai permission
 ```
 
-Wajib:
+Wajib busy guard, server-confirmed success, input penting dipertahankan pada failure, dan project confirmation untuk destructive action. Konseling tidak memiliki destructive delete action pada G3.3.1.
+
+## 19. Current Phase Status
 
 ```text
-busy guard
-server-confirmed success
-error tidak menghapus input penting
-confirmation untuk destructive action
-```
-
-## 18. Mobile/WebView
-
-Semua role prioritas diuji pada 360–412px portrait dan Android WebView.
-
-Contract detail:
-
-`14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
-
-## 19. Phase Implementation
-
-```text
-G2  tidak melakukan redesign role besar; hanya stabilization
-G3  implement role experience mobile-first
-G4  Cordova packaging/integration
+G3.1 Mobile foundation            CLOSED / MERGED
+G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
+G3.3 Dashboard Guru/Wali          CLOSED / MERGED
+G3.3.1 Fondasi BK                 LOCAL FINAL GATE PASS / HOSTING SOURCE RE-SMOKE PENDING
+G3.4 BK role experience           NEXT setelah PR #9 merge
 ```
 
 ## 20. Acceptance
 
 Role experience ACC bila:
 
-- informasi paling penting berada paling atas;
-- user tidak perlu identifier untuk aktivitas harian normal;
+- informasi penting berada paling atas;
+- identifier bukan beban aktivitas harian;
 - action penting mudah ditemukan;
-- menu/shortcut tidak melampaui permission;
-- mobile role table tidak horizontal-scroll;
-- dashboard tidak terlalu panjang;
-- data lengkap tetap dapat dicapai melalui detail/report;
-- business rule tetap server-side.
+- shortcut tidak melampaui permission;
+- periodic tables konsisten memakai Tahun Ajaran;
+- Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
+- filter padat tidak dipaksa satu baris sempit;
+- mobile role table/list tidak horizontal-scroll;
+- data lengkap tetap dapat dicapai melalui Detail/report;
+- Catatan Pelanggaran tidak memakai poin;
+- Konseling hanya muncul pada role sah;
+- follow-up Konseling multiple entry tidak overwrite histori;
+- tidak ada delete Konseling/follow-up;
+- business/security rule tetap server-side.

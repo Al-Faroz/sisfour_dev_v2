@@ -1,23 +1,34 @@
 # Laporan & Export — SisisFour
 
-**Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 15 September 2026  
-**Released baseline:** `main` setelah G3.1  
-**Schema delta aktif:** G3.2 Jurnal student exceptions (belum production)
+**Status:** Canonical / Fresh SSOT
+**Tanggal Acuan:** 17 September 2026
+**Released baseline:** G3.3 merged / `main` @ `06e4e559c045763096058fc889342da78d973314`
+**Development:** G3.3.1 rework — local gate pending
 
-> Dokumen ini menyatakan kontrak laporan yang berlaku untuk development G3.2. Schema delta branch tidak berarti SQL hosting sudah diterapkan ke database production.
+> Dokumen ini menyatakan kontrak laporan/export current. Detail business domain tetap mengacu ke dokumen Presensi dan BK.
 
-## 1. Sumber Resmi Presensi
+## 1. Prinsip Periodik Global
+
+Untuk laporan/list/export yang mempunyai dimensi Tahun Ajaran:
+
+```text
+initial filter = Tahun Ajaran aktif
+Reset          = Tahun Ajaran aktif
+history        = selectable bila domain mendukung
+export         = mengikuti Tahun Ajaran yang dipilih
+```
+
+Export tidak boleh memakai current membership sebagai pengganti snapshot period historis jika domain sudah mempunyai `id_tahun`.
+
+## 2. Sumber Resmi Presensi
 
 ```text
 presensi.sesi = 'Sesi Awal'
 ```
 
-Sesi Akhir tidak masuk total resmi.
+Sesi Akhir tidak masuk total resmi. Exception siswa pada `presensi_mengajar_siswa` bukan Presensi resmi dan tidak masuk Matrix/EWS/Signage Presensi.
 
-Exception siswa pada `presensi_mengajar_siswa` **bukan** Presensi resmi dan tidak masuk Matrix/EWS/Signage Presensi.
-
-## 2. Permission
+## 3. Permission Laporan Akademik
 
 ```text
 laporan_matrix.view
@@ -26,45 +37,13 @@ laporan_jurnal.view
 laporan_jurnal.export
 ```
 
-## 3. Matrix Presensi
+## 4. Matrix / Export Presensi
 
-```text
-GET /laporan/presensi/matrix
-GET /laporan/presensi/matrix/json
-```
+Matrix/Export Presensi mengikuti Tahun Ajaran terpilih dan membership periode yang tepat. Tidak adanya record tidak boleh otomatis dianggap Alpha tanpa melihat membership/histori.
 
-Isi:
+Export utama XLSX. Ganjil = Juli–Desember; Genap = Januari–Juni.
 
-```text
-NISN
-Nama
-Kelas
-Total H/S/I/A
-Tanggal 01..31
-```
-
-Tidak adanya record tidak boleh otomatis dianggap Alpha tanpa melihat membership/histori.
-
-## 4. Membership Historis
-
-`riwayat_siswa` menentukan apakah siswa memang menjadi anggota pada tanggal laporan.
-
-## 5. Export Presensi
-
-```text
-/laporan/presensi/export
-/laporan/presensi/export/bulan
-/laporan/presensi/export/semester
-```
-
-Format utama XLSX.
-
-```text
-Ganjil -> Juli–Desember
-Genap  -> Januari–Juni
-```
-
-## 6. Laporan Jurnal Canonical
+## 5. Laporan Jurnal
 
 ```text
 /laporan/jurnal
@@ -72,48 +51,9 @@ Genap  -> Januari–Juni
 /laporan/jurnal/export
 ```
 
-Listing utama wajib mempertahankan:
+Listing utama tetap `1 row = 1 Jurnal`.
 
-```text
-1 row = 1 Jurnal
-```
-
-Informasi utama:
-
-```text
-Tanggal
-Guru / Kelas
-Mapel / Hari / Jam / Sesi
-Status Guru
-Materi
-Catatan
-Jumlah Sakit/Izin/Alpha siswa
-Detail
-```
-
-Nama siswa exception tidak di-flatten menjadi row utama karena dapat menggandakan parent Jurnal.
-
-Jadwal nonaktif tidak menghapus histori Jurnal.
-
-### Detail Jurnal
-
-Detail dimuat on-demand dan menampilkan:
-
-```text
-informasi parent Jurnal
-Materi
-Catatan
-summary S/I/A
-Nama siswa
-NISN snapshot
-status Sakit/Izin/Alpha
-```
-
-Authorization Detail tetap mengikuti `laporan_jurnal.view` dan scope actor.
-
-### Query strategy
-
-Untuk listing page:
+Query strategy:
 
 ```text
 1 query parent Jurnal bounded/paginated
@@ -121,82 +61,181 @@ Untuk listing page:
 1 aggregate query child untuk seluruh id parent pada page
 ```
 
-Dilarang satu query child per row parent.
+Dilarang N+1 child query per row.
 
-Detail child baru dibaca ketika user memilih `Detail`.
+Export Jurnal parent-level dan memuat Tahun Ajaran + Semester.
 
-## 7. Export Jurnal
+## 6. Export Catatan Pelanggaran — G3.3.1
 
-Export tetap parent-level agar ukuran file terkendali.
+Catatan Pelanggaran sekarang mempunyai snapshot `id_tahun`; export mengikuti filter Tahun Ajaran terpilih.
 
-Kolom G3.2:
+Satu XLSX terdiri dari dua sheet:
+
+### Sheet `Pelanggaran`
 
 ```text
 No
-Tanggal
-Hari
-Jam
-NIP
-Guru
-Kelas
-Kode Mapel
-Mata Pelajaran
-Sesi
-Status Guru
-Materi
-Catatan
-Sakit Siswa
-Izin Siswa
-Alpha Siswa
-Total S/I/A
+ID Catatan
 Tahun Ajaran
-Semester
+NISN
+Nama Siswa
+Kelas
+Tanggal
+Pelanggaran
+Kategori
+Keterangan
+Jumlah Tindak Lanjut
 ```
 
-Export tidak membuat satu row untuk setiap siswa exception. Nama siswa lengkap tersedia melalui Detail aplikasi. Jika kebutuhan export per-siswa muncul kemudian, ia harus menjadi export khusus dengan scope/filter tersendiri.
-
-Batas export canonical tetap maksimal 50.000 parent row sebelum user diminta mempersempit filter.
-
-## 8. Database-First
+### Sheet `Tindak Lanjut`
 
 ```text
-query membership/history bounded
-query parent laporan bounded
-aggregate child batch
+No
+ID Catatan
+Tahun Ajaran
+NISN
+Nama Siswa
+Kelas
+Tanggal Pelanggaran
+Pelanggaran
+Kategori
+Tanggal Tindak Lanjut
+Tindak Lanjut
+Keterangan TL
+Dicatat Oleh
+```
+
+Export **tidak membawa poin** dan tidak membuat ranking poin.
+
+Legacy Catatan Pelanggaran yang `id_tahun`-nya belum dapat dipetakan secara aman tidak boleh dipaksa masuk Tahun Ajaran aktif hanya agar muncul di export.
+
+## 7. Export Prestasi — G3.3.1
+
+Prestasi sekarang mempunyai snapshot `id_tahun`; export mengikuti Tahun Ajaran terpilih.
+
+Kolom utama:
+
+```text
+No
+Tahun Ajaran
+NISN
+Nama Siswa
+Kelas
+Tanggal
+Prestasi
+Tingkat
+Penyelenggara
+Keterangan
+```
+
+Legacy Prestasi dengan `id_tahun NULL` harus diaudit terpisah bila periodenya ambigu.
+
+## 8. Export Konseling BK — Data Rahasia
+
+Permission:
+
+```text
+bk_konseling.export
+```
+
+Effective role:
+
+```text
+admin
+operator
+bk
+```
+
+Export mengikuti Tahun Ajaran terpilih dan terdiri dari dua sheet:
+
+### Sheet `Konseling BK`
+
+Parent/pertemuan awal:
+
+```text
+No
+Tahun Ajaran
+Tanggal
+Pertemuan Ke
+Kelas
+NISN
+Nama Siswa
+Bentuk Layanan
+Cara Hadir
+Bidang
+Topik
+Uraian Masalah
+Hasil Pembahasan & Kesepakatan
+Rencana Berikutnya
+Tanggal Berikutnya
+Status
+Dicatat Oleh
+```
+
+### Sheet `Tindak Lanjut`
+
+Histori 1:N:
+
+```text
+No
+ID Konseling
+Tahun Ajaran
+Tanggal Konseling
+Tanggal Tindak Lanjut
+Kelas
+NISN
+Nama Siswa
+Perkembangan
+Hasil/Kesepakatan
+Rencana Berikutnya
+Tanggal Berikutnya
+Status
+Dicatat Oleh
+```
+
+Konseling tidak boleh ikut export/dashboard Pimpinan/Guru/Wali/Siswa hanya karena actor mempunyai permission laporan lain.
+
+## 9. Database-First
+
+```text
+WHERE / JOIN / GROUP BY / HAVING / ORDER BY / LIMIT / OFFSET
+bounded membership/history query
+batch aggregate
 pagination
 pivot ringan PHP bila diperlukan
 ```
 
-Dilarang N+1 per siswa, per tanggal, atau per Jurnal.
+Dilarang load seluruh dataset besar lalu melakukan agregasi utama di PHP/JS.
 
-## 9. Mobile
+Batas export canonical maksimum 50.000 row per dataset sebelum user diminta mempersempit filter.
+
+## 10. Mobile
 
 Untuk role operasional:
 
-- laporan Jurnal mobile memakai card/list;
+- laporan/list mobile memakai card/adaptive presentation;
 - tidak ada horizontal table scroll;
-- Detail memakai modal scrollable/fullscreen-sm-down;
+- Detail memakai modal scrollable/fullscreen-sm-down bila panjang;
 - Nama menjadi informasi manusia utama;
-- identifier tetap sekunder.
-
-Admin/Operator desktop tetap boleh memakai tabel ringkas.
-
-## 10. Role
-
-- Admin/Operator sesuai permission SEMUA.
-- Pimpinan supervisi/read-only sesuai permission.
-- Wali/Guru dengan scope diri hanya melihat Jurnal dirinya bila permission mengizinkan.
-- Status Wali tidak otomatis memberi hak melihat Jurnal Guru lain.
-- Siswa tidak mendapat laporan kelas/global.
+- identifier sekunder.
 
 ## 11. Privasi
 
-Laporan tidak mengekspor password/hash/token, credential, data BK yang tidak relevan, atau dokumen personalia mentah.
+Laporan/export tidak mengekspor password/hash/token/credential atau dokumen personalia mentah.
 
-Snapshot Nama/NISN child Jurnal hanya tampil pada Detail yang telah melewati authorization.
+Konseling BK memiliki boundary lebih ketat dari laporan BK umum dan tidak menjadi sumber data lintas-role.
 
-## 12. Error
+## 12. Current Gate
 
-Server menolak scope actor yang tidak sah, periode/tahun invalid, Guru data Guru lain tanpa hak, export tanpa permission, dan request Detail Jurnal di luar scope.
+```text
+G3.2 Jurnal schema/report local+hosting         PASS
+G3.3 dashboard                                 MERGED
+G3.3.1 baseline BK export/privacy              PASS
+17 Sep period-filter export source             IMPLEMENTED / UAT PENDING
+17 Sep Konseling 2-sheet follow-up export      IMPLEMENTED / UAT PENDING
+17 Sep localhost schema delta                  PREPARED / PENDING EXECUTION
+17 Sep hosting delta                           NOT STARTED
+PR #9                                          DRAFT / BELUM MERGE
+```
 
-Jika SQL schema G3.2 belum diterapkan pada local/staging, endpoint data Jurnal baru harus mengembalikan error terkontrol `SCHEMA_NOT_READY`, bukan SQL error mentah.
+Baseline hosting smoke tidak membuktikan export/schema rework 17 September.

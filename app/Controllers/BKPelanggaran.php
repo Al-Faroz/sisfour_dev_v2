@@ -41,21 +41,29 @@ class BKPelanggaran extends BaseController
 
     public function create()
     {
+        $payload = $this->getPayload();
+        // Kolom poin masih dipertahankan sementara pada schema legacy untuk rollback.
+        // Seluruh record baru menggunakan 0 dan tidak pernah ditampilkan sebagai aturan bisnis.
+        $payload['poin'] = 0;
+
         return $this->respond(
             $this->service->createPelanggaran(
                 (int) session()->get('user_id'),
-                $this->getPayload()
+                $payload
             )
         );
     }
 
     public function update($id)
     {
+        $payload = $this->getPayload();
+        $payload['poin'] = 0;
+
         return $this->respond(
             $this->service->updatePelanggaran(
                 (int) session()->get('user_id'),
                 (int) $id,
-                $this->getPayload()
+                $payload
             )
         );
     }
@@ -88,15 +96,13 @@ class BKPelanggaran extends BaseController
             }
         }
 
+        $post = $this->request->getPost();
         $raw = $this->request->getRawInput();
 
-        if (is_array($raw) && $raw !== []) {
-            return $raw;
-        }
+        $post = is_array($post) ? $post : [];
+        $raw = is_array($raw) ? $raw : [];
 
-        $post = $this->request->getPost();
-
-        return is_array($post) ? $post : [];
+        return array_replace($raw, $post);
     }
 
     private function wantsJson(): bool
@@ -134,26 +140,24 @@ class BKPelanggaran extends BaseController
         $sheet->setTitle('Master Pelanggaran');
 
         $sheet->setCellValue('A1', 'MASTER PELANGGARAN SISISFOUR');
-        $sheet->mergeCells('A1:C1');
+        $sheet->mergeCells('A1:B1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->fromArray([[
             'NAMA PELANGGARAN',
             'KATEGORI',
-            'POIN',
         ]], null, 'A3');
-        $sheet->getStyle('A3:C3')->getFont()->setBold(true);
+        $sheet->getStyle('A3:B3')->getFont()->setBold(true);
 
         $row = 4;
         foreach ($rows as $pelanggaran) {
             $sheet->fromArray([[
                 $pelanggaran['nama_pelanggaran'] ?? '',
                 $pelanggaran['kategori'] ?? '',
-                (int) ($pelanggaran['poin'] ?? 0),
             ]], null, 'A' . $row);
             $row++;
         }
 
-        foreach (range('A', 'C') as $column) {
+        foreach (range('A', 'B') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 

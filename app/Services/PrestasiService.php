@@ -8,40 +8,34 @@ use CodeIgniter\I18n\Time;
 class PrestasiService
 {
     private const TZ = 'Asia/Jakarta';
-    private const TINGKAT = [
-        'Madrasah',
-        'Kecamatan',
-        'Kabupaten',
-        'Provinsi',
-        'Nasional',
-        'Internasional',
-    ];
+    private const TINGKAT = ['Madrasah', 'Kecamatan', 'Kabupaten', 'Provinsi', 'Nasional', 'Internasional'];
     private const MAX_EXPORT_ROWS = 50000;
 
     protected BKPrestasiModel $model;
     protected AuthService $authService;
     protected BkScopeService $scopeService;
+    protected PeriodContextService $periodContext;
 
     public function __construct()
     {
         $this->model = new BKPrestasiModel();
         $this->authService = new AuthService();
         $this->scopeService = new BkScopeService();
+        $this->periodContext = new PeriodContextService();
     }
 
     public function getPage(int $userId, array $input): array
     {
-        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
+        $period = $this->periodContext->resolve($input);
+        if (! $period['success']) return $period;
 
-        if (! $scope['success']) {
-            return $scope;
-        }
+        $idTahun = (int) $period['selected']['id'];
+        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId, $idTahun);
+        if (! $scope['success']) return $scope;
 
+        $input['id_tahun'] = $idTahun;
         $filter = $this->filter($input);
-
-        if (! $filter['success']) {
-            return $filter;
-        }
+        if (! $filter['success']) return $filter;
 
         $limit = max(1, min(200, (int) ($input['limit'] ?? 50)));
         $offset = max(0, (int) ($input['offset'] ?? 0));
@@ -52,6 +46,9 @@ class PrestasiService
             'scope' => $scope['scope'],
             'can_manage' => $this->authService->resolveScope('prestasi.manage', $userId) === 'SEMUA',
             'tingkat_options' => self::TINGKAT,
+            'tahun_aktif' => $period['active'],
+            'tahun_dipilih' => $period['selected'],
+            'tahun_options' => $period['options'],
             'rows' => $this->model->getPaged($filter['filter'], $ids, $limit, $offset),
             'total' => $this->model->countFiltered($filter['filter'], $ids),
             'limit' => $limit,
@@ -62,97 +59,68 @@ class PrestasiService
     public function create(int $userId, array $input): array
     {
         $auth = $this->requireManage($userId);
+        if (! $auth['success']) return $auth;
 
-        if (! $auth['success']) {
-            return $auth;
-        }
+        $active = $this->periodContext->active();
+        if ($active === null) return $this->fail('NO_ACTIVE_YEAR', 'Tidak ada Tahun Ajaran aktif.');
 
         $validated = $this->validate($input, null);
+        if (! $validated['success']) return $validated;
 
-        if (! $validated['success']) {
-            return $validated;
-        }
-
-        $now = Time::now(self::TZ)->format('Y-m-d H:i:s');
         $data = $validated['data'];
+        $data['id_tahun'] = (int) $active['id'];
         $data['id_guru_input'] = $this->scopeService->userGuruId($userId);
-        $data['created_at'] = $now;
+        $data['created_at'] = Time::now(self::TZ)->format('Y-m-d H:i:s');
 
         $id = $this->model->insert($data);
         $this->log($userId, 'CREATE', "Membuat Prestasi #{$id} siswa #{$data['id_siswa']}");
 
-        return [
-            'success' => true,
-            'message' => 'Prestasi berhasil disimpan.',
-            'id' => $id,
-        ];
+        return ['success' => true, 'message' => 'Prestasi berhasil disimpan.', 'id' => $id];
     }
 
     public function update(int $userId, int $id, array $input): array
     {
         $auth = $this->requireManage($userId);
-
-        if (! $auth['success']) {
-            return $auth;
-        }
+        if (! $auth['success']) return $auth;
 
         $existing = $this->model->getById($id);
-        if (! $existing) {
-            return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
-        }
+        if (! $existing) return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
 
         $validated = $this->validate($input, $existing);
-
-        if (! $validated['success']) {
-            return $validated;
-        }
+        if (! $validated['success']) return $validated;
 
         $this->model->update($id, $validated['data']);
         $this->log($userId, 'UPDATE', "Memperbarui Prestasi #{$id}");
 
-        return [
-            'success' => true,
-            'message' => 'Prestasi berhasil diperbarui.',
-        ];
+        return ['success' => true, 'message' => 'Prestasi berhasil diperbarui.'];
     }
 
     public function delete(int $userId, int $id): array
     {
         $auth = $this->requireManage($userId);
-
-        if (! $auth['success']) {
-            return $auth;
-        }
-
-        if (! $this->model->getById($id)) {
-            return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
-        }
+        if (! $auth['success']) return $auth;
+        if (! $this->model->getById($id)) return $this->fail('NOT_FOUND', 'Prestasi tidak ditemukan.');
 
         $this->model->delete($id);
         $this->log($userId, 'DELETE', "Menghapus Prestasi #{$id}");
 
-        return [
-            'success' => true,
-            'message' => 'Prestasi berhasil dihapus.',
-        ];
+        return ['success' => true, 'message' => 'Prestasi berhasil dihapus.'];
     }
 
     public function getExport(int $userId, array $input): array
     {
-        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId);
+        $period = $this->periodContext->resolve($input);
+        if (! $period['success']) return $period;
 
-        if (! $scope['success']) {
-            return $scope;
-        }
+        $idTahun = (int) $period['selected']['id'];
+        $scope = $this->scopeService->resolveStudentIds('prestasi.view', $userId, $idTahun);
+        if (! $scope['success']) return $scope;
 
+        $input['id_tahun'] = $idTahun;
         $filter = $this->filter($input);
-
-        if (! $filter['success']) {
-            return $filter;
-        }
+        if (! $filter['success']) return $filter;
 
         $total = $this->model->countFiltered($filter['filter'], $scope['student_ids']);
-
         if ($total > self::MAX_EXPORT_ROWS) {
             return $this->fail('EXPORT_TOO_LARGE', 'Data melebihi 50.000 baris. Persempit filter.');
         }
@@ -161,11 +129,8 @@ class PrestasiService
             'success' => true,
             'scope' => $scope['scope'],
             'filter' => $filter['filter'],
-            'rows' => $this->model->getForExport(
-                $filter['filter'],
-                $scope['student_ids'],
-                self::MAX_EXPORT_ROWS
-            ),
+            'tahun_dipilih' => $period['selected'],
+            'rows' => $this->model->getForExport($filter['filter'], $scope['student_ids'], self::MAX_EXPORT_ROWS),
         ];
     }
 
@@ -178,35 +143,16 @@ class PrestasiService
         $penyelenggara = trim((string) ($input['penyelenggara'] ?? ''));
         $keterangan = trim((string) ($input['keterangan'] ?? ''));
 
-        $siswa = db_connect()
-            ->table('siswa')
-            ->select('id, status_aktif, deleted_at')
-            ->where('id', $idSiswa)
-            ->get()
-            ->getRowArray();
+        $siswa = db_connect()->table('siswa')->select('id, status_aktif, deleted_at')->where('id', $idSiswa)->get()->getRowArray();
+        if ($idSiswa <= 0 || ! $siswa || ! empty($siswa['deleted_at'])) return $this->fail('VALIDATION', 'Siswa tidak valid.');
 
-        if ($idSiswa <= 0 || ! $siswa || ! empty($siswa['deleted_at'])) {
-            return $this->fail('VALIDATION', 'Siswa tidak valid.');
-        }
-
-        $sameHistoricalStudent = $existing !== null
-            && (int) ($existing['id_siswa'] ?? 0) === $idSiswa;
-
+        $sameHistoricalStudent = $existing !== null && (int) ($existing['id_siswa'] ?? 0) === $idSiswa;
         if (! $sameHistoricalStudent && (string) $siswa['status_aktif'] !== 'Aktif') {
             return $this->fail('VALIDATION', 'Prestasi baru hanya dapat diberikan kepada siswa aktif.');
         }
-
-        if ($nama === '' || mb_strlen($nama) > 200) {
-            return $this->fail('VALIDATION', 'Nama prestasi wajib diisi maksimal 200 karakter.');
-        }
-
-        if (! in_array($tingkat, self::TINGKAT, true)) {
-            return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
-        }
-
-        if (! $this->validDate($tanggal)) {
-            return $this->fail('VALIDATION', 'Tanggal prestasi tidak valid.');
-        }
+        if ($nama === '' || mb_strlen($nama) > 200) return $this->fail('VALIDATION', 'Nama prestasi wajib diisi maksimal 200 karakter.');
+        if (! in_array($tingkat, self::TINGKAT, true)) return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
+        if (! $this->validDate($tanggal)) return $this->fail('VALIDATION', 'Tanggal prestasi tidak valid.');
 
         return [
             'success' => true,
@@ -223,22 +169,15 @@ class PrestasiService
 
     private function filter(array $input): array
     {
+        $idTahun = (int) ($input['id_tahun'] ?? 0);
         $tingkat = trim((string) ($input['tingkat'] ?? ''));
         $tanggalMulai = trim((string) ($input['tanggal_mulai'] ?? ''));
         $tanggalSelesai = trim((string) ($input['tanggal_selesai'] ?? ''));
 
-        if ($tingkat !== '' && ! in_array($tingkat, self::TINGKAT, true)) {
-            return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
-        }
-
-        if ($tanggalMulai !== '' && ! $this->validDate($tanggalMulai)) {
-            return $this->fail('VALIDATION', 'Tanggal awal tidak valid.');
-        }
-
-        if ($tanggalSelesai !== '' && ! $this->validDate($tanggalSelesai)) {
-            return $this->fail('VALIDATION', 'Tanggal akhir tidak valid.');
-        }
-
+        if ($idTahun <= 0) return $this->fail('INVALID_PERIOD', 'Tahun Ajaran wajib dipilih.');
+        if ($tingkat !== '' && ! in_array($tingkat, self::TINGKAT, true)) return $this->fail('VALIDATION', 'Tingkat prestasi tidak valid.');
+        if ($tanggalMulai !== '' && ! $this->validDate($tanggalMulai)) return $this->fail('VALIDATION', 'Tanggal awal tidak valid.');
+        if ($tanggalSelesai !== '' && ! $this->validDate($tanggalSelesai)) return $this->fail('VALIDATION', 'Tanggal akhir tidak valid.');
         if ($tanggalMulai !== '' && $tanggalSelesai !== '' && $tanggalMulai > $tanggalSelesai) {
             return $this->fail('VALIDATION', 'Tanggal awal tidak boleh melewati tanggal akhir.');
         }
@@ -246,6 +185,7 @@ class PrestasiService
         return [
             'success' => true,
             'filter' => [
+                'id_tahun' => $idTahun,
                 'tingkat' => $tingkat !== '' ? $tingkat : null,
                 'tanggal_mulai' => $tanggalMulai !== '' ? $tanggalMulai : null,
                 'tanggal_selesai' => $tanggalSelesai !== '' ? $tanggalSelesai : null,
@@ -259,7 +199,6 @@ class PrestasiService
         if ($this->authService->resolveScope('prestasi.manage', $userId) !== 'SEMUA') {
             return $this->fail('FORBIDDEN', 'Anda tidak memiliki hak mengelola Prestasi.');
         }
-
         return ['success' => true];
     }
 
@@ -267,7 +206,6 @@ class PrestasiService
     {
         $d = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         $errors = \DateTimeImmutable::getLastErrors();
-
         return $d !== false
             && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
             && $d->format('Y-m-d') === $date;
@@ -286,10 +224,6 @@ class PrestasiService
 
     private function fail(string $code, string $message): array
     {
-        return [
-            'success' => false,
-            'code' => $code,
-            'message' => $message,
-        ];
+        return ['success' => false, 'code' => $code, 'message' => $message];
     }
 }
