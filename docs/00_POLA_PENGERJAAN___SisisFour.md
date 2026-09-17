@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework**)
-**Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`
-**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
+**Development aktif:** G3.4 — Dashboard/Workflow BK
+**Branch aktif:** `feat/g3-4-bk-dashboard-workflow-20260918`
+**Baseline `main`:** setelah merge PR #9 / G3.3.1 (`27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -312,6 +312,8 @@ Export                   = mengikuti period yang sedang dibaca
 Reset filter             = Tahun Ajaran aktif
 ```
 
+Dashboard current-state dapat memakai Tahun Ajaran aktif tanpa selector historis bila seluruh KPI/list memang current-state.
+
 Jangan menambah Tahun Ajaran palsu ke tabel non-periodik.
 
 ## 7. Pola Perubahan Source
@@ -330,7 +332,7 @@ Jangan menambah Tahun Ajaran palsu ke tabel non-periodik.
 11. static gate
 12. runtime/UAT localhost
 13. cross-role + period + output-channel regression
-14. audit dump hosting
+14. audit dump hosting bila schema/data migration relevan
 15. hosting execution/smoke hanya dengan approval
 16. final docs/PR sync
 17. PR Ready / merge hanya dengan approval eksplisit
@@ -344,7 +346,7 @@ Jika mapping business/security/data integrity belum jelas, jangan menebak dan ja
 - Jangan merge tanpa approval eksplisit pengguna.
 - Jangan deploy hanya karena PR mergeable.
 - Production DB tidak disentuh dalam regression development.
-- SQL hosting dibuat setelah audit dump hosting aktual.
+- SQL hosting dibuat setelah audit dump hosting aktual bila schema berubah.
 - Smoke hosting lama tidak membuktikan head baru setelah source/schema berubah.
 
 ## 9. Roadmap
@@ -354,8 +356,8 @@ G2                         CLOSED / MERGED
 G3.1 Mobile foundation     CLOSED / MERGED
 G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
-G3.3.1 Fondasi BK          LOCAL+HOSTING SCHEMA PASS / HOSTING SOURCE RE-SMOKE PENDING / PR #9 DRAFT
-G3.4 Dashboard/Workflow BK setelah PR #9 merge
+G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
+G3.4 Dashboard/Workflow BK ACTIVE
 G3.5 Pimpinan              setelah G3.4
 G3.6 Siswa                 setelah G3.5
 G3.6A UKS / Kesehatan      setelah G3.6
@@ -399,21 +401,20 @@ bk_konseling.settings  Admin, BK
 
 Siswa dengan effective scope `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi memakai experience sederhana: Tahun Ajaran tetap sebagai Period Context, filter operasional lain tidak dirender, dan daftar langsung dibatasi data diri oleh Service.
 
-## 11. G3.3.1 Gate
+## 11. G3.3.1 Gate — Closed / Merged
 
-Evidence terbaru:
+Evidence closure:
 
 ```text
 17 Sep localhost SQL execution          = PASS / user evidence
 17 Sep local runtime UAT                = PASS / user evidence
 18 Sep focused UAT Siswa self-only      = PASS / user evidence
-18 Sep final static gate @ c6f690fa     = PASS / user terminal evidence
-18 Sep hosting dump audit               = PASS / read-only evidence
-18 Sep hosting rework SQL execution     = PASS / user evidence
-18 Sep hosting post-SQL schema audit    = PASS
-18 Sep hosting source latest            = PENDING
-18 Sep focused hosting re-smoke         = PENDING
-PR #9                                   = DRAFT / BELUM MERGE
+18 Sep final static exact head          = PASS / user evidence
+18 Sep hosting dump/schema audit        = PASS
+18 Sep hosting source latest            = PASS / user evidence
+18 Sep focused hosting re-smoke         = PASS / user evidence
+PR #9                                   = MERGED
+merge commit                            = 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 ```
 
 Canonical SQL rework tersedia untuk kedua environment:
@@ -423,33 +424,88 @@ database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
 database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
 
-Minimum final-head static gate:
+## 12. G3.4 — Dashboard/Workflow BK
+
+Branch:
+
+```text
+feat/g3-4-bk-dashboard-workflow-20260918
+```
+
+G3.4 tidak menambah schema, permission, menu, atau route baru. Implementasi memakai foundation G3.3.1 final.
+
+Canonical mapping G3.4:
+
+```text
+Menu/Fitur         = Dashboard BK
+Use Case           = melihat prioritas kerja BK current-state
+SSOT/Domain        = docs/07 + docs/08 + role experience
+Access Boundary    = experience BK; source widget tetap permission-aware
+Capability         = bk_konseling.view / bk_kasus.view / ews_radar.view / prestasi.view
+Scope              = sesuai capability; dashboard BK bukan pembuka akses baru
+Period Context     = Tahun Ajaran aktif server-side
+Target Validation  = tidak ada mutation baru dari dashboard
+Business Invariant = no poin; no Konseling leak; no SLA/overdue baru
+Persistence        = read-only agregasi dari tabel existing
+Service Boundary   = Dashboard Service
+Presentation UI    = KPI 2×2 + quick action + card/list
+Output Channel     = Web dashboard + JSON dashboard existing
+Audit              = tidak ada mutation baru
+Testing/Regression = static + BK runtime + cross-role privacy
+Docs Sync          = 00/01/07/08/11 + Tree Structure bila perlu
+Deployment Gate    = source-only; hosting smoke setelah approval
+```
+
+Dashboard current-state:
+
+```text
+KPI              = Konseling Proses / Pelanggaran Bulan Ini / EWS 14 Hari / Prestasi Bulan Ini
+Quick Action     = Konseling / Catatan Pelanggaran / EWS / Prestasi
+Priority list    = Follow-up Terdekat / Pelanggaran Terbaru / EWS / Prestasi Terbaru
+Data limit       = maksimal 5 item per list + Lihat Semua
+Period           = hanya Tahun Ajaran aktif
+Historical filter= tetap di listing, bukan dashboard
+```
+
+Jadwal follow-up memakai `tanggal_berikutnya` entry tindak lanjut terbaru bila histori sudah ada; jika belum ada histori, memakai tanggal berikutnya parent. Record Proses tanpa tanggal berikutnya tetap dihitung sebagai Konseling Proses tetapi tidak dipalsukan menjadi jadwal.
+
+G3.4 tidak membuat SLA, overdue, deadline baru, atau ranking poin.
+
+Current gate:
+
+```text
+source implementation             = IMPLEMENTED ON FEATURE BRANCH
+SSOT sync                         = IN PROGRESS
+static gate                       = PENDING
+local runtime/UAT                 = PENDING
+cross-role privacy regression     = PENDING
+hosting source deployment         = NOT STARTED
+hosting re-smoke                  = NOT STARTED
+PR                                = NOT OPENED
+```
+
+Minimum static gate:
 
 ```powershell
-php -l <changed php>
-node --check <changed js>
+$phpFiles = git diff --name-only origin/main...HEAD -- '*.php'
+foreach ($file in $phpFiles) {
+    php -l $file
+    if ($LASTEXITCODE -ne 0) { throw "PHP lint failed: $file" }
+}
+
+$jsFiles = git diff --name-only origin/main...HEAD -- '*.js'
+foreach ($file in $jsFiles) {
+    node --check $file
+    if ($LASTEXITCODE -ne 0) { throw "JS check failed: $file" }
+}
+
 php spark routes
+if ($LASTEXITCODE -ne 0) { throw "Route check failed" }
+
 git diff --check origin/main...HEAD
+if ($LASTEXITCODE -ne 0) { throw "git diff --check failed" }
+
 git status
 ```
 
 Jangan klaim static/runtime PASS tanpa sumber evidencenya. `PASS / user evidence` tidak boleh diubah menjadi klaim CI/static.
-
-Definition of Done rework:
-
-```text
-SSOT sinkron
-source stabil
-localhost SQL PASS
-local runtime UAT PASS
-final static gate PASS
-hosting dump audit ulang
-hosting delta SQL PASS
-hosting source latest terpasang
-focused hosting smoke PASS
-PR review selesai
-approval Ready eksplisit
-approval Merge eksplisit
-```
-
-PR #9 tetap Draft sampai gate selesai dan approval eksplisit diberikan.
