@@ -64,6 +64,7 @@ class BKKasusModel
             ->table('catatan_kasus ck')
             ->select([
                 'ck.id',
+                'ck.id_tahun',
                 'ck.id_siswa',
                 'ck.id_pelanggaran',
                 'ck.tanggal',
@@ -75,9 +76,12 @@ class BKKasusModel
                 's.nama AS nama_siswa',
                 'rp.nama_pelanggaran',
                 'rp.kategori',
+                'ta.nama_tahun',
+                'ta.semester',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
             ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->join('tahun_ajaran ta', 'ta.id = ck.id_tahun', 'left')
             ->where('ck.id', $id)
             ->get()
             ->getRowArray();
@@ -158,6 +162,7 @@ class BKKasusModel
             ->table('catatan_kasus ck')
             ->select([
                 'ck.id',
+                'ck.id_tahun',
                 'ck.id_siswa',
                 'ck.id_pelanggaran',
                 'ck.tanggal',
@@ -168,9 +173,12 @@ class BKKasusModel
                 's.nama AS nama_siswa',
                 'rp.nama_pelanggaran',
                 'rp.kategori',
+                'ta.nama_tahun',
+                'ta.semester',
             ])
             ->join('siswa s', 's.id = ck.id_siswa')
-            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran');
+            ->join('ref_pelanggaran rp', 'rp.id = ck.id_pelanggaran')
+            ->join('tahun_ajaran ta', 'ta.id = ck.id_tahun', 'left');
 
         if (is_array($allowedStudentIds)) {
             if ($allowedStudentIds === []) {
@@ -178,6 +186,10 @@ class BKKasusModel
             } else {
                 $builder->whereIn('ck.id_siswa', $allowedStudentIds);
             }
+        }
+
+        if (! empty($filter['id_tahun'])) {
+            $builder->where('ck.id_tahun', (int) $filter['id_tahun']);
         }
 
         if (! empty($filter['id_pelanggaran'])) {
