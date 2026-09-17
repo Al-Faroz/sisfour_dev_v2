@@ -47,17 +47,18 @@ class BkService
 
     public function getKasusPage(int $userId, array $input): array
     {
-        $scope = $this->scopeService->resolveStudentIds('bk_kasus.view', $userId);
-        if (! $scope['success']) {
-            return $scope;
-        }
-
         $period = $this->periodContext->resolve($input);
         if (! $period['success']) {
             return $period;
         }
 
-        $input['id_tahun'] = (int) $period['selected']['id'];
+        $idTahun = (int) $period['selected']['id'];
+        $scope = $this->scopeService->resolveStudentIds('bk_kasus.view', $userId, $idTahun);
+        if (! $scope['success']) {
+            return $scope;
+        }
+
+        $input['id_tahun'] = $idTahun;
         $filter = $this->caseFilter($input);
         if (! $filter['success']) {
             return $filter;
@@ -89,7 +90,17 @@ class BkService
             return $this->fail('NOT_FOUND', 'Catatan Pelanggaran tidak ditemukan.');
         }
 
-        $scope = $this->scopeService->resolveStudentIds('bk_kasus.view', $userId);
+        $permissionScope = $this->authService->resolveScope('bk_kasus.view', $userId);
+        $idTahun = (int) ($kasus['id_tahun'] ?? 0);
+        if ($permissionScope === 'KELAS_DIAMPU' && $idTahun <= 0) {
+            return $this->fail('FORBIDDEN', 'Periode Catatan Pelanggaran legacy ini belum dapat diverifikasi untuk scope kelas.');
+        }
+
+        $scope = $this->scopeService->resolveStudentIds(
+            'bk_kasus.view',
+            $userId,
+            $idTahun > 0 ? $idTahun : null
+        );
         if (! $scope['success']) {
             return $scope;
         }
