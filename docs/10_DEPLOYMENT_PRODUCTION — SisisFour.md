@@ -1,9 +1,9 @@
 # Deployment Production — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 closure patch pending focused re-smoke  
-**Production DB:** delta G3.2 + G3.3.1 applied; SQL/schema broad smoke PASS  
+**Tanggal Acuan:** 17 September 2026  
+**Source baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 rework  
+**Production DB:** baseline G3.3.1 applied + broad smoke PASS; **17 Sep rework belum diterapkan**  
 **Target Domain:** `https://sisfour.mtsn4jombang.sch.id/`
 
 > Deployment production menggunakan manual ZIP upload Hostinger hPanel. Secret production tidak disimpan di repository/docs.
@@ -20,11 +20,9 @@ Timezone       Asia/Jakarta
 Deployment     manual ZIP upload/extract
 ```
 
-Project root adalah Web root. Isi project harus langsung di `public_html/`.
+Project root adalah Web root. Isi project langsung di `public_html/`.
 
 ## 2. Paket Upload
-
-Struktur minimum:
 
 ```text
 public_html/
@@ -60,21 +58,9 @@ curl
 openssl
 ```
 
-Rekomendasi resource bila paket hosting mendukung:
-
-```text
-memory_limit        512M
-max_execution_time  300
-max_input_time      300
-upload_max_filesize 64M
-post_max_size       64M
-max_input_vars      5000
-date.timezone       Asia/Jakarta
-```
-
 ## 4. Composer
 
-Dependency runtime mengikuti `composer.lock`. Jika `vendor/` tidak dibawa:
+Dependency runtime mengikuti `composer.lock`.
 
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -83,95 +69,133 @@ composer check-platform-reqs
 
 ## 5. `.env` Production
 
-`.env` dibuat langsung di production dan tidak di-commit.
-
-Minimum:
-
-```ini
-CI_ENVIRONMENT = production
-app.baseURL = 'https://sisfour.mtsn4jombang.sch.id/'
-app.forceGlobalSecureRequests = true
-
-database.default.hostname = localhost
-database.default.database = '<DB_NAME>'
-database.default.username = '<DB_USER>'
-database.default.password = '<DB_PASSWORD>'
-database.default.DBDriver = MySQLi
-database.default.DBPrefix =
-database.default.port = 3306
-database.default.DBDebug = false
-
-cookie.secure = true
-cookie.httponly = true
-cookie.samesite = Lax
-
-JWT_SECRET = '<RANDOM_SECRET_MIN_32_CHAR>'
-encryption.key = '<RANDOM_ENCRYPTION_KEY_BERBEDA>'
-```
+`.env` dibuat langsung di production dan tidak di-commit. HTTPS/secure cookie wajib. DB credential/JWT/encryption secret tidak boleh masuk docs/repo.
 
 ## 6. Database Deployment Rule
 
 Jangan menimpa production dengan dump development tanpa keputusan eksplisit.
 
-Untuk schema delta:
+Schema delta:
 
 ```text
 1. backup database production
 2. ambil/audit dump hosting aktual
 3. bandingkan schema/data/FK/index/permissions/menu
 4. susun SQL hosting spesifik environment
-5. static/review gate
+5. review/static gate
 6. approval eksplisit
 7. execute
 8. verification query
-9. logout/login bila permission/menu session/cache terlibat
+9. logout/login bila permission/menu state terlibat
 10. smoke UAT production
 ```
 
-SQL G3.2:
+Baseline yang sudah diterapkan:
 
 ```text
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
-```
-
-SQL G3.3.1:
-
-```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-SQL G3.3.1 dibuat setelah dump aktual `u473908839_sisfour2026` diaudit. Eksekusi, verification, dan broad hosting smoke telah PASS.
+Baseline G3.3.1 execution + broad hosting smoke telah PASS.
 
-## 7. Source Change Setelah Smoke
+## 7. Rework 17 September 2026 — BELUM HOSTING
 
-Production smoke hanya membuktikan source yang benar-benar terpasang saat pengujian.
-
-Jika branch berubah sesudah smoke, lakukan focused redeploy/re-smoke sesuai area perubahan sebelum menganggap head terbaru production-verified.
-
-Closure audit PR #9 menemukan patch source tanpa schema change:
+Keputusan baru setelah baseline smoke:
 
 ```text
+Catatan Pelanggaran + Prestasi snapshot id_tahun
+periodic table filter Tahun Ajaran
+Konseling follow-up 1:N
+tidak ada delete Konseling/follow-up
+filter Konseling desktop 2 baris
+```
+
+SQL localhost yang disiapkan:
+
+```text
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+```
+
+Delta target:
+
+```text
++ catatan_kasus.id_tahun
++ catatan_prestasi.id_tahun
++ tindak_lanjut_konseling_bk
+```
+
+**Tidak ada SQL hosting untuk rework ini saat ini.**
+
+Alasan: source/schema berubah setelah broad hosting smoke. Sesuai gate, localhost SQL + UAT + static harus PASS dulu, lalu dump hosting aktual diaudit ulang sebelum SQL hosting baru dibuat.
+
+## 8. Source Rework yang Nanti Perlu Deploy
+
+Area utama:
+
+```text
+app/Config/RoutesBKFoundation.php
+app/Controllers/BKKonseling.php
+app/Models/BKKasusModel.php
+app/Models/BKPrestasiModel.php
+app/Models/KonselingBkModel.php
+app/Models/KonselingBkFollowUpModel.php
+app/Services/BkService.php
+app/Services/PrestasiService.php
+app/Services/PeriodContextService.php
 app/Services/KonselingBkService.php
+app/Services/KonselingBkExportService.php
+app/Views/bk/kasus.php
+app/Views/bk/prestasi.php
+app/Views/bk/konseling.php
+assets/js/bk/kasus.js
+assets/js/bk/prestasi.js
 assets/js/bk/konseling.js
 ```
 
-Tujuan patch: menjaga `Rencana Berikutnya` historis yang sudah tersimpan bila opsi tersebut kemudian dihapus dari Pengaturan Form Konseling.
+Jangan upload subset source yang bergantung pada schema baru sebelum database production siap sesuai urutan deploy yang disetujui.
 
-Tidak ada SQL tambahan. Setelah static/local focused UAT PASS, deploy dua file source tersebut ke hosting lalu ulang focused smoke:
+## 9. Urutan Hosting Rework Nanti
+
+Setelah localhost PASS dan user menyetujui hosting gate:
 
 ```text
-record lama menyimpan Rencana X
-→ X dihapus dari Settings
-→ buka record lama
-→ X tetap terlihat sebagai "tersimpan"
-→ save tanpa mengganti X tetap sukses
-→ ganti ke opsi aktif Y sukses
-→ record lain tidak dapat memakai X sebagai opsi baru
+A. ambil/audit dump hosting terbaru
+B. buat delta SQL hosting spesifik
+C. backup hosting
+D. execute SQL hosting
+E. verification schema/data
+F. upload source head final
+G. clear/cache/session bila memang diperlukan
+H. smoke Tahun Ajaran + follow-up Konseling
+I. final docs/PR sync
 ```
 
-Sampai focused hosting smoke ini PASS, PR #9 **belum** masuk Ready/Merge gate.
+Tidak ada eksekusi production otomatis oleh ChatGPT.
 
-## 8. Runtime/Auth State pada Fresh Import
+## 10. Focused Hosting Smoke Rework
+
+Minimum:
+
+```text
+Catatan Pelanggaran default Tahun aktif + history + export
+Prestasi default Tahun aktif + history + export
+Konseling filter Tahun aktif + Kelas periodik
+Konseling desktop filter 2 baris
+Konseling parent Tahap 1/Tahap 2
+Tambah follow-up #1 dan #2 tanpa overwrite
+Edit follow-up existing
+status parent sinkron dengan follow-up terbaru
+historical Rencana pada follow-up tetap terjaga
+no Delete parent/follow-up
+Admin/Operator/BK access tetap benar
+Pimpinan/Guru/Wali/Siswa tetap tanpa Konseling
+mobile no horizontal overflow
+```
+
+## 11. Runtime/Auth State pada Fresh Import
+
+Hanya untuk fresh environment sesuai kebutuhan:
 
 ```sql
 TRUNCATE TABLE ci_sessions;
@@ -181,7 +205,7 @@ TRUNCATE TABLE login_attempts;
 
 Jangan truncate business data lain.
 
-## 9. Upload Runtime/Data File
+## 12. Upload Runtime/Data File
 
 Pastikan file referensi database tersedia:
 
@@ -194,9 +218,9 @@ uploads/settings/kartu/
 writable/uploads/personalia/
 ```
 
-Default permission aman folder 755/file 644; jangan 777 sebagai default.
+Default permission aman folder 755/file 644.
 
-## 10. Web Security
+## 13. Web Security
 
 Production test:
 
@@ -208,88 +232,31 @@ Production test:
 /signage            -> 200
 ```
 
-HTTPS + secure cookie wajib setelah SSL aktif.
-
-## 11. Production Smoke Umum
-
-Role minimum:
-
-```text
-Admin
-Operator
-Pimpinan
-BK
-Guru
-Guru + Wali
-Siswa
-Pegawai identity bila digunakan
-```
-
-Core workflow:
-
-```text
-Dashboard
-Master Data
-Manajemen Siswa
-Presensi Siswa
-Presensi Mengajar/Jurnal
-Laporan
-BK/Prestasi/Kartu
-Profile/Personalia
-Settings
-Backup
-Maintenance
-Log Activity
-```
-
-## 12. G3.3.1 Broad Smoke — PASS
-
-Telah diuji:
-
-```text
-Catatan Pelanggaran tanpa poin
-Tindak Lanjut Pelanggaran
-Export Pelanggaran 2 sheet + Kelas
-Prestasi create/edit + export Kelas
-Konseling Tahap 1/Tahap 2
-Admin/BK Settings
-Operator Konseling tanpa Settings
-Pimpinan/Guru/Wali/Siswa tanpa Konseling
-Dashboard lintas-role tidak bocor Konseling
-responsive smoke role prioritas
-```
-
-Closure focused smoke pada preservasi Rencana historis adalah gate tambahan setelah broad smoke tersebut.
-
-## 13. Rollback
+## 14. Rollback
 
 Sebelum overwrite production:
 
 1. backup database;
-2. backup `.env` production;
+2. backup `.env`;
 3. backup runtime uploads;
-4. simpan ZIP release sebelumnya bila perlu;
-5. catat SQL delta yang sudah diaplikasikan;
-6. pertimbangkan compatibility schema/data ketika rollback source.
+4. simpan ZIP release sebelumnya;
+5. catat SQL delta yang diaplikasikan;
+6. pastikan rollback source kompatibel dengan schema yang tersisa.
 
-## 14. Secret Handling
+## 15. Secret Handling
 
 DB password, JWT secret, encryption key, password account, token tidak boleh masuk Git/docs/screenshot publik/log.
 
-## 15. UI/UX Deployment Rule
-
-```text
-source implemented
-→ static lint
-→ role/browser regression
-→ canonical docs updated
-→ build ZIP production
-→ manual upload/extract hPanel
-→ smoke test production
-```
-
-Mockup/image/HTML presentasi bukan payload aplikasi kecuali secara eksplisit dijadikan asset final.
-
 ## 16. Current Release Boundary
 
-`main` tetap baseline PR #8 sampai PR #9 mendapat Ready + Merge approval eksplisit. Database hosting sudah menerima schema G3.3.1 yang backward-compatible dengan branch, tetapi latest closure source patch masih menunggu focused local + hosting re-smoke.
+```text
+main                                  = PR #8 baseline
+hosting baseline G3.3.1               = PASS
+17 Sep rework localhost SQL/UAT       = PENDING
+17 Sep rework final static            = PENDING
+17 Sep hosting dump audit/delta       = NOT STARTED
+17 Sep hosting smoke                  = NOT STARTED
+PR #9                                 = DRAFT / BELUM MERGE
+```
+
+Production baseline yang sudah PASS tidak boleh dipakai sebagai bukti untuk source/schema rework 17 September.
