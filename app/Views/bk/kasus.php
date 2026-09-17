@@ -1,269 +1,117 @@
 <?= $this->extend('main') ?>
 <?= $this->section('content') ?>
 
-<div
-    id="bkKasusApp"
-    data-base-url="<?= esc(base_url()) ?>"
-    data-can-manage="<?= ! empty($initial['can_manage']) ? '1' : '0' ?>"
->
+<div id="bkKasusApp" data-base-url="<?= esc(base_url()) ?>" data-can-manage="<?= ! empty($initial['can_manage']) ? '1' : '0' ?>">
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1">Catatan Pelanggaran Siswa</h4>
-            <p class="text-muted mb-0">
-                Catatan pelanggaran bersifat data kejadian siswa. Sistem poin tidak digunakan lagi.
-            </p>
+            <p class="text-muted mb-0">Catatan pelanggaran bersifat data kejadian siswa. Sistem poin tidak digunakan lagi.</p>
         </div>
-
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="sisfour-page-actions">
-                <button class="btn btn-primary" id="btnKasusBaru" type="button">
-                    <i class="bx bx-plus me-1"></i> Tambah Catatan
-                </button>
+                <button class="btn btn-primary" id="btnKasusBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Catatan</button>
             </div>
         <?php endif; ?>
     </div>
 
     <?php if (empty($initial['success'])): ?>
-        <div class="alert alert-danger">
-            <?= esc($initial['message'] ?? 'Data tidak dapat dibuka.') ?>
-        </div>
+        <div class="alert alert-danger"><?= esc($initial['message'] ?? 'Data tidak dapat dibuka.') ?></div>
     <?php else: ?>
         <div class="card sisfour-filter-card mb-4">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label" for="kasusTahun">Tahun Ajaran</label>
+                        <select id="kasusTahun" name="id_tahun" class="form-select" data-searchable-off="1">
+                            <?php foreach (($initial['tahun_options'] ?? []) as $ta): ?>
+                                <?php $aktif = (int) ($ta['status_aktif'] ?? 0) === 1; ?>
+                                <option value="<?= (int) $ta['id'] ?>" <?= (int) ($initial['tahun_dipilih']['id'] ?? 0) === (int) $ta['id'] ? 'selected' : '' ?>>
+                                    <?= esc($ta['nama_tahun'] . ' - ' . $ta['semester'] . ($aktif ? ' (Aktif)' : '')) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label" for="kasusSearch">Pencarian</label>
-                        <input
-                            id="kasusSearch"
-                            class="form-control"
-                            placeholder="Cari siswa / NISN / pelanggaran"
-                        >
+                        <input id="kasusSearch" class="form-control" placeholder="Cari siswa / NISN / pelanggaran">
                     </div>
-
                     <div class="col-12 col-sm-6 col-md-2">
                         <label class="form-label" for="kasusKategori">Kategori</label>
                         <select id="kasusKategori" class="form-select" data-searchable-off="1">
-                            <option value="">Semua kategori</option>
-                            <option value="Ringan">Ringan</option>
-                            <option value="Sedang">Sedang</option>
-                            <option value="Berat">Berat</option>
+                            <option value="">Semua kategori</option><option value="Ringan">Ringan</option><option value="Sedang">Sedang</option><option value="Berat">Berat</option>
                         </select>
                     </div>
-
-                    <div class="col-6 col-md-2">
+                    <div class="col-6 col-md-3">
                         <label class="form-label" for="kasusMulai">Dari</label>
                         <input id="kasusMulai" type="date" class="form-control">
                     </div>
-
-                    <div class="col-6 col-md-2">
+                    <div class="col-6 col-md-3">
                         <label class="form-label" for="kasusSelesai">Sampai</label>
                         <input id="kasusSelesai" type="date" class="form-control">
                     </div>
-
-                    <div class="col-12 col-md-2 d-grid">
-                        <button id="btnKasusCari" type="button" class="btn btn-primary">
-                            <i class="bx bx-filter-alt me-1"></i> Tampilkan
-                        </button>
+                    <div class="col-12 col-md-6">
+                        <div class="sisfour-filter-actions justify-content-md-end">
+                            <button id="btnKasusReset" type="button" class="btn btn-outline-secondary"><i class="bx bx-reset me-1"></i> Reset</button>
+                            <button id="btnKasusCari" type="button" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="kasusAlert" class="alert d-none" role="alert"></div>
-
         <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Riwayat Pelanggaran</h5>
-
-                <?php if (! empty($initial['can_manage'])): ?>
-                    <a class="btn btn-sm btn-outline-primary" id="btnKasusExport" href="#">
-                        <i class="bx bx-export me-1"></i> Export XLSX
-                    </a>
-                <?php endif; ?>
+                <?php if (! empty($initial['can_manage'])): ?><a class="btn btn-sm btn-outline-primary" id="btnKasusExport" href="#"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?>
             </div>
-
             <div id="kasusMobileList" class="d-md-none list-group list-group-flush"></div>
-
             <div class="d-none d-md-block table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Siswa</th>
-                            <th>Pelanggaran</th>
-                            <th>Kategori</th>
-                            <th>Keterangan</th>
-                            <th class="text-end">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="kasusBody"></tbody>
-                </table>
+                <table class="table table-hover align-middle mb-0"><thead><tr><th>Tanggal</th><th>Siswa</th><th>Pelanggaran</th><th>Kategori</th><th>Keterangan</th><th class="text-end">Aksi</th></tr></thead><tbody id="kasusBody"></tbody></table>
             </div>
-
-            <div class="card-footer">
-                <div id="bkKasusPager"></div>
-            </div>
+            <div class="card-footer"><div id="bkKasusPager"></div></div>
         </div>
 
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="modal fade" id="modalKasus" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-scrollable">
-                    <form class="modal-content" id="formKasus">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="judulModalKasus">Catatan Pelanggaran</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                        </div>
-
-                        <div class="modal-body">
-                            <input type="hidden" name="id">
-
-                            <div class="mb-3">
-                                <label class="form-label" for="kasusSiswa">Siswa</label>
-                                <select
-                                    id="kasusSiswa"
-                                    name="id_siswa"
-                                    class="form-select"
-                                    required
-                                    data-searchable-remote="<?= esc(base_url('ui/search/siswa')) ?>"
-                                    data-searchable-context="bk_kasus"
-                                    data-searchable-min-chars="2"
-                                    data-search-placeholder="Ketik nama / NISN / NIK..."
-                                >
-                                    <option value="">Cari siswa</option>
-                                </select>
-                                <div class="form-text">Ketik minimal 2 karakter, lalu pilih siswa dari hasil pencarian.</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="kasusPelanggaran">Jenis Pelanggaran</label>
-                                <select
-                                    id="kasusPelanggaran"
-                                    name="id_pelanggaran"
-                                    class="form-select"
-                                    required
-                                    data-searchable-select
-                                    data-search-placeholder="Cari pelanggaran..."
-                                >
-                                    <option value="">Pilih pelanggaran</option>
-                                    <?php foreach (($initial['pelanggaran'] ?? []) as $p): ?>
-                                        <option value="<?= (int) $p['id'] ?>">
-                                            <?= esc($p['nama_pelanggaran'] . ' — ' . $p['kategori']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label" for="kasusTanggal">Tanggal Kejadian</label>
-                                <input id="kasusTanggal" name="tanggal" type="date" class="form-control" required>
-                            </div>
-
-                            <div>
-                                <label class="form-label" for="kasusKeterangan">Keterangan</label>
-                                <textarea
-                                    id="kasusKeterangan"
-                                    name="keterangan"
-                                    class="form-control"
-                                    rows="4"
-                                    placeholder="Catat kronologi atau keterangan singkat bila diperlukan."
-                                ></textarea>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer sisfour-modal-actions">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary">Simpan</button>
-                        </div>
-                    </form>
-                </div>
+                <div class="modal-dialog modal-dialog-scrollable"><form class="modal-content" id="formKasus">
+                    <div class="modal-header"><h5 class="modal-title" id="judulModalKasus">Catatan Pelanggaran</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" name="id">
+                        <div class="mb-3"><label class="form-label" for="kasusSiswa">Siswa</label><select id="kasusSiswa" name="id_siswa" class="form-select" required data-searchable-remote="<?= esc(base_url('ui/search/siswa')) ?>" data-searchable-context="bk_kasus" data-searchable-min-chars="2" data-search-placeholder="Ketik nama / NISN / NIK..."><option value="">Cari siswa</option></select><div class="form-text">Ketik minimal 2 karakter, lalu pilih siswa dari hasil pencarian.</div></div>
+                        <div class="mb-3"><label class="form-label" for="kasusPelanggaran">Jenis Pelanggaran</label><select id="kasusPelanggaran" name="id_pelanggaran" class="form-select" required data-searchable-select data-search-placeholder="Cari pelanggaran..."><option value="">Pilih pelanggaran</option><?php foreach (($initial['pelanggaran'] ?? []) as $p): ?><option value="<?= (int) $p['id'] ?>"><?= esc($p['nama_pelanggaran'] . ' — ' . $p['kategori']) ?></option><?php endforeach; ?></select></div>
+                        <div class="mb-3"><label class="form-label" for="kasusTanggal">Tanggal Kejadian</label><input id="kasusTanggal" name="tanggal" type="date" class="form-control" required></div>
+                        <div><label class="form-label" for="kasusKeterangan">Keterangan</label><textarea id="kasusKeterangan" name="keterangan" class="form-control" rows="4" placeholder="Catat kronologi atau keterangan singkat bila diperlukan."></textarea></div>
+                    </div>
+                    <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+                </form></div>
             </div>
         <?php endif; ?>
 
         <div class="modal fade" id="modalDetailKasus" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Detail Pelanggaran &amp; Tindak Lanjut</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div id="detailKasusLoading" class="text-center text-muted py-4">Memuat data...</div>
-
-                        <div id="detailKasusContent" class="d-none">
-                            <div class="card bg-label-secondary mb-4">
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <small class="text-muted d-block">Siswa</small>
-                                            <strong id="detailKasusSiswa"></strong>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted d-block">Tanggal</small>
-                                            <strong id="detailKasusTanggal"></strong>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <small class="text-muted d-block">Kategori</small>
-                                            <strong id="detailKasusKategori"></strong>
-                                        </div>
-                                        <div class="col-12">
-                                            <small class="text-muted d-block">Pelanggaran</small>
-                                            <strong id="detailKasusPelanggaran"></strong>
-                                        </div>
-                                        <div class="col-12">
-                                            <small class="text-muted d-block">Keterangan</small>
-                                            <span id="detailKasusKeterangan"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="mb-0">Riwayat Tindak Lanjut</h6>
-                                    <span class="badge bg-label-primary" id="jumlahTindakLanjut">0</span>
-                                </div>
-                                <div id="timelineTindakLanjut" class="vstack gap-3"></div>
-                            </div>
-
-                            <?php if (! empty($initial['can_manage'])): ?>
-                                <form id="formTindakLanjut" class="card mb-0">
-                                    <div class="card-header">
-                                        <h6 class="mb-0" id="judulTindakLanjut">Tambah Tindak Lanjut</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <input type="hidden" name="id">
-                                        <input type="hidden" name="id_kasus">
-
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label" for="tindakTanggal">Tanggal</label>
-                                                <input id="tindakTanggal" name="tanggal" type="date" class="form-control" required>
-                                            </div>
-                                            <div class="col-md-8">
-                                                <label class="form-label" for="tindakJenis">Tindak Lanjut</label>
-                                                <select id="tindakJenis" name="tindak_lanjut" class="form-select" required data-searchable-off="1">
-                                                    <option value="">Pilih tindak lanjut</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-12">
-                                                <label class="form-label" for="tindakKeterangan">Keterangan</label>
-                                                <textarea id="tindakKeterangan" name="keterangan" class="form-control" rows="3"></textarea>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="card-footer sisfour-modal-actions">
-                                        <button type="button" id="btnBatalEditTindak" class="btn btn-outline-secondary d-none">Batal Edit</button>
-                                        <button type="submit" class="btn btn-primary">Simpan Tindak Lanjut</button>
-                                    </div>
-                                </form>
-                            <?php endif; ?>
-                        </div>
+            <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Detail Pelanggaran &amp; Tindak Lanjut</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+                <div class="modal-body">
+                    <div id="detailKasusLoading" class="text-center text-muted py-4">Memuat data...</div>
+                    <div id="detailKasusContent" class="d-none">
+                        <div class="card bg-label-secondary mb-4"><div class="card-body"><div class="row g-3">
+                            <div class="col-md-6"><small class="text-muted d-block">Siswa</small><strong id="detailKasusSiswa"></strong></div>
+                            <div class="col-md-3"><small class="text-muted d-block">Tanggal</small><strong id="detailKasusTanggal"></strong></div>
+                            <div class="col-md-3"><small class="text-muted d-block">Kategori</small><strong id="detailKasusKategori"></strong></div>
+                            <div class="col-12"><small class="text-muted d-block">Pelanggaran</small><strong id="detailKasusPelanggaran"></strong></div>
+                            <div class="col-12"><small class="text-muted d-block">Keterangan</small><span id="detailKasusKeterangan"></span></div>
+                        </div></div></div>
+                        <div class="mb-4"><div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">Riwayat Tindak Lanjut</h6><span class="badge bg-label-primary" id="jumlahTindakLanjut">0</span></div><div id="timelineTindakLanjut" class="vstack gap-3"></div></div>
+                        <?php if (! empty($initial['can_manage'])): ?>
+                            <form id="formTindakLanjut" class="card mb-0"><div class="card-header"><h6 class="mb-0" id="judulTindakLanjut">Tambah Tindak Lanjut</h6></div><div class="card-body">
+                                <input type="hidden" name="id"><input type="hidden" name="id_kasus">
+                                <div class="row g-3"><div class="col-md-4"><label class="form-label" for="tindakTanggal">Tanggal</label><input id="tindakTanggal" name="tanggal" type="date" class="form-control" required></div><div class="col-md-8"><label class="form-label" for="tindakJenis">Tindak Lanjut</label><select id="tindakJenis" name="tindak_lanjut" class="form-select" required data-searchable-off="1"><option value="">Pilih tindak lanjut</option></select></div><div class="col-12"><label class="form-label" for="tindakKeterangan">Keterangan</label><textarea id="tindakKeterangan" name="keterangan" class="form-control" rows="3"></textarea></div></div>
+                            </div><div class="card-footer sisfour-modal-actions"><button type="button" id="btnBatalEditTindak" class="btn btn-outline-secondary d-none">Batal Edit</button><button type="submit" class="btn btn-primary">Simpan Tindak Lanjut</button></div></form>
+                        <?php endif; ?>
                     </div>
                 </div>
-            </div>
+            </div></div>
         </div>
     <?php endif; ?>
 </div>
-
 <?= $this->endSection() ?>
