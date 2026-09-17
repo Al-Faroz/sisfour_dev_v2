@@ -1,5 +1,6 @@
 <?= $this->extend('main') ?>
 <?= $this->section('content') ?>
+<?php $isSelfScope = ($initial['scope'] ?? '') === 'DIRI_SENDIRI'; ?>
 
 <div id="bkKasusApp" data-base-url="<?= esc(base_url()) ?>" data-can-manage="<?= ! empty($initial['can_manage']) ? '1' : '0' ?>">
     <div class="sisfour-page-header">
@@ -17,47 +18,70 @@
     <?php if (empty($initial['success'])): ?>
         <div class="alert alert-danger"><?= esc($initial['message'] ?? 'Data tidak dapat dibuka.') ?></div>
     <?php else: ?>
-        <div class="card sisfour-filter-card mb-4">
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-md-3">
-                        <label class="form-label" for="kasusTahun">Tahun Ajaran</label>
-                        <select id="kasusTahun" name="id_tahun" class="form-select" data-searchable-off="1">
-                            <?php foreach (($initial['tahun_options'] ?? []) as $ta): ?>
-                                <?php $aktif = (int) ($ta['status_aktif'] ?? 0) === 1; ?>
-                                <option value="<?= (int) $ta['id'] ?>" <?= (int) ($initial['tahun_dipilih']['id'] ?? 0) === (int) $ta['id'] ? 'selected' : '' ?>>
-                                    <?= esc($ta['nama_tahun'] . ' - ' . $ta['semester'] . ($aktif ? ' (Aktif)' : '')) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <label class="form-label" for="kasusSearch">Pencarian</label>
-                        <input id="kasusSearch" class="form-control" placeholder="Cari siswa / NISN / pelanggaran">
-                    </div>
-                    <div class="col-12 col-sm-6 col-md-2">
-                        <label class="form-label" for="kasusKategori">Kategori</label>
-                        <select id="kasusKategori" class="form-select" data-searchable-off="1">
-                            <option value="">Semua kategori</option><option value="Ringan">Ringan</option><option value="Sedang">Sedang</option><option value="Berat">Berat</option>
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label" for="kasusMulai">Dari</label>
-                        <input id="kasusMulai" type="date" class="form-control">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label" for="kasusSelesai">Sampai</label>
-                        <input id="kasusSelesai" type="date" class="form-control">
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <div class="sisfour-filter-actions justify-content-md-end">
-                            <button id="btnKasusReset" type="button" class="btn btn-outline-secondary"><i class="bx bx-reset me-1"></i> Reset</button>
-                            <button id="btnKasusCari" type="button" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+        <?php if ($isSelfScope): ?>
+            <div class="card sisfour-filter-card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-12 col-md-4 col-lg-3">
+                            <label class="form-label" for="kasusTahun">Tahun Ajaran</label>
+                            <select id="kasusTahun" name="id_tahun" class="form-select" data-searchable-off="1" onchange="this.form.requestSubmit()">
+                                <?php foreach (($initial['tahun_options'] ?? []) as $ta): ?>
+                                    <?php $aktif = (int) ($ta['status_aktif'] ?? 0) === 1; ?>
+                                    <option value="<?= (int) $ta['id'] ?>" <?= (int) ($initial['tahun_dipilih']['id'] ?? 0) === (int) $ta['id'] ? 'selected' : '' ?>>
+                                        <?= esc($ta['nama_tahun'] . ' - ' . $ta['semester'] . ($aktif ? ' (Aktif)' : '')) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <div class="form-text mb-2">Daftar langsung menampilkan Catatan Pelanggaran milik Anda pada Tahun Ajaran terpilih.</div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="card sisfour-filter-card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="kasusTahun">Tahun Ajaran</label>
+                            <select id="kasusTahun" name="id_tahun" class="form-select" data-searchable-off="1">
+                                <?php foreach (($initial['tahun_options'] ?? []) as $ta): ?>
+                                    <?php $aktif = (int) ($ta['status_aktif'] ?? 0) === 1; ?>
+                                    <option value="<?= (int) $ta['id'] ?>" <?= (int) ($initial['tahun_dipilih']['id'] ?? 0) === (int) $ta['id'] ? 'selected' : '' ?>>
+                                        <?= esc($ta['nama_tahun'] . ' - ' . $ta['semester'] . ($aktif ? ' (Aktif)' : '')) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label" for="kasusSearch">Pencarian</label>
+                            <input id="kasusSearch" class="form-control" placeholder="Cari siswa / NISN / pelanggaran">
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-2">
+                            <label class="form-label" for="kasusKategori">Kategori</label>
+                            <select id="kasusKategori" class="form-select" data-searchable-off="1">
+                                <option value="">Semua kategori</option><option value="Ringan">Ringan</option><option value="Sedang">Sedang</option><option value="Berat">Berat</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="kasusMulai">Dari</label>
+                            <input id="kasusMulai" type="date" class="form-control">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="kasusSelesai">Sampai</label>
+                            <input id="kasusSelesai" type="date" class="form-control">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="sisfour-filter-actions justify-content-md-end">
+                                <button id="btnKasusReset" type="button" class="btn btn-outline-secondary"><i class="bx bx-reset me-1"></i> Reset</button>
+                                <button id="btnKasusCari" type="button" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
 
         <div id="kasusAlert" class="alert d-none" role="alert"></div>
         <div class="card sisfour-table-card">
