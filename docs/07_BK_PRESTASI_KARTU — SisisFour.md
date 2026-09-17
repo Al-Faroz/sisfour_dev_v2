@@ -1,9 +1,9 @@
 # BK, Konseling, Prestasi & Kartu Pelajar — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
+**Tanggal Acuan:** 17 September 2026  
 **Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`  
-**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — closure focused re-smoke pending
+**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — focused local runtime PASS / static + hosting re-smoke pending
 
 > Dokumen ini menyatakan kontrak BK yang berlaku mulai G3.3.1. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
@@ -264,7 +264,7 @@ Implementasi closure patch:
 - opsi lama tidak dimasukkan kembali sebagai pilihan global Settings;
 - tidak ada perubahan schema/SQL.
 
-Patch ditemukan dari full docs/source audit setelah broad local + hosting smoke. Karena source berubah, patch ini wajib focused local + hosting re-smoke sebelum PR #9 Ready/Merge.
+Focused local runtime UAT pada 17 September 2026: **PASS**. Dibuktikan bahwa nilai lama tetap tampil sebagai `(tersimpan)`, save tanpa mengganti nilai lama berhasil, nilai dapat diganti ke opsi aktif baru, dan opsi lama tidak muncul pada record lain. Evidence static gate head terbaru dan focused hosting re-smoke masih diperlukan sebelum PR #9 Ready/Merge.
 
 ## 8. Pengaturan Isian Form Konseling
 
@@ -566,7 +566,8 @@ broad hosting smoke
 Closure gate tambahan:
 
 ```text
-historical Rencana preservation patch static/local focused UAT PENDING
+historical Rencana focused local runtime UAT PASS
+closure static gate evidence PENDING
 focused hosting re-smoke PENDING
 ```
 
