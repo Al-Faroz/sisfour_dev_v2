@@ -354,7 +354,7 @@ G2                         CLOSED / MERGED
 G3.1 Mobile foundation     CLOSED / MERGED
 G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
-G3.3.1 Fondasi BK          REWORK / PR #9
+G3.3.1 Fondasi BK          LOCAL RUNTIME PASS / STATIC PENDING / PR #9 DRAFT
 G3.4 Dashboard/Workflow BK setelah PR #9 merge
 G3.5 Pimpinan              setelah G3.4
 G3.6 Siswa                 setelah G3.5
@@ -399,7 +399,17 @@ bk_konseling.settings  Admin, BK
 
 ## 11. G3.3.1 Gate
 
-Minimum final-head gate:
+Evidence terbaru:
+
+```text
+17 Sep localhost SQL execution   = PASS / user evidence
+17 Sep local runtime UAT         = PASS / user evidence
+17 Sep final static gate         = PENDING
+17 Sep hosting rework            = NOT STARTED
+PR #9                            = DRAFT / BELUM MERGE
+```
+
+Minimum final-head static gate:
 
 ```powershell
 php -l <changed php>
@@ -409,7 +419,7 @@ git diff --check origin/main...HEAD
 git status
 ```
 
-Jangan klaim static/runtime PASS tanpa output user/CI.
+Jangan klaim static/runtime PASS tanpa sumber evidencenya. `PASS / user evidence` tidak boleh diubah menjadi klaim CI/static.
 
 Definition of Done rework:
 
