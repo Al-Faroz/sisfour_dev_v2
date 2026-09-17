@@ -46,7 +46,18 @@ Target berada dalam scope
 
 UI menyembunyikan tombol
 != authorization
+
+Role ada di sistem
+!= otomatis punya akses semua domain
 ```
+
+Global security stance:
+
+```text
+DEFAULT DENY
+```
+
+Role/context yang tidak dinyatakan berada di Access Boundary suatu domain **tidak mendapat akses** sampai SSOT memutuskan sebaliknya.
 
 ## 2. Master Mapping Global
 
@@ -107,6 +118,7 @@ flowchart TD
     G --> G4["DIRI_SENDIRI"]
     G --> G5["UNIT / DOMAIN KHUSUS"]
     G --> G6["TIDAK_ADA"]
+    G --> G7["BELUM DIKUNCI"]
 
     G1 --> H["PERIOD CONTEXT"]
     G2 --> H
@@ -114,6 +126,7 @@ flowchart TD
     G4 --> H
     G5 --> H
     G6 --> H
+    G7 --> H
 
     H --> H1["Read / History → periode filter"]
     H --> H2["Create Parent → periode aktif"]
@@ -121,6 +134,7 @@ flowchart TD
     H --> H4["Create Child / Follow-up → periode parent"]
     H --> H5["Export → periode filter / record"]
     H --> H6["Dashboard → sesuai kontrak domain"]
+    H --> H7["Non-periodik → jangan paksa Tahun Ajaran"]
 
     H1 --> I["TARGET VALIDATION"]
     H2 --> I
@@ -128,6 +142,7 @@ flowchart TD
     H4 --> I
     H5 --> I
     H6 --> I
+    H7 --> I
 
     I --> I1["Target record ada?"]
     I --> I2["Actor berada dalam scope?"]
@@ -284,7 +299,7 @@ flowchart TD
     B -- "NO" --> X1["401 / LOGIN"]
     B -- "YES" --> C["EFFECTIVE ROLE"]
 
-    C --> D{"Role termasuk ACCESS BOUNDARY fitur?"}
+    C --> D{"Role/context termasuk ACCESS BOUNDARY fitur?"}
     D -- "NO" --> X2["403 DENY TOTAL ACCESS"]
     X2 --> X21["Tidak ada menu"]
     X2 --> X22["Direct URL ditolak"]
@@ -328,7 +343,190 @@ Siswa tidak boleh mengedit fitur X.
 
 Capability matrix hanya memuat actor yang **sudah lolos Access Boundary**.
 
-## 4. Period Context Standard
+### Makna `Full Access`
+
+```text
+Full Access = seluruh capability operasional yang memang didefinisikan oleh domain.
+```
+
+`Full Access` **tidak otomatis** berarti:
+
+```text
+hard delete
+cancel / void
+settings
+approval khusus
+credential/security mutation
+bypass scope
+bypass business invariant
+```
+
+Capability dengan risiko tinggi harus ditetapkan eksplisit oleh kontrak domain.
+
+### Makna `ReadOnly`
+
+```text
+ReadOnly = view/list/detail/search/filter pada scope yang sah.
+```
+
+ReadOnly tidak memberi mutation. `Export` juga **tidak otomatis** dianggap ReadOnly; export harus diputuskan sebagai capability tersendiri bila dibutuhkan.
+
+## 4. Canonical Role Registry
+
+Role resmi:
+
+```text
+admin
+operator
+pimpinan
+bk
+guru
+siswa
+kesehatan
+ptsp
+```
+
+`Wali Kelas` adalah **context Guru**, bukan role tersendiri.
+
+Effective role tetap mengikuti pola:
+
+```text
+primary role + secondary roles
+→ permission
+→ domain access boundary
+→ capability
+→ scope
+```
+
+Role baru tidak otomatis mewarisi domain role lain.
+
+## 5. Domain Access Baseline — UKS / Kesehatan
+
+Menu `UKS` mempunyai target fitur:
+
+```text
+Data CKG  -> Data Kesehatan Siswa
+Data UKS  -> Catatan Harian UKS
+```
+
+Mapping yang sudah diputuskan:
+
+```mermaid
+flowchart TD
+    A["MENU UKS"] --> B{"Actor / Context"}
+
+    B -- "Kesehatan" --> C["FULL ACCESS"]
+    B -- "Admin" --> C
+    B -- "Operator" --> C
+
+    B -- "Pimpinan" --> D["READONLY"]
+    D --> D1["Scope: BELUM DIKUNCI"]
+
+    B -- "Guru + Wali Kelas" --> E["READONLY"]
+    E --> E1["Scope: KELAS_DIAMPU / kelas wali"]
+
+    B -- "Siswa" --> F["READONLY"]
+    F --> F1["Scope: DIRI_SENDIRI"]
+
+    B -- "Guru non-Wali / BK / PTSP / role lain" --> X["DEFAULT DENY"]
+
+    C --> G["Capability operasional domain UKS"]
+    D1 --> G
+    E1 --> G
+    F1 --> G
+
+    G --> H["Target Validation"]
+    H --> I["Business Invariant"]
+    I --> J["Persistence"]
+    J --> K["Presentation UI"]
+```
+
+Canonical notes:
+
+```text
+Kesehatan/Admin/Operator = Full Access domain UKS.
+Pimpinan                 = ReadOnly; scope belum dinyatakan eksplisit.
+Guru + Wali              = ReadOnly hanya kelas wali/yang diampu sesuai kontrak domain.
+Siswa                     = ReadOnly data dirinya sendiri.
+Guru tanpa context Wali   = tidak otomatis punya akses.
+BK/PTSP/role lain         = default deny sampai SSOT mengubahnya.
+```
+
+Sebelum implementasi UKS, domain document harus mengunci minimal:
+
+```text
+scope Pimpinan
+period context Data CKG
+period context Catatan Harian UKS
+capability export
+capability destructive/correction
+privacy/medical-data exposure
+actor identity untuk Role Kesehatan
+```
+
+## 6. Domain Access Baseline — PTSP
+
+Menu `PTSP` mempunyai target fitur:
+
+```text
+Layanan PTSP      -> Form Pendaftaran Layanan PTSP
+Polling Kepuasan  -> Form Polling Kepuasan Layanan Madrasah/PTSP
+Pengaduan         -> Form Pengaduan intern maupun ekstern
+```
+
+Mapping yang sudah diputuskan:
+
+```mermaid
+flowchart TD
+    A["MENU PTSP"] --> B{"Actor / Context"}
+
+    B -- "PTSP" --> C["FULL ACCESS"]
+    B -- "Admin" --> C
+    B -- "Operator" --> C
+
+    B -- "Pimpinan" --> D["READONLY"]
+    D --> D1["Scope: BELUM DIKUNCI"]
+
+    B -- "Kesehatan / BK / Guru / Wali / Siswa / role lain" --> X["DEFAULT DENY"]
+
+    C --> E["Capability operasional domain PTSP"]
+    D1 --> E
+
+    E --> F["Target Validation"]
+    F --> G["Business Invariant"]
+    G --> H["Persistence"]
+    H --> I["Presentation UI"]
+
+    J["Pengaduan EKSTERN"] --> K{"Public / anonymous submission sudah diputuskan?"}
+    K -- "BELUM" --> L["JANGAN BUAT PUBLIC ROUTE"]
+    K -- "SUDAH" --> M["Definisikan auth/rate-limit/privacy/moderation contract"]
+```
+
+Canonical notes:
+
+```text
+PTSP/Admin/Operator = Full Access domain PTSP.
+Pimpinan            = ReadOnly; scope belum dinyatakan eksplisit.
+Role lain           = default deny sampai SSOT mengubahnya.
+```
+
+Istilah `Pengaduan ekstern` **belum sama dengan keputusan public/anonymous access**. Sebelum implementasi jalur eksternal, wajib diputuskan:
+
+```text
+siapa yang boleh submit
+apakah login wajib
+anonymous vs identified submitter
+rate limit / anti-spam
+lampiran bila ada
+privacy data pelapor
+status/tindak lanjut pengaduan
+siapa yang boleh melihat identitas pelapor
+retention/audit
+```
+
+Hal yang sama berlaku bila `Polling Kepuasan` kelak ingin dibuka untuk publik: public access harus menjadi keputusan eksplisit, bukan inferensi dari nama fitur.
+
+## 7. Period Context Standard
 
 Canonical untuk domain periodik/Tahun Ajaran:
 
@@ -367,7 +565,9 @@ Export                  -> period yang sedang dibaca
 
 Filter histori **tidak otomatis** menjadi period tempat record parent baru dibuat.
 
-## 5. Parent / Child / History Standard
+Tidak semua domain harus periodik. PTSP, misalnya, tidak boleh diberi Tahun Ajaran hanya karena fitur lain memilikinya. Period context harus berasal dari domain contract.
+
+## 8. Parent / Child / History Standard
 
 ```mermaid
 flowchart TD
@@ -394,7 +594,7 @@ flowchart TD
 
 Hard delete, cascade delete, soft delete, cancel, dan void **bukan sinonim**. Pilih hanya setelah business contract eksplisit.
 
-## 6. Application Responsibility Standard
+## 9. Application Responsibility Standard
 
 ```mermaid
 flowchart TD
@@ -429,7 +629,7 @@ View / JS      = presentation / UX
 
 Security/business validation tidak boleh hanya hidup di View atau JavaScript.
 
-## 7. UI / UX Global Standard
+## 10. UI / UX Global Standard
 
 ```mermaid
 flowchart TD
@@ -480,7 +680,7 @@ flowchart TD
     I --> I5["Safe-area / WebView aware"]
 ```
 
-## 8. Output Channel Consistency
+## 11. Output Channel Consistency
 
 Satu business rule harus konsisten pada seluruh output channel yang relevan.
 
@@ -501,9 +701,11 @@ flowchart LR
     G --> H
 ```
 
-Contoh: data yang dilarang untuk sebuah role tidak boleh disembunyikan hanya di UI sementara masih dikirim melalui JSON/export/dashboard.
+Data yang dilarang untuk sebuah role tidak boleh disembunyikan hanya di UI sementara masih dikirim melalui JSON/export/dashboard.
 
-## 9. Cross-role Regression Standard
+## 12. Cross-role Regression Standard
+
+Setiap fitur diuji terhadap **seluruh role resmi**, lalu context Wali diuji sebagai cabang Guru bila domain terkait kelas.
 
 ```mermaid
 flowchart TD
@@ -516,6 +718,8 @@ flowchart TD
     B --> B5["Guru"]
     B --> B6["Guru + Wali"]
     B --> B7["Siswa"]
+    B --> B8["Kesehatan"]
+    B --> B9["PTSP"]
 
     B1 --> C["Cek Access Boundary"]
     B2 --> C
@@ -524,6 +728,8 @@ flowchart TD
     B5 --> C
     B6 --> C
     B7 --> C
+    B8 --> C
+    B9 --> C
 
     C --> D["Cek Capability"]
     D --> E["Cek Scope"]
@@ -537,9 +743,9 @@ flowchart TD
     J -- "TIDAK" --> K["PASS"]
 ```
 
-Wali Kelas adalah **context Guru**, bukan role baru. Uji context Wali sebagai cabang authorization/scope bila fitur terkait kelas wali.
+Wali Kelas adalah **context Guru**, bukan role baru. Role Kesehatan dan PTSP adalah role resmi dan harus selalu masuk regression matrix, termasuk saat expected result-nya `DENY`.
 
-## 10. Feature Development Gate
+## 13. Feature Development Gate
 
 ```mermaid
 flowchart TD
@@ -581,12 +787,12 @@ Tidak boleh:
 ```text
 local PASS -> otomatis deploy
 hosting PASS -> otomatis PR Ready
-automatically Ready -> otomatis merge
+Ready -> otomatis merge
 ```
 
-Setiap gate tersebut tetap memerlukan approval eksplisit sesuai `00_POLA_PENGERJAAN___SisisFour.md`.
+Setiap gate tetap memerlukan approval eksplisit sesuai `00_POLA_PENGERJAAN___SisisFour.md`.
 
-## 11. Checklist Mapping Fitur Baru / Perubahan Fitur
+## 14. Checklist Mapping Fitur Baru / Perubahan Fitur
 
 Sebelum coding, jawaban berikut harus jelas:
 
@@ -594,10 +800,14 @@ Sebelum coding, jawaban berikut harus jelas:
 [ ] Nama fitur / domain
 [ ] Tujuan bisnis
 [ ] Parent / child / master / reference
-[ ] Access Boundary
+[ ] Role/context yang masuk Access Boundary
+[ ] Role/context yang default-deny
 [ ] Capability matrix
-[ ] Scope per capability bila berbeda
-[ ] Period Context
+[ ] Makna Full Access bila istilah itu dipakai
+[ ] Makna ReadOnly bila istilah itu dipakai
+[ ] Scope per capability
+[ ] Scope Pimpinan bila diberi ReadOnly
+[ ] Period Context / non-periodik
 [ ] Target Validation
 [ ] Business Invariant
 [ ] Persistence / transaction / FK / audit actor
@@ -606,16 +816,18 @@ Sebelum coding, jawaban berikut harus jelas:
 [ ] Presentation UI
 [ ] Listing/detail/dashboard/export/API implications
 [ ] Logging / observability
+[ ] Public/external access bila ada
+[ ] Privacy / sensitive-data policy bila ada
 [ ] Local test matrix
-[ ] Cross-role regression
-[ ] Historical/period regression
+[ ] Cross-role regression semua role resmi
+[ ] Historical/period regression bila relevan
 [ ] Mobile/responsive regression
 [ ] Production/deployment impact
 ```
 
 Jika satu item belum jelas dan berpengaruh pada data/security/business rule, **jangan menebak**. Kunci keputusan terlebih dahulu di SSOT.
 
-## 12. Aturan Membaca Docs
+## 15. Aturan Membaca Docs
 
 Urutan kerja minimal setiap memulai/melanjutkan fitur:
 
@@ -641,7 +853,9 @@ Keputusan user terbaru yang eksplisit
 
 Jangan membiarkan keputusan baru hanya berada di chat.
 
-## 13. Quick Reference
+Role/domain baru wajib disinkronkan ke dokumen domain/RBAC sebelum implementasi source. `00/00A` menetapkan arah global; ia tidak menggantikan detail schema, permission key, menu row, route, ataupun workflow domain.
+
+## 16. Quick Reference
 
 Gunakan diagram ini untuk review cepat sebelum coding:
 
@@ -666,4 +880,4 @@ flowchart LR
     --> Q["Deployment Gate"]
 ```
 
-Dokumen ini harus diperbarui hanya jika **pola global aplikasi** berubah. Business rule khusus fitur tetap ditulis di dokumen domain masing-masing agar SSOT tidak duplikatif dan tidak mudah drift.
+Dokumen ini harus diperbarui hanya jika **pola global aplikasi, role registry, atau baseline Access Boundary lintas-domain** berubah. Business rule rinci tetap ditulis di dokumen domain masing-masing agar SSOT tidak duplikatif dan tidak mudah drift.
