@@ -1,11 +1,9 @@
 # Tree Structure — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026
+**Tanggal Acuan:** 17 September 2026
 
 ## 1. Root
-
-SisisFour memakai project root sebagai Web root.
 
 ```text
 sisfour_dev_v2/
@@ -25,7 +23,7 @@ sisfour_dev_v2/
 └── writable/
 ```
 
-`.htaccess` root melindungi file/folder internal dan meneruskan request ke CI4.
+Project root adalah Web root; `.htaccess` melindungi internal files/folders dan meneruskan request ke CI4.
 
 ## 2. Application
 
@@ -56,19 +54,17 @@ Routes
 
 ## 3. Route Files
 
-Route runtime tidak lagi hanya berasal dari `Routes.php`.
-
 ```text
 app/Config/Routing.php
 app/Config/Routes.php
 app/Config/RoutesBKFoundation.php
 ```
 
-`Routing::$routeFiles` mendaftarkan `Routes.php` lalu `RoutesBKFoundation.php`. File tambahan G3.3.1 memuat route Web Konseling/Settings Konseling.
+`Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
 
 ## 4. G3.3.1 BK Source
 
-Source utama yang ditambah/diubah untuk fondasi BK final:
+Controller:
 
 ```text
 app/Controllers/BKKasus.php
@@ -76,21 +72,42 @@ app/Controllers/BKKonseling.php
 app/Controllers/BKKonselingSettings.php
 app/Controllers/BKPelanggaran.php
 app/Controllers/BKPrestasi.php
+```
 
+Models:
+
+```text
 app/Models/BKKasusModel.php
+app/Models/BKPrestasiModel.php
 app/Models/KonselingBkModel.php
+app/Models/KonselingBkFollowUpModel.php
+```
 
+Services:
+
+```text
 app/Services/BkExportService.php
 app/Services/BkKonselingFormSettingsService.php
 app/Services/KonselingBkExportService.php
 app/Services/KonselingBkService.php
+app/Services/PeriodContextService.php
+app/Services/PrestasiService.php
 app/Services/RoleAwareDashboardService.php
+```
 
+Views:
+
+```text
 app/Views/bk/kasus.php
 app/Views/bk/konseling.php
 app/Views/bk/konseling_settings.php
 app/Views/bk/pelanggaran.php
+app/Views/bk/prestasi.php
+```
 
+Feature JS:
+
+```text
 assets/js/bk/kasus.js
 assets/js/bk/konseling.js
 assets/js/bk/konseling-detail-order.js
@@ -99,17 +116,27 @@ assets/js/bk/pelanggaran.js
 assets/js/bk/prestasi.js
 ```
 
-Dashboard cross-role yang disentuh G3.3.1:
+Reusable period helper:
 
 ```text
-app/Views/dashboard_bk.php
-app/Views/dashboard_pimpinan.php
-app/Views/dashboard_siswa.php
+assets/js/components/active-year-default.js
 ```
 
-Wali tetap memakai experience/dashboard Guru + context Wali; tidak ada role/view Konseling khusus Wali.
+`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server.
 
-## 5. Frontend
+## 5. Konseling Rework Structure
+
+```text
+konseling_bk
+   1
+   └── N tindak_lanjut_konseling_bk
+```
+
+Routes follow-up berada di `RoutesBKFoundation.php`; Model follow-up berada di `KonselingBkFollowUpModel.php`; business rule berada di `KonselingBkService.php`.
+
+Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling.
+
+## 6. Frontend
 
 ```text
 assets/
@@ -132,11 +159,9 @@ assets/
 └── vendor/
 ```
 
-Reusable UI foundation berada di global CSS/component. Vendor Sneat/Bootstrap tidak dipatch langsung.
+Reusable UI foundation berada di global CSS/component; vendor Sneat/Bootstrap tidak dipatch langsung.
 
-## 6. Layout Views
-
-Project existing menggunakan partial root:
+## 7. Layout Views
 
 ```text
 app/Views/main.php
@@ -148,11 +173,9 @@ app/Views/_flash.php
 app/Views/_scripts.php
 ```
 
-Path ini valid walaupun standar global memberi contoh `layouts/partials/`; responsibility lebih penting daripada nama folder.
+Responsibility lebih penting daripada nama folder.
 
-## 7. SQL / Database Scripts
-
-SQL schema tidak memakai CodeIgniter migration untuk delta G3.2/G3.3.1.
+## 8. SQL / Database Scripts
 
 G3.2 final:
 
@@ -161,7 +184,7 @@ database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-G3.3.1 final:
+G3.3.1 baseline yang sudah diuji:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
@@ -169,9 +192,25 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-FIX1/FIX2 localhost G3.3.1 adalah patch transisi development dan sudah dikeluarkan dari branch final.
+G3.3.1 rework local:
 
-## 8. Upload Public
+```text
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+```
+
+Target delta:
+
+```text
+catatan_kasus.id_tahun
+catatan_prestasi.id_tahun
+tindak_lanjut_konseling_bk
+```
+
+Belum ada SQL hosting untuk rework 17 September.
+
+## 9. Upload / Writable
+
+Public upload:
 
 ```text
 uploads/foto_siswa/
@@ -181,17 +220,13 @@ uploads/settings/branding/
 uploads/settings/kartu/
 ```
 
-Branding runtime direferensikan `setting_sistem`.
-
-## 9. Upload Non-Public
+Non-public personalia:
 
 ```text
 writable/uploads/personalia/
 ```
 
-Raw document hanya dikirim melalui Controller/Service yang sah.
-
-## 10. Runtime Writable
+Runtime:
 
 ```text
 writable/cache/
@@ -201,9 +236,7 @@ writable/debugbar/
 writable/uploads/
 ```
 
-## 11. Canonical Docs
-
-Current SSOT set:
+## 10. Canonical Docs
 
 ```text
 00_POLA_PENGERJAAN___SisisFour.md
@@ -228,9 +261,7 @@ Routes Final — SisisFour.md
 Tree Structure — SisisFour.md
 ```
 
-Tidak ada entry SSOT lama `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md` pada tree current. Role contract canonical adalah `11_UI_UX_ROLE_EXPERIENCE — SisisFour.md`.
-
-## 12. UI Hierarchy
+## 11. UI Hierarchy
 
 ```text
 13 Global Sneat
@@ -239,45 +270,26 @@ Tidak ada entry SSOT lama `11_UI_UX_GURU_WALAS_SISWA — SisisFour.md` pada tree
 → 11 Role Experience
 ```
 
-## 13. Cordova
-
-Project Cordova/APK belum menjadi source phase G3. G4 dimulai setelah G3 Web/mobile stabil. Project/package Cordova harus mempunyai boundary jelas dan tidak mencampur build artifact Android ke source Web tanpa aturan.
-
-## 14. Tidak Di-commit
-
-Secara prinsip:
-
-```text
-.env
-build output
-runtime cache/log/backup/debugbar
-raw personalia upload
-credential/token/secret
-Cordova signing material
-```
-
-`vendor/` mengikuti strategy deployment/project; jangan mengubah policy hanya karena artifact lokal.
-
-## 15. Structural Change Rule
+## 12. Structural Change Rule
 
 - business rule di Service;
 - Controller request/response;
 - JS page-specific per module;
 - route hanya ditambah bila endpoint nyata diperlukan;
-- setiap route file tambahan harus didaftarkan di `Routing::$routeFiles`;
+- setiap route file tambahan didaftarkan di `Routing::$routeFiles`;
 - reusable CSS/JS masuk foundation/component;
 - SQL delta eksplisit di `database/`;
-- project APK tidak menduplikasi source business Web;
+- period context server-side tidak digantikan helper UI;
 - docs canonical disinkronkan sebelum phase merge/closure.
 
-## 16. Current Phase Boundary
+## 13. Current Phase Boundary
 
 ```text
 G2      CLOSED
 G3.1    CLOSED / MERGED
 G3.2    CLOSED / MERGED
 G3.3    CLOSED / MERGED
-G3.3.1  PASS / PENDING MERGE APPROVAL
+G3.3.1  REWORK / LOCAL GATE PENDING
 G3.4    NEXT setelah PR #9 merge
 G4      setelah G3 selesai
 ```
