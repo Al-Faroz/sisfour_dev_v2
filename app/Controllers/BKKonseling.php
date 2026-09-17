@@ -23,57 +23,53 @@ class BKKonseling extends BaseController
         $userId = $this->currentActorUserId();
 
         if ($this->requestWantsJson()) {
-            return $this->respond(
-                $this->service->getPage($userId, $this->request->getGet())
-            );
+            return $this->respond($this->service->getPage($userId, $this->request->getGet()));
         }
 
         return $this->response->setBody(
             $this->renderWithLayout('bk/konseling', [
                 'title' => 'Konseling BK',
                 'initial' => $this->service->getPage($userId, []),
-                'extraJs' => [
-                    'assets/js/bk/konseling.js',
-                    'assets/js/bk/konseling-detail-order.js',
-                ],
+                'extraJs' => ['assets/js/bk/konseling.js'],
             ])
         );
     }
 
     public function students($idKelas)
     {
-        return $this->respond(
-            $this->service->studentsByClass(
-                $this->currentActorUserId(),
-                (int) $idKelas
-            )
-        );
+        return $this->respond($this->service->studentsByClass($this->currentActorUserId(), (int) $idKelas));
     }
 
     public function detail($id)
     {
-        return $this->respond(
-            $this->service->getDetail(
-                $this->currentActorUserId(),
-                (int) $id
-            )
-        );
+        return $this->respond($this->service->getDetail($this->currentActorUserId(), (int) $id));
     }
 
     public function create()
     {
+        return $this->respond($this->service->create($this->currentActorUserId(), $this->getPayload()));
+    }
+
+    public function update($id)
+    {
+        return $this->respond($this->service->update($this->currentActorUserId(), (int) $id, $this->getPayload()));
+    }
+
+    public function createFollowUp($idKonseling)
+    {
         return $this->respond(
-            $this->service->create(
+            $this->service->createFollowUp(
                 $this->currentActorUserId(),
+                (int) $idKonseling,
                 $this->getPayload()
             )
         );
     }
 
-    public function update($id)
+    public function updateFollowUp($id)
     {
         return $this->respond(
-            $this->service->update(
+            $this->service->updateFollowUp(
                 $this->currentActorUserId(),
                 (int) $id,
                 $this->getPayload()
@@ -83,37 +79,26 @@ class BKKonseling extends BaseController
 
     public function export()
     {
-        $data = $this->service->getExport(
-            $this->currentActorUserId(),
-            $this->request->getGet()
+        $data = $this->service->getExport($this->currentActorUserId(), $this->request->getGet());
+        if (! ($data['success'] ?? false)) return $this->respond($data);
+
+        $file = $this->exportService->export(
+            $data['rows'] ?? [],
+            $data['tindak_lanjut'] ?? []
         );
-
-        if (! ($data['success'] ?? false)) {
-            return $this->respond($data);
-        }
-
-        $file = $this->exportService->export($data['rows'] ?? []);
-        if (! ($file['success'] ?? false)) {
-            return $this->respond($file);
-        }
+        if (! ($file['success'] ?? false)) return $this->respond($file);
 
         $path = (string) $file['path'];
         register_shutdown_function(static function () use ($path): void {
-            if (is_file($path)) {
-                @unlink($path);
-            }
+            if (is_file($path)) @unlink($path);
         });
 
-        return $this->response
-            ->download($path, null)
-            ->setFileName((string) $file['filename']);
+        return $this->response->download($path, null)->setFileName((string) $file['filename']);
     }
 
     private function getPayload(): array
     {
-        $contentType = strtolower(
-            trim($this->request->getHeaderLine('Content-Type'))
-        );
+        $contentType = strtolower(trim($this->request->getHeaderLine('Content-Type')));
 
         if (str_contains($contentType, 'application/json')) {
             try {
@@ -121,19 +106,12 @@ class BKKonseling extends BaseController
             } catch (Throwable $e) {
                 $json = null;
             }
-
-            if (is_array($json)) {
-                return $json;
-            }
+            if (is_array($json)) return $json;
         }
 
         $post = $this->request->getPost();
         $raw = $this->request->getRawInput();
-
-        $post = is_array($post) ? $post : [];
-        $raw = is_array($raw) ? $raw : [];
-
-        return array_replace($raw, $post);
+        return array_replace(is_array($raw) ? $raw : [], is_array($post) ? $post : []);
     }
 
     private function respond(array $result)
@@ -141,15 +119,10 @@ class BKKonseling extends BaseController
         $success = (bool) ($result['success'] ?? false);
 
         return $this->response
-            ->setStatusCode(
-                $success
-                    ? ResponseInterface::HTTP_OK
-                    : $this->httpCode((string) ($result['code'] ?? ''))
-            )
+            ->setStatusCode($success ? ResponseInterface::HTTP_OK : $this->httpCode((string) ($result['code'] ?? '')))
             ->setJSON([
                 'status' => $success ? 'success' : 'error',
-                'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                'message' => $result['message'] ?? ($success ? 'Berhasil.' : 'Gagal.'),
                 'data' => $result,
             ]);
     }
