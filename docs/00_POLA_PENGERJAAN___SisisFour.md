@@ -4,7 +4,8 @@
 **Tanggal Acuan:** 17 September 2026  
 **Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework / local gate pending**)  
 **Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`  
-**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
+**Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)  
+**Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru, bukan role.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. Keputusan domain yang lebih rinci tetap berada pada dokumen domain masing-masing. **`00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib dokumen ini dan menetapkan mapping global yang harus digunakan sebelum coding/review fitur apa pun.**
 
@@ -97,6 +98,96 @@ Release     -> docs/15_TESTING_POLISH — SisisFour.md
 
 `PermissionFilter` adalah route gate. Service tetap security/business boundary untuk target data, scope, transaksi, lifecycle, dan side effect.
 
+## 3A. Role Registry & Domain Baru
+
+Role resmi SisisFour:
+
+```text
+admin
+operator
+pimpinan
+bk
+guru
+siswa
+kesehatan
+ptsp
+```
+
+`Wali Kelas` tetap **context Guru**, bukan role baru. Account multi-role tetap mengikuti effective-role + permission + scope; nama role saja tidak menggantikan permission/Service validation.
+
+### Default deny
+
+Jika suatu role/context tidak disebut sebagai bagian Access Boundary domain, maka role/context tersebut **tidak mendapat akses** sampai ada keputusan SSOT eksplisit. Jangan menebak akses dari kemiripan jabatan/menu.
+
+### Domain UKS — target contract
+
+Menu `UKS`:
+
+```text
+Data CKG  -> Data Kesehatan Siswa
+Data UKS  -> Catatan Harian UKS
+```
+
+Access/capability yang sudah diputuskan:
+
+```text
+Kesehatan       = Full Access
+Admin           = Full Access
+Operator        = Full Access
+Pimpinan        = ReadOnly
+Guru + Wali     = ReadOnly, scope KELAS_DIAMPU / kelas wali
+Siswa           = ReadOnly, scope DIRI_SENDIRI
+```
+
+Catatan penting:
+
+```text
+Guru tanpa context Wali tidak otomatis mendapat akses UKS.
+BK/PTSP/role lain tidak otomatis mendapat akses UKS.
+Scope Pimpinan belum dinyatakan eksplisit dan tidak boleh diasumsikan sebelum domain UKS diimplementasikan.
+```
+
+### Domain PTSP — target contract
+
+Menu `PTSP`:
+
+```text
+Layanan PTSP      -> Form Pendaftaran Layanan PTSP
+Polling Kepuasan  -> Form Polling Kepuasan Layanan Madrasah/PTSP
+Pengaduan         -> Form Pengaduan intern maupun ekstern
+```
+
+Access/capability yang sudah diputuskan:
+
+```text
+PTSP      = Full Access
+Admin     = Full Access
+Operator  = Full Access
+Pimpinan  = ReadOnly
+```
+
+Catatan penting:
+
+```text
+Kesehatan/BK/Guru/Wali/Siswa/role lain tidak otomatis mendapat akses PTSP.
+Scope Pimpinan belum dinyatakan eksplisit dan tidak boleh diasumsikan sebelum domain PTSP diimplementasikan.
+Istilah pengaduan "ekstern" belum menetapkan anonymous/public access.
+Public/external submission route, authentication model, rate limit, moderation, dan privacy harus diputuskan eksplisit sebelum implementasi.
+```
+
+### Makna Full Access / ReadOnly
+
+Canonical interpretation mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md`:
+
+```text
+Full Access = seluruh capability operasional yang memang didefinisikan domain.
+ReadOnly    = capability baca saja pada scope yang sah.
+```
+
+`Full Access` **tidak otomatis berarti hard delete, cancel/void, settings, approval, credential/security mutation, atau destructive action lain**. Capability berisiko tinggi harus diputuskan eksplisit pada domain.
+
+Penambahan role/domain Kesehatan dan PTSP adalah **keputusan SSOT untuk roadmap/implementasi berikutnya**. Ia tidak otomatis memperluas scope source G3.3.1/PR #9 sebelum phase implementasinya ditetapkan.
+
 ## 4. Pola Perubahan Source
 
 ```text
@@ -188,6 +279,8 @@ G3.8 Viewport/WebView readiness
 G4 Cordova APK
 ```
 
+Kesehatan/UKS dan PTSP sudah tercatat sebagai domain/role canonical, tetapi phase implementasinya belum ditetapkan pada dokumen ini.
+
 ## 8. G3.3.1 — Kontrak BK Final Target
 
 ```text
@@ -260,6 +353,8 @@ BK        = masuk domain Konseling
 Pimpinan  = TIDAK memiliki akses Konseling
 Guru/Wali = TIDAK memiliki akses Konseling
 Siswa     = TIDAK memiliki akses Konseling
+Kesehatan = TIDAK otomatis memiliki akses Konseling
+PTSP      = TIDAK otomatis memiliki akses Konseling
 ```
 
 Capability hanya dibahas untuk actor yang sudah lolos Access Boundary:
@@ -271,7 +366,7 @@ bk_konseling.export    Admin, Operator, BK
 bk_konseling.settings  Admin, BK
 ```
 
-Pimpinan/Guru/Wali/Siswa tidak mendapat menu/detail/widget Konseling. Route filter + Service tetap wajib. Jangan menuliskan role di luar Access Boundary sebagai sekadar "tidak boleh edit/delete" karena itu mengaburkan bahwa mereka tidak mempunyai akses domain sama sekali.
+Pimpinan/Guru/Wali/Siswa/Kesehatan/PTSP tidak mendapat menu/detail/widget Konseling kecuali ada keputusan domain baru yang eksplisit. Route filter + Service tetap wajib. Jangan menuliskan role di luar Access Boundary sebagai sekadar "tidak boleh edit/delete" karena itu mengaburkan bahwa mereka tidak mempunyai akses domain sama sekali.
 
 ## 10. SQL G3.3.1
 
@@ -314,6 +409,8 @@ git status
 Runtime wajib memeriksa Tahun Ajaran default/reset/history/export, filter Konseling 2 baris, follow-up Konseling multiple entry, historical Rencana, no-delete, RBAC/privacy, dan no horizontal overflow.
 
 Cross-role/period/output-channel regression mengikuti `00A_GLOBAL_STANDARD_SISFOUR.md` dan `15_TESTING_POLISH — SisisFour.md`.
+
+Saat domain UKS/PTSP mulai diimplementasikan, regression matrix wajib memasukkan role `kesehatan` dan `ptsp`, Wali sebagai context Guru, default-deny role lain, serta scope yang telah dikunci.
 
 ## 12. Definition of Done G3.3.1 Rework
 
