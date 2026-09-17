@@ -1,7 +1,7 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
+**Tanggal Acuan:** 18 September 2026
 **Development aktif:** G3.3.1 — Fondasi BK + Konseling (**periodic Tahun Ajaran + follow-up Konseling 1:N rework**)
 **Branch aktif:** `feat/g3-bk-foundation-konseling-20260916`
 **Baseline `main`:** setelah merge PR #8 / G3.3 (`06e4e559c045763096058fc889342da78d973314`)
@@ -354,7 +354,7 @@ G2                         CLOSED / MERGED
 G3.1 Mobile foundation     CLOSED / MERGED
 G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
-G3.3.1 Fondasi BK          LOCAL RUNTIME PASS / STATIC PENDING / PR #9 DRAFT
+G3.3.1 Fondasi BK          LOCAL+HOSTING SCHEMA PASS / HOSTING SOURCE RE-SMOKE PENDING / PR #9 DRAFT
 G3.4 Dashboard/Workflow BK setelah PR #9 merge
 G3.5 Pimpinan              setelah G3.4
 G3.6 Siswa                 setelah G3.5
@@ -397,16 +397,30 @@ bk_konseling.export    Admin, Operator, BK
 bk_konseling.settings  Admin, BK
 ```
 
+Siswa dengan effective scope `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi memakai experience sederhana: Tahun Ajaran tetap sebagai Period Context, filter operasional lain tidak dirender, dan daftar langsung dibatasi data diri oleh Service.
+
 ## 11. G3.3.1 Gate
 
 Evidence terbaru:
 
 ```text
-17 Sep localhost SQL execution   = PASS / user evidence
-17 Sep local runtime UAT         = PASS / user evidence
-17 Sep final static gate         = PENDING
-17 Sep hosting rework            = NOT STARTED
-PR #9                            = DRAFT / BELUM MERGE
+17 Sep localhost SQL execution          = PASS / user evidence
+17 Sep local runtime UAT                = PASS / user evidence
+18 Sep focused UAT Siswa self-only      = PASS / user evidence
+18 Sep final static gate @ c6f690fa     = PASS / user terminal evidence
+18 Sep hosting dump audit               = PASS / read-only evidence
+18 Sep hosting rework SQL execution     = PASS / user evidence
+18 Sep hosting post-SQL schema audit    = PASS
+18 Sep hosting source latest            = PENDING
+18 Sep focused hosting re-smoke         = PENDING
+PR #9                                   = DRAFT / BELUM MERGE
+```
+
+Canonical SQL rework tersedia untuk kedua environment:
+
+```text
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
 
 Minimum final-head static gate:
@@ -431,6 +445,7 @@ local runtime UAT PASS
 final static gate PASS
 hosting dump audit ulang
 hosting delta SQL PASS
+hosting source latest terpasang
 focused hosting smoke PASS
 PR review selesai
 approval Ready eksplisit
