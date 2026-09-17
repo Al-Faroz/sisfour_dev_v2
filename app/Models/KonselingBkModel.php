@@ -114,7 +114,7 @@ class KonselingBkModel
 
         return $this->db
             ->table('kelas')
-            ->select('id, nama_kelas, tingkat, rombel')
+            ->select('id, nama_kelas, tingkat, rombel, id_tahun')
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
             ->orderBy('tingkat', 'ASC')
@@ -169,6 +169,8 @@ class KonselingBkModel
                 's.nisn',
                 's.nama AS nama_siswa',
                 'k.nama_kelas',
+                'ta.nama_tahun',
+                'ta.semester',
                 'u_creator.username AS username_pencatat',
             ])
             ->select(
@@ -181,6 +183,7 @@ class KonselingBkModel
             )
             ->join('siswa s', 's.id = kb.id_siswa')
             ->join('kelas k', 'k.id = kb.id_kelas')
+            ->join('tahun_ajaran ta', 'ta.id = kb.id_tahun')
             ->join('guru g', 'g.id = kb.id_guru_bk', 'left')
             ->join(
                 'users u_creator',
@@ -190,6 +193,10 @@ class KonselingBkModel
             )
             ->join('guru g_creator', 'g_creator.id = u_creator.id_guru', 'left')
             ->join('pegawai p_creator', 'p_creator.id = u_creator.id_pegawai', 'left');
+
+        if (! empty($filter['id_tahun'])) {
+            $builder->where('kb.id_tahun', (int) $filter['id_tahun']);
+        }
 
         if (! empty($filter['id_kelas'])) {
             $builder->where('kb.id_kelas', (int) $filter['id_kelas']);
