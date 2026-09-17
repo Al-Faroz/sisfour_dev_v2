@@ -1,11 +1,11 @@
 # Authentication, RBAC & Menu — SisisFour
 
 **Status:** Canonical / Fresh SSOT  
-**Tanggal Acuan:** 16 September 2026  
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 pending merge  
-**Database state:** G3.3.1 local + hosting PASS
+**Tanggal Acuan:** 17 September 2026  
+**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework  
+**Database state:** baseline G3.3.1 local+hosting PASS; 17 Sep rework local gate pending
 
-> Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak boleh dianggap security boundary.
+> Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
 ## 1. Web Authentication
 
@@ -23,8 +23,6 @@ id_siswa
 auth_version
 logged_in
 ```
-
-`session.role` adalah primary role dan boleh NULL untuk account tertentu.
 
 ## 2. Effective Role
 
@@ -53,7 +51,7 @@ Pegawai  -> users.id_pegawai
 Siswa    -> users.id_siswa
 ```
 
-Akun role BK aktual pada localhost dan hosting G3.3.1 menggunakan:
+Akun role BK aktual memakai:
 
 ```text
 users.role = bk
@@ -61,34 +59,11 @@ users.id_pegawai -> pegawai.id
 users.id_guru = NULL
 ```
 
-Karena itu fitur BK tidak boleh memaksa actor mempunyai identity Guru. Nama actor harus dapat di-resolve dari Guru/Pegawai/Siswa/user sesuai relasi aktual.
+Karena itu fitur BK tidak boleh mensyaratkan identity Guru.
 
 ## 4. Login / Credential
 
-Syarat login:
-
-- username/password terisi;
-- user aktif;
-- password hash valid.
-
-Lima kegagalan berturut-turut menghasilkan lock sementara 5 menit.
-
-Login berhasil tidak menaikkan `auth_version`; version berubah ketika credential/security state diubah oleh Service berwenang.
-
-Guru/Pegawai managed credential:
-
-```text
-identifier = NIP bila tersedia, selain itu NIK
-username   = identifier
-default/reset password managed = identifier
-```
-
-Siswa:
-
-```text
-username = NISN
-default password = NISN
-```
+User harus aktif dan credential valid. `auth_version` digunakan untuk invalidation security state. Credential/token/session secret tidak ditulis ke log.
 
 ## 5. API Authentication
 
@@ -107,20 +82,21 @@ POST /api/auth/logout
 GET  /api/auth/me
 ```
 
-Bearer access/refresh token berada di `api_tokens`. Token membawa/mengecek `auth_version` current.
+API protected memakai Bearer/token; Web memakai session + CSRF.
 
 ## 6. Wali Kelas
 
-Wali adalah context Guru berdasarkan mapping aktif:
+Wali adalah context Guru berdasarkan mapping, bukan role baru.
+
+Untuk workflow current-state:
 
 ```text
 users.id_guru
--> mapping_wali_kelas
--> tahun aktif
--> mapping aktif
+→ mapping_wali_kelas
+→ Tahun Ajaran aktif
 ```
 
-Hak Wali menambah hak Guru sesuai permission/scope; tidak membuat role baru.
+Untuk **pembacaan histori periodik**, scope kelas harus dievaluasi pada Tahun Ajaran yang sedang dipilih, bukan selalu Tahun aktif.
 
 ## 7. Scope
 
@@ -134,7 +110,21 @@ DIRI_SENDIRI
 TIDAK_ADA
 ```
 
-Service boleh menggabungkan multi-scope/dual-context bila workflow membutuhkannya.
+### Period-aware scope
+
+Keputusan 17 September 2026:
+
+> Jika surface periodik memilih `id_tahun`, maka `KELAS_DIAMPU`/scope kelas yang relevan harus dihitung terhadap periode tersebut.
+
+Contoh:
+
+```text
+user memilih Tahun Ajaran 2025/2026
+→ mapping/jadwal/membership yang dipakai untuk authorization histori = 2025/2026
+→ jangan memakai kelas Tahun aktif 2026/2027
+```
+
+Record legacy dengan period snapshot `NULL` tidak boleh diberikan ke scope kelas bila periodenya tidak dapat diverifikasi secara aman. Actor `SEMUA` tetap dapat menangani audit/maintenance sesuai permission.
 
 ## 8. Karakter Role
 
@@ -152,16 +142,14 @@ Service boleh menggabungkan multi-scope/dual-context bila workflow membutuhkanny
 
 ```text
 PermissionFilter = route gate
-Service          = authoritative role/scope/target/business rule
+Service          = authoritative role/scope/target/period/business rule
 Menu             = navigation only
 View/JS          = presentation only
 ```
 
-Tidak ada hardcoded Admin bypass yang menggantikan business validation Service.
+Semua target ID dan period ID client divalidasi ulang server-side.
 
 ## 10. Permission Konseling G3.3.1
-
-Permission final:
 
 ```text
 bk_konseling.view
@@ -177,52 +165,39 @@ view/manage/export  -> Admin, Operator, BK / SEMUA
 settings            -> Admin, BK / SEMUA
 ```
 
-Boundary tambahan di Service:
+Boundary Service:
 
 ```text
-Konseling operasional -> effective role harus salah satu admin/operator/bk + permission
-Settings Konseling    -> effective role harus admin/bk + permission
+Konseling operasional -> effective role admin/operator/bk + permission
+Settings Konseling    -> effective role admin/bk + permission
 ```
 
-Pimpinan, Guru/Wali, dan Siswa harus tetap ditolak walaupun URL diketahui. SQL final juga membersihkan accidental mapping `bk_konseling.*` untuk role tersebut.
+Pimpinan, Guru/Wali, dan Siswa ditolak walaupun URL diketahui.
+
+Permission yang sama mengikat parent Konseling dan Tindak Lanjut Konseling 1:N.
 
 ## 11. Menu
-
-Menu dibentuk dari:
-
-```text
-menus
-role_menus
-effective role
-permission
-contextual Wali
-MenuService
-```
-
-Parent `#` tanpa child visible tidak ditampilkan. Item paling spesifik menjadi active item untuk URL bertumpuk.
 
 Menu G3.3.1:
 
 ```text
-Catatan Pelanggaran      link bk/kasus
-Konseling BK             link bk/konseling
-Pengaturan Form Konseling link bk/konseling/settings
+Catatan Pelanggaran       bk/kasus
+Konseling BK              bk/konseling
+Pengaturan Form Konseling bk/konseling/settings
 ```
 
-Visibility final:
+Visibility:
 
 ```text
-Konseling BK             -> admin, operator, bk
+Konseling BK              -> admin, operator, bk
 Pengaturan Form Konseling -> admin, bk
 pimpinan/guru/siswa       -> tidak mendapat dua menu tersebut
-Wali                      -> context Guru, jadi tidak otomatis mendapat Konseling
+Wali                       -> context Guru, tidak otomatis mendapat Konseling
 ```
 
 Menu visibility bukan authorization boundary.
 
 ## 12. Experience Priority
-
-Priority dashboard tetap:
 
 ```text
 admin > operator > pimpinan > bk > guru > siswa
@@ -232,26 +207,33 @@ BK berada di atas Guru agar account multi-role BK+Guru tetap mendapat experience
 
 ## 13. Security Rules
 
-- Browser tidak menentukan role/scope.
-- Semua target ID client divalidasi ulang server-side.
-- UI redesign tidak boleh memperluas akses data karena tombol/link baru.
-- Data Konseling tidak boleh dibentuk/dikirim ke Pimpinan/Guru/Wali/Siswa hanya untuk kemudian disembunyikan di UI.
+- Browser tidak menentukan role/scope/period authorization.
+- UI redesign tidak boleh memperluas akses data.
+- Data Konseling/follow-up tidak boleh dikirim ke role terlarang lalu hanya disembunyikan.
+- Period filter tidak boleh menjadi cara melewati class scope.
+- Direct ID access selalu divalidasi terhadap target record dan period record.
 - CSRF tetap aktif untuk Web mutation.
-- API memakai Bearer/JWT dan bukan CSRF Web.
-- Credential/token/session secret tidak ditulis ke log.
+- API memakai Bearer/JWT.
 
-## 14. G3.3.1 RBAC Gate
+## 14. G3.3.1 Gate
 
-Per 16 September 2026:
+Gate baseline 16 September telah PASS untuk RBAC/privacy. Rework 17 September mengubah period handling dan follow-up history, sehingga regression berikut wajib diulang:
 
 ```text
-Admin Konseling + Settings       PASS
-Operator Konseling tanpa Settings PASS
-BK Konseling + Settings          PASS
-Pimpinan direct access           DENIED / PASS
-Guru/Wali direct access          DENIED / PASS
-Siswa direct access              DENIED / PASS
-Hosting smoke UAT                PASS
+Admin/Operator/BK Konseling sesuai permission
+Pimpinan/Guru/Wali/Siswa tetap ditolak Konseling
+KELAS_DIAMPU current year benar
+KELAS_DIAMPU historical year memakai period terpilih
+legacy id_tahun NULL tidak bocor ke scope kelas
+follow-up Konseling memakai boundary parent yang sama
 ```
 
-PR #9 masih menunggu approval eksplisit untuk merge.
+Status:
+
+```text
+baseline RBAC/privacy                PASS
+17 Sep period-aware scope source     IMPLEMENTED / UAT PENDING
+17 Sep follow-up RBAC                IMPLEMENTED / UAT PENDING
+hosting rework                       NOT STARTED
+PR #9                                DRAFT / BELUM MERGE
+```
