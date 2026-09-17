@@ -4,13 +4,11 @@
 **Tanggal Acuan:** 17 September 2026  
 **Kedudukan:** companion wajib `00_POLA_PENGERJAAN___SisisFour.md`; dibaca sebelum dokumen domain/fitur.
 
-> Dokumen ini menetapkan **cara berpikir dan mapping global** untuk semua fitur SisisFour. Ia tidak menggantikan business rule domain. Dokumen domain menjelaskan *apa* aturannya; dokumen ini memastikan aturan tersebut diterapkan konsisten dari authorization sampai UI, persistence, export, audit, testing, dan deployment.
+> Dokumen ini menetapkan **cara berpikir dan mapping global** untuk semua fitur SisisFour. Ia tidak menggantikan business rule domain. Dokumen domain menjelaskan *apa* aturannya; dokumen ini memastikan aturan diterapkan konsisten dari authorization sampai UI, persistence, export, audit, API, testing, dan deployment.
 
-## 1. Prinsip Utama
+## 1. Canonical Mapping
 
-Urutan keputusan fitur **tidak boleh dimulai dari UI, tombol, tabel, query, atau database**.
-
-Canonical order:
+Urutan keputusan fitur:
 
 ```text
 Menu / Fitur
@@ -49,6 +47,9 @@ UI menyembunyikan tombol
 
 Role ada di sistem
 != otomatis punya akses semua domain
+
+Full Access pada domain A
+!= Full Access pada domain B
 ```
 
 Global security stance:
@@ -57,7 +58,7 @@ Global security stance:
 DEFAULT DENY
 ```
 
-Role/context yang tidak dinyatakan berada di Access Boundary suatu domain **tidak mendapat akses** sampai SSOT memutuskan sebaliknya.
+Role/context yang tidak dinyatakan berada di Access Boundary suatu domain tidak mendapat akses sampai SSOT memutuskan sebaliknya.
 
 ## 2. Master Mapping Global
 
@@ -65,33 +66,14 @@ Role/context yang tidak dinyatakan berada di Access Boundary suatu domain **tida
 flowchart TD
     A["MENU / FITUR"] --> B["USE CASE / TUJUAN BISNIS"]
     B --> C["SSOT / BUSINESS CONTRACT"]
+    C --> D["DOMAIN & ENTITAS"]
+    D --> E["ACCESS BOUNDARY"]
 
-    C --> C1["Tujuan fitur"]
-    C --> C2["Aktor yang terlibat"]
-    C --> C3["Data yang dikelola"]
-    C --> C4["Kondisi yang dilarang"]
-
-    C1 --> D["DOMAIN & ENTITAS"]
-    C2 --> D
-    C3 --> D
-    C4 --> D
-
-    D --> D1["Parent / Main Record"]
-    D --> D2["Child / History / Detail"]
-    D --> D3["Master / Reference"]
-    D --> D4["Ownership & Relasi"]
-
-    D1 --> E["ACCESS BOUNDARY"]
-    D2 --> E
-    D3 --> E
-    D4 --> E
-
-    E --> E1{"Actor boleh masuk domain fitur?"}
-    E1 -- "TIDAK" --> DENY["DENY TOTAL ACCESS"]
-    DENY --> DENY1["Tidak ada menu"]
-    DENY --> DENY2["Direct URL ditolak"]
-    DENY --> DENY3["Service ditolak"]
-    DENY --> DENY4["Data tidak dibentuk / dikirim ke client"]
+    E --> E1{"Actor boleh masuk domain?"}
+    E1 -- "TIDAK" --> X["DENY TOTAL ACCESS"]
+    X --> X1["Tidak ada menu/admin surface"]
+    X --> X2["Direct URL ditolak"]
+    X --> X3["Service tidak membentuk data"]
 
     E1 -- "YA" --> F["CAPABILITY"]
     F --> F1["View"]
@@ -99,9 +81,8 @@ flowchart TD
     F --> F3["Update"]
     F --> F4["Delete / Cancel / Void"]
     F --> F5["Export"]
-    F --> F6["Settings"]
-    F --> F7["Approve / Review / Verify"]
-    F --> F8["Capability domain lain"]
+    F --> F6["Settings / Master"]
+    F --> F7["Approve / Verify / Status"]
 
     F1 --> G["SCOPE DATA"]
     F2 --> G
@@ -110,15 +91,13 @@ flowchart TD
     F5 --> G
     F6 --> G
     F7 --> G
-    F8 --> G
 
     G --> G1["SEMUA"]
-    G --> G2["KELAS_DIAMPU"]
+    G --> G2["KELAS WALI / KELAS_DIAMPU"]
     G --> G3["KELAS_TERJADWAL"]
     G --> G4["DIRI_SENDIRI"]
     G --> G5["UNIT / DOMAIN KHUSUS"]
     G --> G6["TIDAK_ADA"]
-    G --> G7["BELUM DIKUNCI"]
 
     G1 --> H["PERIOD CONTEXT"]
     G2 --> H
@@ -126,254 +105,87 @@ flowchart TD
     G4 --> H
     G5 --> H
     G6 --> H
-    G7 --> H
 
-    H --> H1["Read / History → periode filter"]
-    H --> H2["Create Parent → periode aktif"]
-    H --> H3["Update Existing → periode record"]
-    H --> H4["Create Child / Follow-up → periode parent"]
-    H --> H5["Export → periode filter / record"]
-    H --> H6["Dashboard → sesuai kontrak domain"]
-    H --> H7["Non-periodik → jangan paksa Tahun Ajaran"]
+    H --> I["TARGET VALIDATION"]
+    I --> J["BUSINESS INVARIANT"]
+    J --> K["PERSISTENCE"]
+    K --> L["SERVICE / APPLICATION BOUNDARY"]
+    L --> M["PRESENTATION UI"]
+    M --> N["OUTPUT CHANNEL"]
+    N --> O["AUDIT / OBSERVABILITY"]
+    O --> P["TESTING / REGRESSION"]
+    P --> Q{"Semua gate PASS?"}
 
-    H1 --> I["TARGET VALIDATION"]
-    H2 --> I
-    H3 --> I
-    H4 --> I
-    H5 --> I
-    H6 --> I
-    H7 --> I
-
-    I --> I1["Target record ada?"]
-    I --> I2["Actor berada dalam scope?"]
-    I --> I3["Siswa / Guru / Kelas valid?"]
-    I --> I4["Parent-child benar?"]
-    I --> I5["Target sesuai periode?"]
-    I --> I6["Aktif / historis sesuai workflow?"]
-
-    I1 --> J["BUSINESS INVARIANT"]
-    I2 --> J
-    I3 --> J
-    I4 --> J
-    I5 --> J
-    I6 --> J
-
-    J --> J1["Status transition valid"]
-    J --> J2["Tanggal & urutan waktu valid"]
-    J --> J3["Field wajib sesuai kondisi"]
-    J --> J4["Histori tidak tertimpa"]
-    J --> J5["Data historis tetap terbaca"]
-    J --> J6["No hidden side-effects"]
-    J --> J7["Privasi domain terjaga"]
-
-    J1 --> K["PERSISTENCE"]
-    J2 --> K
-    J3 --> K
-    J4 --> K
-    J5 --> K
-    J6 --> K
-    J7 --> K
-
-    K --> K1["Transaction"]
-    K --> K2["Foreign Key"]
-    K --> K3["Index"]
-    K --> K4["created_by / updated_by"]
-    K --> K5["created_at / updated_at"]
-    K --> K6["Snapshot period / ownership bila perlu"]
-    K --> K7["Soft Delete / Void bila domain perlu"]
-    K --> K8["Rollback / compatibility bila perlu"]
-
-    K1 --> L["SERVICE / APPLICATION BOUNDARY"]
-    K2 --> L
-    K3 --> L
-    K4 --> L
-    K5 --> L
-    K6 --> L
-    K7 --> L
-    K8 --> L
-
-    L --> L1["Service = authoritative business + security boundary"]
-    L --> L2["Controller = HTTP orchestration tipis"]
-    L --> L3["Route / Filter = entry permission gate"]
-    L --> L4["Model = persistence / query"]
-    L --> L5["View / JS bukan security boundary"]
-
-    L1 --> M["PRESENTATION UI"]
-    L2 --> M
-    L3 --> M
-    L4 --> M
-    L5 --> M
-
-    M --> M1["Name-first identity"]
-    M --> M2["Filter konsisten"]
-    M --> M3["Form konsisten"]
-    M --> M4["SearchableSelect untuk entity besar"]
-    M --> M5["Loading / Empty / Error"]
-    M --> M6["Busy guard / anti double submit"]
-    M --> M7["Responsive desktop + mobile"]
-    M --> M8["No unwanted horizontal overflow"]
-    M --> M9["Action hanya tampil jika capability tersedia"]
-
-    M1 --> N["OUTPUT CHANNEL"]
-    M2 --> N
-    M3 --> N
-    M4 --> N
-    M5 --> N
-    M6 --> N
-    M7 --> N
-    M8 --> N
-    M9 --> N
-
-    N --> N1["Listing"]
-    N --> N2["Detail"]
-    N --> N3["Dashboard / Widget"]
-    N --> N4["Export"]
-    N --> N5["API / JSON"]
-    N --> N6["Notification / Badge"]
-
-    N1 --> O["AUDIT & OBSERVABILITY"]
-    N2 --> O
-    N3 --> O
-    N4 --> O
-    N5 --> O
-    N6 --> O
-
-    O --> O1["Log Activity"]
-    O --> O2["Actor Tracking"]
-    O --> O3["Error Trace"]
-    O --> O4["Change History"]
-    O --> O5["Sensitive data tidak masuk log"]
-
-    O1 --> P["TESTING & REGRESSION GATE"]
-    O2 --> P
-    O3 --> P
-    O4 --> P
-    O5 --> P
-
-    P --> P1["Static / Syntax"]
-    P --> P2["Route / Permission"]
-    P --> P3["Role Matrix"]
-    P --> P4["Scope Matrix"]
-    P --> P5["Period / Historical"]
-    P --> P6["Mutation Workflow"]
-    P --> P7["Export / Dashboard"]
-    P --> P8["Responsive / Mobile"]
-    P --> P9["Local Runtime UAT"]
-
-    P1 --> Q{"Semua gate PASS?"}
-    P2 --> Q
-    P3 --> Q
-    P4 --> Q
-    P5 --> Q
-    P6 --> Q
-    P7 --> Q
-    P8 --> Q
-    P9 --> Q
-
-    Q -- "TIDAK" --> R["KEMBALI KE LAYER YANG SALAH"]
+    Q -- "TIDAK" --> R["Kembali ke layer yang salah"]
     R --> C
-
-    Q -- "YA" --> S["DOCS / SSOT FINAL SYNC"]
-    S --> T["HOSTING / PRODUCTION GATE"]
-    T --> T1["Audit schema production"]
-    T --> T2["SQL delta bila ada"]
-    T --> T3["Deploy hanya dengan approval"]
-    T --> T4["Production smoke test"]
-
-    T1 --> U{"Production PASS?"}
-    T2 --> U
-    T3 --> U
-    T4 --> U
-
-    U -- "TIDAK" --> R
-    U -- "YA" --> V["FEATURE CLOSED / NEXT PHASE"]
+    Q -- "YA" --> S["DOCS FINAL SYNC"]
+    S --> T["DEPLOYMENT GATE"]
 ```
 
 ## 3. Authorization Standard
 
-Access Boundary, Capability, Scope, Period, Target, dan Business Rule adalah layer berbeda dan tidak boleh dicampur.
-
 ```mermaid
 flowchart TD
-    A["USER REQUEST"] --> B{"Authenticated?"}
-    B -- "NO" --> X1["401 / LOGIN"]
-    B -- "YES" --> C["EFFECTIVE ROLE"]
+    A["REQUEST"] --> B{"Authenticated / public contract valid?"}
+    B -- "NO" --> X1["DENY / LOGIN / INVALID PUBLIC REQUEST"]
+    B -- "YES" --> C["Resolve actor / public context"]
 
-    C --> D{"Role/context termasuk ACCESS BOUNDARY fitur?"}
-    D -- "NO" --> X2["403 DENY TOTAL ACCESS"]
-    X2 --> X21["Tidak ada menu"]
-    X2 --> X22["Direct URL ditolak"]
-    X2 --> X23["Service tidak membentuk data"]
+    C --> D{"Access Boundary lolos?"}
+    D -- "NO" --> X2["403 / DENY TOTAL ACCESS"]
+    D -- "YES" --> E{"Capability tersedia?"}
 
-    D -- "YES" --> E["PERMISSION / CAPABILITY"]
-    E --> F{"Capability action tersedia?"}
-    F -- "NO" --> X3["403 ACTION DENIED"]
-    F -- "YES" --> G["RESOLVE DATA SCOPE"]
+    E -- "NO" --> X3["403 ACTION DENIED"]
+    E -- "YES" --> F["Resolve Scope"]
+    F --> G{"Target dalam scope?"}
 
-    G --> H{"Target berada dalam scope?"}
-    H -- "NO" --> X4["403 TARGET DENIED"]
-    H -- "YES" --> I["RESOLVE PERIOD CONTEXT"]
+    G -- "NO" --> X4["403 TARGET DENIED"]
+    G -- "YES" --> H["Resolve Period Context"]
+    H --> I{"Target/period valid?"}
 
-    I --> J{"Target valid pada period?"}
-    J -- "NO" --> X5["INVALID PERIOD / TARGET"]
-    J -- "YES" --> K["BUSINESS VALIDATION"]
+    I -- "NO" --> X5["INVALID PERIOD / TARGET"]
+    I -- "YES" --> J["Business Validation"]
+    J --> K{"Invariant valid?"}
 
-    K --> L{"Business invariant valid?"}
-    L -- "NO" --> X6["422 BUSINESS VALIDATION ERROR"]
-    L -- "YES" --> M["EXECUTE ACTION"]
-
-    M --> N["PERSIST"]
-    N --> O["AUDIT LOG"]
-    O --> P["RESPONSE"]
+    K -- "NO" --> X6["422 BUSINESS ERROR"]
+    K -- "YES" --> L["Execute"]
+    L --> M["Persist"]
+    M --> N["Audit"]
+    N --> O["Response / Render / Export / API"]
 ```
 
-### Canonical wording
-
-Jika actor tidak berada dalam Access Boundary, tulis:
+Canonical wording:
 
 ```text
-Siswa tidak memiliki akses ke fitur X.
+Actor di luar Access Boundary:
+"tidak memiliki akses fitur X"
+
+Actor di dalam Access Boundary tetapi capability tidak ada:
+"tidak memiliki capability action X"
 ```
 
-Bukan:
+Jangan mencampur dua kondisi tersebut.
+
+## 4. Full Access / ReadOnly
 
 ```text
-Siswa tidak boleh mengedit fitur X.
+Full Access = seluruh capability operasional yang DIDEFINISIKAN domain.
 ```
 
-Capability matrix hanya memuat actor yang **sudah lolos Access Boundary**.
-
-### Makna `Full Access`
+Full Access tidak otomatis berarti:
 
 ```text
-Full Access = seluruh capability operasional yang memang didefinisikan oleh domain.
-```
-
-`Full Access` **tidak otomatis** berarti:
-
-```text
+akses semua domain
 hard delete
 cancel / void
 settings
 approval khusus
-credential/security mutation
 bypass scope
 bypass business invariant
 ```
 
-Capability dengan risiko tinggi harus ditetapkan eksplisit oleh kontrak domain.
+`ReadOnly` berarti kemampuan baca pada scope yang sah. Export tidak otomatis ikut ReadOnly; export diputuskan eksplisit per domain.
 
-### Makna `ReadOnly`
-
-```text
-ReadOnly = view/list/detail/search/filter pada scope yang sah.
-```
-
-ReadOnly tidak memberi mutation. `Export` juga **tidak otomatis** dianggap ReadOnly; export harus diputuskan sebagai capability tersendiri bila dibutuhkan.
-
-## 4. Canonical Role Registry
-
-Role resmi:
+## 5. Canonical Role Registry
 
 ```text
 admin
@@ -386,215 +198,189 @@ kesehatan
 ptsp
 ```
 
-`Wali Kelas` adalah **context Guru**, bukan role tersendiri.
+`Wali Kelas` = context Guru, bukan role baru.
 
-Effective role tetap mengikuti pola:
+Identity:
 
 ```text
-primary role + secondary roles
+Guru       -> users.id_guru
+Siswa      -> users.id_siswa
+BK         -> users.id_pegawai
+Kesehatan  -> users.id_pegawai
+PTSP       -> users.id_pegawai
+```
+
+Multi-role = diperbolehkan.
+
+```text
+users.role UNION user_roles.role
 → permission
-→ domain access boundary
-→ capability
-→ scope
+→ Access Boundary
+→ Capability
+→ Scope
+→ Target/Period Validation
 ```
 
-Role baru tidak otomatis mewarisi domain role lain.
+## 6. Domain Access Baseline — UKS
 
-## 5. Domain Access Baseline — UKS / Kesehatan
-
-Menu `UKS` mempunyai target fitur:
-
-```text
-Data CKG  -> Data Kesehatan Siswa
-Data UKS  -> Catatan Harian UKS
-```
-
-Mapping yang sudah diputuskan:
+Detail SSOT: `17_UKS_KESEHATAN — SisisFour.md`.
 
 ```mermaid
 flowchart TD
     A["MENU UKS"] --> B{"Actor / Context"}
 
-    B -- "Kesehatan" --> C["FULL ACCESS"]
-    B -- "Admin" --> C
-    B -- "Operator" --> C
+    B -- "Admin" --> F["FULL ACCESS UKS / SEMUA"]
+    B -- "Operator" --> F
+    B -- "Kesehatan" --> F
 
-    B -- "Pimpinan" --> D["READONLY"]
-    D --> D1["Scope: BELUM DIKUNCI"]
-
-    B -- "Guru + Wali Kelas" --> E["READONLY"]
-    E --> E1["Scope: KELAS_DIAMPU / kelas wali"]
-
-    B -- "Siswa" --> F["READONLY"]
-    F --> F1["Scope: DIRI_SENDIRI"]
+    B -- "Pimpinan" --> P["READONLY + EXPORT / SEMUA"]
+    B -- "Guru + Wali" --> W["READONLY / KELAS WALI"]
+    B -- "Siswa" --> S["READONLY / DIRI_SENDIRI"]
 
     B -- "Guru non-Wali / BK / PTSP / role lain" --> X["DEFAULT DENY"]
 
-    C --> G["Capability operasional domain UKS"]
-    D1 --> G
-    E1 --> G
-    F1 --> G
-
-    G --> H["Target Validation"]
-    H --> I["Business Invariant"]
-    I --> J["Persistence"]
-    J --> K["Presentation UI"]
+    F --> V["Period + Target Validation"]
+    P --> V
+    W --> V
+    S --> V
+    V --> I["Business Invariant"]
 ```
 
-Canonical notes:
+Canonical UKS baseline:
 
 ```text
-Kesehatan/Admin/Operator = Full Access domain UKS.
-Pimpinan                 = ReadOnly; scope belum dinyatakan eksplisit.
-Guru + Wali              = ReadOnly hanya kelas wali/yang diampu sesuai kontrak domain.
-Siswa                     = ReadOnly data dirinya sendiri.
-Guru tanpa context Wali   = tidak otomatis punya akses.
-BK/PTSP/role lain         = default deny sampai SSOT mengubahnya.
+Data CKG + Catatan Harian UKS = periodik Tahun Ajaran
+Pimpinan = ReadOnly SEMUA + XLSX
+Wali = hanya kelas wali, termasuk histori pada periode lama
+Siswa = seluruh kesehatan dirinya sendiri, view only
+Admin/Operator/Kesehatan = edit + import + export + soft delete + master sesuai domain
+Guru non-Wali = tidak memiliki akses UKS
 ```
 
-Sebelum implementasi UKS, domain document harus mengunci minimal:
+## 7. Domain Access Baseline — PTSP
 
-```text
-scope Pimpinan
-period context Data CKG
-period context Catatan Harian UKS
-capability export
-capability destructive/correction
-privacy/medical-data exposure
-actor identity untuk Role Kesehatan
-```
+Detail SSOT: `18_PTSP — SisisFour.md`.
 
-## 6. Domain Access Baseline — PTSP
-
-Menu `PTSP` mempunyai target fitur:
-
-```text
-Layanan PTSP      -> Form Pendaftaran Layanan PTSP
-Polling Kepuasan  -> Form Polling Kepuasan Layanan Madrasah/PTSP
-Pengaduan         -> Form Pengaduan intern maupun ekstern
-```
-
-Mapping yang sudah diputuskan:
+Internal admin surface:
 
 ```mermaid
 flowchart TD
-    A["MENU PTSP"] --> B{"Actor / Context"}
-
-    B -- "PTSP" --> C["FULL ACCESS"]
-    B -- "Admin" --> C
-    B -- "Operator" --> C
-
-    B -- "Pimpinan" --> D["READONLY"]
-    D --> D1["Scope: BELUM DIKUNCI"]
-
-    B -- "Kesehatan / BK / Guru / Wali / Siswa / role lain" --> X["DEFAULT DENY"]
-
-    C --> E["Capability operasional domain PTSP"]
-    D1 --> E
-
-    E --> F["Target Validation"]
-    F --> G["Business Invariant"]
-    G --> H["Persistence"]
-    H --> I["Presentation UI"]
-
-    J["Pengaduan EKSTERN"] --> K{"Public / anonymous submission sudah diputuskan?"}
-    K -- "BELUM" --> L["JANGAN BUAT PUBLIC ROUTE"]
-    K -- "SUDAH" --> M["Definisikan auth/rate-limit/privacy/moderation contract"]
+    A["PTSP INTERNAL"] --> B{"Actor"}
+    B -- "Admin" --> F["FULL ACCESS PTSP / SEMUA"]
+    B -- "Operator" --> F
+    B -- "PTSP" --> F
+    B -- "Pimpinan" --> P["READONLY + EXPORT / SEMUA"]
+    B -- "role lain" --> X["DEFAULT DENY"]
 ```
 
-Canonical notes:
+Public surface:
+
+```mermaid
+flowchart TD
+    A["PTSP PUBLIC LANDING"] --> B["Layanan PTSP"]
+    A --> C["Polling Kepuasan"]
+    A --> D["Pengaduan Anonim"]
+
+    B --> E["Create public submission"]
+    C --> E
+    D --> E
+    E --> F["Snapshot Tahun Ajaran aktif"]
+    F --> G["Server Validation"]
+    G --> H["Persist"]
+```
+
+Canonical PTSP baseline:
 
 ```text
-PTSP/Admin/Operator = Full Access domain PTSP.
-Pimpinan            = ReadOnly; scope belum dinyatakan eksplisit.
-Role lain           = default deny sampai SSOT mengubahnya.
+PTSP/Admin/Operator = Full Access hanya domain PTSP
+Pimpinan = ReadOnly SEMUA + XLSX
+Layanan/Polling/Pengaduan = public form tanpa login
+Layanan status = Baru -> Diproses -> Selesai
+Pengaduan status = Masuk -> Diverifikasi -> Diproses/Selesai
+Pengaduan = satu form anonim, internal/eksternal tidak dibedakan
+Hard delete PTSP = Admin/Operator/PTSP
+Thermal print = bukti pengisian, tanpa nomor tiket/antrian/tracking
 ```
 
-Istilah `Pengaduan ekstern` **belum sama dengan keputusan public/anonymous access**. Sebelum implementasi jalur eksternal, wajib diputuskan:
+## 8. Public Statistics API Standard
+
+Jika domain menyediakan API statistik untuk portal publik, gunakan pola:
 
 ```text
-siapa yang boleh submit
-apakah login wajib
-anonymous vs identified submitter
-rate limit / anti-spam
-lampiran bila ada
-privacy data pelapor
-status/tindak lanjut pengaduan
-siapa yang boleh melihat identitas pelapor
-retention/audit
+Public GET only
+Aggregate only
+No PII
+No raw record
+Period/filter explicit
+CORS/public consumption sesuai contract
 ```
 
-Hal yang sama berlaku bila `Polling Kepuasan` kelak ingin dibuka untuk publik: public access harus menjadi keputusan eksplisit, bukan inferensi dari nama fitur.
+PTSP wajib menyediakan statistik public per form:
 
-## 7. Period Context Standard
+```text
+Layanan
+Polling
+Pengaduan
+```
 
-Canonical untuk domain periodik/Tahun Ajaran:
+```mermaid
+flowchart LR
+    A["Domain Data"] --> B["Aggregate Service"]
+    B --> C["Public Statistics API"]
+    C --> D["WordPress / Portal"]
+    C --> E["Copy/Paste Widget / JS"]
+    B --> X["NO PII / NO RAW RECORD"]
+```
+
+Public statistics API tidak boleh menjadi backdoor untuk melewati Access Boundary internal.
+
+## 9. Period Context Standard
+
+Canonical untuk domain periodik:
 
 ```mermaid
 flowchart TD
     A["ACTION PERIODIK"] --> B{"Jenis action?"}
 
-    B -- "Read / History" --> C["Gunakan Tahun Ajaran dari filter"]
+    B -- "Read / History" --> C["Tahun Ajaran filter"]
     B -- "Export" --> C
-    B -- "Dashboard Historis" --> C
+    B -- "Dashboard / Statistik Historis" --> C
 
-    B -- "Create Parent Baru" --> D["Gunakan Tahun Ajaran Aktif"]
-    B -- "Update Existing Record" --> E["Pertahankan Tahun Ajaran milik record"]
-    B -- "Create Child / Follow-up" --> F["Ikuti Tahun Ajaran parent"]
+    B -- "Create Parent Baru" --> D["Tahun Ajaran aktif"]
+    B -- "Update Existing" --> E["Pertahankan period record"]
+    B -- "Create Child / Follow-up" --> F["Ikuti period parent"]
 
-    C --> G["Resolve scope pada periode tersebut"]
-    D --> H["Validasi target pada periode aktif"]
-    E --> I["Validasi target terhadap record"]
-    F --> J["Validasi child terhadap parent"]
-
-    G --> K["QUERY / ACTION"]
-    H --> K
-    I --> K
-    J --> K
+    C --> G["Resolve scope pada period"]
+    D --> H["Validate target pada period aktif"]
+    E --> I["Validate target terhadap record"]
+    F --> J["Validate child terhadap parent"]
 ```
 
-Artinya:
+Tidak semua tabel harus periodik. Tahun Ajaran hanya dipakai jika domain contract menetapkannya.
 
-```text
-Read/History            -> period filter
-Create Parent           -> period aktif
-Update Existing         -> period record
-Create Child/Follow-up  -> period parent
-Export                  -> period yang sedang dibaca
-```
-
-Filter histori **tidak otomatis** menjadi period tempat record parent baru dibuat.
-
-Tidak semua domain harus periodik. PTSP, misalnya, tidak boleh diberi Tahun Ajaran hanya karena fitur lain memilikinya. Period context harus berasal dari domain contract.
-
-## 8. Parent / Child / History Standard
+## 10. Parent / Child / Delete Standard
 
 ```mermaid
 flowchart TD
-    A["PARENT RECORD"] --> B["Identitas / konteks utama"]
-    A --> C["Status ringkas / latest state"]
-    A --> D["CHILD / HISTORY 1:N"]
+    A["PARENT RECORD"] --> B["Main data"]
+    A --> C["CHILD / HISTORY 1:N bila domain perlu"]
+    C --> C1["History #1"]
+    C --> C2["History #2"]
+    C --> C3["History #N"]
 
-    D --> D1["History #1"]
-    D --> D2["History #2"]
-    D --> D3["History #N"]
+    C1 --> D["Child tidak menimpa child lain"]
+    C2 --> D
+    C3 --> D
 
-    D1 --> E["Child tidak menimpa child lain"]
-    D2 --> E
-    D3 --> E
-
-    E --> F["Parent boleh menyimpan latest state jika domain perlu"]
-    F --> G["Source of history tetap child records"]
-
-    G --> H{"Parent dibatalkan / soft delete?"}
-    H -- "NO" --> I["Normal workflow"]
-    H -- "YES" --> J["Child history tetap utuh kecuali kontrak domain eksplisit berbeda"]
-    J --> K["Audit actor + waktu + alasan"]
+    D --> E{"Delete contract?"}
+    E -- "Hard Delete" --> H["Hanya jika domain eksplisit mengizinkan"]
+    E -- "Soft Delete" --> S["Tombstone + audit"]
+    E -- "No Delete" --> N["Tidak ada route/tombol delete"]
 ```
 
-Hard delete, cascade delete, soft delete, cancel, dan void **bukan sinonim**. Pilih hanya setelah business contract eksplisit.
+Hard delete, soft delete, cancel, void, dan no-delete adalah kontrak berbeda dan tidak boleh dianggap sinonim.
 
-## 9. Application Responsibility Standard
+## 11. Application Responsibility
 
 ```mermaid
 flowchart TD
@@ -606,93 +392,45 @@ flowchart TD
     DB --> M
     M --> S
     S --> C["CONTROLLER"]
-    C --> V["VIEW / JSON"]
+    C --> V["VIEW / JSON / FILE"]
     V --> JS["JAVASCRIPT / UI"]
 
-    R -.-> R1["Entry permission gate"]
-    S -.-> S1["Authoritative security + business logic"]
+    R -.-> R1["Entry gate"]
+    S -.-> S1["Authoritative authorization + business"]
     M -.-> M1["Persistence / query"]
     C -.-> C1["HTTP orchestration"]
-    V -.-> V1["Presentation"]
-    JS -.-> JS1["UX only — bukan security boundary"]
+    JS -.-> JS1["UX only"]
 ```
 
-Responsibility:
+Security/business validation tidak boleh hanya hidup di View/JavaScript.
+
+## 12. Presentation UI / Output Channel
+
+Global UI:
 
 ```text
-Route / Filter = pintu pertama
-Service        = keputusan final authorization + business rule
-Model          = persistence / query
-Controller     = orchestration request / response
-View / JS      = presentation / UX
+Name-first identity
+SearchableSelect untuk entity besar
+filter periodik default Tahun aktif
+filter padat desktop boleh 2+ baris
+loading / empty / filtered-empty / error
+busy guard
+project confirmation untuk destructive action
+responsive desktop/mobile
+no unwanted horizontal body overflow
+safe-area / touch target
 ```
 
-Security/business validation tidak boleh hanya hidup di View atau JavaScript.
-
-## 10. UI / UX Global Standard
-
-```mermaid
-flowchart TD
-    A["DATA + CAPABILITY DARI SERVER"] --> B["RENDER UI"]
-
-    B --> C["IDENTITY"]
-    C --> C1["Nama = primary"]
-    C --> C2["Identifier = secondary"]
-
-    B --> D["FILTER"]
-    D --> D1["Tahun Ajaran untuk tabel periodik"]
-    D --> D2["Default = Tahun Ajaran aktif"]
-    D --> D3["Reset = kembali default"]
-    D --> D4["Filter padat desktop = 2+ baris bila perlu"]
-    D --> D5["Jangan paksa field terlalu sempit"]
-
-    B --> E["FORM"]
-    E --> E1["Logical grouping"]
-    E --> E2["Server validation tetap wajib"]
-    E --> E3["SearchableSelect untuk entity besar"]
-    E --> E4["Pertahankan input saat error bila aman"]
-
-    B --> F["TABLE / LIST"]
-    F --> F1["Desktop table bila sesuai"]
-    F --> F2["Mobile card/list bila table tidak cocok"]
-    F --> F3["No unwanted horizontal body overflow"]
-    F --> F4["Pagination reusable"]
-
-    B --> G["ACTION"]
-    G --> G1["Tampil hanya jika capability tersedia"]
-    G --> G2["Busy guard"]
-    G --> G3["Destructive action = project confirmation"]
-    G --> G4["Tidak memakai native confirm()"]
-
-    B --> H["STATE"]
-    H --> H1["Loading"]
-    H --> H2["Empty"]
-    H --> H3["Filtered Empty"]
-    H --> H4["Error"]
-    H --> H5["Forbidden / unavailable"]
-    H --> H6["Session expired"]
-
-    B --> I["RESPONSIVE"]
-    I --> I1["Desktop nyaman"]
-    I --> I2["Mobile portrait nyaman"]
-    I --> I3["Touch target cukup"]
-    I --> I4["Modal scroll vertikal"]
-    I --> I5["Safe-area / WebView aware"]
-```
-
-## 11. Output Channel Consistency
-
-Satu business rule harus konsisten pada seluruh output channel yang relevan.
+Satu business rule harus konsisten pada seluruh output:
 
 ```mermaid
 flowchart LR
     A["BUSINESS CONTRACT"] --> B["Listing"]
     A --> C["Detail"]
-    A --> D["Dashboard / Widget"]
+    A --> D["Dashboard"]
     A --> E["Export"]
     A --> F["API / JSON"]
-    A --> G["Notification / Badge"]
-
+    A --> G["Public Stats / Widget"]
     B --> H["Consistency Check"]
     C --> H
     D --> H
@@ -701,183 +439,141 @@ flowchart LR
     G --> H
 ```
 
-Data yang dilarang untuk sebuah role tidak boleh disembunyikan hanya di UI sementara masih dikirim melalui JSON/export/dashboard.
+Data yang dilarang untuk actor tidak boleh disembunyikan hanya di UI sementara masih dikirim melalui JSON/export/API lain.
 
-## 12. Cross-role Regression Standard
+## 13. Cross-role Regression
 
-Setiap fitur diuji terhadap **seluruh role resmi**, lalu context Wali diuji sebagai cabang Guru bila domain terkait kelas.
+Seluruh role resmi wajib masuk regression matrix, termasuk expected result `DENY`.
 
 ```mermaid
 flowchart TD
-    A["FITUR SIAP UAT"] --> B["ACCESS MATRIX"]
+    A["FITUR SIAP UAT"] --> B["Admin"]
+    A --> C["Operator"]
+    A --> D["Pimpinan"]
+    A --> E["BK"]
+    A --> F["Guru"]
+    A --> G["Guru + Wali"]
+    A --> H["Siswa"]
+    A --> I["Kesehatan"]
+    A --> J["PTSP"]
 
-    B --> B1["Admin"]
-    B --> B2["Operator"]
-    B --> B3["Pimpinan"]
-    B --> B4["BK"]
-    B --> B5["Guru"]
-    B --> B6["Guru + Wali"]
-    B --> B7["Siswa"]
-    B --> B8["Kesehatan"]
-    B --> B9["PTSP"]
-
-    B1 --> C["Cek Access Boundary"]
-    B2 --> C
-    B3 --> C
-    B4 --> C
-    B5 --> C
-    B6 --> C
-    B7 --> C
-    B8 --> C
-    B9 --> C
-
-    C --> D["Cek Capability"]
-    D --> E["Cek Scope"]
-    E --> F["Cek Period"]
-    F --> G["Cek Direct URL"]
-    G --> H["Cek UI Visibility"]
-    H --> I["Cek API / JSON / Export Exposure"]
-
-    I --> J{"Role menerima data yang tidak berhak?"}
-    J -- "YA" --> X["FAIL — SECURITY REGRESSION"]
-    J -- "TIDAK" --> K["PASS"]
+    B --> K["Access / Capability / Scope / Period / Direct URL / Output Exposure"]
+    C --> K
+    D --> K
+    E --> K
+    F --> K
+    G --> K
+    H --> K
+    I --> K
+    J --> K
 ```
 
-Wali Kelas adalah **context Guru**, bukan role baru. Role Kesehatan dan PTSP adalah role resmi dan harus selalu masuk regression matrix, termasuk saat expected result-nya `DENY`.
+Public surface ditest terpisah dari authenticated role matrix.
 
-## 13. Feature Development Gate
+## 14. Feature Development Gate
 
 ```mermaid
 flowchart TD
-    A["KEPUTUSAN FITUR"] --> B["Update SSOT / Docs"]
+    A["KEPUTUSAN FITUR"] --> B["Update SSOT"]
     B --> C["Schema / SQL bila perlu"]
     C --> D["Backend"]
     D --> E["UI / UX"]
     E --> F["Source Review"]
-
     F --> G["Static Gate"]
     G --> H["Local Runtime UAT"]
     H --> I["Cross-role Regression"]
     I --> J["Period / Historical Regression"]
-    J --> K["Responsive / Mobile UAT"]
-    K --> L["Export / Dashboard Regression"]
-
+    J --> K["Output/API/Export Regression"]
+    K --> L["Responsive / Mobile"]
     L --> M{"LOCAL PASS?"}
+
     M -- "NO" --> N["FIX"]
     N --> B
 
     M -- "YES" --> O["Final Docs Sync"]
-    O --> P["Audit Production DB / Environment"]
+    O --> P["Audit Production"]
     P --> Q["Prepare Hosting Delta"]
     Q --> R["EXPLICIT DEPLOY APPROVAL"]
-
     R --> S["Deploy"]
     S --> T["Hosting Smoke UAT"]
-    T --> U{"HOSTING PASS?"}
-
-    U -- "NO" --> N
-    U -- "YES" --> V["EXPLICIT READY APPROVAL"]
-    V --> W["PR READY"]
-    W --> X["EXPLICIT MERGE APPROVAL"]
-    X --> Y["MERGE"]
+    T --> U["EXPLICIT READY APPROVAL"]
+    U --> V["PR READY"]
+    V --> W["EXPLICIT MERGE APPROVAL"]
+    W --> X["MERGE"]
 ```
 
 Tidak boleh:
 
 ```text
 local PASS -> otomatis deploy
-hosting PASS -> otomatis PR Ready
+hosting PASS -> otomatis Ready
 Ready -> otomatis merge
 ```
 
-Setiap gate tetap memerlukan approval eksplisit sesuai `00_POLA_PENGERJAAN___SisisFour.md`.
-
-## 14. Checklist Mapping Fitur Baru / Perubahan Fitur
-
-Sebelum coding, jawaban berikut harus jelas:
+## 15. Checklist Fitur Baru
 
 ```text
 [ ] Nama fitur / domain
 [ ] Tujuan bisnis
 [ ] Parent / child / master / reference
-[ ] Role/context yang masuk Access Boundary
-[ ] Role/context yang default-deny
+[ ] Access Boundary
 [ ] Capability matrix
-[ ] Makna Full Access bila istilah itu dipakai
-[ ] Makna ReadOnly bila istilah itu dipakai
 [ ] Scope per capability
-[ ] Scope Pimpinan bila diberi ReadOnly
-[ ] Period Context / non-periodik
+[ ] Period Context
 [ ] Target Validation
 [ ] Business Invariant
-[ ] Persistence / transaction / FK / audit actor
+[ ] Delete/cancel contract
+[ ] Persistence / transaction / FK / actor audit
 [ ] Service boundary
-[ ] Route/permission
+[ ] Route / permission
+[ ] Public access bila ada
+[ ] Export / API / statistics implications
 [ ] Presentation UI
-[ ] Listing/detail/dashboard/export/API implications
 [ ] Logging / observability
-[ ] Public/external access bila ada
-[ ] Privacy / sensitive-data policy bila ada
-[ ] Local test matrix
 [ ] Cross-role regression semua role resmi
-[ ] Historical/period regression bila relevan
+[ ] Public-surface regression bila ada
+[ ] Historical/period regression
 [ ] Mobile/responsive regression
 [ ] Production/deployment impact
 ```
 
-Jika satu item belum jelas dan berpengaruh pada data/security/business rule, **jangan menebak**. Kunci keputusan terlebih dahulu di SSOT.
+Jika satu item belum jelas dan mempengaruhi data/security/business rule, jangan menebak. Kunci keputusan di SSOT atau tandai `OPEN`.
 
-## 15. Aturan Membaca Docs
-
-Urutan kerja minimal setiap memulai/melanjutkan fitur:
+## 16. Aturan Membaca Docs
 
 ```text
 1. docs/00_POLA_PENGERJAAN___SisisFour.md
 2. docs/00A_GLOBAL_STANDARD_SISFOUR.md
-3. dokumen domain yang terkait
+3. dokumen domain terkait
 4. docs/03_AUTH_RBAC_MENU bila menyentuh akses/scope
 5. docs/11/13/14 bila menyentuh UI/mobile
 6. docs/15_TESTING_POLISH bila masuk gate
 7. source + schema aktual
 ```
 
-Jika ada konflik:
+Keputusan user terbaru yang eksplisit harus disinkronkan ke SSOT; jangan membiarkan keputusan penting hanya berada di chat.
 
-```text
-Keputusan user terbaru yang eksplisit
-→ sinkronkan ke SSOT
-→ domain contract
-→ Global Standard
-→ implementation
-```
-
-Jangan membiarkan keputusan baru hanya berada di chat.
-
-Role/domain baru wajib disinkronkan ke dokumen domain/RBAC sebelum implementasi source. `00/00A` menetapkan arah global; ia tidak menggantikan detail schema, permission key, menu row, route, ataupun workflow domain.
-
-## 16. Quick Reference
-
-Gunakan diagram ini untuk review cepat sebelum coding:
+## 17. Quick Reference
 
 ```mermaid
 flowchart LR
-    A["Menu / Fitur"]
+    A["Menu/Fitur"]
     --> B["Use Case"]
-    --> C["SSOT / Domain"]
+    --> C["Domain"]
     --> D["Access Boundary"]
     --> E["Capability"]
     --> F["Scope"]
-    --> G["Period Context"]
+    --> G["Period"]
     --> H["Target Validation"]
     --> I["Business Invariant"]
     --> J["Persistence"]
     --> K["Service Boundary"]
-    --> L["Presentation UI"]
-    --> M["Output Channel"]
+    --> L["UI"]
+    --> M["Output/API"]
     --> N["Audit"]
-    --> O["Testing / Regression"]
+    --> O["Testing"]
     --> P["Docs Sync"]
     --> Q["Deployment Gate"]
 ```
 
-Dokumen ini harus diperbarui hanya jika **pola global aplikasi, role registry, atau baseline Access Boundary lintas-domain** berubah. Business rule rinci tetap ditulis di dokumen domain masing-masing agar SSOT tidak duplikatif dan tidak mudah drift.
+Dokumen ini diperbarui jika pola global, role registry, public-surface standard, atau baseline Access Boundary lintas-domain berubah. Detail workflow tetap berada di dokumen domain agar SSOT tidak drift.
