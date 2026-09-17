@@ -24,6 +24,19 @@ class KonselingBkFollowUpModel
             ->getResultArray();
     }
 
+    public function getLatestByKonseling(int $idKonseling): ?array
+    {
+        $row = $this->baseBuilder()
+            ->where('tl.id_konseling', $idKonseling)
+            ->orderBy('tl.tanggal', 'DESC')
+            ->orderBy('tl.id', 'DESC')
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        return $row ?: null;
+    }
+
     public function getById(int $id): ?array
     {
         $row = $this->db
@@ -63,10 +76,13 @@ class KonselingBkFollowUpModel
                 's.nisn',
                 's.nama AS nama_siswa',
                 'k.nama_kelas',
+                'ta.nama_tahun',
+                'ta.semester',
             ])
             ->join('konseling_bk kb', 'kb.id = tl.id_konseling')
             ->join('siswa s', 's.id = kb.id_siswa')
             ->join('kelas k', 'k.id = kb.id_kelas')
+            ->join('tahun_ajaran ta', 'ta.id = kb.id_tahun')
             ->whereIn('tl.id_konseling', $ids)
             ->orderBy('kb.tanggal', 'ASC')
             ->orderBy('tl.tanggal', 'ASC')
@@ -95,10 +111,7 @@ class KonselingBkFollowUpModel
                 'tl.updated_at',
                 'u.username AS username_pencatat',
             ])
-            ->select(
-                'COALESCE(g.nama, p.nama, u.username) AS nama_pencatat',
-                false
-            )
+            ->select('COALESCE(g.nama, p.nama, u.username) AS nama_pencatat', false)
             ->join('users u', 'u.id = tl.created_by', 'left')
             ->join('guru g', 'g.id = u.id_guru', 'left')
             ->join('pegawai p', 'p.id = u.id_pegawai', 'left');
