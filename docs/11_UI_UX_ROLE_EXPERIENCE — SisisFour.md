@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Role experience:** Admin, Operator, Pimpinan, BK, Guru, Guru+Wali, Siswa
+**Role experience:** Admin, Operator, Pimpinan, BK, Kesehatan, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
 
@@ -13,6 +13,7 @@ admin
 operator
 pimpinan
 bk
+kesehatan
 guru
 siswa
 ```
@@ -291,35 +292,75 @@ Penyederhanaan ini adalah presentation/role experience saja. Scope `DIRI_SENDIRI
 
 Focused local UAT 18 September 2026 untuk experience ini: **PASS / user evidence**.
 
-## 12. Quick Action Mobile
+## 12. Kesehatan — G3.6A
+
+Kesehatan adalah experience operasional domain UKS berbasis identity Pegawai.
+
+Priority dashboard current-state Tahun Ajaran aktif:
+
+```text
+KPI 2×2
+- Pemeriksaan CKG Bulan Ini
+- Kunjungan UKS Hari Ini
+- Kunjungan UKS Bulan Ini
+- Rujuk ke Klinik Bulan Ini
+
+Quick Action 2×2
+- Data CKG
+- Data UKS
+- Import CKG
+- Master UKS
+
+Recent
+- Kunjungan UKS terbaru max 5
+- Pemeriksaan CKG terbaru max 5
+```
+
+Dashboard tidak menambah selector historis. Bila Tahun Ajaran aktif tidak tersedia, KPI ditampilkan unavailable dan tidak menjadi angka 0 palsu.
+
+Listing Data CKG dan Catatan Harian UKS tetap periodik dan dapat memilih Tahun Ajaran historis. Scope Guru+Wali dihitung terhadap period terpilih; Siswa selalu `DIRI_SENDIRI`.
+
+Tidak ada medical risk score, SLA, overdue, atau interpretasi klinis yang diciptakan dashboard.
+
+Role experience priority:
+
+```text
+admin > operator > pimpinan > bk > kesehatan > guru > siswa
+```
+
+PTSP belum dimasukkan sampai G3.6B.
+
+## 13. Quick Action Mobile
 
 ```text
 Pimpinan  Rekap / Jurnal / EWS / Laporan
 Guru      Presensi / Jurnal / Jadwal / Profil
 Wali      Presensi / Rekap Kelas / EWS / Data Siswa
 BK        Konseling / Catatan Pelanggaran / EWS / Prestasi
+Kesehatan Data CKG / Data UKS / Import CKG / Master UKS
 Siswa     Presensi Saya / Kartu / Prestasi / Profil
 ```
 
 Quick Action tidak menambah permission.
 
-## 13. Table / List Strategy
+## 14. Table / List Strategy
 
 ```text
 Admin/Operator    boleh dense table/matrix bila perlu
 Pimpinan          summary/adaptive table/list
 Guru/Wali         task table compact / list
 BK                case/service-oriented adaptive table/list
+Kesehatan         health-record adaptive table/list
 Siswa             list/card atau table sangat sederhana
 ```
 
-Pimpinan/BK/Guru/Wali/Siswa mobile wajib no-horizontal-table-scroll.
+Pimpinan/BK/Kesehatan/Guru/Wali/Siswa mobile wajib no-horizontal-table-scroll.
 
-## 14. Search Strategy
+## 15. Search Strategy
 
 Search entity menerima Nama + identifier. Result menonjolkan Nama; identifier menjadi context sekunder. Search tidak perlu dirender pada surface self-only bila target data tidak dapat berubah dari identity user login.
 
-## 15. Dashboard Data Limit
+## 16. Dashboard Data Limit
 
 Dashboard bukan laporan lengkap:
 
@@ -330,7 +371,7 @@ Dashboard bukan laporan lengkap:
 
 `Top` tidak berarti ranking poin Pelanggaran.
 
-## 16. Role Context & Security
+## 17. Role Context & Security
 
 - BK yang juga Guru dipilih berdasarkan effective role priority aplikasi.
 - Wali tetap contextual, bukan secondary role baru.
@@ -339,7 +380,7 @@ Dashboard bukan laporan lengkap:
 - Scope tetap server-side.
 - Data Konseling tidak boleh dikirim ke role terlarang lalu hanya disembunyikan di UI.
 
-## 17. Loading / Empty / Error
+## 18. Loading / Empty / Error
 
 Setiap role harus membedakan:
 
@@ -354,17 +395,18 @@ Network gagal
 
 Jangan menampilkan `0` sebagai pengganti data yang tidak boleh/tidak tersedia.
 
-## 18. Mutation UX
+## 19. Mutation UX
 
 ```text
 Guru/Wali  Presensi/Jurnal
 BK         Catatan Pelanggaran/Tindak Lanjut Pelanggaran/Konseling/Tindak Lanjut Konseling/Prestasi
+Kesehatan  CKG / Catatan Harian UKS / Master UKS
 Admin/Operator sesuai permission
 ```
 
 Wajib busy guard, server-confirmed success, input penting dipertahankan pada failure, dan project confirmation untuk destructive action. Konseling tidak memiliki destructive delete action pada contract saat ini.
 
-## 19. Current Phase Status
+## 20. Current Phase Status
 
 ```text
 G3.1 Mobile foundation            CLOSED / MERGED
@@ -373,10 +415,11 @@ G3.3 Dashboard Guru/Wali          CLOSED / MERGED
 G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
 G3.4 BK role experience           CLOSED / MERGED — PR #10
 G3.5 Pimpinan role experience     CLOSED / MERGED — PR #11
-G3.6 Siswa role experience        ACTIVE / PR #12 DRAFT / UAT PENDING
+G3.6 Siswa role experience        CLOSED / MERGED — PR #12
+G3.6A Kesehatan/UKS experience    ACTIVE / SOURCE IMPLEMENTED / LOCAL SQL PENDING
 ```
 
-## 20. Acceptance
+## 21. Acceptance
 
 Role experience ACC bila:
 
@@ -393,6 +436,10 @@ Role experience ACC bila:
 - Dashboard Siswa current-state membatasi Presensi/Prestasi/Pelanggaran pada identity login + Tahun Ajaran aktif;
 - Dashboard Siswa membedakan Period Context unavailable dari nilai 0 dan menyediakan shortcut permission-aware;
 - Dashboard Siswa tidak menerima data Konseling dan tidak menampilkan poin Pelanggaran;
+- Dashboard Kesehatan current-state memakai Tahun Ajaran aktif dan hanya KPI/quick action yang dikunci G3.6A;
+- UKS listing/history mengikuti Tahun Ajaran terpilih dan former Wali hanya mendapat siswa dari mapping Wali period tersebut;
+- role Kesehatan memakai identity Pegawai dan Full Access hanya pada domain UKS;
+- Dashboard/UKS tidak menciptakan medical scoring, SLA, overdue, atau risk label;
 - Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
 - filter padat tidak dipaksa satu baris sempit;
 - mobile role table/list tidak horizontal-scroll;
