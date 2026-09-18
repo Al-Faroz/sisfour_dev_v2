@@ -13,7 +13,7 @@ namespace App\Services;
  */
 class PimpinanDashboardService extends BkWorkflowDashboardService
 {
-    private const DASHBOARD_LIMIT = 5;
+    private const PIMPINAN_LIMIT = 5;
 
     protected function widgetsPimpinan(int $userId): array
     {
@@ -46,13 +46,13 @@ class PimpinanDashboardService extends BkWorkflowDashboardService
                 ? $this->ewsCount($idTahun)
                 : null,
             'ews_top' => $canEws && $hasActiveYear
-                ? $this->ewsTop($idTahun, null, self::DASHBOARD_LIMIT)
+                ? $this->ewsTop($idTahun, null, self::PIMPINAN_LIMIT)
                 : [],
             'kasus_bulan_ini' => $canPelanggaran && $hasActiveYear
-                ? $this->countKasusBulanIni($idTahun)
+                ? $this->countPimpinanKasusBulanIni($idTahun)
                 : null,
             'prestasi_terbaru' => $canPrestasi && $hasActiveYear
-                ? $this->latestPrestasiForYear($idTahun, self::DASHBOARD_LIMIT)
+                ? $this->latestPimpinanPrestasiForYear($idTahun, self::PIMPINAN_LIMIT)
                 : [],
             'kartu' => $canKartu ? $this->cardSummary() : null,
             'tren_presensi' => $hasActiveYear
@@ -62,7 +62,7 @@ class PimpinanDashboardService extends BkWorkflowDashboardService
         ];
     }
 
-    private function countKasusBulanIni(int $idTahun): int
+    private function countPimpinanKasusBulanIni(int $idTahun): int
     {
         [$start, $end] = $this->monthPeriod();
 
@@ -74,7 +74,7 @@ class PimpinanDashboardService extends BkWorkflowDashboardService
             ->countAllResults();
     }
 
-    private function latestPrestasiForYear(int $idTahun, int $limit): array
+    private function latestPimpinanPrestasiForYear(int $idTahun, int $limit): array
     {
         return $this->db
             ->table('catatan_prestasi cp')
@@ -83,7 +83,7 @@ class PimpinanDashboardService extends BkWorkflowDashboardService
             ->where('cp.id_tahun', $idTahun)
             ->orderBy('cp.tanggal', 'DESC')
             ->orderBy('cp.id', 'DESC')
-            ->limit(max(1, min(self::DASHBOARD_LIMIT, $limit)))
+            ->limit(max(1, min(self::PIMPINAN_LIMIT, $limit)))
             ->get()
             ->getResultArray();
     }
