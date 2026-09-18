@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6A — **UKS / Kesehatan / source implemented, localhost SQL execution + static/runtime gate pending**
+**Phase aktif:** G3.6A — **UKS / Kesehatan / localhost SQL + baseline UAT PASS; focused static/runtime re-smoke pending after UX refinement**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
