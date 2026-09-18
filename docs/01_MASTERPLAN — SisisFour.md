@@ -445,13 +445,13 @@ Current gate:
 
 ```text
 source implementation             IMPLEMENTED ON FEATURE BRANCH
-SSOT sync                         IN PROGRESS
+SSOT sync                         IMPLEMENTED
 static gate                       PENDING
 local runtime/UAT                 PENDING
 self-scope/privacy regression     PENDING
 cross-role regression             PENDING
 hosting deployment/re-smoke       NOT STARTED
-PR                                NOT OPENED
+PR #12                            DRAFT / NOT MERGED
 ```
 
 ## 15. G4 — Cordova APK
