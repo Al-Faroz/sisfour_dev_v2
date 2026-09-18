@@ -33,7 +33,7 @@
                             <?php foreach (($refs[$type] ?? []) as $row): ?>
                                 <div class="list-group-item d-flex justify-content-between align-items-start gap-2" data-json="<?= esc(rawurlencode(json_encode($row))) ?>">
                                     <div><div class="fw-semibold"><?= esc($row['nama']) ?></div><div class="small text-muted">Urutan <?= (int) $row['urutan'] ?> · <?= (int) $row['status_aktif'] === 1 ? 'Aktif' : 'Nonaktif' ?></div></div>
-                                    <div class="text-nowrap"><button class="btn btn-sm btn-outline-primary btn-master-edit" type="button" data-type="<?= esc($type) ?>">Edit</button> <button class="btn btn-sm btn-outline-danger btn-master-delete" type="button" data-type="<?= esc($type) ?>">Hapus</button></div>
+                                    <div class="text-nowrap"><button class="btn btn-sm btn-outline-primary btn-master-edit" type="button" data-type="<?= esc($type) ?>">Edit</button> <button class="btn btn-sm btn-outline-danger btn-master-delete" type="button" data-type="<?= esc($type) ?>">Nonaktifkan</button></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
