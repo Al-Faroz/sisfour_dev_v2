@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
+**Application baseline:** `main` @ `90acc7f94fee391a5a7fbad2395e3f16571fe921` + G3.6B feature branch
 
 > Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
@@ -232,7 +232,7 @@ uks_master.manage
 
 Role `kesehatan` hanya valid bila user memiliki `users.id_pegawai`.
 
-## 13. PTSP — Target RBAC
+## 13. PTSP — G3.6B RBAC
 
 SSOT domain: `18_PTSP — SisisFour.md`.
 
@@ -291,13 +291,11 @@ Public PTSP landing berada di luar menu authenticated.
 
 ## 15. Experience Priority
 
-Priority G3.6A **LOCKED**:
+Priority G3.6B **LOCKED**:
 
 ```text
-admin > operator > pimpinan > bk > kesehatan > guru > siswa
+admin > operator > pimpinan > bk > kesehatan > ptsp > guru > siswa
 ```
-
-Posisi exact role `ptsp` tetap **OPEN** sampai G3.6B; jangan menebaknya lebih awal.
 
 Wali tetap context pada experience Guru.
 
@@ -338,8 +336,8 @@ Public PTSP surface diuji terpisah dari authenticated role matrix.
 ```text
 Konseling G3.3.1     = CLOSED / MERGED — PR #9
 Dashboard Siswa G3.6 = CLOSED / MERGED — PR #12
-UKS/Kesehatan G3.6A  = source/schema/permission/menu IMPLEMENTED ON FEATURE BRANCH; localhost SQL PENDING EXECUTION
-PTSP                  = SSOT target / BELUM implementasi source/schema/permission/menu/API
+UKS/Kesehatan G3.6A  = CLOSED / MERGED — PR #13
+PTSP G3.6B            = source/schema/permission/menu/public API IMPLEMENTED ON FEATURE BRANCH; localhost SQL PENDING
 ```
 
 Tidak ada permission/menu/route UKS/PTSP yang dianggap tersedia hanya karena sudah tercatat pada dokumen target.
