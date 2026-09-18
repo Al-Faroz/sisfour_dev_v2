@@ -254,7 +254,7 @@ G3.5 static gate                             PENDING
 G3.5 local runtime/UAT                       PENDING
 G3.5 cross-role regression                   PENDING
 G3.5 hosting deployment/re-smoke             NOT STARTED
-G3.5 PR                                      NOT OPENED
+G3.5 PR                                      #11 DRAFT / NOT MERGED
 ```
 
 ## 14. Phase Boundary
