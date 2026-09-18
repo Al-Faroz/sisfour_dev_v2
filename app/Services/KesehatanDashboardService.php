@@ -24,6 +24,7 @@ class KesehatanDashboardService extends SiswaDashboardService
                     'harian' => false,
                     'import' => false,
                     'master' => false,
+                    'manage_harian' => false,
                 ],
                 'ckg_bulan_ini' => null,
                 'kunjungan_hari_ini' => null,
