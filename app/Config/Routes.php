@@ -23,6 +23,20 @@ $routes->get('kartu/verify/(:segment)', 'KartuPelajar::verify/$1');
 $routes->get('signage', 'Signage::index');
 $routes->get('signage/data', 'Signage::data');
 
+// PTSP public landing/submission. Web POST tetap terkena CSRF global.
+$routes->get('ptsp', 'PtspPublic::index');
+$routes->post('ptsp/layanan', 'PtspPublic::layanan');
+$routes->post('ptsp/polling', 'PtspPublic::polling');
+$routes->post('ptsp/pengaduan', 'PtspPublic::pengaduan');
+
+// Aggregate-only public statistics. CORS hanya dipasang pada surface ini.
+$routes->group('api/public/ptsp/statistik', ['filter' => 'cors'], static function ($routes) {
+    $routes->get('layanan', 'PtspPublicStats::show/layanan');
+    $routes->get('polling', 'PtspPublicStats::show/polling');
+    $routes->get('pengaduan', 'PtspPublicStats::show/pengaduan');
+    $routes->options('(:segment)', 'PtspPublicStats::options');
+});
+
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('dashboard', 'Dashboard::index', ['filter' => 'permission:dashboard.view']);
     $routes->get('dashboard/data', 'Dashboard::data', ['filter' => 'permission:dashboard.view']);
@@ -222,6 +236,27 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('master/(:segment)/create', 'UksMaster::create/$1', ['filter' => 'permission:uks_master.manage']);
         $routes->put('master/(:segment)/update/(:segment)', 'UksMaster::update/$1/$2', ['filter' => 'permission:uks_master.manage']);
         $routes->delete('master/(:segment)/delete/(:segment)', 'UksMaster::delete/$1/$2', ['filter' => 'permission:uks_master.manage']);
+    });
+
+    $routes->group('ptsp', static function ($routes) {
+        $routes->get('layanan', 'PtspLayanan::index', ['filter' => 'permission:ptsp_layanan.view']);
+        $routes->get('layanan/json', 'PtspLayanan::index', ['filter' => 'permission:ptsp_layanan.view']);
+        $routes->post('layanan/create', 'PtspLayanan::create', ['filter' => 'permission:ptsp_layanan.manage']);
+        $routes->put('layanan/status/(:segment)', 'PtspLayanan::status/$1', ['filter' => 'permission:ptsp_layanan.manage']);
+        $routes->delete('layanan/delete/(:segment)', 'PtspLayanan::delete/$1', ['filter' => 'permission:ptsp_layanan.delete']);
+        $routes->get('layanan/export', 'PtspLayanan::export', ['filter' => 'permission:ptsp_layanan.export']);
+
+        $routes->get('polling', 'PtspPolling::index', ['filter' => 'permission:ptsp_polling.view']);
+        $routes->get('polling/json', 'PtspPolling::index', ['filter' => 'permission:ptsp_polling.view']);
+        $routes->delete('polling/delete/(:segment)', 'PtspPolling::delete/$1', ['filter' => 'permission:ptsp_polling.delete']);
+        $routes->get('polling/export', 'PtspPolling::export', ['filter' => 'permission:ptsp_polling.export']);
+
+        $routes->get('pengaduan', 'PtspPengaduan::index', ['filter' => 'permission:ptsp_pengaduan.view']);
+        $routes->get('pengaduan/json', 'PtspPengaduan::index', ['filter' => 'permission:ptsp_pengaduan.view']);
+        $routes->put('pengaduan/status/(:segment)', 'PtspPengaduan::status/$1', ['filter' => 'permission:ptsp_pengaduan.manage']);
+        $routes->delete('pengaduan/delete/(:segment)', 'PtspPengaduan::delete/$1', ['filter' => 'permission:ptsp_pengaduan.delete']);
+        $routes->get('pengaduan/lampiran/(:segment)', 'PtspPengaduan::attachment/$1', ['filter' => 'permission:ptsp_pengaduan.view']);
+        $routes->get('pengaduan/export', 'PtspPengaduan::export', ['filter' => 'permission:ptsp_pengaduan.export']);
     });
 
     $routes->group('kartu', static function ($routes) {
