@@ -308,7 +308,33 @@ G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5    Dashboard Pimpinan readonly/monitoring
 G3.6    Dashboard Siswa self-service — CLOSED
-G3.6A   UKS / Kesehatan — ACTIVE
-G3.6B+  domain berikutnya
+G3.6A   UKS / Kesehatan — CLOSED / MERGED — PR #13
+G3.6B   PTSP — ACTIVE
 G4      Cordova integration
 ```
+
+
+## 9. PTSP — G3.6B Dashboard
+
+Dashboard PTSP memakai Tahun Ajaran aktif tanpa selector histori.
+
+```text
+KPI
+- Layanan Baru
+- Layanan Diproses
+- Pengaduan Masuk
+- Rata-rata Kepuasan
+
+Quick Action
+- Layanan PTSP
+- Polling Kepuasan
+- Pengaduan
+- Buka Public PTSP
+
+Recent
+- Layanan terbaru max 5
+- Pengaduan terbaru max 5
+- Ringkasan Kepuasan
+```
+
+Pimpinan tetap memakai dashboard supervisi existing dan mengakses PTSP dari menu readonly; tidak ada widget PTSP baru pada Dashboard Pimpinan.
