@@ -1,0 +1,30 @@
+(() => {
+  const app=document.getElementById('ptspLayananApp'); if(!app)return;
+  const base=String(app.dataset.baseUrl||'').replace(/\/$/,'');
+  const canManage=app.dataset.manage==='1', canDelete=app.dataset.delete==='1';
+  const body=document.getElementById('layananBody'), mobile=document.getElementById('layananMobile'), pager=document.getElementById('layananPager'), alertBox=document.getElementById('layananAlert');
+  const form=document.getElementById('formLayananBaru'), modal=document.getElementById('modalLayananBaru');
+  const state={limit:25,offset:0,total:0};
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const val=id=>document.getElementById(id)?.value||'';
+  function params(){const p=new URLSearchParams({format:'json',limit:String(state.limit),offset:String(state.offset)});[['id_tahun','layananTahun'],['status','layananStatus'],['kategori','layananKategori'],['search','layananSearch']].forEach(([k,id])=>{const v=val(id);if(v)p.set(k,v)});return p}
+  function show(m,t='danger'){alertBox.className=`alert alert-${t}`;alertBox.textContent=m}
+  async function request(url,opt={}){const r=await fetch(url,opt);const p=await r.json().catch(()=>({}));if(!r.ok||p.status!=='success')throw new Error(p.message||'Permintaan gagal.');return p}
+  function nextStatus(s){return s==='Baru'?'Diproses':s==='Diproses'?'Selesai':null}
+  function actions(row){let h='';const next=nextStatus(row.status);if(canManage&&next)h+=`<button class="btn btn-sm btn-outline-primary act-status" data-id="${row.id}" data-status="${esc(next)}" type="button">${next==='Diproses'?'Proses':'Selesaikan'}</button> `;if(canDelete)h+=`<button class="btn btn-sm btn-outline-danger act-delete" data-id="${row.id}" type="button">Hapus</button>`;return h}
+  function render(rows){
+    body.innerHTML=(rows||[]).map(r=>`<tr><td>${esc(r.created_at)}</td><td><strong>${esc(r.nama_lengkap)}</strong><div class="small text-muted">${esc(r.kategori_pemohon)} · ${esc(r.nomor_whatsapp)}</div></td><td>${esc(r.jenis_layanan)}<div class="small text-muted">${esc(r.tujuan_keterangan)}</div></td><td><span class="badge bg-label-primary">${esc(r.status)}</span></td><td>${esc(r.petugas_nama||'-')}</td>${canManage||canDelete?`<td class="text-nowrap">${actions(r)}</td>`:''}</tr>`).join('')||`<tr><td colspan="${canManage||canDelete?6:5}" class="text-center text-muted py-4">Tidak ada data.</td></tr>`;
+    mobile.innerHTML=(rows||[]).map(r=>`<div class="list-group-item py-3"><div class="d-flex justify-content-between gap-2"><div><div class="fw-semibold">${esc(r.nama_lengkap)}</div><div class="small text-muted">${esc(r.jenis_layanan)}</div></div><span class="badge bg-label-primary">${esc(r.status)}</span></div><div class="small mt-2">${esc(r.tujuan_keterangan)}</div>${canManage||canDelete?`<div class="sisfour-mobile-actions mt-3">${actions(r)}</div>`:''}</div>`).join('')||'<div class="list-group-item text-center text-muted py-4">Tidak ada data.</div>';
+    bind();
+  }
+  function renderPager(){const from=state.total?state.offset+1:0,to=Math.min(state.total,state.offset+state.limit);pager.innerHTML=`<div class="d-flex justify-content-between align-items-center gap-2"><span class="small text-muted">${from}-${to} dari ${state.total}</span><div><button id="layPrev" class="btn btn-sm btn-outline-secondary me-1" ${state.offset<=0?'disabled':''}>Sebelumnya</button><button id="layNext" class="btn btn-sm btn-outline-secondary" ${state.offset+state.limit>=state.total?'disabled':''}>Berikutnya</button></div></div>`;document.getElementById('layPrev')?.addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);load()});document.getElementById('layNext')?.addEventListener('click',()=>{state.offset+=state.limit;load()})}
+  async function load(){try{const p=await request(`${base}/ptsp/layanan?${params()}`);const d=p.data||{};state.total=Number(d.total||0);render(d.rows||[]);renderPager()}catch(e){show(e.message)}}
+  function bind(){document.querySelectorAll('.act-status').forEach(b=>b.onclick=async()=>{if(!confirm(`Ubah status menjadi ${b.dataset.status}?`))return;try{await request(`${base}/ptsp/layanan/status/${b.dataset.id}`,{method:'PUT',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({status:b.dataset.status})});show('Status diperbarui.','success');load()}catch(e){show(e.message)}});document.querySelectorAll('.act-delete').forEach(b=>b.onclick=async()=>{if(!confirm('Hapus permanen Layanan PTSP ini?'))return;try{await request(`${base}/ptsp/layanan/delete/${b.dataset.id}`,{method:'DELETE'});show('Data dihapus permanen.','success');load()}catch(e){show(e.message)}})}
+  document.getElementById('btnLayananCari')?.addEventListener('click',()=>{state.offset=0;load()});
+  document.getElementById('btnLayananReset')?.addEventListener('click',()=>{['layananStatus','layananKategori','layananSearch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});state.offset=0;load()});
+  document.getElementById('layananTahun')?.addEventListener('change',()=>{state.offset=0;load()});
+  document.getElementById('btnLayananExport')?.addEventListener('click',e=>{e.preventDefault();const p=params();p.delete('format');p.delete('limit');p.delete('offset');location.href=`${base}/ptsp/layanan/export?${p}`});
+  document.getElementById('btnLayananBaru')?.addEventListener('click',()=>{form?.reset();if(modal)bootstrap.Modal.getOrCreateInstance(modal).show()});
+  form?.addEventListener('submit',async e=>{e.preventDefault();const b=form.querySelector('button[type="submit"]');b.disabled=true;try{await request(`${base}/ptsp/layanan/create`,{method:'POST',body:new FormData(form)});bootstrap.Modal.getInstance(modal)?.hide();show('Layanan berhasil dibuat.','success');load()}catch(err){show(err.message)}finally{b.disabled=false}});
+  load();
+})();
