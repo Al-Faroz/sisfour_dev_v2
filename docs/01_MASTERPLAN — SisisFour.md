@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.6A — UKS / Kesehatan
+**Development aktif:** G3.6B — PTSP
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -170,6 +170,7 @@ G3.3.1 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 G3.4   6f809913eab1032691f130c9df00e95da74b9a17
 G3.5   6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
 G3.6   59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A  90acc7f94fee391a5a7fbad2395e3f16571fe921
 ```
 
 ## 10. G3.3.1 — Fondasi BK + Konseling — Closed
@@ -251,8 +252,8 @@ merge commit                             27d0f867d1c0ca7636a4a48f6c0b3251538ee7f
 G3.4  BK Workflow + Dashboard BK       CLOSED / MERGED — PR #10
 G3.5  Pimpinan                         CLOSED / MERGED — PR #11
 G3.6  Siswa                            CLOSED / MERGED — PR #12
-G3.6A UKS / Kesehatan                  ACTIVE / IMPLEMENTATION
-G3.6B PTSP                             NOT STARTED
+G3.6A UKS / Kesehatan                  CLOSED / MERGED — PR #13
+G3.6B PTSP                             ACTIVE / IMPLEMENTATION
 G3.7  Global Mobile Sweep
 G3.8  Viewport/WebView Readiness
 G4    Cordova APK
@@ -278,7 +279,7 @@ soft delete UKS/CKG
 
 UKS ditempatkan setelah Pimpinan dan Siswa agar scope lintas-role telah mempunyai foundation stabil.
 
-G3.6A implementation aktif pada branch `feat/g3-6a-uks-kesehatan-20260918` dari baseline main `59b22b651ad0d508ea3a29261ef590d4c9506da4`.
+G3.6A CLOSED / MERGED pada PR #13, merge commit `90acc7f94fee391a5a7fbad2395e3f16571fe921`.
 
 Contract locked:
 
@@ -290,10 +291,10 @@ Master configurable = Keluhan / Tindakan / Hasil Kunjungan
 Master normal action = deactivate/reactivate
 Dashboard Kesehatan = current-state Tahun Ajaran aktif
 priority role = admin > operator > pimpinan > bk > kesehatan > guru > siswa
-PTSP priority = OPEN sampai G3.6B
+G3.6B priority role = admin > operator > pimpinan > bk > kesehatan > ptsp > guru > siswa
 ```
 
-Local SQL sudah disiapkan tetapi belum dieksekusi. Hosting belum dimulai.
+Localhost + hosting DB/source/runtime G3.6A telah PASS sebelum merge.
 
 ### G3.6B — PTSP
 
@@ -316,6 +317,18 @@ public aggregate statistics API per form untuk WordPress/portal
 ```
 
 PTSP diletakkan setelah UKS karena menambah public surface + public API yang memerlukan regression khusus di luar authenticated role experience.
+
+G3.6B implementation aktif pada branch `feat/g3-6b-ptsp-20260919` dari baseline main `90acc7f94fee391a5a7fbad2395e3f16571fe921`.
+
+Contract tambahan yang dikunci:
+
+```text
+priority = admin > operator > pimpinan > bk > kesehatan > ptsp > guru > siswa
+persistence = 4 tabel PTSP
+lampiran Pengaduan = private WRITEPATH, PDF/PNG/JPG/JPEG, max 5 MB
+public statistics CORS = * / GET+OPTIONS / no credentials
+dashboard PTSP = Layanan Baru / Diproses / Pengaduan Masuk / Rata-rata Kepuasan
+```
 
 ## 12. G3.4 — Dashboard/Workflow BK
 
