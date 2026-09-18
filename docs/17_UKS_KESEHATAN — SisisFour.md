@@ -423,11 +423,16 @@ G3.6A contract                        LOCKED
 G3.6A source                          IMPLEMENTED / branch
 PR #13                                OPEN / DRAFT / NOT MERGED
 G3.6A localhost SQL                   PASS / user evidence
-G3.6A static gate                     PASS @ db6ad55e / focused rerun pending after UX refinement
-G3.6A local runtime UAT               PASS @ db6ad55e / focused re-smoke pending after UX refinement
-G3.6A local DB dump audit             PENDING
-G3.6A hosting dump audit / SQL        NOT STARTED
-G3.6A hosting deployment              NOT AUTHORIZED
+G3.6A static gate                     PASS / user terminal evidence
+G3.6A local runtime UAT               PASS / user runtime evidence
+G3.6A cross-role/mobile re-smoke      PASS / user runtime evidence
+G3.6A local DB dump audit             PASS / read-only dump audit
+G3.6A fresh hosting dump audit        PASS / read-only dump audit
+G3.6A hosting SQL                     PREPARED / static audit PASS
+G3.6A hosting SQL execution           AUTHORIZED / PENDING USER EXECUTION
+G3.6A hosting source deployment       NOT AUTHORIZED
+PR Ready                              NOT AUTHORIZED
+Merge                                 NOT AUTHORIZED
 ```
 
 SQL localhost:
@@ -436,4 +441,10 @@ SQL localhost:
 database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
 ```
 
-Tidak ada SQL hosting G3.6A sebelum localhost PASS dan dump hosting aktual diaudit ulang.
+SQL hosting berbasis fresh dump `u473908839_sisfour2026 (12).sql`:
+
+```text
+database/20260918_G3_6A_UKS_KESEHATAN_HOSTING.sql
+```
+
+Hosting SQL hanya membawa schema/seed canonical/RBAC/menu. Ia tidak membawa tabel `migrations`, data UAT localhost, user/pegawai localhost, atau perubahan pada intentional FK `konseling_bk.id_guru_bk ON DELETE SET NULL ON UPDATE CASCADE`.
