@@ -162,21 +162,40 @@ quick link contextual
 
 Catatan Pelanggaran dapat muncul bila permission sah. Konseling tidak tampil pada dashboard/quick link dan direct URL tetap ditolak.
 
-## 7. Siswa
+## 7. Siswa — G3.6 Dashboard Self-Service
 
-Self-service:
+Dashboard Siswa adalah current-state Tahun Ajaran aktif dengan scope `DIRI_SENDIRI`.
 
 ```text
-status Sesi Awal hari ini
-rekap bulan
-recent absence
-Kartu Pelajar
-Prestasi
-Catatan Pelanggaran diri sesuai permission
-Profile
+Header
+- Tahun Ajaran aktif sebagai context, bukan selector
+- Data Saya
+
+Status
+- Presensi Sesi Awal hari ini
+
+KPI 2×2
+- Hadir
+- Sakit
+- Izin
+- Alpha
+
+Quick Action permission-aware
+- Presensi Saya
+- Kartu
+- Prestasi
+- Profil
+
+Recent/self-service
+- Sakit/Izin/Alpha maksimal 5 + Lihat Rekap
+- Kartu Pelajar diri sendiri
+- Prestasi maksimal 5 + Lihat Semua
+- Catatan Pelanggaran maksimal 5 + Lihat Semua
 ```
 
-No row Sesi Awal = data belum tersedia, bukan Hadir. Konseling tidak dibentuk/ditampilkan. Pelanggaran tanpa poin.
+Presensi, Prestasi, dan Catatan Pelanggaran periodik dibatasi `id_tahun = Tahun Ajaran aktif`. Tidak adanya Tahun Ajaran aktif harus menjadi state unavailable, bukan KPI 0 palsu. No row Sesi Awal pada periode valid = data belum tercatat, bukan Hadir.
+
+Quick Action hanya shortcut ke capability existing. Kartu/Profile tetap memakai self-scope/identity server-side. Konseling tidak dibentuk/ditampilkan/dikirim. Pelanggaran tanpa poin.
 
 ## 8. Boundary Konseling
 
@@ -247,14 +266,16 @@ Jangan menambah selector Tahun Ajaran pada dashboard hanya untuk kosmetik bila s
 G3.3 Dashboard Guru/Wali                     CLOSED / MERGED — PR #8
 G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK                   CLOSED / MERGED — PR #10
-G3.4 closure gate                            PASS
-main baseline G3.5                           6f809913eab1032691f130c9df00e95da74b9a17
-G3.5 source Dashboard Pimpinan               IMPLEMENTED ON FEATURE BRANCH
-G3.5 static gate                             PENDING
-G3.5 local runtime/UAT                       PENDING
-G3.5 cross-role regression                   PENDING
-G3.5 hosting deployment/re-smoke             NOT STARTED
-G3.5 PR                                      #11 DRAFT / NOT MERGED
+G3.5 Dashboard Pimpinan                      CLOSED / MERGED — PR #11
+G3.5 closure gate                            PASS
+main baseline G3.6                           6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
+G3.6 source Dashboard Siswa                  IMPLEMENTED ON FEATURE BRANCH
+G3.6 static gate                             PENDING
+G3.6 local runtime/UAT                       PENDING
+G3.6 self-scope/privacy regression           PENDING
+G3.6 cross-role regression                   PENDING
+G3.6 hosting deployment/re-smoke             NOT STARTED
+G3.6 PR                                      #12 DRAFT / NOT MERGED
 ```
 
 ## 14. Phase Boundary
@@ -265,6 +286,7 @@ G3.3    Dashboard Guru/Wali
 G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5    Dashboard Pimpinan readonly/monitoring
-G3.6+   role berikutnya
+G3.6    Dashboard Siswa self-service
+G3.6A+  domain berikutnya
 G4      Cordova integration
 ```

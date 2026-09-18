@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\PimpinanDashboardService;
+use App\Services\SiswaDashboardService;
 use App\Services\RoleAwareDashboardService;
 
 /**
@@ -17,7 +17,7 @@ class Dashboard extends BaseController
 
     public function __construct()
     {
-        $this->dashboardService = new PimpinanDashboardService();
+        $this->dashboardService = new SiswaDashboardService();
     }
 
     public function index()

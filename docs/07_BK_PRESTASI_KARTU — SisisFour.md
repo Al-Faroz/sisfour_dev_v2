@@ -2,8 +2,8 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Baseline Aplikasi:** `main` @ `27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6`
-**Development aktif:** `feat/g3-4-bk-dashboard-workflow-20260918` — **G3.4 Dashboard/Workflow BK**
+**Baseline Aplikasi:** `main` @ `6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce`
+**Development aktif:** `feat/g3-6-siswa-dashboard-20260918` — **G3.6 Dashboard Siswa**
 
 > Dokumen ini menyatakan kontrak BK canonical. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
@@ -36,7 +36,7 @@ export         = mengikuti Tahun Ajaran yang sedang dipilih
 create baru    = selalu snapshot Tahun Ajaran aktif dari server
 ```
 
-Dashboard BK adalah current-state dan memakai **Tahun Ajaran aktif** secara server-side tanpa selector historis. Listing/history tetap selectable.
+Dashboard BK dan Dashboard Siswa adalah current-state dan memakai **Tahun Ajaran aktif** secara server-side tanpa selector historis. Listing/history tetap selectable. Pada Dashboard Siswa, Prestasi dan Catatan Pelanggaran wajib dibatasi identity login + Tahun Ajaran aktif.
 
 Filter Tahun Ajaran tidak dipakai pada tabel global non-periodik seperti Master Pelanggaran, User, Permission, Menu, Setting Sistem, atau Log Activity.
 
@@ -387,6 +387,22 @@ Internasional
 ```
 
 Create baru selalu snapshot Tahun Ajaran aktif. Listing/export mengikuti filter Tahun Ajaran terpilih.
+
+### G3.6 Dashboard Siswa
+
+Dashboard Siswa hanya menampilkan data self-service actor login. Untuk domain BK pada dashboard:
+
+```text
+Prestasi Saya             = id_siswa login + id_tahun aktif, maksimal 5
+Catatan Pelanggaran Saya  = id_siswa login + id_tahun aktif, maksimal 5
+Lihat Semua               = menuju listing self-only yang tetap menyediakan Tahun Ajaran historical
+Poin                       = tidak ditampilkan/dihitung
+Konseling                  = tidak dibentuk untuk Siswa
+```
+
+Dashboard tidak menambah selector Tahun Ajaran karena merupakan current-state. Bila Tahun Ajaran aktif tidak tersedia, dashboard harus menampilkan state unavailable dan tidak memalsukan nilai 0 sebagai data periodik sah.
+
+Kartu Pelajar tetap non-periodik pada dashboard dan akses preview/download tetap divalidasi server-side terhadap scope `DIRI_SENDIRI`.
 
 ## 12. Filter UI BK
 

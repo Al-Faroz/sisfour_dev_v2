@@ -84,9 +84,9 @@ app/Config/RoutesBKFoundation.php
 
 `Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
 
-G3.4 dan G3.5 tidak menambah route baru. Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
+G3.4, G3.5, dan G3.6 tidak menambah route baru. Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
 
-## 4. Dashboard/BK Source — G3.3.1 + G3.4 + G3.5
+## 4. Dashboard/BK Source — G3.3.1 + G3.4 + G3.5 + G3.6
 
 Controller:
 
@@ -115,6 +115,7 @@ app/Services/BkExportService.php
 app/Services/BkKonselingFormSettingsService.php
 app/Services/BkWorkflowDashboardService.php
 app/Services/PimpinanDashboardService.php
+app/Services/SiswaDashboardService.php
 app/Services/KonselingBkExportService.php
 app/Services/KonselingBkService.php
 app/Services/PeriodContextService.php
@@ -122,13 +123,14 @@ app/Services/PrestasiService.php
 app/Services/RoleAwareDashboardService.php
 ```
 
-`BkWorkflowDashboardService` adalah G3.4 specialization dari `RoleAwareDashboardService`. `PimpinanDashboardService` adalah G3.5 specialization di atasnya dan hanya meng-override payload experience Pimpinan. Dengan inheritance ini, G3.4 BK tetap diwarisi tanpa duplikasi sementara role lain tetap memakai behavior phase sebelumnya.
+`BkWorkflowDashboardService` adalah G3.4 specialization dari `RoleAwareDashboardService`. `PimpinanDashboardService` adalah G3.5 specialization di atasnya untuk experience Pimpinan. `SiswaDashboardService` adalah G3.6 specialization berikutnya dan hanya meng-override payload experience Siswa. Dengan inheritance ini, behavior BK/Pimpinan phase sebelumnya tetap diwarisi tanpa duplikasi.
 
 Views:
 
 ```text
 app/Views/dashboard_bk.php
 app/Views/dashboard_pimpinan.php
+app/Views/dashboard_siswa.php
 app/Views/bk/kasus.php
 app/Views/bk/konseling.php
 app/Views/bk/konseling_settings.php
@@ -153,7 +155,7 @@ Reusable period helper:
 assets/js/components/active-year-default.js
 ```
 
-`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server. Dashboard G3.4 BK dan G3.5 Pimpinan memakai Tahun Ajaran aktif server-side dan tidak menambah historical selector.
+`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server. Dashboard G3.4 BK, G3.5 Pimpinan, dan G3.6 Siswa memakai Tahun Ajaran aktif server-side untuk data periodik dan tidak menambah historical selector.
 
 ## 5. Konseling Rework Structure
 
@@ -281,7 +283,7 @@ database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
 database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
 
-G3.4 tidak mempunyai SQL/schema delta.
+G3.4, G3.5, dan G3.6 tidak mempunyai SQL/schema delta.
 
 Belum ada SQL/schema delta UKS/PTSP karena domain tersebut belum masuk phase implementation.
 
@@ -381,8 +383,8 @@ G3.2    CLOSED / MERGED
 G3.3    CLOSED / MERGED
 G3.3.1  CLOSED / MERGED — PR #9
 G3.4    CLOSED / MERGED — PR #10
-G3.5    ACTIVE — Dashboard Pimpinan
-G3.6    Siswa
+G3.5    CLOSED / MERGED — PR #11
+G3.6    ACTIVE — Dashboard Siswa
 G3.6A   UKS / Kesehatan
 G3.6B   PTSP
 G3.7    Global Mobile Sweep

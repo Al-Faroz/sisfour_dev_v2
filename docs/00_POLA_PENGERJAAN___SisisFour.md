@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.5 — Dashboard Pimpinan
-**Branch aktif:** `feat/g3-5-pimpinan-dashboard-20260918`
-**Baseline `main`:** setelah merge PR #10 / G3.4 (`6f809913eab1032691f130c9df00e95da74b9a17`)
+**Development aktif:** G3.6 — Dashboard Siswa
+**Branch aktif:** `feat/g3-6-siswa-dashboard-20260918`
+**Baseline `main`:** setelah merge PR #11 / G3.5 (`6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -358,8 +358,8 @@ G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
 G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK CLOSED / MERGED — PR #10
-G3.5 Pimpinan              ACTIVE
-G3.6 Siswa                 setelah G3.5
+G3.5 Pimpinan              CLOSED / MERGED — PR #11
+G3.6 Siswa                 ACTIVE
 G3.6A UKS / Kesehatan      setelah G3.6
 G3.6B PTSP                 setelah G3.6A
 G3.7 Global mobile sweep
@@ -530,6 +530,68 @@ Konseling        = tidak dibentuk untuk Pimpinan
 
 Catatan Pelanggaran Bulan Ini dan Prestasi Terbaru pada dashboard wajib dibatasi `id_tahun = Tahun Ajaran aktif`. Dashboard tidak menambah selector histori; pembacaan historis tetap berada pada listing/laporan periodik.
 
+Closure:
+
+```text
+source implementation             = PASS
+SSOT sync                         = PASS
+local Pimpinan runtime/UAT        = PASS / user runtime evidence
+privacy / readonly regression     = PASS / user runtime evidence
+mobile focused UAT                = PASS / user runtime evidence
+cross-role dashboard regression   = PASS / user runtime evidence
+final static gate                 = PASS / user terminal evidence
+hosting source deployment         = PASS / user evidence
+hosting re-smoke                  = PASS / user runtime evidence
+PR #11                            = MERGED
+merge commit                      = 6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
+```
+
+## 14. G3.6 — Dashboard Siswa
+
+Branch:
+
+```text
+feat/g3-6-siswa-dashboard-20260918
+```
+
+Canonical mapping G3.6:
+
+```text
+Menu/Fitur         = Dashboard Siswa
+Use Case           = self-service readonly current-state
+SSOT/Domain        = docs/05 + docs/07 + docs/08 + role experience
+Access Boundary    = experience Siswa; source widget tetap permission-aware
+Capability         = existing self-view permissions; tidak ada permission baru
+Scope              = DIRI_SENDIRI berdasarkan users.id_siswa
+Period Context     = Tahun Ajaran aktif server-side untuk data periodik dashboard
+Target Validation  = route domain tetap memvalidasi identity/scope target
+Business Invariant = readonly; no poin; no Konseling; no cross-student exposure
+Persistence        = read-only agregasi dari tabel existing
+Service Boundary   = Dashboard Service + service domain existing
+Presentation UI    = status hari ini + KPI 2×2 + quick action + card/list
+Output Channel     = Web dashboard + JSON dashboard existing
+Audit              = tidak ada mutation baru
+Testing/Regression = static + Siswa runtime + self-scope/privacy + cross-role
+Docs Sync          = 00/01/07/08/11 + Tree Structure
+Deployment Gate    = source-only; hosting smoke setelah approval
+```
+
+Contract G3.6:
+
+```text
+Status Hari Ini  = Presensi Sesi Awal diri sendiri
+KPI 2×2          = Hadir / Sakit / Izin / Alpha bulan ini
+Quick Action     = Presensi Saya / Kartu / Prestasi / Profil sesuai permission
+Recent           = ketidakhadiran max 5 + Lihat Rekap
+Kartu            = Kartu Pelajar diri sendiri
+Prestasi         = Tahun Ajaran aktif, max 5 + Lihat Semua
+Pelanggaran      = Tahun Ajaran aktif, max 5 + Lihat Semua, tanpa poin
+Period           = dashboard current-state; tidak ada selector histori
+Konseling        = tidak dibentuk untuk Siswa
+```
+
+Tidak adanya Tahun Ajaran aktif dibedakan dari data bernilai nol. Dashboard tidak memalsukan KPI 0 ketika Period Context tidak tersedia. Historical Catatan Pelanggaran/Prestasi tetap tersedia pada listing self-only dengan Tahun Ajaran selectable.
+
 Current gate:
 
 ```text
@@ -537,10 +599,11 @@ source implementation             = IMPLEMENTED ON FEATURE BRANCH
 SSOT sync                         = IMPLEMENTED
 static gate                       = PENDING
 local runtime/UAT                 = PENDING
+self-scope/privacy regression     = PENDING
 cross-role regression             = PENDING
 hosting source deployment         = NOT STARTED
 hosting re-smoke                  = NOT STARTED
-PR #11                            = DRAFT / NOT MERGED
+PR #12                            = DRAFT / NOT MERGED
 ```
 
 Minimum static gate:

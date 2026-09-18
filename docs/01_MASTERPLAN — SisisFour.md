@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.5 — Dashboard Pimpinan
+**Development aktif:** G3.6 — Dashboard Siswa
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -155,6 +155,7 @@ G3.2   CLOSED / MERGED — PR #7
 G3.3   CLOSED / MERGED — PR #8
 G3.3.1 CLOSED / MERGED — PR #9
 G3.4   CLOSED / MERGED — PR #10
+G3.5   CLOSED / MERGED — PR #11
 ```
 
 Merge baseline:
@@ -166,6 +167,7 @@ G3.2   176e5f764850d030968524af47117f259449064c
 G3.3   06e4e559c045763096058fc889342da78d973314
 G3.3.1 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 G3.4   6f809913eab1032691f130c9df00e95da74b9a17
+G3.5   6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
 ```
 
 ## 10. G3.3.1 — Fondasi BK + Konseling — Closed
@@ -245,8 +247,8 @@ merge commit                             27d0f867d1c0ca7636a4a48f6c0b3251538ee7f
 
 ```text
 G3.4  BK Workflow + Dashboard BK       CLOSED / MERGED — PR #10
-G3.5  Pimpinan                         ACTIVE
-G3.6  Siswa
+G3.5  Pimpinan                         CLOSED / MERGED — PR #11
+G3.6  Siswa                            ACTIVE
 G3.6A UKS / Kesehatan
 G3.6B PTSP
 G3.7  Global Mobile Sweep
@@ -348,7 +350,7 @@ merge commit                      6f809913eab1032691f130c9df00e95da74b9a17
 
 ## 13. G3.5 — Dashboard Pimpinan
 
-Branch aktif:
+Branch merged:
 
 ```text
 feat/g3-5-pimpinan-dashboard-20260918
@@ -380,6 +382,65 @@ Monitoring
 
 Catatan Pelanggaran Bulan Ini dan Prestasi Terbaru wajib dibatasi Tahun Ajaran aktif. Pimpinan tetap readonly sesuai permission/domain. Konseling BK tidak menjadi payload/widget/detail/shortcut Pimpinan.
 
+Closure:
+
+```text
+source implementation             PASS
+SSOT sync                         PASS
+local Pimpinan runtime/UAT        PASS / user runtime evidence
+privacy / readonly regression     PASS / user runtime evidence
+mobile focused UAT                PASS / user runtime evidence
+cross-role dashboard regression   PASS / user runtime evidence
+final static gate                 PASS / user terminal evidence
+hosting source deployment         PASS / user evidence
+hosting re-smoke                  PASS / user runtime evidence
+PR #11                            MERGED
+merge commit                      6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
+```
+
+## 14. G3.6 — Dashboard Siswa
+
+Branch aktif:
+
+```text
+feat/g3-6-siswa-dashboard-20260918
+```
+
+G3.6 memakai identity/scope/permission dan route existing. Tidak ada schema, permission, menu, route, model, atau mutation baru.
+
+Dashboard Siswa adalah self-service readonly current-state Tahun Ajaran aktif:
+
+```text
+Header
+- Tahun Ajaran aktif
+- Data Saya
+
+Status
+- Presensi Sesi Awal hari ini
+
+KPI 2×2
+- Hadir
+- Sakit
+- Izin
+- Alpha
+
+Quick Action permission-aware
+- Presensi Saya
+- Kartu
+- Prestasi
+- Profil
+
+Recent/self-service
+- Ketidakhadiran max 5 + Lihat Rekap
+- Kartu Pelajar diri sendiri
+- Prestasi max 5 + Lihat Semua
+- Catatan Pelanggaran max 5 + Lihat Semua
+```
+
+Presensi, Prestasi, dan Catatan Pelanggaran dashboard dibatasi identity login. Data periodik memakai Tahun Ajaran aktif. Tidak adanya Tahun Ajaran aktif dibedakan dari nilai nol. Historical Prestasi/Pelanggaran tetap dibaca melalui listing self-only dengan selector Tahun Ajaran.
+
+Pelanggaran tidak memakai poin. Konseling BK tidak menjadi payload/widget/detail/shortcut Siswa. Quick Action hanya shortcut ke capability existing dan tidak menambah permission.
+
 Current gate:
 
 ```text
@@ -387,12 +448,13 @@ source implementation             IMPLEMENTED ON FEATURE BRANCH
 SSOT sync                         IMPLEMENTED
 static gate                       PENDING
 local runtime/UAT                 PENDING
+self-scope/privacy regression     PENDING
 cross-role regression             PENDING
 hosting deployment/re-smoke       NOT STARTED
-PR #11                            DRAFT / NOT MERGED
+PR #12                            DRAFT / NOT MERGED
 ```
 
-## 14. G4 — Cordova APK
+## 15. G4 — Cordova APK
 
 Setelah G3 stable:
 
@@ -410,7 +472,7 @@ real-device regression
 signed package/distribution
 ```
 
-## 15. Release Rule
+## 16. Release Rule
 
 Setiap phase harus melewati SSOT + local/static/runtime + regression + production gate sesuai `00/00A/15`.
 
