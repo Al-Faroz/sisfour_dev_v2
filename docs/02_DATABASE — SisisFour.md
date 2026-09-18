@@ -440,19 +440,20 @@ SQL hosting belum dibuat dan hanya boleh disusun setelah localhost SQL + runtime
 ```text
 G3.2 schema local/hosting                    PASS
 G3.3.1 final schema local/hosting            PASS / CLOSED
-G3.6 merge baseline                          59b22b651ad0d508ea3a29261ef590d4c9506da4
-G3.6A localhost SQL                          PREPARED
-G3.6A localhost SQL execution                PENDING
-G3.6A local runtime/UAT                      PENDING
-G3.6A post-UAT local dump audit              PENDING
-G3.6A hosting dump audit                     NOT STARTED
-G3.6A hosting delta SQL                      NOT STARTED
+G3.6A local/hosting schema                   PASS / CLOSED — PR #13
+G3.6A merge/main                             90acc7f94fee391a5a7fbad2395e3f16571fe921
+
+G3.6B localhost SQL                          PREPARED
+G3.6B localhost SQL execution                PENDING
+G3.6B local runtime/UAT                      PENDING
+G3.6B post-UAT local dump audit              PENDING
+G3.6B fresh hosting dump audit               PENDING
+G3.6B hosting delta SQL                      NOT AUTHORIZED
 ```
 
-Existing hosting PASS tidak membuktikan G3.6A. Hosting delta hanya disusun dari dump hosting aktual setelah localhost gate selesai.
+Hosting G3.6B belum boleh diturunkan dari localhost atau dump lama. Hosting delta hanya disusun setelah local gate PASS dan fresh hosting dump aktual diaudit.
 
-
-## 19. G3.6B — PTSP Schema
+## 21. G3.6B — PTSP Schema
 
 G3.6B menambah role `ptsp` pada enum `users.role`, `user_roles.role`, `role_permissions.role`, dan `role_menus.role`.
 
