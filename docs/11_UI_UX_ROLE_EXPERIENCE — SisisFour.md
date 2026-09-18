@@ -300,14 +300,17 @@ Priority dashboard current-state Tahun Ajaran aktif:
 
 ```text
 KPI 2×2
-- Pemeriksaan CKG Bulan Ini
 - Kunjungan UKS Hari Ini
 - Kunjungan UKS Bulan Ini
 - Rujuk ke Klinik Bulan Ini
+- Pemeriksaan CKG Bulan Ini
+
+Primary Action
+- Card besar Tambah Data Kunjungan
 
 Quick Action 2×2
-- Data CKG
 - Data UKS
+- Data CKG
 - Import CKG
 - Master UKS
 
@@ -319,6 +322,8 @@ Recent
 Dashboard tidak menambah selector historis. Bila Tahun Ajaran aktif tidak tersedia, KPI ditampilkan unavailable dan tidak menjadi angka 0 palsu.
 
 Listing Data CKG dan Catatan Harian UKS tetap periodik dan dapat memilih Tahun Ajaran historis. Scope Guru+Wali dihitung terhadap period terpilih; Siswa selalu `DIRI_SENDIRI`.
+
+Untuk Siswa, hanya selector Tahun Ajaran yang dipertahankan sebagai Period Context/history. Filter kelas, pencarian, rentang tanggal, Keluhan/Hasil, Reset, dan Tampilkan tidak dirender karena target data tidak dapat berubah dari identity login.
 
 Tidak ada medical risk score, SLA, overdue, atau interpretasi klinis yang diciptakan dashboard.
 
@@ -337,7 +342,7 @@ Pimpinan  Rekap / Jurnal / EWS / Laporan
 Guru      Presensi / Jurnal / Jadwal / Profil
 Wali      Presensi / Rekap Kelas / EWS / Data Siswa
 BK        Konseling / Catatan Pelanggaran / EWS / Prestasi
-Kesehatan Data CKG / Data UKS / Import CKG / Master UKS
+Kesehatan Tambah Data Kunjungan / Data UKS / Data CKG / Import CKG / Master UKS
 Siswa     Presensi Saya / Kartu / Prestasi / Profil
 ```
 
