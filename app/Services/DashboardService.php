@@ -42,6 +42,7 @@ class DashboardService
             'pimpinan' => $this->widgetsPimpinan($userId),
             'guru' => $this->widgetsGuru($userId, $isWali),
             'bk' => $this->widgetsBk($userId),
+            'kesehatan' => $this->widgetsKesehatan($userId),
             'siswa' => $this->widgetsSiswa($userId),
             default => [],
         };
@@ -126,6 +127,14 @@ class DashboardService
             'kartu' => $this->can($userId, 'kartu_pelajar.view') ? $this->cardSummary() : null,
             'tren_presensi' => $this->trendAttendance($idTahun),
         ];
+    }
+
+    /**
+     * Placeholder base; phase G3.6A dioverride KesehatanDashboardService.
+     */
+    protected function widgetsKesehatan(int $userId): array
+    {
+        return [];
     }
 
     protected function widgetsBk(int $userId): array
