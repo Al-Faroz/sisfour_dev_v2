@@ -275,7 +275,7 @@ G3.6 local runtime/UAT                       PENDING
 G3.6 self-scope/privacy regression           PENDING
 G3.6 cross-role regression                   PENDING
 G3.6 hosting deployment/re-smoke             NOT STARTED
-G3.6 PR                                      NOT OPENED
+G3.6 PR                                      #12 DRAFT / NOT MERGED
 ```
 
 ## 14. Phase Boundary
