@@ -268,27 +268,60 @@ WHERE NOT EXISTS (
     AND rp.scope = map.scope
 );
 
--- 6) Menu UKS. IDs tidak di-hardcode.
-INSERT INTO `menus` (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'UKS', NULL, 7, 'bx bx-plus-medical', '#', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `menus` WHERE `nama_menu` = 'UKS' AND `parent_id` IS NULL);
+-- 6) Menu UKS.
+-- Tabel menus legacy memakai PK id TANPA AUTO_INCREMENT.
+-- Karena itu ID menu baru dialokasikan eksplisit dari MAX(id)+1 dan tetap idempotent.
+
+-- Recovery state parsial: import lama dapat sempat membuat parent UKS sebagai id=0
+-- sebelum gagal pada insert child berikutnya.
+SET @uks_repair_parent_id := (
+  SELECT COALESCE(MAX(`id`), 0) + 1
+  FROM `menus`
+  WHERE `id` <> 0
+);
+
+UPDATE `menus`
+SET `id` = @uks_repair_parent_id
+WHERE `id` = 0
+  AND `nama_menu` = 'UKS'
+  AND `parent_id` IS NULL
+  AND `link` = '#';
+
+SET @uks_new_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `menus`);
+
+INSERT INTO `menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT @uks_new_id, 'UKS', NULL, 7, 'bx bx-plus-medical', '#', NOW(), NOW()
+WHERE NOT EXISTS (
+  SELECT 1 FROM `menus`
+  WHERE `nama_menu` = 'UKS'
+    AND `parent_id` IS NULL
+);
 
 SET @uks_parent_id := (
   SELECT `id` FROM `menus`
-  WHERE `nama_menu` = 'UKS' AND `parent_id` IS NULL
-  ORDER BY `id` ASC LIMIT 1
+  WHERE `nama_menu` = 'UKS'
+    AND `parent_id` IS NULL
+  ORDER BY `id` ASC
+  LIMIT 1
 );
 
-INSERT INTO `menus` (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Data CKG', @uks_parent_id, 1, NULL, 'uks/ckg', NOW(), NOW()
+SET @uks_new_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `menus`);
+INSERT INTO `menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT @uks_new_id, 'Data CKG', @uks_parent_id, 1, NULL, 'uks/ckg', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `menus` WHERE `link` = 'uks/ckg');
 
-INSERT INTO `menus` (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Data UKS', @uks_parent_id, 2, NULL, 'uks/harian', NOW(), NOW()
+SET @uks_new_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `menus`);
+INSERT INTO `menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT @uks_new_id, 'Data UKS', @uks_parent_id, 2, NULL, 'uks/harian', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `menus` WHERE `link` = 'uks/harian');
 
-INSERT INTO `menus` (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Master UKS', @uks_parent_id, 3, NULL, 'uks/master', NOW(), NOW()
+SET @uks_new_id := (SELECT COALESCE(MAX(`id`), 0) + 1 FROM `menus`);
+INSERT INTO `menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT @uks_new_id, 'Master UKS', @uks_parent_id, 3, NULL, 'uks/master', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `menus` WHERE `link` = 'uks/master');
 
 INSERT INTO `role_menus` (`role`, `id_menu`, `tampil`)
