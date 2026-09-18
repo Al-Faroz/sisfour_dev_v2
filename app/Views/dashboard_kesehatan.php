@@ -4,6 +4,7 @@
 $tahun = $widgets['tahun_aktif'] ?? null;
 $periodAvailable = !empty($widgets['period_available']);
 $identityAvailable = !array_key_exists('identity_available', $widgets) || !empty($widgets['identity_available']);
+$primaryAction = is_array($widgets['primary_action'] ?? null) ? $widgets['primary_action'] : null;
 $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions'] : [];
 ?>
 
@@ -34,10 +35,10 @@ $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions
 <div class="row g-3 mb-4">
     <?php
     $kpis = [
-        ['label' => 'Pemeriksaan CKG Bulan Ini', 'value' => $widgets['ckg_bulan_ini'] ?? null, 'icon' => 'bx-pulse'],
         ['label' => 'Kunjungan UKS Hari Ini', 'value' => $widgets['kunjungan_hari_ini'] ?? null, 'icon' => 'bx-calendar-check'],
         ['label' => 'Kunjungan UKS Bulan Ini', 'value' => $widgets['kunjungan_bulan_ini'] ?? null, 'icon' => 'bx-calendar'],
         ['label' => 'Rujuk ke Klinik Bulan Ini', 'value' => $widgets['rujuk_klinik_bulan_ini'] ?? null, 'icon' => 'bx-clinic'],
+        ['label' => 'Pemeriksaan CKG Bulan Ini', 'value' => $widgets['ckg_bulan_ini'] ?? null, 'icon' => 'bx-pulse'],
     ];
     foreach ($kpis as $kpi):
     ?>
@@ -54,6 +55,23 @@ $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions
         </div>
     <?php endforeach; ?>
 </div>
+
+<?php if ($primaryAction !== null): ?>
+<a class="card mb-4 text-decoration-none border-primary" href="<?= esc(base_url($primaryAction['url'])) ?>">
+    <div class="card-body d-flex align-items-center justify-content-between gap-3 py-4">
+        <div class="d-flex align-items-center gap-3">
+            <span class="avatar-initial rounded bg-label-primary p-3">
+                <i class="bx <?= esc($primaryAction['icon']) ?> fs-2"></i>
+            </span>
+            <div>
+                <div class="fs-5 fw-semibold text-body"><?= esc($primaryAction['label']) ?></div>
+                <div class="text-muted"><?= esc($primaryAction['description']) ?></div>
+            </div>
+        </div>
+        <i class="bx bx-chevron-right fs-2 text-primary"></i>
+    </div>
+</a>
+<?php endif; ?>
 
 <?php if ($actions !== []): ?>
 <div class="card mb-4">
