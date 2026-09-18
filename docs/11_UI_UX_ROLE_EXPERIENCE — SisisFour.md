@@ -99,7 +99,32 @@ Contract:
 Catatan Pelanggaran = agregat/jumlah, tanpa poin
 Konseling BK = tidak menjadi widget/detail/source data Pimpinan
 widget tanpa permission = tidak tersedia, bukan angka 0 palsu
+Dashboard = current-state Tahun Ajaran aktif
 ```
+
+### Dashboard Pimpinan G3.5
+
+KPI canonical 2×2:
+
+```text
+Kelas Belum Presensi
+Jadwal Belum Jurnal
+EWS Alpha 14 Hari
+Catatan Pelanggaran Bulan Ini
+```
+
+Quick Action permission-aware:
+
+```text
+Rekap
+Jurnal
+EWS
+Laporan
+```
+
+Quick Action tidak menambah permission. Pelanggaran Bulan Ini dan Prestasi Terbaru hanya membaca Tahun Ajaran aktif. Monitoring lanjutan memakai Tren Presensi 7 Hari, EWS maksimal 5 item, Prestasi maksimal 5 item, dan Ringkasan Master. EWS/Prestasi menyediakan `Lihat Semua` bila permission tersedia.
+
+Pimpinan tetap readonly. Tidak ada Konseling BK pada widget, detail, quick action, maupun payload dashboard.
 
 ## 8. BK
 
@@ -329,7 +354,8 @@ G3.1 Mobile foundation            CLOSED / MERGED
 G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali          CLOSED / MERGED
 G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
-G3.4 BK role experience           ACTIVE / SOURCE IMPLEMENTED / UAT PENDING
+G3.4 BK role experience           CLOSED / MERGED — PR #10
+G3.5 Pimpinan role experience     ACTIVE / SOURCE IMPLEMENTED / UAT PENDING
 ```
 
 ## 20. Acceptance
@@ -344,6 +370,8 @@ Role experience ACC bila:
 - Dashboard BK current-state hanya membaca Tahun Ajaran aktif dan tidak menambah selector historis palsu;
 - Dashboard BK membatasi recent/top 3–5 item + Lihat Semua;
 - jadwal follow-up memakai source tanggal tersimpan tanpa membuat SLA/label overdue baru;
+- Dashboard Pimpinan current-state hanya membaca Tahun Ajaran aktif untuk data periodik;
+- Dashboard Pimpinan mempertahankan readonly, shortcut permission-aware, dan tidak menerima data Konseling;
 - Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
 - filter padat tidak dipaksa satu baris sempit;
 - mobile role table/list tidak horizontal-scroll;
