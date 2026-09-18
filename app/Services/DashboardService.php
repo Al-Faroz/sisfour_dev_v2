@@ -43,6 +43,7 @@ class DashboardService
             'guru' => $this->widgetsGuru($userId, $isWali),
             'bk' => $this->widgetsBk($userId),
             'kesehatan' => $this->widgetsKesehatan($userId),
+            'ptsp' => $this->widgetsPtsp($userId),
             'siswa' => $this->widgetsSiswa($userId),
             default => [],
         };
@@ -57,11 +58,11 @@ class DashboardService
 
     /**
      * Priority business dashboard:
-     * Admin > Operator > Pimpinan > BK > Kesehatan > Guru/Wali > Siswa.
+     * Admin > Operator > Pimpinan > BK > Kesehatan > PTSP > Guru/Wali > Siswa.
      */
     public function resolveDashboardRole(array $roles): string
     {
-        foreach (['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'guru', 'siswa'] as $role) {
+        foreach (['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa'] as $role) {
             if (in_array($role, $roles, true)) {
                 return $role;
             }
@@ -133,6 +134,14 @@ class DashboardService
      * Placeholder base; phase G3.6A dioverride KesehatanDashboardService.
      */
     protected function widgetsKesehatan(int $userId): array
+    {
+        return [];
+    }
+
+    /**
+     * Placeholder base; G3.6B dioverride PtspDashboardService.
+     */
+    protected function widgetsPtsp(int $userId): array
     {
         return [];
     }
