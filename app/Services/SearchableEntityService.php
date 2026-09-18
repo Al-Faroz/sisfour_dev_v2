@@ -137,6 +137,8 @@ class SearchableEntityService
             'bk_kasus' => 'bk_kasus.manage',
             'prestasi' => 'prestasi.manage',
             'kartu' => 'kartu_pelajar.manage',
+            'uks_ckg' => 'uks_ckg.manage',
+            'uks_harian' => 'uks_harian.manage',
             'master_siswa' => 'master_siswa.view',
             default => null,
         };
