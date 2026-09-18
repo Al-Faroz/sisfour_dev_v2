@@ -1,8 +1,8 @@
 # Authentication, RBAC & Menu — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework
+**Tanggal Acuan:** 18 September 2026
+**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
 
 > Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
@@ -201,7 +201,7 @@ Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses Konseli
 
 Permission parent dan Tindak Lanjut Konseling 1:N mengikuti boundary yang sama.
 
-## 12. UKS / Kesehatan — Target RBAC
+## 12. UKS / Kesehatan — G3.6A RBAC
 
 SSOT domain: `17_UKS_KESEHATAN — SisisFour.md`.
 
@@ -215,7 +215,22 @@ Siswa       = ReadOnly DIRI_SENDIRI
 Guru non-Wali / BK / PTSP / role lain = DENY
 ```
 
-Full Access UKS target mencakup capability domain yang dikunci pada docs/17, termasuk create/update/import/export/soft-delete/master. Ia **tidak memberi akses domain PTSP/BK**.
+Full Access UKS mencakup capability domain yang dikunci pada docs/17, termasuk create/update/import/export/soft-delete/master. Ia **tidak memberi akses domain PTSP/BK**.
+
+Permission G3.6A:
+
+```text
+uks_ckg.view
+uks_ckg.manage
+uks_ckg.import
+uks_ckg.export
+uks_harian.view
+uks_harian.manage
+uks_harian.export
+uks_master.manage
+```
+
+Role `kesehatan` hanya valid bila user memiliki `users.id_pegawai`.
 
 ## 13. PTSP — Target RBAC
 
@@ -257,11 +272,14 @@ Pengaturan Form Konseling -> admin, bk
 role lain                 -> tidak mendapat menu tersebut
 ```
 
-Target UKS:
+G3.6A UKS:
 
 ```text
 UKS -> Admin, Operator, Kesehatan, Pimpinan, Guru+Wali, Siswa
+Guru non-Wali / BK / PTSP -> DENY
 ```
+
+Untuk former Wali, entry gate UKS boleh tersedia agar period historis dapat dipilih; data final selalu dihitung dari mapping Wali + membership pada Tahun Ajaran terpilih.
 
 Target PTSP internal:
 
@@ -273,13 +291,13 @@ Public PTSP landing berada di luar menu authenticated.
 
 ## 15. Experience Priority
 
-Priority existing yang sudah digunakan:
+Priority G3.6A **LOCKED**:
 
 ```text
-admin > operator > pimpinan > bk > guru > siswa
+admin > operator > pimpinan > bk > kesehatan > guru > siswa
 ```
 
-Role `kesehatan` dan `ptsp` mempunyai role experience tersendiri pada phase implementasinya, tetapi **posisi exact dalam priority multi-role belum dikunci**. Jangan menebak priority sebelum G3.6A/G3.6B implementation mapping.
+Posisi exact role `ptsp` tetap **OPEN** sampai G3.6B; jangan menebaknya lebih awal.
 
 Wali tetap context pada experience Guru.
 
@@ -318,8 +336,9 @@ Public PTSP surface diuji terpisah dari authenticated role matrix.
 ## 18. Status Implementasi
 
 ```text
-Konseling G3.3.1     = source aktif / PR #9
-UKS/Kesehatan        = SSOT target / BELUM implementasi source/schema/permission/menu
+Konseling G3.3.1     = CLOSED / MERGED — PR #9
+Dashboard Siswa G3.6 = CLOSED / MERGED — PR #12
+UKS/Kesehatan G3.6A  = source/schema/permission/menu IMPLEMENTED ON FEATURE BRANCH; localhost SQL PENDING EXECUTION
 PTSP                  = SSOT target / BELUM implementasi source/schema/permission/menu/API
 ```
 

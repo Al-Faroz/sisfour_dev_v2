@@ -42,6 +42,7 @@ class DashboardService
             'pimpinan' => $this->widgetsPimpinan($userId),
             'guru' => $this->widgetsGuru($userId, $isWali),
             'bk' => $this->widgetsBk($userId),
+            'kesehatan' => $this->widgetsKesehatan($userId),
             'siswa' => $this->widgetsSiswa($userId),
             default => [],
         };
@@ -56,11 +57,11 @@ class DashboardService
 
     /**
      * Priority business dashboard:
-     * Admin > Operator > Pimpinan > Guru/Wali > BK > Siswa.
+     * Admin > Operator > Pimpinan > BK > Kesehatan > Guru/Wali > Siswa.
      */
     public function resolveDashboardRole(array $roles): string
     {
-        foreach (['admin', 'operator', 'pimpinan', 'guru', 'bk', 'siswa'] as $role) {
+        foreach (['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'guru', 'siswa'] as $role) {
             if (in_array($role, $roles, true)) {
                 return $role;
             }
@@ -126,6 +127,14 @@ class DashboardService
             'kartu' => $this->can($userId, 'kartu_pelajar.view') ? $this->cardSummary() : null,
             'tren_presensi' => $this->trendAttendance($idTahun),
         ];
+    }
+
+    /**
+     * Placeholder base; phase G3.6A dioverride KesehatanDashboardService.
+     */
+    protected function widgetsKesehatan(int $userId): array
+    {
+        return [];
     }
 
     protected function widgetsBk(int $userId): array

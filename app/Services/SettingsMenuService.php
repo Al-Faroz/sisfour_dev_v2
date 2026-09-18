@@ -10,7 +10,7 @@ use Throwable;
 
 class SettingsMenuService
 {
-    private const ROLES = ['admin', 'operator', 'pimpinan', 'bk', 'guru', 'siswa'];
+    private const ROLES = ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'guru', 'siswa'];
 
     protected SettingsMenuModel $model;
     protected BaseConnection $db;
@@ -155,6 +155,10 @@ class SettingsMenuService
             'bk/prestasi' => ['prestasi.view'],
 
             'kartu/daftar' => ['kartu_pelajar.view'],
+
+            'uks/ckg' => ['uks_ckg.view', 'uks_ckg.manage'],
+            'uks/harian' => ['uks_harian.view', 'uks_harian.manage'],
+            'uks/master' => ['uks_master.manage'],
 
             'settings/user' => ['settings_user.manage'],
             'settings/menu' => ['settings_menu.manage'],

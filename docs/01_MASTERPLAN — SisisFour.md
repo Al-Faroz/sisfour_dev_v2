@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.6 — Dashboard Siswa
+**Development aktif:** G3.6A — UKS / Kesehatan
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -156,6 +156,7 @@ G3.3   CLOSED / MERGED — PR #8
 G3.3.1 CLOSED / MERGED — PR #9
 G3.4   CLOSED / MERGED — PR #10
 G3.5   CLOSED / MERGED — PR #11
+G3.6   CLOSED / MERGED — PR #12
 ```
 
 Merge baseline:
@@ -168,6 +169,7 @@ G3.3   06e4e559c045763096058fc889342da78d973314
 G3.3.1 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 G3.4   6f809913eab1032691f130c9df00e95da74b9a17
 G3.5   6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
+G3.6   59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
 ## 10. G3.3.1 — Fondasi BK + Konseling — Closed
@@ -248,9 +250,9 @@ merge commit                             27d0f867d1c0ca7636a4a48f6c0b3251538ee7f
 ```text
 G3.4  BK Workflow + Dashboard BK       CLOSED / MERGED — PR #10
 G3.5  Pimpinan                         CLOSED / MERGED — PR #11
-G3.6  Siswa                            ACTIVE
-G3.6A UKS / Kesehatan
-G3.6B PTSP
+G3.6  Siswa                            CLOSED / MERGED — PR #12
+G3.6A UKS / Kesehatan                  ACTIVE / IMPLEMENTATION
+G3.6B PTSP                             NOT STARTED
 G3.7  Global Mobile Sweep
 G3.8  Viewport/WebView Readiness
 G4    Cordova APK
@@ -275,6 +277,23 @@ soft delete UKS/CKG
 ```
 
 UKS ditempatkan setelah Pimpinan dan Siswa agar scope lintas-role telah mempunyai foundation stabil.
+
+G3.6A implementation aktif pada branch `feat/g3-6a-uks-kesehatan-20260918` dari baseline main `59b22b651ad0d508ea3a29261ef590d4c9506da4`.
+
+Contract locked:
+
+```text
+Import CKG stable key = NISN wajib
+duplicate aktif siswa+tanggal = UPDATE
+CKG tombstone lama = INSERT record aktif baru, tanpa auto-restore
+Master configurable = Keluhan / Tindakan / Hasil Kunjungan
+Master normal action = deactivate/reactivate
+Dashboard Kesehatan = current-state Tahun Ajaran aktif
+priority role = admin > operator > pimpinan > bk > kesehatan > guru > siswa
+PTSP priority = OPEN sampai G3.6B
+```
+
+Local SQL sudah disiapkan tetapi belum dieksekusi. Hosting belum dimulai.
 
 ### G3.6B — PTSP
 
@@ -400,7 +419,7 @@ merge commit                      6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
 
 ## 14. G3.6 — Dashboard Siswa
 
-Branch aktif:
+Branch merged:
 
 ```text
 feat/g3-6-siswa-dashboard-20260918
@@ -441,17 +460,18 @@ Presensi, Prestasi, dan Catatan Pelanggaran dashboard dibatasi identity login. D
 
 Pelanggaran tidak memakai poin. Konseling BK tidak menjadi payload/widget/detail/shortcut Siswa. Quick Action hanya shortcut ke capability existing dan tidak menambah permission.
 
-Current gate:
+Closure:
 
 ```text
-source implementation             IMPLEMENTED ON FEATURE BRANCH
-SSOT sync                         IMPLEMENTED
-static gate                       PENDING
-local runtime/UAT                 PENDING
-self-scope/privacy regression     PENDING
-cross-role regression             PENDING
-hosting deployment/re-smoke       NOT STARTED
-PR #12                            DRAFT / NOT MERGED
+source implementation             PASS
+SSOT sync                         PASS
+static gate                       PASS / user terminal evidence
+local runtime/UAT                 PASS / user runtime evidence
+self-scope/privacy regression     PASS / user runtime evidence
+cross-role regression             PASS / user runtime evidence
+hosting deployment/re-smoke       PASS / user evidence
+PR #12                            MERGED
+merge commit                      59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
 ## 15. G4 — Cordova APK

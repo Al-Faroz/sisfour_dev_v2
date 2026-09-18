@@ -1,14 +1,14 @@
 # Routes Final — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + G3.3.1 rework branch
+**Tanggal Acuan:** 18 September 2026
+**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
 
 > Runtime source of truth adalah seluruh route file yang terdaftar pada `Config\Routing::$routeFiles`, bukan hanya `Routes.php`.
 
 ## 1. Route Source Runtime
 
-G3.3.1 menggunakan:
+Runtime route source:
 
 ```text
 app/Config/Routing.php
@@ -162,7 +162,49 @@ Service Konseling mengharuskan effective role Admin/Operator/BK; Service Setting
 
 G3.3.1 tidak menambah API Konseling.
 
-## 9. Kartu Pelajar
+## 9. UKS / Kesehatan — G3.6A
+
+Web routes berada pada authenticated `/uks` group.
+
+Data CKG:
+
+```text
+GET    /uks/ckg                      uks_ckg.view
+GET    /uks/ckg/json                 uks_ckg.view
+POST   /uks/ckg/create               uks_ckg.manage
+PUT    /uks/ckg/update/{id}          uks_ckg.manage
+DELETE /uks/ckg/delete/{id}          uks_ckg.manage
+GET    /uks/ckg/template             uks_ckg.import
+POST   /uks/ckg/import               uks_ckg.import
+GET    /uks/ckg/export               uks_ckg.export
+```
+
+Catatan Harian UKS:
+
+```text
+GET    /uks/harian                   uks_harian.view
+GET    /uks/harian/json              uks_harian.view
+POST   /uks/harian/create            uks_harian.manage
+PUT    /uks/harian/update/{id}       uks_harian.manage
+DELETE /uks/harian/delete/{id}       uks_harian.manage
+GET    /uks/harian/export            uks_harian.export
+```
+
+Master UKS:
+
+```text
+GET    /uks/master                           uks_master.manage
+GET    /uks/master/json                      uks_master.manage
+POST   /uks/master/{type}/create             uks_master.manage
+PUT    /uks/master/{type}/update/{id}        uks_master.manage
+DELETE /uks/master/{type}/delete/{id}        uks_master.manage
+```
+
+DELETE pada Master UKS adalah route mutation untuk **deactivate reference**, bukan hard delete business record. CKG dan kunjungan menggunakan soft delete.
+
+Period/scope final tetap diputuskan `UksService` + `UksScopeService`, termasuk historical Wali pada Tahun Ajaran terpilih.
+
+## 10. Kartu Pelajar
 
 ```text
 GET  /kartu/daftar
@@ -179,11 +221,11 @@ POST /kartu/reissue/{id}
 
 Kartu operasional adalah current-state workflow; tidak diberi filter Tahun Ajaran palsu.
 
-## 10. Profile / Personalia
+## 11. Profile / Personalia
 
 Guru/Pegawai/Siswa route family existing tetap. Secure personalia file tetap melalui route yang memvalidasi owner/permission sebelum file dikirim.
 
-## 11. Settings / Backup / Log
+## 12. Settings / Backup / Log
 
 Route family existing tetap:
 
@@ -197,7 +239,7 @@ Route family existing tetap:
 
 Pengaturan Form Konseling bukan `/settings/sistem`; ia memiliki route dan permission khusus `/bk/konseling/settings`.
 
-## 12. Protected API Routes
+## 13. Protected API Routes
 
 Current API families tetap berada pada `/api` + `auth:api`.
 
@@ -209,13 +251,15 @@ Current API families tetap berada pada `/api` + `auth:api`.
 /api/laporan/jurnal
 /api/bk/kasus*
 /api/bk/prestasi*
+/api/uks/ckg*
+/api/uks/harian*
 /api/kartu/*
 /api/profile/*
 ```
 
-Endpoint API Konseling belum ada pada G3.3.1.
+Endpoint API Konseling tetap tidak ada. G3.6A menambah protected API CRUD core untuk CKG dan Catatan Harian UKS; import/export/template tetap Web routes.
 
-## 13. Route Validation
+## 14. Route Validation
 
 Checkpoint wajib pada head final:
 
@@ -233,4 +277,4 @@ Rilis tidak boleh memiliki:
 - route DELETE Konseling/follow-up yang bertentangan dengan business contract;
 - route tambahan yang tidak didaftarkan pada `Routing::$routeFiles`.
 
-Baseline route smoke lama PASS, tetapi route follow-up rework 17 September masih memerlukan static + runtime evidence sebelum PR #9 Ready/Merge.
+G3.6A route source sudah diimplementasikan pada feature branch, tetapi `php spark routes` dan runtime route UAT masih **PENDING** sampai user menjalankan static/local gate pada exact head.

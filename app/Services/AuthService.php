@@ -255,6 +255,13 @@ class AuthService
      */
     public function resolveScope(string $permissionKey, int $userId): string
     {
+        if (
+            str_starts_with($permissionKey, 'uks_')
+            && ! $this->uksPermissionIdentityValid($permissionKey, $userId)
+        ) {
+            return 'TIDAK_ADA';
+        }
+
         $scopes = $this->getPermissionScopes($permissionKey, $userId);
 
         if ($scopes === []) {
@@ -276,7 +283,17 @@ class AuthService
         $idGuru = (int) ($user['id_guru'] ?? 0);
         $isWali = $idGuru > 0 && $this->isWaliKelas($idGuru);
 
-        if (in_array('KELAS_DIAMPU', $scopes, true) && $isWali) {
+        // UKS bersifat periodik: mantan Wali tetap perlu melewati route/menu
+        // untuk memilih Tahun Ajaran historis. Scope final terhadap kelas pada
+        // periode terpilih tetap divalidasi UksScopeService.
+        $isHistoricalUksWali = $idGuru > 0
+            && str_starts_with($permissionKey, 'uks_')
+            && $this->hasAnyWaliKelas($idGuru);
+
+        if (
+            in_array('KELAS_DIAMPU', $scopes, true)
+            && ($isWali || $isHistoricalUksWali)
+        ) {
             return 'KELAS_DIAMPU';
         }
 
@@ -325,6 +342,67 @@ class AuthService
             ->table('mapping_wali_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
+            ->where('deleted_at', null)
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Role Kesehatan adalah role berbasis Pegawai.
+     *
+     * Jika permission UKS masih bisa diperoleh dari effective role lain
+     * (mis. Admin/Pimpinan/Guru/Siswa sesuai permission), identity Pegawai
+     * tidak dipaksakan. Tetapi bila grant hanya berasal dari role kesehatan,
+     * users.id_pegawai wajib tersedia.
+     */
+    private function uksPermissionIdentityValid(
+        string $permissionKey,
+        int $userId
+    ): bool {
+        $roles = $this->getUserRoles($userId);
+
+        if (! in_array('kesehatan', $roles, true)) {
+            return true;
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select('id_pegawai')
+            ->where('id', $userId)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
+
+        if ((int) ($user['id_pegawai'] ?? 0) > 0) {
+            return true;
+        }
+
+        $otherRoles = array_values(array_diff($roles, ['kesehatan']));
+        if ($otherRoles === []) {
+            return false;
+        }
+
+        return $this->db
+            ->table('role_permissions rp')
+            ->join('permissions p', 'p.id = rp.id_permission')
+            ->whereIn('rp.role', $otherRoles)
+            ->where('p.permission_key', $permissionKey)
+            ->where('rp.scope !=', 'TIDAK_ADA')
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Apakah Guru pernah mempunyai mapping Wali pada periode mana pun.
+     * Digunakan hanya sebagai entry-gate UKS; scope data final tetap period-aware.
+     */
+    public function hasAnyWaliKelas(?int $idGuru): bool
+    {
+        if (! $idGuru) {
+            return false;
+        }
+
+        return $this->db
+            ->table('mapping_wali_kelas')
+            ->where('id_guru', $idGuru)
             ->where('deleted_at', null)
             ->countAllResults() > 0;
     }

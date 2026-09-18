@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.6 — Dashboard Siswa
-**Branch aktif:** `feat/g3-6-siswa-dashboard-20260918`
-**Baseline `main`:** setelah merge PR #11 / G3.5 (`6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce`)
+**Development aktif:** G3.6A — UKS / Kesehatan
+**Branch aktif:** `feat/g3-6a-uks-kesehatan-20260918`
+**Baseline `main`:** setelah merge PR #12 / G3.6 (`59b22b651ad0d508ea3a29261ef590d4c9506da4`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -359,8 +359,8 @@ G3.3 Dashboard Guru/Wali   CLOSED / MERGED
 G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK CLOSED / MERGED — PR #10
 G3.5 Pimpinan              CLOSED / MERGED — PR #11
-G3.6 Siswa                 ACTIVE
-G3.6A UKS / Kesehatan      setelah G3.6
+G3.6 Siswa                 CLOSED / MERGED — PR #12
+G3.6A UKS / Kesehatan      ACTIVE
 G3.6B PTSP                 setelah G3.6A
 G3.7 Global mobile sweep
 G3.8 Viewport/WebView readiness
@@ -592,18 +592,19 @@ Konseling        = tidak dibentuk untuk Siswa
 
 Tidak adanya Tahun Ajaran aktif dibedakan dari data bernilai nol. Dashboard tidak memalsukan KPI 0 ketika Period Context tidak tersedia. Historical Catatan Pelanggaran/Prestasi tetap tersedia pada listing self-only dengan Tahun Ajaran selectable.
 
-Current gate:
+Closure G3.6:
 
 ```text
-source implementation             = IMPLEMENTED ON FEATURE BRANCH
-SSOT sync                         = IMPLEMENTED
-static gate                       = PENDING
-local runtime/UAT                 = PENDING
-self-scope/privacy regression     = PENDING
-cross-role regression             = PENDING
-hosting source deployment         = NOT STARTED
-hosting re-smoke                  = NOT STARTED
-PR #12                            = DRAFT / NOT MERGED
+source implementation             = PASS
+SSOT sync                         = PASS
+static gate                       = PASS / user terminal evidence
+local runtime/UAT                 = PASS / user runtime evidence
+self-scope/privacy regression     = PASS / user runtime evidence
+cross-role regression             = PASS / user runtime evidence
+hosting source deployment         = PASS / user evidence
+hosting re-smoke                  = PASS / user runtime evidence
+PR #12                            = MERGED
+merge commit                      = 59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
 Minimum static gate:
@@ -631,3 +632,76 @@ git status
 ```
 
 Jangan klaim static/runtime PASS tanpa sumber evidencenya. `PASS / user evidence` tidak boleh diubah menjadi klaim CI/static.
+
+## 15. G3.6A — UKS / Kesehatan
+
+Branch:
+
+```text
+feat/g3-6a-uks-kesehatan-20260918
+baseline main = 59b22b651ad0d508ea3a29261ef590d4c9506da4
+```
+
+Contract locked:
+
+```text
+Role Kesehatan identity = users.id_pegawai
+Dashboard priority = admin > operator > pimpinan > bk > kesehatan > guru > siswa
+PTSP priority = OPEN sampai G3.6B
+
+Import CKG:
+- stable key siswa = NISN wajib
+- nama bukan fallback key
+- duplicate active siswa+tanggal = UPDATE
+- CKG tombstone lama = INSERT aktif baru, no auto-restore
+
+Master configurable:
+- Keluhan
+- Tindakan
+- Hasil Kunjungan
+- deactivate/reactivate; historical reference tetap stabil
+
+Dashboard Kesehatan:
+- current-state Tahun Ajaran aktif
+- KPI 2×2 CKG/Kunjungan/Rujuk Klinik
+- Quick Action CKG/Data UKS/Import/Master
+- recent max 5
+- no medical scoring/SLA/overdue/risk label
+```
+
+Canonical implementation order G3.6A:
+
+```text
+SSOT lock
+-> localhost SQL prepared
+-> source/backend/RBAC/UI
+-> docs sync
+-> Draft PR
+-> user static gate
+-> user localhost SQL execution + verification
+-> local runtime/cross-role/historical UAT
+-> local dump audit
+-> fresh hosting dump audit
+-> hosting delta SQL
+-> explicit hosting approval
+-> hosting smoke
+-> explicit Ready
+-> explicit merge
+```
+
+Current gate:
+
+```text
+contract                         LOCKED
+source                           IMPLEMENTED / feature branch
+localhost SQL                    PREPARED / NOT EXECUTED
+docs sync                        IMPLEMENTED
+static gate                      PENDING
+localhost SQL execution          PENDING
+local runtime/UAT                PENDING
+cross-role/historical regression PENDING
+local dump audit                 PENDING
+hosting                          NOT STARTED
+```
+
+Tidak ada hosting SQL/source mutation pada tahap ini.

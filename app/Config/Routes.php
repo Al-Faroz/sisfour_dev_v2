@@ -200,6 +200,30 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('prestasi/export', 'BKPrestasi::export', ['filter' => 'permission:prestasi.view,prestasi.manage']);
     });
 
+    $routes->group('uks', static function ($routes) {
+        $routes->get('ckg', 'UksCkg::index', ['filter' => 'permission:uks_ckg.view']);
+        $routes->get('ckg/json', 'UksCkg::index', ['filter' => 'permission:uks_ckg.view']);
+        $routes->post('ckg/create', 'UksCkg::create', ['filter' => 'permission:uks_ckg.manage']);
+        $routes->put('ckg/update/(:segment)', 'UksCkg::update/$1', ['filter' => 'permission:uks_ckg.manage']);
+        $routes->delete('ckg/delete/(:segment)', 'UksCkg::delete/$1', ['filter' => 'permission:uks_ckg.manage']);
+        $routes->get('ckg/template', 'UksCkg::template', ['filter' => 'permission:uks_ckg.import']);
+        $routes->post('ckg/import', 'UksCkg::import', ['filter' => 'permission:uks_ckg.import']);
+        $routes->get('ckg/export', 'UksCkg::export', ['filter' => 'permission:uks_ckg.export']);
+
+        $routes->get('harian', 'UksHarian::index', ['filter' => 'permission:uks_harian.view']);
+        $routes->get('harian/json', 'UksHarian::index', ['filter' => 'permission:uks_harian.view']);
+        $routes->post('harian/create', 'UksHarian::create', ['filter' => 'permission:uks_harian.manage']);
+        $routes->put('harian/update/(:segment)', 'UksHarian::update/$1', ['filter' => 'permission:uks_harian.manage']);
+        $routes->delete('harian/delete/(:segment)', 'UksHarian::delete/$1', ['filter' => 'permission:uks_harian.manage']);
+        $routes->get('harian/export', 'UksHarian::export', ['filter' => 'permission:uks_harian.export']);
+
+        $routes->get('master', 'UksMaster::index', ['filter' => 'permission:uks_master.manage']);
+        $routes->get('master/json', 'UksMaster::index', ['filter' => 'permission:uks_master.manage']);
+        $routes->post('master/(:segment)/create', 'UksMaster::create/$1', ['filter' => 'permission:uks_master.manage']);
+        $routes->put('master/(:segment)/update/(:segment)', 'UksMaster::update/$1/$2', ['filter' => 'permission:uks_master.manage']);
+        $routes->delete('master/(:segment)/delete/(:segment)', 'UksMaster::delete/$1/$2', ['filter' => 'permission:uks_master.manage']);
+    });
+
     $routes->group('kartu', static function ($routes) {
         $routes->get('daftar', 'KartuPelajar::daftar', ['filter' => 'permission:kartu_pelajar.view']);
         $routes->get('daftar/json', 'KartuPelajar::daftar', ['filter' => 'permission:kartu_pelajar.view']);
@@ -295,6 +319,15 @@ $routes->group('api', ['filter' => 'auth:api'], static function ($routes) {
     $routes->put('bk/kasus/tindak-lanjut/(:segment)', 'BKKasus::updateTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
     $routes->get('bk/prestasi', 'BKPrestasi::index', ['filter' => 'permission:prestasi.view']);
     $routes->post('bk/prestasi/create', 'BKPrestasi::create', ['filter' => 'permission:prestasi.manage']);
+    $routes->get('uks/ckg', 'UksCkg::index', ['filter' => 'permission:uks_ckg.view']);
+    $routes->post('uks/ckg', 'UksCkg::create', ['filter' => 'permission:uks_ckg.manage']);
+    $routes->put('uks/ckg/(:segment)', 'UksCkg::update/$1', ['filter' => 'permission:uks_ckg.manage']);
+    $routes->delete('uks/ckg/(:segment)', 'UksCkg::delete/$1', ['filter' => 'permission:uks_ckg.manage']);
+    $routes->get('uks/harian', 'UksHarian::index', ['filter' => 'permission:uks_harian.view']);
+    $routes->post('uks/harian', 'UksHarian::create', ['filter' => 'permission:uks_harian.manage']);
+    $routes->put('uks/harian/(:segment)', 'UksHarian::update/$1', ['filter' => 'permission:uks_harian.manage']);
+    $routes->delete('uks/harian/(:segment)', 'UksHarian::delete/$1', ['filter' => 'permission:uks_harian.manage']);
+
     $routes->get('kartu/preview/(:segment)', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);
     $routes->get('kartu/download/(:segment)', 'KartuPelajar::download/$1', ['filter' => 'permission:kartu_pelajar.view']);
     $routes->get('profile/guru', 'ProfileGuru::index', ['filter' => 'permission:profile_guru.view']);
