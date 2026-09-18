@@ -8,9 +8,32 @@ class KesehatanDashboardService extends SiswaDashboardService
 
     protected function widgetsKesehatan(int $userId): array
     {
+        $user = $this->getUser($userId);
+        $hasIdentity = (int) ($user['id_pegawai'] ?? 0) > 0;
         $tahun = $this->tahunAktif();
         $idTahun = (int) ($tahun['id'] ?? 0);
         $hasPeriod = $idTahun > 0;
+
+        if (! $hasIdentity) {
+            return [
+                'tahun_aktif' => $tahun,
+                'period_available' => $hasPeriod,
+                'identity_available' => false,
+                'access' => [
+                    'ckg' => false,
+                    'harian' => false,
+                    'import' => false,
+                    'master' => false,
+                ],
+                'ckg_bulan_ini' => null,
+                'kunjungan_hari_ini' => null,
+                'kunjungan_bulan_ini' => null,
+                'rujuk_klinik_bulan_ini' => null,
+                'ckg_terbaru' => [],
+                'kunjungan_terbaru' => [],
+                'quick_actions' => [],
+            ];
+        }
 
         $canCkg = $this->can($userId, 'uks_ckg.view');
         $canHarian = $this->can($userId, 'uks_harian.view');
@@ -23,6 +46,7 @@ class KesehatanDashboardService extends SiswaDashboardService
         return [
             'tahun_aktif' => $tahun,
             'period_available' => $hasPeriod,
+            'identity_available' => true,
             'access' => [
                 'ckg' => $canCkg,
                 'harian' => $canHarian,
