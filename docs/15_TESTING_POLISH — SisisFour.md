@@ -418,19 +418,19 @@ G3.4                                CLOSED / MERGED — PR #10
 G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
 G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A                               CLOSED / MERGED — PR #13
+G3.6A merge commit                  90acc7f94fee391a5a7fbad2395e3f16571fe921
 
-G3.6A contract                      LOCKED
-G3.6A source                        IMPLEMENTED / feature branch
-G3.6A docs sync                     PASS
-G3.6A localhost SQL                 PASS / user evidence
-G3.6A final static gate             PASS / user terminal evidence
-G3.6A local runtime UAT             PASS / user runtime evidence
-G3.6A cross-role/historical UAT     PASS / user runtime evidence
-G3.6A local dump audit              PASS / read-only dump audit
-G3.6A fresh hosting dump audit      PASS / read-only dump audit
-G3.6A hosting SQL                   PREPARED / static audit PASS
-G3.6A hosting SQL execution         AUTHORIZED / PENDING USER EXECUTION
-G3.6A hosting source deployment     NOT AUTHORIZED
+G3.6B contract                      LOCKED
+G3.6B source                        IMPLEMENTED / feature branch
+G3.6B localhost SQL                 PREPARED
+G3.6B GitHub structural audit       PASS / GitHub read evidence
+G3.6B static terminal gate          PENDING
+G3.6B local SQL execution           PENDING
+G3.6B local runtime/public UAT      PENDING
+G3.6B cross-role/CORS regression    PENDING
+G3.6B local post-SQL dump audit     PENDING
+G3.6B hosting                       NOT AUTHORIZED
 PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
