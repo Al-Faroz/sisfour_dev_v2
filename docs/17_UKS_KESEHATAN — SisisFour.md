@@ -266,6 +266,8 @@ Hasil Kunjungan
 
 Master/reference memakai `status_aktif` untuk deactivate/reactivate. Opsi yang dinonaktifkan tidak tersedia untuk record baru, tetapi nilai yang sudah tersimpan tetap dapat dibaca dan dipertahankan saat edit histori. Normal UI tidak membuat tombstone master/reference.
 
+UI Master UKS wajib menampilkan status **Aktif / Nonaktif** secara eksplisit pada setiap item; item nonaktif tidak menampilkan aksi `Nonaktifkan` lagi dan dapat diaktifkan kembali melalui Edit → Status.
+
 Pilihan pemeriksaan CKG dan enum sederhana (`Ya/Tidak`, status gizi, status tinggi, kondisi gigi/mulut, pendengaran, talasemia, tuberkulosis) tetap fixed domain option pada G3.6A.
 
 ## 9. Privacy
