@@ -356,5 +356,10 @@
     if (el && value !== null) el.value = value;
   });
 
-  load();
+  const openCreateFromHash = location.hash === '#tambah';
+  load().then(() => {
+    if (openCreateFromHash && document.getElementById('btnHarianBaru')) {
+      openForm();
+    }
+  });
 })();
