@@ -1,0 +1,11 @@
+.ptsp-receipt{display:none}
+@media print{
+  body *{visibility:hidden!important}
+  #ptspReceipt,#ptspReceipt *{visibility:visible!important}
+  #ptspReceipt{display:block!important;position:absolute;left:0;top:0;width:72mm;padding:4mm;font-family:monospace;font-size:11px;line-height:1.35;color:#000;background:#fff}
+  @page{size:80mm auto;margin:4mm}
+}
+@media (max-width:575.98px){
+  #ptspPublicApp{padding-left:1rem!important;padding-right:1rem!important}
+  #ptspPublicApp .nav-pills{display:grid!important;grid-template-columns:1fr}
+}
