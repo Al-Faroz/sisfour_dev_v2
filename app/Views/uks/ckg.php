@@ -56,21 +56,21 @@ $options = $initial['fixed_options'] ?? [];
                             <label class="form-label" for="ckgSearch">Pencarian</label>
                             <input id="ckgSearch" class="form-control" placeholder="Nama / NISN / kelas">
                         </div>
-                    <?php endif; ?>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label" for="ckgMulai">Dari</label>
-                        <input id="ckgMulai" type="date" class="form-control">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label" for="ckgSelesai">Sampai</label>
-                        <input id="ckgSelesai" type="date" class="form-control">
-                    </div>
-                    <div class="col-12 col-md-6">
-                        <div class="sisfour-filter-actions justify-content-md-end">
-                            <button class="btn btn-outline-secondary" id="btnCkgReset" type="button"><i class="bx bx-reset me-1"></i> Reset</button>
-                            <button class="btn btn-primary" id="btnCkgCari" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="ckgMulai">Dari</label>
+                            <input id="ckgMulai" type="date" class="form-control">
                         </div>
-                    </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="ckgSelesai">Sampai</label>
+                            <input id="ckgSelesai" type="date" class="form-control">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="sisfour-filter-actions justify-content-md-end">
+                                <button class="btn btn-outline-secondary" id="btnCkgReset" type="button"><i class="bx bx-reset me-1"></i> Reset</button>
+                                <button class="btn btn-primary" id="btnCkgCari" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
