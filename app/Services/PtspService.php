@@ -271,12 +271,16 @@ class PtspService
         }
 
         $nama = $this->nullableText($input['nama_lengkap'] ?? null, 150);
-        $kategori = $this->option($input['kategori_responden'] ?? null, self::KATEGORI);
+        $kategoriRaw = trim((string) ($input['kategori_responden'] ?? ''));
+        $kategori = $this->option($kategoriRaw, self::KATEGORI);
         $whatsappRaw = trim((string) ($input['nomor_whatsapp'] ?? ''));
         $whatsapp = $whatsappRaw !== '' ? $this->whatsapp($whatsappRaw, false) : null;
         $kepuasan = $this->option($input['tingkat_kepuasan'] ?? null, array_keys(self::KEPUASAN));
         $masukan = $this->nullableText($input['masukan_saran'] ?? null, 3000);
 
+        if ($kategoriRaw !== '' && $kategori === null) {
+            return $this->fail('VALIDATION', 'Kategori responden tidak valid.');
+        }
         if ($whatsappRaw !== '' && $whatsapp === null) {
             return $this->fail('VALIDATION', 'Nomor WhatsApp tidak valid.');
         }
@@ -311,21 +315,30 @@ class PtspService
         if (! is_array($klasifikasi)) {
             $klasifikasi = [$klasifikasi];
         }
-        $klasifikasi = array_values(array_unique(array_filter(array_map(
-            fn ($value): ?string => $this->option($value, self::KLASIFIKASI),
+        $rawClassifications = array_values(array_unique(array_filter(array_map(
+            static fn ($value): string => trim((string) $value),
             $klasifikasi
         ))));
+        $klasifikasi = array_values(array_filter(array_map(
+            fn ($value): ?string => $this->option($value, self::KLASIFIKASI),
+            $rawClassifications
+        )));
 
         $judul = $this->text($input['judul_laporan'] ?? null, 200);
         $isi = $this->text($input['isi_laporan'] ?? null, 5000);
-        $tanggal = $this->date($input['tanggal_kejadian'] ?? null, false);
+        $tanggalRaw = trim((string) ($input['tanggal_kejadian'] ?? ''));
+        $tanggal = $this->date($tanggalRaw, false);
 
-        if ($klasifikasi === [] || $judul === '' || $isi === '') {
-            return $this->fail('VALIDATION', 'Minimal satu klasifikasi, judul laporan, dan isi laporan wajib diisi.');
+        if ($rawClassifications === [] || count($klasifikasi) !== count($rawClassifications) || $judul === '' || $isi === '') {
+            return $this->fail('VALIDATION', 'Klasifikasi, judul laporan, atau isi laporan tidak valid.');
+        }
+        if ($tanggalRaw !== '' && $tanggal === null) {
+            return $this->fail('VALIDATION', 'Tanggal kejadian tidak valid.');
         }
 
         $stored = null;
         $relativePath = null;
+        $transactionStarted = false;
 
         try {
             if ($lampiran instanceof UploadedFile && $lampiran->getError() !== UPLOAD_ERR_NO_FILE) {
@@ -335,6 +348,7 @@ class PtspService
             }
 
             $this->db->transBegin();
+            $transactionStarted = true;
 
             $id = $this->pengaduanModel->insert([
                 'id_tahun' => (int) $tahun['id'],
@@ -361,10 +375,13 @@ class PtspService
             }
 
             $this->db->transCommit();
+            $transactionStarted = false;
 
             return ['success' => true, 'message' => 'Laporan berhasil dikirim.'];
         } catch (Throwable $e) {
-            $this->db->transRollback();
+            if ($transactionStarted) {
+                $this->db->transRollback();
+            }
             if ($relativePath !== null) {
                 $this->deleteStoredFile($relativePath);
             }
@@ -445,7 +462,9 @@ class PtspService
             return $this->fail('NOT_FOUND', 'Layanan PTSP tidak ditemukan.');
         }
 
-        $this->layananModel->hardDelete($id);
+        if (! $this->layananModel->hardDelete($id)) {
+            return $this->fail('DELETE_FAILED', 'Layanan PTSP gagal dihapus.');
+        }
         $this->activityLog->write($userId, 'DELETE', 'PTSP Layanan', "Hard delete Layanan PTSP #{$id}.");
 
         return ['success' => true, 'message' => 'Layanan PTSP berhasil dihapus permanen.'];
@@ -460,7 +479,9 @@ class PtspService
             return $this->fail('NOT_FOUND', 'Polling Kepuasan tidak ditemukan.');
         }
 
-        $this->pollingModel->hardDelete($id);
+        if (! $this->pollingModel->hardDelete($id)) {
+            return $this->fail('DELETE_FAILED', 'Polling Kepuasan gagal dihapus.');
+        }
         $this->activityLog->write($userId, 'DELETE', 'PTSP Polling', "Hard delete Polling PTSP #{$id}.");
 
         return ['success' => true, 'message' => 'Polling Kepuasan berhasil dihapus permanen.'];
@@ -684,7 +705,9 @@ class PtspService
                     break;
                 }
             }
-            $selected ??= $options[0];
+            if ($selected === null) {
+                return $this->fail('NO_ACTIVE_PERIOD', 'Tidak ada Tahun Ajaran aktif. Pilih Tahun Ajaran secara eksplisit untuk membuka histori.');
+            }
         }
 
         return [
