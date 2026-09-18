@@ -48,7 +48,32 @@ Contract:
 Catatan Pelanggaran = jumlah/exception, bukan ranking poin
 Konseling BK bukan widget/source data Pimpinan
 widget tanpa permission = tidak tersedia, bukan 0 palsu
+Dashboard = current-state Tahun Ajaran aktif
 ```
+
+G3.5 Dashboard Pimpinan:
+
+```text
+KPI 2×2
+- Kelas Belum Presensi
+- Jadwal Belum Jurnal
+- EWS Alpha 14 Hari
+- Catatan Pelanggaran Bulan Ini
+
+Quick Action permission-aware
+- Rekap        -> presensi_siswa.view
+- Jurnal       -> laporan_jurnal.view
+- EWS          -> ews_radar.view
+- Laporan      -> laporan_matrix.view
+
+Monitoring
+- Tren Presensi 7 Hari / Sesi Awal
+- EWS maksimal 5 + Lihat Semua
+- Prestasi Terbaru maksimal 5 + Lihat Semua
+- Ringkasan Master
+```
+
+Catatan Pelanggaran Bulan Ini dan Prestasi Terbaru wajib dibatasi `id_tahun = Tahun Ajaran aktif`. Quick Action hanya shortcut ke endpoint existing dan tidak menambah capability. Konseling tetap tidak dibentuk untuk Pimpinan.
 
 ## 4. BK — G3.4 Dashboard/Workflow
 
@@ -221,13 +246,15 @@ Jangan menambah selector Tahun Ajaran pada dashboard hanya untuk kosmetik bila s
 ```text
 G3.3 Dashboard Guru/Wali                     CLOSED / MERGED — PR #8
 G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
-G3.3.1 local + hosting closure gate          PASS
-main baseline G3.4                           27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
-G3.4 source Dashboard/Workflow BK            IMPLEMENTED ON FEATURE BRANCH
-G3.4 static gate                             PENDING
-G3.4 local runtime/UAT                       PENDING
-G3.4 hosting deployment/re-smoke             NOT STARTED
-G3.4 PR                                      NOT OPENED
+G3.4 Dashboard/Workflow BK                   CLOSED / MERGED — PR #10
+G3.4 closure gate                            PASS
+main baseline G3.5                           6f809913eab1032691f130c9df00e95da74b9a17
+G3.5 source Dashboard Pimpinan               IMPLEMENTED ON FEATURE BRANCH
+G3.5 static gate                             PENDING
+G3.5 local runtime/UAT                       PENDING
+G3.5 cross-role regression                   PENDING
+G3.5 hosting deployment/re-smoke             NOT STARTED
+G3.5 PR                                      NOT OPENED
 ```
 
 ## 14. Phase Boundary
@@ -237,6 +264,7 @@ G2      dashboard/settings stabilization
 G3.3    Dashboard Guru/Wali
 G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
-G3.5+   role berikutnya
+G3.5    Dashboard Pimpinan readonly/monitoring
+G3.6+   role berikutnya
 G4      Cordova integration
 ```
