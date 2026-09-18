@@ -73,10 +73,10 @@
 
       const result = await Swal.fire({
         icon: 'warning',
-        title: 'Arsipkan master UKS?',
+        title: 'Nonaktifkan master UKS?',
         html: `<strong>${esc(row.nama)}</strong><br><small>Histori lama tetap dapat menampilkan nilai tersimpan.</small>`,
         showCancelButton: true,
-        confirmButtonText: 'Ya, arsipkan',
+        confirmButtonText: 'Ya, nonaktifkan',
         cancelButtonText: 'Batal',
         reverseButtons: true,
       });
@@ -87,10 +87,10 @@
           `${base}/uks/master/${encodeURIComponent(button.dataset.type)}/delete/${row.id}`,
           { method: 'DELETE' }
         );
-        show(payload.message || 'Master UKS diarsipkan.', 'success');
+        show(payload.message || 'Master UKS dinonaktifkan.', 'success');
         location.reload();
       } catch (error) {
-        show(error.message || 'Gagal mengarsipkan master UKS.');
+        show(error.message || 'Gagal menonaktifkan master UKS.');
       }
     });
   });
