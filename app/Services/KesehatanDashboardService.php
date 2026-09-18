@@ -31,12 +31,14 @@ class KesehatanDashboardService extends SiswaDashboardService
                 'rujuk_klinik_bulan_ini' => null,
                 'ckg_terbaru' => [],
                 'kunjungan_terbaru' => [],
+                'primary_action' => null,
                 'quick_actions' => [],
             ];
         }
 
         $canCkg = $this->can($userId, 'uks_ckg.view');
         $canHarian = $this->can($userId, 'uks_harian.view');
+        $canManageHarian = $this->can($userId, 'uks_harian.manage');
         $canImport = $this->can($userId, 'uks_ckg.import');
         $canMaster = $this->can($userId, 'uks_master.manage');
 
@@ -52,6 +54,7 @@ class KesehatanDashboardService extends SiswaDashboardService
                 'harian' => $canHarian,
                 'import' => $canImport,
                 'master' => $canMaster,
+                'manage_harian' => $canManageHarian,
             ],
             'ckg_bulan_ini' => $canCkg && $hasPeriod
                 ? $this->countCkg($idTahun, $monthStart, $monthEnd)
@@ -71,6 +74,12 @@ class KesehatanDashboardService extends SiswaDashboardService
             'kunjungan_terbaru' => $canHarian && $hasPeriod
                 ? $this->latestVisits($idTahun)
                 : [],
+            'primary_action' => $canManageHarian ? [
+                'label' => 'Tambah Data Kunjungan',
+                'description' => 'Catat kunjungan siswa ke UKS',
+                'icon' => 'bx-plus-medical',
+                'url' => 'uks/harian#tambah',
+            ] : null,
             'quick_actions' => $this->quickActions($userId),
         ];
     }
@@ -144,18 +153,18 @@ class KesehatanDashboardService extends SiswaDashboardService
     {
         $candidates = [
             [
-                'permission' => 'uks_ckg.view',
-                'label' => 'Data CKG',
-                'description' => 'Buka data pemeriksaan CKG',
-                'icon' => 'bx-pulse',
-                'url' => 'uks/ckg',
-            ],
-            [
                 'permission' => 'uks_harian.view',
                 'label' => 'Data UKS',
                 'description' => 'Buka Catatan Harian UKS',
                 'icon' => 'bx-plus-medical',
                 'url' => 'uks/harian',
+            ],
+            [
+                'permission' => 'uks_ckg.view',
+                'label' => 'Data CKG',
+                'description' => 'Buka data pemeriksaan CKG',
+                'icon' => 'bx-pulse',
+                'url' => 'uks/ckg',
             ],
             [
                 'permission' => 'uks_ckg.import',
