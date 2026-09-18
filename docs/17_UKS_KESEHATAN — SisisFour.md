@@ -401,6 +401,7 @@ G3.6 Siswa                            CLOSED / MERGED — PR #12
 G3.6 merge commit                     59b22b651ad0d508ea3a29261ef590d4c9506da4
 G3.6A contract                        LOCKED
 G3.6A source                          IMPLEMENTED / branch
+PR #13                                OPEN / DRAFT / NOT MERGED
 G3.6A localhost SQL                   PREPARED / BELUM DIEKSEKUSI
 G3.6A static gate                     PENDING
 G3.6A local runtime UAT               PENDING
