@@ -787,20 +787,21 @@ class UksService
             return $this->fail('NOT_FOUND', 'Master UKS tidak ditemukan.');
         }
 
+        // Master/reference tidak ditombstone: opsi dinonaktifkan agar histori
+        // tetap stabil dan opsi lama dapat diaktifkan kembali lewat Edit.
         $this->db->table($table)->where('id', $id)->update([
             'status_aktif' => 0,
-            'deleted_at' => $this->now(),
             'updated_at' => $this->now(),
         ]);
 
         $this->activityLog->write(
             $userId,
-            'DELETE',
+            'UPDATE',
             'Master UKS',
-            sprintf('Soft delete master %s #%d.', $type, $id)
+            sprintf('Menonaktifkan master %s #%d.', $type, $id)
         );
 
-        return ['success' => true, 'message' => 'Master UKS dinonaktifkan dan diarsipkan.'];
+        return ['success' => true, 'message' => 'Master UKS dinonaktifkan.'];
     }
 
     public function fixedOptions(): array
