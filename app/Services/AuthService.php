@@ -255,6 +255,13 @@ class AuthService
      */
     public function resolveScope(string $permissionKey, int $userId): string
     {
+        if (
+            str_starts_with($permissionKey, 'uks_')
+            && ! $this->uksPermissionIdentityValid($permissionKey, $userId)
+        ) {
+            return 'TIDAK_ADA';
+        }
+
         $scopes = $this->getPermissionScopes($permissionKey, $userId);
 
         if ($scopes === []) {
@@ -336,6 +343,50 @@ class AuthService
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
             ->where('deleted_at', null)
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Role Kesehatan adalah role berbasis Pegawai.
+     *
+     * Jika permission UKS masih bisa diperoleh dari effective role lain
+     * (mis. Admin/Pimpinan/Guru/Siswa sesuai permission), identity Pegawai
+     * tidak dipaksakan. Tetapi bila grant hanya berasal dari role kesehatan,
+     * users.id_pegawai wajib tersedia.
+     */
+    private function uksPermissionIdentityValid(
+        string $permissionKey,
+        int $userId
+    ): bool {
+        $roles = $this->getUserRoles($userId);
+
+        if (! in_array('kesehatan', $roles, true)) {
+            return true;
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select('id_pegawai')
+            ->where('id', $userId)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
+
+        if ((int) ($user['id_pegawai'] ?? 0) > 0) {
+            return true;
+        }
+
+        $otherRoles = array_values(array_diff($roles, ['kesehatan']));
+        if ($otherRoles === []) {
+            return false;
+        }
+
+        return $this->db
+            ->table('role_permissions rp')
+            ->join('permissions p', 'p.id = rp.id_permission')
+            ->whereIn('rp.role', $otherRoles)
+            ->where('p.permission_key', $permissionKey)
+            ->where('rp.scope !=', 'TIDAK_ADA')
             ->countAllResults() > 0;
     }
 
