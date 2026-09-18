@@ -197,7 +197,31 @@ Presensi, Prestasi, dan Catatan Pelanggaran periodik dibatasi `id_tahun = Tahun 
 
 Quick Action hanya shortcut ke capability existing. Kartu/Profile tetap memakai self-scope/identity server-side. Konseling tidak dibentuk/ditampilkan/dikirim. Pelanggaran tanpa poin.
 
-## 8. Boundary Konseling
+## 8. Kesehatan — G3.6A Dashboard UKS
+
+Dashboard Kesehatan adalah current-state Tahun Ajaran aktif tanpa selector historis.
+
+```text
+KPI 2×2
+- Pemeriksaan CKG Bulan Ini
+- Kunjungan UKS Hari Ini
+- Kunjungan UKS Bulan Ini
+- Rujuk ke Klinik Bulan Ini
+
+Quick Action
+- Data CKG
+- Data UKS
+- Import CKG
+- Master UKS
+
+Recent
+- Kunjungan UKS terbaru max 5
+- Pemeriksaan CKG terbaru max 5
+```
+
+Quick Action permission-aware dan tidak menambah capability. Tidak adanya Tahun Ajaran aktif menjadi state unavailable, bukan KPI nol palsu. Dashboard tidak menambah medical scoring, SLA, overdue, atau risk label.
+
+## 9. Boundary Konseling
 
 ```text
 Admin       operasional + settings sesuai permission
@@ -210,7 +234,7 @@ Siswa       tidak menerima detail/widget
 
 Authorization Route/Filter + Service; menu bukan security boundary.
 
-## 9. Settings User / Menu / Sistem
+## 10. Settings User / Menu / Sistem
 
 - `settings_user.manage`: account/role/identity/security state.
 - `settings_menu.manage`: visibility/navigation; bukan authorization.
@@ -226,7 +250,7 @@ access     = Admin + BK
 
 Operator tidak mendapat Settings Konseling.
 
-## 10. Historical Rencana Konseling
+## 11. Historical Rencana Konseling
 
 Perubahan daftar Rencana tidak boleh merusak nilai historis parent maupun Tindak Lanjut Konseling.
 
@@ -240,7 +264,7 @@ Rencana X tersimpan
 
 Parent invariant dan follow-up tetap wajib diregresikan bila source terkait berubah.
 
-## 11. Maintenance / Backup / Log
+## 12. Maintenance / Backup / Log
 
 Maintenance:
 
@@ -254,31 +278,28 @@ Backup: `backup.manage`, storage `writable/backups/`.
 
 Log Activity: `log_activity.view`; tidak menyimpan password/hash/token/cookie/session id/secret.
 
-## 12. Period Context pada Dashboard vs Listing
+## 13. Period Context pada Dashboard vs Listing
 
 Dashboard current-state memakai Tahun Ajaran aktif sesuai business context. Listing/history periodik wajib menyediakan selector Tahun Ajaran sesuai global UI contract.
 
 Jangan menambah selector Tahun Ajaran pada dashboard hanya untuk kosmetik bila seluruh KPI memang current-state aktif.
 
-## 13. Gate Status
+## 14. Gate Status
 
 ```text
 G3.3 Dashboard Guru/Wali                     CLOSED / MERGED — PR #8
 G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK                   CLOSED / MERGED — PR #10
 G3.5 Dashboard Pimpinan                      CLOSED / MERGED — PR #11
-G3.5 closure gate                            PASS
-main baseline G3.6                           6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
-G3.6 source Dashboard Siswa                  IMPLEMENTED ON FEATURE BRANCH
-G3.6 static gate                             PENDING
-G3.6 local runtime/UAT                       PENDING
-G3.6 self-scope/privacy regression           PENDING
-G3.6 cross-role regression                   PENDING
-G3.6 hosting deployment/re-smoke             NOT STARTED
-G3.6 PR                                      #12 DRAFT / NOT MERGED
+G3.6 Dashboard Siswa                         CLOSED / MERGED — PR #12
+G3.6 merge commit                            59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A Dashboard Kesehatan + UKS              IMPLEMENTED ON FEATURE BRANCH
+G3.6A localhost SQL                          PREPARED / PENDING EXECUTION
+G3.6A static/runtime/cross-role gate          PENDING
+G3.6A hosting                                NOT STARTED
 ```
 
-## 14. Phase Boundary
+## 15. Phase Boundary
 
 ```text
 G2      dashboard/settings stabilization
@@ -286,7 +307,8 @@ G3.3    Dashboard Guru/Wali
 G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5    Dashboard Pimpinan readonly/monitoring
-G3.6    Dashboard Siswa self-service
-G3.6A+  domain berikutnya
+G3.6    Dashboard Siswa self-service — CLOSED
+G3.6A   UKS / Kesehatan — ACTIVE
+G3.6B+  domain berikutnya
 G4      Cordova integration
 ```
