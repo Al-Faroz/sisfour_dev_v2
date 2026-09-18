@@ -2,8 +2,8 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
-**Database state:** G3.3.1 local+hosting CLOSED; G3.6A localhost SQL **prepared / execution pending**
+**Application baseline:** `main` @ `90acc7f94fee391a5a7fbad2395e3f16571fe921` + G3.6B feature branch
+**Database state:** G3.6A local+hosting CLOSED; G3.6B localhost SQL **prepared / execution pending**
 
 > Database adalah sumber integritas persistence. Exact DDL runtime tetap harus diverifikasi dari schema live/dump aktual dan SQL final di `database/`; dokumen ini menyatakan kontrak schema/business yang berlaku.
 
@@ -450,3 +450,34 @@ G3.6A hosting delta SQL                      NOT STARTED
 ```
 
 Existing hosting PASS tidak membuktikan G3.6A. Hosting delta hanya disusun dari dump hosting aktual setelah localhost gate selesai.
+
+
+## 19. G3.6B — PTSP Schema
+
+G3.6B menambah role `ptsp` pada enum `users.role`, `user_roles.role`, `role_permissions.role`, dan `role_menus.role`.
+
+Tabel baru:
+
+```text
+ptsp_layanan
+ptsp_polling
+ptsp_pengaduan
+ptsp_pengaduan_klasifikasi
+```
+
+Invariant:
+
+- seluruh submission snapshot `id_tahun` aktif;
+- PTSP memakai hard delete sesuai contract, sehingga tidak menambah `deleted_at`;
+- Pengaduan multi-klasifikasi memakai junction PK `(id_pengaduan, klasifikasi)`;
+- junction Pengaduan cascade saat parent di-hard-delete;
+- lampiran hanya menyimpan path private relatif + nama asli + MIME; bytes berada di `WRITEPATH/uploads/ptsp/pengaduan/`;
+- public stats membaca agregat saja dan tidak membutuhkan tabel/materialized view terpisah.
+
+SQL localhost:
+
+```text
+database/20260919_G3_6B_PTSP_LOCALHOST.sql
+```
+
+Status: PREPARED / execution pending.
