@@ -262,6 +262,13 @@ class AuthService
             return 'TIDAK_ADA';
         }
 
+        if (
+            str_starts_with($permissionKey, 'ptsp_')
+            && ! $this->ptspPermissionIdentityValid($permissionKey, $userId)
+        ) {
+            return 'TIDAK_ADA';
+        }
+
         $scopes = $this->getPermissionScopes($permissionKey, $userId);
 
         if ($scopes === []) {
@@ -377,6 +384,49 @@ class AuthService
         }
 
         $otherRoles = array_values(array_diff($roles, ['kesehatan']));
+        if ($otherRoles === []) {
+            return false;
+        }
+
+        return $this->db
+            ->table('role_permissions rp')
+            ->join('permissions p', 'p.id = rp.id_permission')
+            ->whereIn('rp.role', $otherRoles)
+            ->where('p.permission_key', $permissionKey)
+            ->where('rp.scope !=', 'TIDAK_ADA')
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Role PTSP adalah role berbasis Pegawai.
+     *
+     * Bila permission PTSP hanya berasal dari role ptsp, users.id_pegawai
+     * wajib valid. Effective role lain yang memang mempunyai permission PTSP
+     * tetap dapat memberikan akses secara independen.
+     */
+    private function ptspPermissionIdentityValid(
+        string $permissionKey,
+        int $userId
+    ): bool {
+        $roles = $this->getUserRoles($userId);
+
+        if (! in_array('ptsp', $roles, true)) {
+            return true;
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select('id_pegawai')
+            ->where('id', $userId)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
+
+        if ((int) ($user['id_pegawai'] ?? 0) > 0) {
+            return true;
+        }
+
+        $otherRoles = array_values(array_diff($roles, ['ptsp']));
         if ($otherRoles === []) {
             return false;
         }
