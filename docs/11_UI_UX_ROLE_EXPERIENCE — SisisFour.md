@@ -254,6 +254,23 @@ Konseling BK tidak pernah ditampilkan ke Siswa
 section tanpa permission tidak disamarkan sebagai data kosong
 ```
 
+### Dashboard Siswa G3.6
+
+Dashboard adalah current-state Tahun Ajaran aktif dan memakai scope `DIRI_SENDIRI`.
+
+```text
+Header           = Tahun Ajaran aktif + Data Saya
+Status           = Presensi Sesi Awal hari ini
+KPI 2×2          = Hadir / Sakit / Izin / Alpha bulan berjalan
+Quick Action     = Presensi Saya / Kartu / Prestasi / Profil
+Recent           = ketidakhadiran maksimal 5 + Lihat Rekap
+Kartu            = Kartu Pelajar diri sendiri
+Prestasi         = maksimal 5, Tahun Ajaran aktif + Lihat Semua
+Pelanggaran      = maksimal 5, Tahun Ajaran aktif + Lihat Semua
+```
+
+Quick Action permission-aware dan tidak menambah capability. Kartu/Profile tetap divalidasi server-side terhadap identity/scope actor. Bila Tahun Ajaran aktif tidak tersedia, data periodik dashboard menampilkan state unavailable dan tidak menggunakan angka 0 palsu. Dashboard tidak menambah selector historical.
+
 Untuk surface periodik **Catatan Pelanggaran** dan **Prestasi** dengan effective scope `DIRI_SENDIRI`, experience canonical adalah:
 
 ```text
@@ -355,7 +372,8 @@ G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali          CLOSED / MERGED
 G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
 G3.4 BK role experience           CLOSED / MERGED — PR #10
-G3.5 Pimpinan role experience     ACTIVE / PR #11 DRAFT / UAT PENDING
+G3.5 Pimpinan role experience     CLOSED / MERGED — PR #11
+G3.6 Siswa role experience        ACTIVE / SOURCE IMPLEMENTED / UAT PENDING
 ```
 
 ## 20. Acceptance
@@ -372,6 +390,9 @@ Role experience ACC bila:
 - jadwal follow-up memakai source tanggal tersimpan tanpa membuat SLA/label overdue baru;
 - Dashboard Pimpinan current-state hanya membaca Tahun Ajaran aktif untuk data periodik;
 - Dashboard Pimpinan mempertahankan readonly, shortcut permission-aware, dan tidak menerima data Konseling;
+- Dashboard Siswa current-state membatasi Presensi/Prestasi/Pelanggaran pada identity login + Tahun Ajaran aktif;
+- Dashboard Siswa membedakan Period Context unavailable dari nilai 0 dan menyediakan shortcut permission-aware;
+- Dashboard Siswa tidak menerima data Konseling dan tidak menampilkan poin Pelanggaran;
 - Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
 - filter padat tidak dipaksa satu baris sempit;
 - mobile role table/list tidak horizontal-scroll;
