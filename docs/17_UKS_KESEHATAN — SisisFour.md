@@ -1,7 +1,7 @@
 # UKS / Kesehatan — SisisFour
 
-**Status:** Canonical Target / Belum Diimplementasikan
-**Tanggal Acuan:** 17 September 2026
+**Status:** Canonical / G3.6A Implementation Active
+**Tanggal Acuan:** 18 September 2026
 **Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`
 **Source field:** workbook `field-form-UKS-CKG-PTSP.xlsx`, sheet `Form UKS` dan `Form CKG`.
 
@@ -28,8 +28,9 @@ Full Access Kesehatan **hanya berlaku pada domain UKS**, bukan seluruh aplikasi.
 
 ```text
 UKS
-├── Data CKG  -> Data Kesehatan Siswa
-└── Data UKS  -> Catatan Harian UKS
+├── Data CKG   -> Data Kesehatan Siswa
+├── Data UKS   -> Catatan Harian UKS
+└── Master UKS -> Keluhan / Tindakan / Hasil Kunjungan
 ```
 
 ## 3. Access Boundary / Capability / Scope
@@ -165,7 +166,21 @@ siswa + tanggal pemeriksaan sudah ada
 -> bukan insert duplikat baru
 ```
 
-**OPEN sebelum implementasi:** stable key file import. Nama siswa tidak boleh menjadi satu-satunya key. Rekomendasi target: `NISN` sebagai key utama import.
+Stable key import **LOCKED**:
+
+```text
+NISN = WAJIB dan menjadi key identitas siswa pada file import
+Nama = display/verifikasi saja
+Nama TIDAK boleh menjadi fallback key
+```
+
+Duplicate import **LOCKED**:
+
+```text
+record aktif siswa + tanggal sudah ada -> UPDATE
+record lama sudah soft-deleted          -> INSERT record aktif baru
+soft-deleted record                     -> TIDAK auto-restore
+```
 
 ## 6. Catatan Harian UKS
 
@@ -241,15 +256,17 @@ Technical tombstone minimal mengikuti pola aplikasi (`deleted_at` bila implement
 
 Admin/Operator/Kesehatan boleh mengelola master/reference UKS.
 
-Master candidate dari workbook:
+Master/reference configurable **LOCKED**:
 
 ```text
 Keluhan
 Tindakan
-Hasil kunjungan
+Hasil Kunjungan
 ```
 
-Pilihan pemeriksaan CKG dan enum sederhana (`Ya/Tidak`, status gizi, kondisi gigi, pendengaran, dsb.) diperlakukan sebagai fixed domain option pada target awal, kecuali keputusan domain berikutnya mengubahnya menjadi configurable.
+Master/reference memakai `status_aktif` untuk deactivate/reactivate. Opsi yang dinonaktifkan tidak tersedia untuk record baru, tetapi nilai yang sudah tersimpan tetap dapat dibaca dan dipertahankan saat edit histori. Normal UI tidak membuat tombstone master/reference.
+
+Pilihan pemeriksaan CKG dan enum sederhana (`Ya/Tidak`, status gizi, status tinggi, kondisi gigi/mulut, pendengaran, talasemia, tuberkulosis) tetap fixed domain option pada G3.6A.
 
 ## 9. Privacy
 
@@ -263,13 +280,33 @@ Siswa dapat melihat seluruh data kesehatan dirinya sendiri, tetapi **view only**
 
 ## 10. Dashboard / Notification
 
-Role Kesehatan mendapat experience/dashboard domain seperti role operasional lain.
+Role Kesehatan mendapat experience/dashboard domain current-state Tahun Ajaran aktif.
 
-Target dashboard UKS dapat merangkum CKG dan kunjungan UKS sesuai Tahun Ajaran/filter.
+Dashboard G3.6A **LOCKED**:
+
+```text
+KPI 2×2
+- Pemeriksaan CKG Bulan Ini
+- Kunjungan UKS Hari Ini
+- Kunjungan UKS Bulan Ini
+- Rujuk ke Klinik Bulan Ini
+
+Quick Action
+- Data CKG
+- Data UKS
+- Import CKG
+- Master UKS
+
+Recent
+- Kunjungan terbaru max 5
+- Pemeriksaan CKG terbaru max 5
+```
+
+Dashboard tidak membuat medical scoring, risk label, SLA, overdue, atau interpretasi klinis baru.
 
 Pimpinan **tidak memerlukan widget/data UKS tambahan pada dashboard utama Pimpinan**; akses dilakukan melalui menu UKS.
 
-Notification mengikuti pola notification global SisisFour ketika domain diimplementasikan; trigger konkret ditetapkan pada phase implementasi tanpa mengubah Access Boundary.
+Notification mengikuti pola notification global SisisFour. G3.6A tidak menambah trigger notification baru.
 
 ## 11. Audit
 
@@ -302,14 +339,80 @@ soft delete tidak muncul listing/export normal
 mobile no horizontal overflow
 ```
 
-## 13. Roadmap
+## 13. Implementation Mapping G3.6A
 
-Target phase:
+Branch:
 
 ```text
-G3.6A — UKS / Kesehatan
+feat/g3-6a-uks-kesehatan-20260918
+baseline main = 59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
-Dikerjakan setelah role experience Pimpinan dan Siswa stabil agar scope Pimpinan/Wali/Siswa dapat diuji lintas-role dengan foundation yang sama.
+Role experience priority G3.6A:
 
-Belum ada source/schema/permission/menu implementation dari dokumen ini. Implementasi memerlukan phase dan approval terpisah.
+```text
+admin > operator > pimpinan > bk > kesehatan > guru > siswa
+```
+
+PTSP tetap OPEN sampai G3.6B.
+
+Persistence target source/SQL:
+
+```text
+uks_ckg
+uks_kunjungan
+uks_kunjungan_tindakan
+uks_ref_keluhan
+uks_ref_tindakan
+uks_ref_hasil
+```
+
+Permission:
+
+```text
+uks_ckg.view
+uks_ckg.manage
+uks_ckg.import
+uks_ckg.export
+uks_harian.view
+uks_harian.manage
+uks_harian.export
+uks_master.manage
+```
+
+Period-aware Wali entry:
+
+```text
+Guru yang pernah menjadi Wali dapat masuk surface UKS agar dapat memilih period historis.
+Data final tetap:
+selected Tahun Ajaran
+-> mapping_wali_kelas periode tersebut
+-> anggota_kelas periode tersebut
+-> siswa yang boleh dibaca.
+```
+
+Jadi former Wali tidak memperoleh data Tahun aktif bila tidak menjadi Wali pada Tahun aktif; ia hanya mendapat data pada periode yang memang mempunyai mapping Wali.
+
+## 14. Current Gate
+
+```text
+G3.5 Pimpinan                         CLOSED / MERGED — PR #11
+G3.6 Siswa                            CLOSED / MERGED — PR #12
+G3.6 merge commit                     59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A contract                        LOCKED
+G3.6A source                          IMPLEMENTED / branch
+G3.6A localhost SQL                   PREPARED / BELUM DIEKSEKUSI
+G3.6A static gate                     PENDING
+G3.6A local runtime UAT               PENDING
+G3.6A local DB dump audit             PENDING
+G3.6A hosting dump audit / SQL        NOT STARTED
+G3.6A hosting deployment              NOT AUTHORIZED
+```
+
+SQL localhost:
+
+```text
+database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
+```
+
+Tidak ada SQL hosting G3.6A sebelum localhost PASS dan dump hosting aktual diaudit ulang.
