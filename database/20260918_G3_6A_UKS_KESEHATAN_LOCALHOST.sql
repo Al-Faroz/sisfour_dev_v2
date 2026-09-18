@@ -3,8 +3,6 @@
 -- IMPORTANT: jalankan localhost setelah source branch G3.6A dipull.
 -- Hosting SQL dibuat terpisah setelah localhost PASS + audit dump hosting aktual.
 
-START TRANSACTION;
-
 -- 1) Role Kesehatan sebagai effective role berbasis users.id_pegawai.
 ALTER TABLE `users`
   MODIFY `role` ENUM('admin','operator','pimpinan','bk','kesehatan','guru','siswa') NULL;
@@ -328,21 +326,13 @@ WHERE NOT EXISTS (
   WHERE rm.role = map.role AND rm.id_menu = m.id
 );
 
-COMMIT;
+-- Verification (read-only; tidak membutuhkan information_schema)
+SHOW COLUMNS FROM `users` LIKE 'role';
+SHOW COLUMNS FROM `user_roles` LIKE 'role';
+SHOW COLUMNS FROM `role_permissions` LIKE 'role';
+SHOW COLUMNS FROM `role_menus` LIKE 'role';
 
--- Verification (read-only)
-SELECT COLUMN_TYPE
-FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME IN ('users','user_roles','role_permissions','role_menus')
-  AND COLUMN_NAME = 'role'
-ORDER BY TABLE_NAME;
-
-SELECT TABLE_NAME
-FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME LIKE 'uks_%'
-ORDER BY TABLE_NAME;
+SHOW TABLES LIKE 'uks_%';
 
 SELECT p.permission_key, rp.role, rp.scope
 FROM role_permissions rp
