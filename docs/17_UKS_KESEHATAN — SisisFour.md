@@ -374,7 +374,7 @@ Role experience priority G3.6A:
 admin > operator > pimpinan > bk > kesehatan > guru > siswa
 ```
 
-PTSP tetap OPEN sampai G3.6B.
+PTSP priority telah dikunci pada G3.6B dan tidak mengubah contract UKS G3.6A.
 
 Persistence target source/SQL:
 
@@ -413,38 +413,31 @@ selected Tahun Ajaran
 
 Jadi former Wali tidak memperoleh data Tahun aktif bila tidak menjadi Wali pada Tahun aktif; ia hanya mendapat data pada periode yang memang mempunyai mapping Wali.
 
-## 14. Current Gate
+## 14. Closure
 
 ```text
 G3.5 Pimpinan                         CLOSED / MERGED — PR #11
 G3.6 Siswa                            CLOSED / MERGED — PR #12
-G3.6 merge commit                     59b22b651ad0d508ea3a29261ef590d4c9506da4
-G3.6A contract                        LOCKED
-G3.6A source                          IMPLEMENTED / branch
-PR #13                                OPEN / DRAFT / NOT MERGED
-G3.6A localhost SQL                   PASS / user evidence
-G3.6A static gate                     PASS / user terminal evidence
-G3.6A local runtime UAT               PASS / user runtime evidence
-G3.6A cross-role/mobile re-smoke      PASS / user runtime evidence
-G3.6A local DB dump audit             PASS / read-only dump audit
-G3.6A fresh hosting dump audit        PASS / read-only dump audit
-G3.6A hosting SQL                     PREPARED / static audit PASS
-G3.6A hosting SQL execution           AUTHORIZED / PENDING USER EXECUTION
-G3.6A hosting source deployment       NOT AUTHORIZED
-PR Ready                              NOT AUTHORIZED
-Merge                                 NOT AUTHORIZED
+G3.6A UKS / Kesehatan                CLOSED / MERGED — PR #13
+Feature HEAD sebelum merge           a8d840da607561ec401a2201ef1d6e1f369b776f
+Merge commit / main                  90acc7f94fee391a5a7fbad2395e3f16571fe921
+
+Localhost SQL                        PASS / user evidence
+Static gate                          PASS / user terminal evidence
+Local runtime/cross-role/mobile      PASS / user runtime evidence
+Local post-SQL dump audit            PASS / read-only dump audit
+Fresh hosting pre/post-SQL audit     PASS / read-only dump audit
+Hosting SQL execution                PASS / user evidence
+Hosting source deployment            PASS / user evidence
+Hosting focused/cross-role smoke      PASS / user runtime evidence
 ```
 
-SQL localhost:
+SQL artifacts retained:
 
 ```text
 database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
-```
-
-SQL hosting berbasis fresh dump `u473908839_sisfour2026 (12).sql`:
-
-```text
 database/20260918_G3_6A_UKS_KESEHATAN_HOSTING.sql
 ```
 
-Hosting SQL hanya membawa schema/seed canonical/RBAC/menu. Ia tidak membawa tabel `migrations`, data UAT localhost, user/pegawai localhost, atau perubahan pada intentional FK `konseling_bk.id_guru_bk ON DELETE SET NULL ON UPDATE CASCADE`.
+Intentional hosting FK tetap:
+`konseling_bk.id_guru_bk ON DELETE SET NULL ON UPDATE CASCADE`.
