@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Role experience:** Admin, Operator, Pimpinan, BK, Kesehatan, Guru, Guru+Wali, Siswa
+**Role experience:** Admin, Operator, Pimpinan, BK, Kesehatan, PTSP, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
 
@@ -330,10 +330,10 @@ Tidak ada medical risk score, SLA, overdue, atau interpretasi klinis yang dicipt
 Role experience priority:
 
 ```text
-admin > operator > pimpinan > bk > kesehatan > guru > siswa
+admin > operator > pimpinan > bk > kesehatan > ptsp > guru > siswa
 ```
 
-PTSP belum dimasukkan sampai G3.6B.
+PTSP masuk priority G3.6B setelah Kesehatan dan sebelum Guru.
 
 ## 13. Quick Action Mobile
 
@@ -421,7 +421,8 @@ G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
 G3.4 BK role experience           CLOSED / MERGED — PR #10
 G3.5 Pimpinan role experience     CLOSED / MERGED — PR #11
 G3.6 Siswa role experience        CLOSED / MERGED — PR #12
-G3.6A Kesehatan/UKS experience    ACTIVE / SOURCE IMPLEMENTED / LOCAL SQL PENDING
+G3.6A Kesehatan/UKS experience    CLOSED / MERGED — PR #13
+G3.6B PTSP experience              ACTIVE / SOURCE IMPLEMENTED / LOCAL SQL PENDING
 ```
 
 ## 21. Acceptance
@@ -454,3 +455,17 @@ Role experience ACC bila:
 - follow-up Konseling multiple entry tidak overwrite histori;
 - tidak ada delete Konseling/follow-up;
 - business/security rule tetap server-side.
+
+
+## 13. PTSP — G3.6B
+
+Authenticated PTSP memakai shell CI4/Sneat existing. Public PTSP memakai landing tersendiri tanpa sidebar authenticated.
+
+Mobile/public acceptance:
+
+- tiga form public stack vertikal pada viewport sempit;
+- internal list memakai card presentation pada mobile dan table desktop;
+- mutation controls tidak dirender untuk Pimpinan;
+- receipt thermal hanya muncul untuk Layanan yang baru disubmit dan tidak memuat ticket/queue/tracking number;
+- Pengaduan tidak meminta nama/kontak;
+- attachment tidak mempunyai direct public URL.
