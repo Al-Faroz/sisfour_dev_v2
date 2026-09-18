@@ -373,7 +373,7 @@ G3.3 Dashboard Guru/Wali          CLOSED / MERGED
 G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
 G3.4 BK role experience           CLOSED / MERGED — PR #10
 G3.5 Pimpinan role experience     CLOSED / MERGED — PR #11
-G3.6 Siswa role experience        ACTIVE / SOURCE IMPLEMENTED / UAT PENDING
+G3.6 Siswa role experience        ACTIVE / PR #12 DRAFT / UAT PENDING
 ```
 
 ## 20. Acceptance
