@@ -1,9 +1,9 @@
 # BK, Konseling, Prestasi & Kartu Pelajar — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Baseline Aplikasi:** `main` @ `06e4e559c045763096058fc889342da78d973314`
-**Development aktif:** `feat/g3-bk-foundation-konseling-20260916` — **BK periodic-year + Konseling follow-up 1:N rework / local gate pending**
+**Tanggal Acuan:** 18 September 2026
+**Baseline Aplikasi:** `main` @ `27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6`
+**Development aktif:** `feat/g3-4-bk-dashboard-workflow-20260918` — **G3.4 Dashboard/Workflow BK**
 
 > Dokumen ini menyatakan kontrak BK canonical. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
@@ -19,6 +19,7 @@ Pengaturan Form Konseling
 Prestasi Siswa
 Kartu Pelajar
 Public Verify Kartu
+Dashboard/Workflow BK
 ```
 
 ## 2. Aturan Global Periodik BK
@@ -34,6 +35,8 @@ historis       = boleh dipilih bila ada di master Tahun Ajaran
 export         = mengikuti Tahun Ajaran yang sedang dipilih
 create baru    = selalu snapshot Tahun Ajaran aktif dari server
 ```
+
+Dashboard BK adalah current-state dan memakai **Tahun Ajaran aktif** secara server-side tanpa selector historis. Listing/history tetap selectable.
 
 Filter Tahun Ajaran tidak dipakai pada tabel global non-periodik seperti Master Pelanggaran, User, Permission, Menu, Setting Sistem, atau Log Activity.
 
@@ -82,7 +85,7 @@ Tabel fisik legacy:
 catatan_kasus
 ```
 
-Field periodik G3.3.1 rework:
+Field periodik:
 
 ```text
 id_tahun -> tahun_ajaran.id
@@ -237,7 +240,7 @@ Ketentuan:
 
 ## 8. Tindak Lanjut Konseling — 1:N
 
-Keputusan 17 September 2026: Konseling **tidak berhenti pada satu Rencana Lanjutan**. Satu parent Konseling dapat memiliki banyak entry tindak lanjut.
+Satu parent Konseling dapat memiliki banyak entry tindak lanjut.
 
 Relasi:
 
@@ -295,7 +298,7 @@ record menyimpan Rencana X
 → record lain yang tidak pernah menyimpan X tidak boleh memakai X
 ```
 
-Focused local UAT untuk parent historical-Rencana pada 17 September 2026: **PASS**. Setelah rework 1:N, behavior yang sama wajib diregresikan pada entry Tindak Lanjut Konseling.
+Focused local UAT untuk parent historical-Rencana pada 17 September 2026: **PASS**. Behavior yang sama tetap menjadi invariant follow-up 1:N.
 
 ## 10. Pengaturan Isian Form Konseling
 
@@ -359,7 +362,7 @@ Tabel:
 catatan_prestasi
 ```
 
-Field periodik G3.3.1 rework:
+Field periodik:
 
 ```text
 id_tahun -> tahun_ajaran.id
@@ -437,28 +440,24 @@ status_aktif
 
 Database menjaga maksimum satu kartu Aktif per siswa. Kartu operasional adalah current-state workflow dan tidak diberi filter Tahun Ajaran hanya demi konsistensi visual palsu.
 
-## 15. SQL G3.3.1
+## 15. SQL G3.3.1 — Closed
 
-Baseline local:
+Baseline:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
-```
-
-Hosting baseline yang sudah dieksekusi:
-
-```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-Rework localhost 17 September 2026:
+Rework 17 September 2026:
 
 ```text
 database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
 
-Rework ini:
+Rework final:
 
 ```text
 + catatan_kasus.id_tahun
@@ -466,33 +465,73 @@ Rework ini:
 + tindak_lanjut_konseling_bk
 ```
 
-**Belum ada SQL hosting untuk rework 17 September.** Hosting SQL baru hanya boleh dibuat setelah localhost schema/UAT PASS dan dump hosting aktual diaudit kembali.
+Local + hosting schema/source/re-smoke G3.3.1 telah PASS berdasarkan evidence closure PR #9. G3.4 tidak menambah SQL/schema baru.
 
-## 16. Gate G3.3.1 Saat Ini
-
-Gate lama yang tetap valid:
+## 16. Gate G3.3.1 — Closed / Merged
 
 ```text
-poin retired
-Catatan Pelanggaran + Tindak Lanjut 1:N
-privacy/RBAC Konseling
-Konseling Tahap 1/Tahap 2 baseline
-Settings validation
-historical Rencana parent focused local UAT PASS
-hosting baseline SQL + broad smoke PASS
+periodic Tahun Ajaran BK                    PASS
+filter desktop 2-row Konseling             PASS
+Konseling follow-up 1:N                    PASS
+no-delete Konseling/follow-up               PASS
+localhost SQL/runtime                       PASS / user evidence
+hosting schema/source/re-smoke              PASS / user evidence + dump audit
+final static exact head                     PASS / user evidence
+PR #9                                       MERGED
+merge commit                                27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 ```
 
-Gate baru akibat keputusan 17 September:
+## 17. Dashboard/Workflow BK — G3.4
+
+G3.4 memakai foundation G3.3.1 final dan tidak mengubah Access Boundary Konseling.
+
+Dashboard BK adalah current-state Tahun Ajaran aktif:
 
 ```text
-periodic Tahun Ajaran BK source            IMPLEMENTED / UAT PENDING
-filter desktop 2-row Konseling             IMPLEMENTED / UAT PENDING
-Konseling follow-up 1:N                    IMPLEMENTED / SQL+UAT PENDING
-no-delete Konseling/follow-up               IMPLEMENTED / UAT PENDING
-localhost delta SQL                         PREPARED / NOT YET EVIDENCED PASS
-static gate head terbaru                    PENDING
-hosting delta audit/SQL/re-smoke            NOT STARTED
-PR #9                                       DRAFT / BELUM MERGE
+KPI 2×2
+- Konseling Proses
+- Pelanggaran Bulan Ini
+- EWS Alpha 14 Hari
+- Prestasi Bulan Ini
+
+Quick Action
+- Konseling BK
+- Catatan Pelanggaran
+- EWS
+- Prestasi
+
+Recent / priority
+- Jadwal Follow-up Terdekat
+- Catatan Pelanggaran Terbaru
+- EWS
+- Prestasi Terbaru
 ```
 
-G3.4 baru dimulai setelah rework ini lulus localhost + hosting gate, docs kembali sinkron, PR #9 merged, dan user memberi approval eksplisit.
+Semua count/list Catatan Pelanggaran, Konseling, dan Prestasi pada dashboard dibatasi `id_tahun` aktif. Dashboard tidak mempunyai selector Tahun Ajaran; historical selector tetap di listing.
+
+Jadwal Follow-up Terdekat:
+
+```text
+jika parent sudah mempunyai histori tindak lanjut
+→ pakai tanggal_berikutnya dari entry tindak lanjut terbaru
+
+jika belum mempunyai histori tindak lanjut
+→ pakai tanggal_berikutnya parent
+```
+
+Parent `Proses` tanpa tanggal berikutnya tetap dihitung pada KPI Konseling Proses tetapi tidak dipalsukan menjadi item jadwal.
+
+G3.4 tidak mendefinisikan SLA, overdue, deadline baru, atau ranking prioritas berdasarkan spekulasi. Recent/top section maksimal 5 item + Lihat Semua.
+
+Authorization dashboard tetap permission-aware; Konseling tidak boleh dibentuk untuk Pimpinan/Guru/Wali/Siswa.
+
+Current gate G3.4:
+
+```text
+source implementation                        IMPLEMENTED ON FEATURE BRANCH
+SSOT sync                                    IN PROGRESS
+static gate                                  PENDING
+local runtime/UAT                            PENDING
+hosting deployment/re-smoke                  NOT STARTED
+PR                                            NOT OPENED
+```

@@ -115,7 +115,7 @@ monitor EWS
 catat Prestasi
 ```
 
-Priority G3.4 nanti:
+Priority G3.4:
 
 ```text
 Konseling Proses / follow-up terdekat
@@ -124,6 +124,34 @@ Tindak Lanjut yang perlu perhatian
 EWS
 Prestasi
 ```
+
+### Dashboard BK G3.4
+
+Dashboard adalah current-state Tahun Ajaran aktif, bukan historical listing. Tidak ada selector Tahun Ajaran di dashboard.
+
+KPI canonical 2×2:
+
+```text
+Konseling Proses
+Pelanggaran Bulan Ini
+EWS Alpha 14 Hari
+Prestasi Bulan Ini
+```
+
+Quick Action permission-aware:
+
+```text
+Konseling BK
+Catatan Pelanggaran
+EWS
+Prestasi
+```
+
+Recent/top section dibatasi maksimum 5 item dan menyediakan `Lihat Semua`. Mobile memakai card/list tanpa horizontal operational table scroll.
+
+Jadwal Follow-up Terdekat menggunakan `tanggal_berikutnya` dari entry Tindak Lanjut Konseling terbaru bila histori sudah ada; jika belum ada histori, gunakan `tanggal_berikutnya` parent. Tanggal kosong tidak dibuat menjadi jadwal. G3.4 tidak menciptakan SLA, deadline, atau label overdue baru.
+
+Widget tanpa permission tidak disamarkan sebagai angka 0.
 
 ### Catatan Pelanggaran
 
@@ -292,7 +320,7 @@ BK         Catatan Pelanggaran/Tindak Lanjut Pelanggaran/Konseling/Tindak Lanjut
 Admin/Operator sesuai permission
 ```
 
-Wajib busy guard, server-confirmed success, input penting dipertahankan pada failure, dan project confirmation untuk destructive action. Konseling tidak memiliki destructive delete action pada G3.3.1.
+Wajib busy guard, server-confirmed success, input penting dipertahankan pada failure, dan project confirmation untuk destructive action. Konseling tidak memiliki destructive delete action pada contract saat ini.
 
 ## 19. Current Phase Status
 
@@ -300,8 +328,8 @@ Wajib busy guard, server-confirmed success, input penting dipertahankan pada fai
 G3.1 Mobile foundation            CLOSED / MERGED
 G3.2 Guru/Wali Presensi/Jurnal    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali          CLOSED / MERGED
-G3.3.1 Fondasi BK                 LOCAL FINAL GATE PASS / HOSTING SOURCE RE-SMOKE PENDING
-G3.4 BK role experience           NEXT setelah PR #9 merge
+G3.3.1 Fondasi BK                 CLOSED / MERGED — PR #9
+G3.4 BK role experience           ACTIVE / SOURCE IMPLEMENTED / UAT PENDING
 ```
 
 ## 20. Acceptance
@@ -313,6 +341,9 @@ Role experience ACC bila:
 - action penting mudah ditemukan;
 - shortcut tidak melampaui permission;
 - periodic tables konsisten memakai Tahun Ajaran;
+- Dashboard BK current-state hanya membaca Tahun Ajaran aktif dan tidak menambah selector historis palsu;
+- Dashboard BK membatasi recent/top 3–5 item + Lihat Semua;
+- jadwal follow-up memakai source tanggal tersimpan tanpa membuat SLA/label overdue baru;
 - Siswa `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi hanya memakai Tahun Ajaran sebagai Period Context dan daftar langsung data diri;
 - filter padat tidak dipaksa satu baris sempit;
 - mobile role table/list tidak horizontal-scroll;

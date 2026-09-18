@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Development aktif:** G3.3.1 rework — periodic Tahun Ajaran + Konseling follow-up 1:N
+**Tanggal Acuan:** 18 September 2026
+**Development aktif:** G3.4 — Dashboard/Workflow BK
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -153,20 +153,22 @@ G2     CLOSED / MERGED — PR #5
 G3.1   CLOSED / MERGED — PR #6
 G3.2   CLOSED / MERGED — PR #7
 G3.3   CLOSED / MERGED — PR #8
+G3.3.1 CLOSED / MERGED — PR #9
 ```
 
-Merge baseline sebelum PR #9:
+Merge baseline:
 
 ```text
-G2   375766c07f3856515a71ffdb07f3681c3047ca31
-G3.1 d10ced5d70ffc68642067aac44feeb6a91cacd29
-G3.2 176e5f764850d030968524af47117f259449064c
-G3.3 06e4e559c045763096058fc889342da78d973314
+G2     375766c07f3856515a71ffdb07f3681c3047ca31
+G3.1   d10ced5d70ffc68642067aac44feeb6a91cacd29
+G3.2   176e5f764850d030968524af47117f259449064c
+G3.3   06e4e559c045763096058fc889342da78d973314
+G3.3.1 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 ```
 
-## 10. G3.3.1 — Fondasi BK + Konseling
+## 10. G3.3.1 — Fondasi BK + Konseling — Closed
 
-Branch:
+Branch merged:
 
 ```text
 feat/g3-bk-foundation-konseling-20260916
@@ -226,22 +228,21 @@ Identitas
 → Form Tambah/Edit Tindak Lanjut
 ```
 
-### Current Gate
+### Closure
 
 ```text
-baseline G3.3.1 local/hosting                   PASS
-parent historical-Rencana focused local UAT    PASS
-17 Sep localhost SQL execution                  PASS (user evidence)
-17 Sep local runtime UAT                        PASS (user evidence)
-17 Sep final static gate                        PENDING
-17 Sep hosting dump audit/delta/re-smoke        NOT STARTED
-PR #9                                           DRAFT / BELUM MERGE
+local schema/runtime                     PASS
+hosting schema/source/re-smoke           PASS
+focused UAT Siswa                        PASS
+final static exact head                  PASS
+PR #9                                    MERGED
+merge commit                             27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
 ```
 
-## 11. G3 Roadmap Setelah PR #9
+## 11. G3 Roadmap Aktif
 
 ```text
-G3.4  BK Workflow + Dashboard BK
+G3.4  BK Workflow + Dashboard BK       ACTIVE
 G3.5  Pimpinan
 G3.6  Siswa
 G3.6A UKS / Kesehatan
@@ -293,19 +294,53 @@ public aggregate statistics API per form untuk WordPress/portal
 
 PTSP diletakkan setelah UKS karena menambah public surface + public API yang memerlukan regression khusus di luar authenticated role experience.
 
-## 12. G3.4 Foundation Target
+## 12. G3.4 — Dashboard/Workflow BK
 
-G3.4 memakai foundation final BK:
+Branch aktif:
 
 ```text
-Konseling Proses/follow-up terdekat
-Catatan Pelanggaran terbaru/berat tanpa poin
-Tindak Lanjut perlu perhatian
-EWS
-Prestasi
-quick action permission-aware
-mobile-first
-privacy Konseling ketat
+feat/g3-4-bk-dashboard-workflow-20260918
+```
+
+G3.4 memakai foundation final BK tanpa schema/permission/route baru.
+
+Dashboard BK adalah current-state Tahun Ajaran aktif:
+
+```text
+KPI
+- Konseling Proses
+- Pelanggaran Bulan Ini
+- EWS Alpha 14 Hari
+- Prestasi Bulan Ini
+
+Quick Action
+- Konseling BK
+- Catatan Pelanggaran
+- EWS
+- Prestasi
+
+Priority list
+- Jadwal Follow-up Terdekat
+- Catatan Pelanggaran Terbaru
+- EWS
+- Prestasi Terbaru
+```
+
+Catatan Pelanggaran/Konseling/Prestasi pada dashboard harus dibatasi Tahun Ajaran aktif. Dashboard tidak menambah selector Tahun Ajaran karena historical period tetap menjadi concern listing.
+
+Jadwal follow-up memakai tanggal pada entry tindak lanjut terbaru bila histori sudah ada; jika belum, memakai tanggal berikutnya parent. Tidak ada SLA/overdue baru.
+
+Recent/top list maksimal 5 item + Lihat Semua. Quick action permission-aware dan tidak menambah authorization.
+
+Current gate:
+
+```text
+source implementation             IMPLEMENTED ON FEATURE BRANCH
+SSOT sync                         IN PROGRESS
+static gate                       PENDING
+local runtime/UAT                 PENDING
+hosting deployment/re-smoke       NOT STARTED
+PR                                NOT OPENED
 ```
 
 ## 13. G4 — Cordova APK

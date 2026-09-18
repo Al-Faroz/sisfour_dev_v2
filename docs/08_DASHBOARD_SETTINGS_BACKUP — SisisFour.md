@@ -1,7 +1,7 @@
 # Dashboard, Settings, Maintenance, Backup & Log — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
+**Tanggal Acuan:** 18 September 2026
 
 ## 1. Dashboard by Experience
 
@@ -50,32 +50,64 @@ Konseling BK bukan widget/source data Pimpinan
 widget tanpa permission = tidak tersedia, bukan 0 palsu
 ```
 
-## 4. BK — Foundation untuk G3.4
+## 4. BK — G3.4 Dashboard/Workflow
 
-Foundation target G3.3.1 setelah rework 17 September:
+Foundation G3.3.1 sudah final dan merged melalui PR #9. G3.4 memakai foundation tersebut tanpa menambah schema/permission/route baru.
+
+Dashboard BK adalah **current-state Tahun Ajaran aktif**. Dashboard tidak memakai selector Tahun Ajaran; selector historis tetap berada pada listing periodik Catatan Pelanggaran, Konseling, dan Prestasi.
+
+KPI canonical:
 
 ```text
-Catatan Pelanggaran tanpa poin
-Tindak Lanjut Pelanggaran 1:N
-Konseling parent Tahap 1/Tahap 2
-Tindak Lanjut Konseling 1:N
-Konseling rahasia
-Catatan Pelanggaran/Konseling/Prestasi period-aware
+Konseling Proses
+Pelanggaran Bulan Ini
+EWS Alpha 14 Hari
+Prestasi Bulan Ini
+```
+
+Semua KPI periodik BK dibatasi `id_tahun = Tahun Ajaran aktif`. Widget tanpa permission tidak dibentuk sebagai angka 0 palsu.
+
+Quick action permission-aware:
+
+```text
+Konseling BK
+Catatan Pelanggaran
 EWS
 Prestasi
-Pengaturan Form Konseling
 ```
 
-Priority G3.4 nanti:
+Quick action hanya shortcut ke capability yang sudah sah; ia tidak menambah permission.
+
+Priority content:
 
 ```text
-Konseling Proses / follow-up terdekat
-Catatan Pelanggaran terbaru/berat
-Tindak Lanjut perlu perhatian
-EWS
-Prestasi ringkas
-quick action permission-aware
+1. Konseling Proses / jadwal follow-up terdekat
+2. Catatan Pelanggaran terbaru/berat
+3. Tindak Lanjut yang perlu perhatian melalui tanggal berikutnya tersimpan
+4. EWS
+5. Prestasi ringkas
 ```
+
+Jadwal follow-up terdekat memakai source:
+
+```text
+jika sudah ada Tindak Lanjut Konseling
+→ tanggal_berikutnya entry tindak lanjut terbaru
+
+jika belum ada Tindak Lanjut Konseling
+→ tanggal_berikutnya pada hasil pertemuan awal parent
+```
+
+Tanggal kosong tidak dibuat menjadi jadwal. G3.4 tidak menciptakan SLA, deadline baru, label overdue, atau kesimpulan "terlambat".
+
+Dashboard bukan laporan lengkap:
+
+```text
+maksimal 5 item per recent/top section
++ Lihat Semua
+```
+
+UI BK memakai adaptive card/list dan tidak menggunakan horizontal operational table pada mobile.
 
 G3.4 tidak boleh menghidupkan poin, membuka Konseling ke role lain, atau mengabaikan filter Tahun Ajaran pada surface historis.
 
@@ -162,7 +194,7 @@ Rencana X tersimpan
 → tidak menjadi pilihan global lagi
 ```
 
-Parent invariant sudah focused-local PASS sebelum rework; follow-up 1:N wajib diuji ulang.
+Parent invariant dan follow-up tetap wajib diregresikan bila source terkait berubah.
 
 ## 11. Maintenance / Backup / Log
 
@@ -180,23 +212,22 @@ Log Activity: `log_activity.view`; tidak menyimpan password/hash/token/cookie/se
 
 ## 12. Period Context pada Dashboard vs Listing
 
-Dashboard current-state boleh tetap memakai Tahun Ajaran aktif sesuai business context. Listing/history periodik wajib menyediakan selector Tahun Ajaran sesuai global UI contract.
+Dashboard current-state memakai Tahun Ajaran aktif sesuai business context. Listing/history periodik wajib menyediakan selector Tahun Ajaran sesuai global UI contract.
 
 Jangan menambah selector Tahun Ajaran pada dashboard hanya untuk kosmetik bila seluruh KPI memang current-state aktif.
 
 ## 13. Gate Status
 
 ```text
-G3.3 Dashboard Guru/Wali                     CLOSED / MERGED
-G3.3.1 baseline local/hosting                PASS
-Historical-Rencana parent local UAT          PASS
-17 Sep periodic/follow-up source             IMPLEMENTED
-17 Sep localhost delta SQL                   PREPARED
-17 Sep localhost SQL/UAT                     PENDING
-17 Sep final static                          PENDING
-17 Sep hosting audit/delta/re-smoke          NOT STARTED
-PR #9                                        DRAFT / NOT MERGED
-G3.4                                         NEXT setelah PR #9 merge
+G3.3 Dashboard Guru/Wali                     CLOSED / MERGED — PR #8
+G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
+G3.3.1 local + hosting closure gate          PASS
+main baseline G3.4                           27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
+G3.4 source Dashboard/Workflow BK            IMPLEMENTED ON FEATURE BRANCH
+G3.4 static gate                             PENDING
+G3.4 local runtime/UAT                       PENDING
+G3.4 hosting deployment/re-smoke             NOT STARTED
+G3.4 PR                                      NOT OPENED
 ```
 
 ## 14. Phase Boundary
@@ -204,7 +235,7 @@ G3.4                                         NEXT setelah PR #9 merge
 ```text
 G2      dashboard/settings stabilization
 G3.3    Dashboard Guru/Wali
-G3.3.1  fondasi BK/Konseling + rework period/follow-up
+G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5+   role berikutnya
 G4      Cordova integration

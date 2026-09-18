@@ -1,7 +1,7 @@
 # Tree Structure — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
+**Tanggal Acuan:** 18 September 2026
 
 ## 1. Root
 
@@ -84,13 +84,14 @@ app/Config/RoutesBKFoundation.php
 
 `Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
 
-Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
+G3.4 tidak menambah route baru. Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
 
-## 4. G3.3.1 BK Source
+## 4. BK Source — G3.3.1 + G3.4
 
 Controller:
 
 ```text
+app/Controllers/Dashboard.php
 app/Controllers/BKKasus.php
 app/Controllers/BKKonseling.php
 app/Controllers/BKKonselingSettings.php
@@ -112,6 +113,7 @@ Services:
 ```text
 app/Services/BkExportService.php
 app/Services/BkKonselingFormSettingsService.php
+app/Services/BkWorkflowDashboardService.php
 app/Services/KonselingBkExportService.php
 app/Services/KonselingBkService.php
 app/Services/PeriodContextService.php
@@ -119,9 +121,12 @@ app/Services/PrestasiService.php
 app/Services/RoleAwareDashboardService.php
 ```
 
+`BkWorkflowDashboardService` adalah G3.4 specialization dari `RoleAwareDashboardService`. Ia hanya meng-override payload experience BK sehingga role lain tetap memakai behavior phase sebelumnya.
+
 Views:
 
 ```text
+app/Views/dashboard_bk.php
 app/Views/bk/kasus.php
 app/Views/bk/konseling.php
 app/Views/bk/konseling_settings.php
@@ -146,7 +151,7 @@ Reusable period helper:
 assets/js/components/active-year-default.js
 ```
 
-`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server.
+`PeriodContextService` adalah server-side resolver period untuk surface periodik; helper JS tidak menggantikan validasi server. Dashboard G3.4 memakai Tahun Ajaran aktif server-side dan tidak menambah historical selector.
 
 ## 5. Konseling Rework Structure
 
@@ -158,7 +163,9 @@ konseling_bk
 
 Routes follow-up berada di `RoutesBKFoundation.php`; Model follow-up berada di `KonselingBkFollowUpModel.php`; business rule berada di `KonselingBkService.php`.
 
-Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling pada kontrak G3.3.1 saat ini.
+Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun Tindak Lanjut Konseling pada kontrak saat ini.
+
+G3.4 hanya membaca workflow tersebut untuk KPI dan jadwal follow-up; tidak menambah mutation baru.
 
 ## 6. Future Domain Structure — UKS / Kesehatan
 
@@ -257,7 +264,7 @@ database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_LOCALHOST.sql
 database/20260915_G3_2_JURNAL_STUDENT_EXCEPTIONS_HOSTING.sql
 ```
 
-G3.3.1 baseline yang sudah diuji:
+G3.3.1 baseline:
 
 ```text
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_LOCALHOST.sql
@@ -265,11 +272,14 @@ database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_FIX3_LOCALHOST.sql
 database/20260916_G3_3_1_BK_FOUNDATION_KONSELING_HOSTING.sql
 ```
 
-G3.3.1 rework local:
+G3.3.1 rework final:
 
 ```text
 database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
+database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
+
+G3.4 tidak mempunyai SQL/schema delta.
 
 Belum ada SQL/schema delta UKS/PTSP karena domain tersebut belum masuk phase implementation.
 
@@ -367,8 +377,8 @@ G2      CLOSED
 G3.1    CLOSED / MERGED
 G3.2    CLOSED / MERGED
 G3.3    CLOSED / MERGED
-G3.3.1  REWORK / PR #9 DRAFT
-G3.4    NEXT setelah PR #9 merge
+G3.3.1  CLOSED / MERGED — PR #9
+G3.4    ACTIVE — Dashboard/Workflow BK
 G3.5    Pimpinan
 G3.6    Siswa
 G3.6A   UKS / Kesehatan
