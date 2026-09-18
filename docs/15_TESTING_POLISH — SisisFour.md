@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6A — **UKS / Kesehatan / localhost SQL + baseline UAT PASS; focused static/runtime re-smoke pending after UX refinement**
+**Phase aktif:** G3.6A — **UKS / Kesehatan / local gates PASS; fresh hosting dump audited; hosting SQL prepared and execution authorized**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -365,11 +365,13 @@ Master UKS
 - histori referensi tetap terbaca
 
 Dashboard Kesehatan
-- Pemeriksaan CKG Bulan Ini
 - Kunjungan UKS Hari Ini
 - Kunjungan UKS Bulan Ini
 - Rujuk ke Klinik Bulan Ini
-- latest max 5
+- Pemeriksaan CKG Bulan Ini
+- primary action: Tambah Data Kunjungan
+- quick action: Data UKS / Data CKG / Import CKG / Master UKS
+- latest Kunjungan max 5 lalu CKG max 5
 - no medical score/SLA/overdue/risk label baru
 
 Regression
@@ -419,14 +421,18 @@ G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
 
 G3.6A contract                      LOCKED
 G3.6A source                        IMPLEMENTED / feature branch
-G3.6A docs sync                     IN PROGRESS
-G3.6A localhost SQL                 PREPARED
-G3.6A localhost SQL execution       PENDING
-G3.6A final static gate             PENDING
-G3.6A local runtime UAT             PENDING
-G3.6A cross-role/historical UAT     PENDING
-G3.6A local dump audit              PENDING
-G3.6A hosting                       NOT STARTED
+G3.6A docs sync                     PASS
+G3.6A localhost SQL                 PASS / user evidence
+G3.6A final static gate             PASS / user terminal evidence
+G3.6A local runtime UAT             PASS / user runtime evidence
+G3.6A cross-role/historical UAT     PASS / user runtime evidence
+G3.6A local dump audit              PASS / read-only dump audit
+G3.6A fresh hosting dump audit      PASS / read-only dump audit
+G3.6A hosting SQL                   PREPARED / static audit PASS
+G3.6A hosting SQL execution         AUTHORIZED / PENDING USER EXECUTION
+G3.6A hosting source deployment     NOT AUTHORIZED
+PR Ready                            NOT AUTHORIZED
+Merge                               NOT AUTHORIZED
 ```
 
 ## 18. Roadmap
