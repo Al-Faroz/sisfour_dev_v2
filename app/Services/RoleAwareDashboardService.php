@@ -7,8 +7,8 @@ namespace App\Services;
  * terhadap effective role dan managed Guru identity.
  *
  * SettingsUserService mempertahankan role Guru sebagai secondary role
- * ketika sebuah akun mempunyai id_guru. Karena itu BK dan Kesehatan harus diprioritaskan
- * sebelum Guru agar akun BK+Guru tetap memperoleh Dashboard BK.
+ * ketika sebuah akun mempunyai id_guru. Karena itu BK, Kesehatan, dan PTSP harus
+ * diprioritaskan sebelum Guru agar experience operasional tidak jatuh ke Dashboard Guru.
  *
  * Semua widget dan data authorization tetap diwarisi dari DashboardService.
  */
@@ -17,7 +17,7 @@ class RoleAwareDashboardService extends DashboardService
     public function resolveDashboardRole(array $roles): string
     {
         foreach (
-            ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'guru', 'siswa']
+            ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa']
             as $role
         ) {
             if (in_array($role, $roles, true)) {
