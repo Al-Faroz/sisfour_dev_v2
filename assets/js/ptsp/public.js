@@ -1,0 +1,97 @@
+(() => {
+  const app = document.getElementById('ptspPublicApp');
+  if (!app) return;
+  const base = String(app.dataset.baseUrl || '').replace(/\/$/, '');
+  const alertBox = document.getElementById('ptspPublicAlert');
+  const receipt = document.getElementById('ptspReceipt');
+  const receiptBody = document.getElementById('ptspReceiptBody');
+
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+  function show(message, type = 'danger', extra = '') {
+    alertBox.className = `alert alert-${type}`;
+    alertBox.innerHTML = `${esc(message)}${extra}`;
+    alertBox.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  function busy(form, on) {
+    form.dataset.busy = on ? '1' : '0';
+    const button = form.querySelector('button[type="submit"]');
+    if (!button) return;
+    button.disabled = on;
+    if (on) {
+      button.dataset.label = button.textContent;
+      button.textContent = 'Mengirim...';
+    } else if (button.dataset.label) {
+      button.textContent = button.dataset.label;
+    }
+  }
+
+  async function submit(form, endpoint) {
+    if (form.dataset.busy === '1') return null;
+    busy(form, true);
+    try {
+      const response = await fetch(`${base}/${endpoint}`, {method:'POST', body:new FormData(form)});
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.status !== 'success') {
+        throw new Error(payload.message || 'Permintaan gagal.');
+      }
+      return payload;
+    } finally {
+      busy(form, false);
+    }
+  }
+
+  document.getElementById('formPublicLayanan')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      const payload = await submit(form, 'ptsp/layanan');
+      if (!payload) return;
+      const r = payload.data?.receipt || {};
+      receiptBody.innerHTML = [
+        ['Waktu', r.submitted_at],
+        ['Nama', r.nama_lengkap],
+        ['Kategori', r.kategori_pemohon],
+        ['Layanan', r.jenis_layanan],
+        ['Keterangan', r.tujuan_keterangan],
+      ].map(([k,v]) => `<div class="mb-1"><strong>${esc(k)}:</strong> ${esc(v || '-')}</div>`).join('');
+      receipt.classList.remove('d-none');
+      show(payload.message || 'Pengajuan berhasil.', 'success', ' <button id="btnPrintPtspReceipt" class="btn btn-sm btn-outline-success ms-2" type="button">Cetak Bukti</button>');
+      document.getElementById('btnPrintPtspReceipt')?.addEventListener('click', () => window.print(), {once:true});
+      form.reset();
+    } catch (error) {
+      show(error.message || 'Pengajuan gagal.');
+    }
+  });
+
+  document.getElementById('formPublicPolling')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      const payload = await submit(form, 'ptsp/polling');
+      if (!payload) return;
+      show(payload.message || 'Polling berhasil dikirim.', 'success');
+      form.reset();
+    } catch (error) {
+      show(error.message || 'Polling gagal dikirim.');
+    }
+  });
+
+  document.getElementById('formPublicPengaduan')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.querySelector('input[name="klasifikasi[]"]:checked')) {
+      show('Pilih minimal satu klasifikasi laporan.');
+      return;
+    }
+    try {
+      const payload = await submit(form, 'ptsp/pengaduan');
+      if (!payload) return;
+      show(payload.message || 'Laporan berhasil dikirim.', 'success');
+      form.reset();
+    } catch (error) {
+      show(error.message || 'Laporan gagal dikirim.');
+    }
+  });
+})();
