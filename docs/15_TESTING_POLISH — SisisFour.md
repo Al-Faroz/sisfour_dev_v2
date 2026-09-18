@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6A — **UKS / Kesehatan / local gates PASS; fresh hosting dump audited; hosting SQL prepared and execution authorized**
+**Phase aktif:** G3.6B — **PTSP / source + localhost SQL implemented on feature branch; local static/runtime gates pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -438,8 +438,8 @@ Merge                               NOT AUTHORIZED
 ## 18. Roadmap
 
 ```text
-G3.6A  UKS / Kesehatan       ACTIVE
-G3.6B  PTSP                  NEXT
+G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
+G3.6B  PTSP                  ACTIVE
 G3.7   Global Mobile Sweep
 G3.8   WebView Readiness
 G4     Cordova APK
@@ -448,3 +448,53 @@ G4     Cordova APK
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
 
 Setiap deployment/Ready/merge memerlukan approval eksplisit pengguna.
+
+
+## 19. G3.6B — PTSP Gate
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.6B
+node --check assets/js/ptsp/*.js
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Runtime minimum:
+
+```text
+Public Layanan submit tanpa login + CSRF valid
+receipt thermal tanpa nomor tiket/antrian/tracking
+Public Polling submit berulang
+Public Pengaduan anonim + optional PDF/PNG/JPG/JPEG <= 5 MB
+attachment tidak dapat dibuka sebagai public URL
+Admin/Operator/PTSP full domain
+Pimpinan readonly + export, no mutation/hard-delete
+BK/Kesehatan/Guru/Wali/Siswa internal PTSP DENY
+Layanan Baru -> Diproses -> Selesai
+Pengaduan Masuk -> Diverifikasi -> Diproses/Selesai
+hard delete Admin/Operator/PTSP only
+XLSX mengikuti Tahun/filter
+public stats 3 endpoint aggregate-only
+public stats tidak mengeluarkan PII/raw record id
+cross-origin GET public stats bekerja tanpa credentials
+dashboard PTSP current-state sesuai locked KPI/action
+mobile no horizontal body overflow
+Konseling tetap confidential
+```
+
+Gate saat ini:
+
+```text
+G3.6B contract                LOCKED
+G3.6B source                  IMPLEMENTED / feature branch
+G3.6B localhost SQL           PREPARED
+G3.6B static gate             PENDING
+G3.6B local runtime UAT       PENDING
+G3.6B post-SQL local dump     PENDING
+G3.6B hosting                 NOT AUTHORIZED
+PR Ready                      NOT AUTHORIZED
+Merge                         NOT AUTHORIZED
+```
