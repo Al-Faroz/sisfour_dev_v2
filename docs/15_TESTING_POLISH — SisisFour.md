@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Phase aktif:** G3.3.1 rework — **periodic Tahun Ajaran + Konseling follow-up 1:N / local runtime PASS, static gate pending**
+**Tanggal Acuan:** 18 September 2026
+**Phase aktif:** G3.6A — **UKS / Kesehatan / source implemented, localhost SQL execution + static/runtime gate pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -25,6 +25,10 @@ G2     CLOSED / MERGED — PR #5
 G3.1   CLOSED / MERGED — PR #6
 G3.2   CLOSED / MERGED — PR #7
 G3.3   CLOSED / MERGED — PR #8
+G3.3.1 CLOSED / MERGED — PR #9
+G3.4   CLOSED / MERGED — PR #10
+G3.5   CLOSED / MERGED — PR #11
+G3.6   CLOSED / MERGED — PR #12
 ```
 
 ## 3. Global UI/UX Regression
@@ -300,55 +304,141 @@ git status
 
 Jangan klaim PASS tanpa output user/CI.
 
-## 15. Hosting Gate
+## 15. G3.6A — UKS / Kesehatan Gate
 
-Baseline hosting PASS **tidak membuktikan rework 17 September**.
+### SQL localhost
 
-Setelah localhost PASS:
+Jalankan hanya pada localhost setelah branch exact ditarik:
 
 ```text
-1. final static gate pada head final
-2. audit dump/schema hosting aktual lagi
-3. buat delta hosting khusus state aktual
-4. review SQL hosting
-5. execution hanya dengan approval eksplisit user
-6. focused hosting UAT period filter + follow-up 1:N
-7. final docs sync
-8. PR Ready hanya dengan approval user
-9. merge hanya dengan approval merge terpisah
+database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
 ```
 
-## 16. Current Status
+Verification minimum:
 
 ```text
-Broad G3.3.1 baseline                     PASS
-Historical Rencana parent local UAT       PASS
-17 Sep source implementation              IMPLEMENTED
-17 Sep canonical docs sync                PASS / branch
-17 Sep localhost delta SQL                PREPARED
-17 Sep localhost SQL execution            PASS / user evidence
-17 Sep local runtime UAT                  PASS / user evidence
-17 Sep final static gate                  PENDING
-17 Sep hosting dump audit/delta/re-smoke  NOT STARTED
-PR #9                                     DRAFT / BELUM MERGE
-G3.4                                      BELUM DIMULAI
+role enum users/user_roles/role_permissions/role_menus memuat kesehatan
+6 tabel uks_* tersedia
+8 permission UKS tersedia
+role_permissions sesuai matrix
+menu UKS/Data CKG/Data UKS/Master UKS tersedia
+role_menus sesuai Access Boundary
 ```
 
-`PASS / user evidence` berarti user telah menjalankan/memeriksa runtime lokal. Ini tidak boleh dipresentasikan sebagai CI/static evidence.
-
-## 17. G3.4 dan Seterusnya
+### Runtime / business UAT
 
 ```text
-G3.4   Dashboard/Workflow BK
-G3.5   Pimpinan
-G3.6   Siswa
-G3.6A  UKS / Kesehatan
-G3.6B  PTSP
+Role Kesehatan
+- identity wajib Pegawai
+- dashboard Kesehatan tampil
+- KPI current-state Tahun aktif benar
+- quick action permission-aware
+- CKG/Harian/Import/Master bekerja
+
+CKG
+- default Tahun aktif; history selectable
+- create selalu snapshot Tahun aktif
+- update mempertahankan period record
+- NISN wajib pada import
+- nama tidak menjadi fallback key
+- duplicate aktif siswa+tanggal -> UPDATE
+- CKG soft-deleted lama -> import INSERT record aktif baru
+- CKG soft delete hilang dari listing/export normal
+- Pimpinan readonly + export
+- Wali readonly kelas wali pada period terpilih
+- former Wali dapat memilih period lama tetapi tidak melihat siswa di period tanpa mapping
+- Siswa hanya DIRI_SENDIRI
+- Guru non-Wali/BK/PTSP DENY
+
+Catatan Harian UKS
+- satu kunjungan = satu parent
+- tindakan multi-pilih tersimpan
+- petugas = actor login
+- update mempertahankan Tahun record
+- soft delete hilang dari listing/export normal
+- opsi master inactive yang tersimpan tetap tampil/preservable pada edit histori
+
+Master UKS
+- Keluhan/Tindakan/Hasil configurable
+- deactivate menghilangkan opsi dari record baru
+- edit dapat reactivate opsi lama
+- histori referensi tetap terbaca
+
+Dashboard Kesehatan
+- Pemeriksaan CKG Bulan Ini
+- Kunjungan UKS Hari Ini
+- Kunjungan UKS Bulan Ini
+- Rujuk ke Klinik Bulan Ini
+- latest max 5
+- no medical score/SLA/overdue/risk label baru
+
+Regression
+- Admin/Operator/Pimpinan/BK/Guru/Guru+Wali/Siswa tetap normal
+- Konseling tetap tidak pernah terekspos ke Kesehatan
+- mobile viewport global no horizontal body overflow
+```
+
+### Evidence labels
+
+```text
+SQL execution/verifikasi terminal = PASS / user terminal evidence
+runtime UAT                       = PASS / user runtime evidence
+dump audit                        = PASS / read-only dump audit
+```
+
+Jangan menyebut user terminal evidence sebagai CI.
+
+## 16. Hosting Gate
+
+G3.6 hosting PASS **tidak membuktikan G3.6A**.
+
+Urutan setelah localhost PASS:
+
+```text
+1. final static gate pada exact head
+2. local runtime + cross-role + historical scope UAT
+3. buat dump localhost setelah PASS dan audit schema/data delta
+4. minta dump hosting aktual dan audit read-only
+5. susun SQL hosting khusus state aktual
+6. review SQL hosting
+7. execution hosting hanya dengan approval eksplisit user
+8. deploy source hanya dengan approval eksplisit user
+9. focused hosting re-smoke
+10. PR Ready hanya dengan approval user
+11. merge hanya dengan approval merge terpisah
+```
+
+## 17. Current Status
+
+```text
+G3.3.1                              CLOSED / MERGED — PR #9
+G3.4                                CLOSED / MERGED — PR #10
+G3.5                                CLOSED / MERGED — PR #11
+G3.6                                CLOSED / MERGED — PR #12
+G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
+
+G3.6A contract                      LOCKED
+G3.6A source                        IMPLEMENTED / feature branch
+G3.6A docs sync                     IN PROGRESS
+G3.6A localhost SQL                 PREPARED
+G3.6A localhost SQL execution       PENDING
+G3.6A final static gate             PENDING
+G3.6A local runtime UAT             PENDING
+G3.6A cross-role/historical UAT     PENDING
+G3.6A local dump audit              PENDING
+G3.6A hosting                       NOT STARTED
+```
+
+## 18. Roadmap
+
+```text
+G3.6A  UKS / Kesehatan       ACTIVE
+G3.6B  PTSP                  NEXT
 G3.7   Global Mobile Sweep
 G3.8   WebView Readiness
 G4     Cordova APK
 ```
 
-G3.4 baru dimulai setelah rework G3.3.1 selesai dan PR #9 merged. G3.6A/G3.6B mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md` dan `18_PTSP — SisisFour.md`.
+G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
 
-Setiap merge/release memerlukan approval eksplisit pengguna.
+Setiap deployment/Ready/merge memerlukan approval eksplisit pengguna.
