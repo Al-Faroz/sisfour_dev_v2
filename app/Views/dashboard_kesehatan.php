@@ -3,6 +3,7 @@
 <?php
 $tahun = $widgets['tahun_aktif'] ?? null;
 $periodAvailable = !empty($widgets['period_available']);
+$identityAvailable = !array_key_exists('identity_available', $widgets) || !empty($widgets['identity_available']);
 $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions'] : [];
 ?>
 
@@ -21,6 +22,10 @@ $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (!$identityAvailable): ?>
+    <div class="alert alert-danger">Role Kesehatan memerlukan identity Pegawai yang valid. Data UKS tidak dibentuk.</div>
+<?php endif; ?>
 
 <?php if (!$periodAvailable): ?>
     <div class="alert alert-warning">Tidak ada Tahun Ajaran aktif. Ringkasan UKS tidak dibentuk sebagai angka nol palsu.</div>
