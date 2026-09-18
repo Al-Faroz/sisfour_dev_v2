@@ -278,6 +278,21 @@ Pimpinan dapat melihat seluruh detail UKS/CKG dan export XLSX.
 
 Siswa dapat melihat seluruh data kesehatan dirinya sendiri, tetapi **view only** dan tidak mempunyai export.
 
+Presentation self-scope mengikuti pola BK self-only:
+
+```text
+Tahun Ajaran = tetap tampil sebagai Period Context / history selector
+Kelas        = tidak ditampilkan
+Pencarian    = tidak ditampilkan
+Dari/Sampai  = tidak ditampilkan
+Keluhan      = tidak ditampilkan pada Data UKS
+Hasil        = tidak ditampilkan pada Data UKS
+Reset        = tidak ditampilkan
+Tampilkan    = tidak ditampilkan
+```
+
+Scope `DIRI_SENDIRI` tetap ditegakkan server-side; penyederhanaan filter bukan security boundary.
+
 ## 10. Dashboard / Notification
 
 Role Kesehatan mendapat experience/dashboard domain current-state Tahun Ajaran aktif.
@@ -286,14 +301,17 @@ Dashboard G3.6A **LOCKED**:
 
 ```text
 KPI 2×2
-- Pemeriksaan CKG Bulan Ini
 - Kunjungan UKS Hari Ini
 - Kunjungan UKS Bulan Ini
 - Rujuk ke Klinik Bulan Ini
+- Pemeriksaan CKG Bulan Ini
+
+Primary Action
+- Card besar Tambah Data Kunjungan
 
 Quick Action
-- Data CKG
 - Data UKS
+- Data CKG
 - Import CKG
 - Master UKS
 
@@ -402,9 +420,9 @@ G3.6 merge commit                     59b22b651ad0d508ea3a29261ef590d4c9506da4
 G3.6A contract                        LOCKED
 G3.6A source                          IMPLEMENTED / branch
 PR #13                                OPEN / DRAFT / NOT MERGED
-G3.6A localhost SQL                   PREPARED / BELUM DIEKSEKUSI
-G3.6A static gate                     PENDING
-G3.6A local runtime UAT               PENDING
+G3.6A localhost SQL                   PASS / user evidence
+G3.6A static gate                     PASS @ db6ad55e / focused rerun pending after UX refinement
+G3.6A local runtime UAT               PASS @ db6ad55e / focused re-smoke pending after UX refinement
 G3.6A local DB dump audit             PENDING
 G3.6A hosting dump audit / SQL        NOT STARTED
 G3.6A hosting deployment              NOT AUTHORIZED
