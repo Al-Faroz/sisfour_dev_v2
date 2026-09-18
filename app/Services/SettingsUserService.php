@@ -11,7 +11,7 @@ use Throwable;
 class SettingsUserService
 {
     private const TZ = 'Asia/Jakarta';
-    private const ROLES = ['admin', 'operator', 'pimpinan', 'bk', 'guru', 'siswa'];
+    private const ROLES = ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'guru', 'siswa'];
 
     protected SettingsUserModel $model;
     protected BaseConnection $db;
@@ -381,6 +381,9 @@ class SettingsUserService
         }
         if (($primary === 'siswa' || in_array('siswa', $secondary, true)) && ! $idSiswa) {
             return $this->fail('VALIDATION', 'Role Siswa memerlukan relasi Siswa.');
+        }
+        if (($primary === 'kesehatan' || in_array('kesehatan', $secondary, true)) && ! $idPegawai) {
+            return $this->fail('VALIDATION', 'Role Kesehatan memerlukan relasi Pegawai.');
         }
 
         foreach (['id_guru' => $idGuru, 'id_pegawai' => $idPegawai, 'id_siswa' => $idSiswa] as $column => $identityId) {
