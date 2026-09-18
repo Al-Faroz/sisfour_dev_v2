@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.4 — Dashboard/Workflow BK
-**Branch aktif:** `feat/g3-4-bk-dashboard-workflow-20260918`
-**Baseline `main`:** setelah merge PR #9 / G3.3.1 (`27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6`)
+**Development aktif:** G3.5 — Dashboard Pimpinan
+**Branch aktif:** `feat/g3-5-pimpinan-dashboard-20260918`
+**Baseline `main`:** setelah merge PR #10 / G3.4 (`6f809913eab1032691f130c9df00e95da74b9a17`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -357,8 +357,8 @@ G3.1 Mobile foundation     CLOSED / MERGED
 G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
 G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
-G3.4 Dashboard/Workflow BK ACTIVE
-G3.5 Pimpinan              setelah G3.4
+G3.4 Dashboard/Workflow BK CLOSED / MERGED — PR #10
+G3.5 Pimpinan              ACTIVE
 G3.6 Siswa                 setelah G3.5
 G3.6A UKS / Kesehatan      setelah G3.6
 G3.6B PTSP                 setelah G3.6A
@@ -471,17 +471,76 @@ Jadwal follow-up memakai `tanggal_berikutnya` entry tindak lanjut terbaru bila h
 
 G3.4 tidak membuat SLA, overdue, deadline baru, atau ranking poin.
 
+Closure:
+
+```text
+source implementation             = PASS
+SSOT sync                         = PASS
+local BK runtime/UAT              = PASS / user runtime evidence
+cross-role privacy regression     = PASS / user runtime evidence
+mobile focused UAT                = PASS / user runtime evidence
+final static gate                 = PASS / user terminal evidence
+hosting source deployment         = PASS / user evidence
+hosting re-smoke                  = PASS / user runtime evidence
+PR #10                            = MERGED
+merge commit                      = 6f809913eab1032691f130c9df00e95da74b9a17
+```
+
+## 13. G3.5 — Dashboard Pimpinan
+
+Branch:
+
+```text
+feat/g3-5-pimpinan-dashboard-20260918
+```
+
+Canonical mapping G3.5:
+
+```text
+Menu/Fitur         = Dashboard Pimpinan
+Use Case           = monitoring exception/decision current-state
+SSOT/Domain        = docs/05 + docs/06 + docs/08 + role experience
+Access Boundary    = experience Pimpinan; source widget tetap permission-aware
+Capability         = existing view/report permissions; tidak ada permission baru
+Scope              = SEMUA hanya pada capability yang memang dimiliki
+Period Context     = Tahun Ajaran aktif server-side
+Target Validation  = tidak ada mutation baru dari dashboard
+Business Invariant = readonly; no Konseling; Catatan Pelanggaran agregat tanpa poin
+Persistence        = read-only agregasi dari tabel existing
+Service Boundary   = Dashboard Service
+Presentation UI    = KPI 2×2 + quick action + trend/list adaptive
+Output Channel     = Web dashboard + JSON dashboard existing
+Audit              = tidak ada mutation baru
+Testing/Regression = static + Pimpinan runtime + cross-role regression
+Docs Sync          = 00/01/08/11 + Tree Structure
+Deployment Gate    = source-only; hosting smoke setelah approval
+```
+
+Contract G3.5:
+
+```text
+KPI              = Kelas Belum Presensi / Jadwal Belum Jurnal / EWS 14 Hari / Catatan Pelanggaran Bulan Ini
+Quick Action     = Rekap / Jurnal / EWS / Laporan sesuai permission
+Trend            = Presensi 7 hari, Sesi Awal
+Recent/top       = EWS max 5 + Prestasi max 5
+Period           = current-state Tahun Ajaran aktif
+Pelanggaran      = agregat/jumlah, tanpa poin
+Konseling        = tidak dibentuk untuk Pimpinan
+```
+
+Catatan Pelanggaran Bulan Ini dan Prestasi Terbaru pada dashboard wajib dibatasi `id_tahun = Tahun Ajaran aktif`. Dashboard tidak menambah selector histori; pembacaan historis tetap berada pada listing/laporan periodik.
+
 Current gate:
 
 ```text
 source implementation             = IMPLEMENTED ON FEATURE BRANCH
-SSOT sync                         = IN PROGRESS
+SSOT sync                         = IMPLEMENTED
 static gate                       = PENDING
 local runtime/UAT                 = PENDING
-cross-role privacy regression     = PENDING
+cross-role regression             = PENDING
 hosting source deployment         = NOT STARTED
 hosting re-smoke                  = NOT STARTED
-PR                                = NOT OPENED
+PR #11                            = DRAFT / NOT MERGED
 ```
 
 Minimum static gate:
