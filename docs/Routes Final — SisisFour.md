@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
+**Application baseline:** `main` @ `90acc7f94fee391a5a7fbad2395e3f16571fe921` + G3.6B feature branch
 
 > Runtime source of truth adalah seluruh route file yang terdaftar pada `Config\Routing::$routeFiles`, bukan hanya `Routes.php`.
 
@@ -278,3 +278,48 @@ Rilis tidak boleh memiliki:
 - route tambahan yang tidak didaftarkan pada `Routing::$routeFiles`.
 
 G3.6A route source sudah diimplementasikan pada feature branch, tetapi `php spark routes` dan runtime route UAT masih **PENDING** sampai user menjalankan static/local gate pada exact head.
+
+## 10. PTSP — G3.6B
+
+Public web:
+
+```text
+GET  /ptsp
+POST /ptsp/layanan
+POST /ptsp/polling
+POST /ptsp/pengaduan
+```
+
+Public aggregate API:
+
+```text
+GET /api/public/ptsp/statistik/layanan
+GET /api/public/ptsp/statistik/polling
+GET /api/public/ptsp/statistik/pengaduan
+OPTIONS /api/public/ptsp/statistik/{type}
+```
+
+Authenticated internal:
+
+```text
+GET    /ptsp/layanan
+GET    /ptsp/layanan/json
+POST   /ptsp/layanan/create
+PUT    /ptsp/layanan/status/{id}
+DELETE /ptsp/layanan/delete/{id}
+GET    /ptsp/layanan/export
+
+GET    /ptsp/polling
+GET    /ptsp/polling/json
+DELETE /ptsp/polling/delete/{id}
+GET    /ptsp/polling/export
+
+GET    /ptsp/pengaduan
+GET    /ptsp/pengaduan/json
+PUT    /ptsp/pengaduan/status/{id}
+DELETE /ptsp/pengaduan/delete/{id}
+GET    /ptsp/pengaduan/lampiran/{id}
+GET    /ptsp/pengaduan/export
+```
+
+Public POST memakai CSRF global web. Aggregate API memakai CORS filter dan tidak memakai auth/raw-record endpoint.
