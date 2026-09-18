@@ -276,7 +276,17 @@ class AuthService
         $idGuru = (int) ($user['id_guru'] ?? 0);
         $isWali = $idGuru > 0 && $this->isWaliKelas($idGuru);
 
-        if (in_array('KELAS_DIAMPU', $scopes, true) && $isWali) {
+        // UKS bersifat periodik: mantan Wali tetap perlu melewati route/menu
+        // untuk memilih Tahun Ajaran historis. Scope final terhadap kelas pada
+        // periode terpilih tetap divalidasi UksScopeService.
+        $isHistoricalUksWali = $idGuru > 0
+            && str_starts_with($permissionKey, 'uks_')
+            && $this->hasAnyWaliKelas($idGuru);
+
+        if (
+            in_array('KELAS_DIAMPU', $scopes, true)
+            && ($isWali || $isHistoricalUksWali)
+        ) {
             return 'KELAS_DIAMPU';
         }
 
@@ -325,6 +335,23 @@ class AuthService
             ->table('mapping_wali_kelas')
             ->where('id_guru', $idGuru)
             ->where('id_tahun', $idTahun)
+            ->where('deleted_at', null)
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Apakah Guru pernah mempunyai mapping Wali pada periode mana pun.
+     * Digunakan hanya sebagai entry-gate UKS; scope data final tetap period-aware.
+     */
+    public function hasAnyWaliKelas(?int $idGuru): bool
+    {
+        if (! $idGuru) {
+            return false;
+        }
+
+        return $this->db
+            ->table('mapping_wali_kelas')
+            ->where('id_guru', $idGuru)
             ->where('deleted_at', null)
             ->countAllResults() > 0;
     }
