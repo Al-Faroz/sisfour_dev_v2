@@ -88,7 +88,11 @@ class MenuService
                 continue;
             }
 
-            $requiredPermissions = $this->menuPermissionMap($idMenu);
+            $requiredPermissions = $this->menuPermissionMap(
+                $idMenu,
+                trim((string) ($menu['link'] ?? '')),
+                trim((string) ($menu['nama_menu'] ?? ''))
+            );
 
             if ($requiredPermissions !== []) {
                 $hasAccess = false;
@@ -143,8 +147,24 @@ class MenuService
         return true;
     }
 
-    protected function menuPermissionMap(int $idMenu): array
-    {
+    protected function menuPermissionMap(
+        int $idMenu,
+        string $link = '',
+        string $name = ''
+    ): array {
+        $uks = match ($link) {
+            'uks/ckg' => ['uks_ckg.view', 'uks_ckg.manage'],
+            'uks/harian' => ['uks_harian.view', 'uks_harian.manage'],
+            'uks/master' => ['uks_master.manage'],
+            default => $name === 'UKS'
+                ? ['uks_ckg.view', 'uks_harian.view', 'uks_master.manage']
+                : null,
+        };
+
+        if ($uks !== null) {
+            return $uks;
+        }
+
         return match ($idMenu) {
             1 => ['dashboard.view'],
 
