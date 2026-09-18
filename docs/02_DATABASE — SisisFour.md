@@ -1,9 +1,9 @@
 # Database — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Application baseline:** `main` @ `06e4e559c045763096058fc889342da78d973314` + PR #9 branch
-**Database state:** baseline G3.3.1 local+hosting PASS; rework 17 September **localhost SQL prepared / execution+UAT pending**
+**Tanggal Acuan:** 18 September 2026
+**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
+**Database state:** G3.3.1 local+hosting CLOSED; G3.6A localhost SQL **prepared / execution pending**
 
 > Database adalah sumber integritas persistence. Exact DDL runtime tetap harus diverifikasi dari schema live/dump aktual dan SQL final di `database/`; dokumen ini menyatakan kontrak schema/business yang berlaku.
 
@@ -78,6 +78,7 @@ admin
 operator
 pimpinan
 bk
+kesehatan
 guru
 siswa
 ```
@@ -91,9 +92,11 @@ users.role UNION user_roles.role
 Identity:
 
 ```text
-Guru     -> users.id_guru
-Pegawai  -> users.id_pegawai
-Siswa    -> users.id_siswa
+Guru       -> users.id_guru
+Siswa      -> users.id_siswa
+BK         -> users.id_pegawai
+Kesehatan  -> users.id_pegawai
+Pegawai    -> users.id_pegawai
 ```
 
 Tidak ada role `pegawai`.
@@ -391,7 +394,38 @@ Tidak ada SQL hosting untuk rework 17 September sebelum localhost PASS dan dump 
 - Kelas/Tahun yang direferensikan record periodik tidak boleh dihapus bila FK/history harus dipertahankan.
 - Record legacy dengan `id_tahun NULL` harus diaudit; jangan diam-diam dianggap aktif.
 
-## 18. Schema Change Rule
+## 18. G3.6A — UKS / Kesehatan Schema
+
+G3.6A menambah role `kesehatan` ke enum role runtime pada `users`, `user_roles`, `role_permissions`, dan `role_menus`. Role `ptsp` tetap milik G3.6B dan belum ditambahkan oleh SQL G3.6A.
+
+Target business schema menambah enam tabel:
+
+```text
+uks_ckg
+uks_kunjungan
+uks_kunjungan_tindakan
+uks_ref_keluhan
+uks_ref_tindakan
+uks_ref_hasil
+```
+
+Dengan enam tabel tersebut, canonical application tables menjadi **41 tabel**; local dump boleh mempunyai tabel framework `migrations` tambahan.
+
+`uks_ckg` menyimpan snapshot `id_tahun`, `id_kelas`, `id_siswa`, tanggal, field CKG, actor audit, timestamp, dan `deleted_at`. NISN dipakai untuk resolve siswa pada import; duplicate business key record aktif adalah siswa + tanggal.
+
+`uks_kunjungan` menyimpan satu parent kunjungan. Tindakan multi-pilih dinormalisasi pada `uks_kunjungan_tindakan`. Petugas memakai `id_petugas_user -> users.id`.
+
+Master `uks_ref_keluhan`, `uks_ref_tindakan`, dan `uks_ref_hasil` memakai `status_aktif` untuk deactivate/reactivate normal agar ID referensi histori stabil.
+
+SQL localhost:
+
+```text
+database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
+```
+
+SQL hosting belum dibuat dan hanya boleh disusun setelah localhost SQL + runtime UAT + local dump audit PASS serta dump hosting aktual diaudit ulang.
+
+## 19. Schema Change Rule
 
 - Jangan menambah kolom berdasarkan asumsi UI.
 - Perubahan schema harus punya alasan business/integrity.
@@ -401,17 +435,18 @@ Tidak ada SQL hosting untuk rework 17 September sebelum localhost PASS dan dump 
 - Hindari `information_schema` pada environment user yang tidak punya akses.
 - Verification query wajib.
 
-## 19. Current Database Gate
+## 20. Current Database Gate
 
 ```text
 G3.2 schema local/hosting                    PASS
-G3.3.1 baseline schema local/hosting         PASS
-G3.3.1 baseline hosting smoke                PASS
-17 Sep periodic/follow-up localhost SQL      PREPARED
-17 Sep localhost SQL execution               PENDING
-17 Sep localhost runtime UAT                 PENDING
-17 Sep hosting dump audit/delta SQL          NOT STARTED
-PR #9                                        DRAFT / BELUM MERGE
+G3.3.1 final schema local/hosting            PASS / CLOSED
+G3.6 merge baseline                          59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A localhost SQL                          PREPARED
+G3.6A localhost SQL execution                PENDING
+G3.6A local runtime/UAT                      PENDING
+G3.6A post-UAT local dump audit              PENDING
+G3.6A hosting dump audit                     NOT STARTED
+G3.6A hosting delta SQL                      NOT STARTED
 ```
 
-Baseline hosting PASS tidak membuktikan schema/source rework 17 September. Gate baru harus diselesaikan terpisah sebelum PR Ready/Merge.
+Existing hosting PASS tidak membuktikan G3.6A. Hosting delta hanya disusun dari dump hosting aktual setelah localhost gate selesai.
