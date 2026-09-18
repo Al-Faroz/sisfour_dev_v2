@@ -85,7 +85,7 @@ class PtspDashboardService extends KesehatanDashboardService
     private function pollingSummary(int $idTahun): array
     {
         return $this->db->table('ptsp_polling')
-            ->select('tingkat_kepuasan AS label, COUNT(*) AS total', false)
+            ->select('tingkat_kepuasan AS label, COUNT(*) AS total, MAX(score) AS score', false)
             ->where('id_tahun', $idTahun)
             ->groupBy('tingkat_kepuasan')
             ->orderBy('score', 'DESC')
