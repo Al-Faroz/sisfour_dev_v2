@@ -31,9 +31,23 @@
                         </div>
                         <div class="list-group list-group-flush" data-list="<?= esc($type) ?>">
                             <?php foreach (($refs[$type] ?? []) as $row): ?>
-                                <div class="list-group-item d-flex justify-content-between align-items-start gap-2" data-json="<?= esc(rawurlencode(json_encode($row))) ?>">
-                                    <div><div class="fw-semibold"><?= esc($row['nama']) ?></div><div class="small text-muted">Urutan <?= (int) $row['urutan'] ?> · <?= (int) $row['status_aktif'] === 1 ? 'Aktif' : 'Nonaktif' ?></div></div>
-                                    <div class="text-nowrap"><button class="btn btn-sm btn-outline-primary btn-master-edit" type="button" data-type="<?= esc($type) ?>">Edit</button> <button class="btn btn-sm btn-outline-danger btn-master-delete" type="button" data-type="<?= esc($type) ?>">Nonaktifkan</button></div>
+                                <?php $isActive = (int) ($row['status_aktif'] ?? 0) === 1; ?>
+                                <div class="list-group-item d-flex justify-content-between align-items-start gap-2<?= $isActive ? '' : ' bg-body-tertiary' ?>" data-json="<?= esc(rawurlencode(json_encode($row))) ?>">
+                                    <div class="min-w-0">
+                                        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                            <div class="fw-semibold<?= $isActive ? '' : ' text-muted' ?>"><?= esc($row['nama']) ?></div>
+                                            <span class="badge <?= $isActive ? 'bg-label-success' : 'bg-label-secondary' ?>">
+                                                <i class="bx <?= $isActive ? 'bx-check-circle' : 'bx-block' ?> me-1"></i><?= $isActive ? 'Aktif' : 'Nonaktif' ?>
+                                            </span>
+                                        </div>
+                                        <div class="small text-muted">Urutan <?= (int) $row['urutan'] ?></div>
+                                    </div>
+                                    <div class="text-nowrap">
+                                        <button class="btn btn-sm btn-outline-primary btn-master-edit" type="button" data-type="<?= esc($type) ?>">Edit</button>
+                                        <?php if ($isActive): ?>
+                                            <button class="btn btn-sm btn-outline-danger btn-master-delete" type="button" data-type="<?= esc($type) ?>">Nonaktifkan</button>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
