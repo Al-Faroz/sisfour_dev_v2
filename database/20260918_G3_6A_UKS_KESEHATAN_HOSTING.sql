@@ -1,6 +1,6 @@
 -- G3.6A UKS / Kesehatan — HOSTING
 -- Fresh hosting DB baseline audited: u473908839_sisfour2026 (12).sql
--- Exact source target: PR #13 HEAD @ 5f10b7db5f043fbec5173b333a39206db87f617c
+-- Application source target audited: 5f10b7db5f043fbec5173b333a39206db87f617c
 -- Base source: main @ 59b22b651ad0d508ea3a29261ef590d4c9506da4
 --
 -- SAFETY:
