@@ -84,7 +84,7 @@ app/Config/RoutesBKFoundation.php
 
 `Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
 
-G3.4, G3.5, dan G3.6 tidak menambah route baru. Route UKS/PTSP/public statistics API **belum dibuat**; docs 17/18 adalah target contract, bukan bukti source tersedia.
+G3.4, G3.5, dan G3.6 tidak menambah route baru. G3.6A menambah route UKS pada `Routes.php`. Route PTSP/public statistics API tetap belum dibuat sampai G3.6B.
 
 ## 4. Dashboard/BK Source — G3.3.1 + G3.4 + G3.5 + G3.6
 
@@ -171,23 +171,60 @@ Tidak ada Controller/route/model delete workflow untuk parent Konseling maupun T
 
 G3.4 hanya membaca workflow tersebut untuk KPI dan jadwal follow-up; tidak menambah mutation baru.
 
-## 6. Future Domain Structure — UKS / Kesehatan
+## 6. G3.6A Domain Structure — UKS / Kesehatan
 
-SSOT target:
+SSOT:
 
 ```text
 docs/17_UKS_KESEHATAN — SisisFour.md
 ```
 
-Domain target:
+Domain implementation:
 
 ```text
 UKS
 ├── Data CKG
-└── Catatan Harian UKS
+├── Data UKS
+└── Master UKS
 ```
 
-Role `kesehatan` memakai identity Pegawai. Source/schema/menu/permission belum dibuat sampai phase G3.6A.
+Controllers:
+
+```text
+app/Controllers/UksCkg.php
+app/Controllers/UksHarian.php
+app/Controllers/UksMaster.php
+```
+
+Models:
+
+```text
+app/Models/UksCkgModel.php
+app/Models/UksKunjunganModel.php
+```
+
+Services:
+
+```text
+app/Services/UksScopeService.php
+app/Services/UksService.php
+app/Services/UksExportService.php
+app/Services/KesehatanDashboardService.php
+```
+
+Views/JS:
+
+```text
+app/Views/dashboard_kesehatan.php
+app/Views/uks/ckg.php
+app/Views/uks/harian.php
+app/Views/uks/master.php
+assets/js/uks/ckg.js
+assets/js/uks/harian.js
+assets/js/uks/master.js
+```
+
+Role `kesehatan` memakai identity Pegawai. Final data scope UKS untuk Wali berada di `UksScopeService` dan dievaluasi terhadap Tahun Ajaran terpilih.
 
 ## 7. Future Domain Structure — PTSP
 
@@ -285,7 +322,13 @@ database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 
 G3.4, G3.5, dan G3.6 tidak mempunyai SQL/schema delta.
 
-Belum ada SQL/schema delta UKS/PTSP karena domain tersebut belum masuk phase implementation.
+G3.6A localhost:
+
+```text
+database/20260918_G3_6A_UKS_KESEHATAN_LOCALHOST.sql
+```
+
+SQL tersebut PREPARED / belum dieksekusi. SQL hosting G3.6A belum dibuat. PTSP belum mempunyai SQL/schema delta.
 
 ## 11. Upload / Writable
 
@@ -384,9 +427,9 @@ G3.3    CLOSED / MERGED
 G3.3.1  CLOSED / MERGED — PR #9
 G3.4    CLOSED / MERGED — PR #10
 G3.5    CLOSED / MERGED — PR #11
-G3.6    ACTIVE — Dashboard Siswa
-G3.6A   UKS / Kesehatan
-G3.6B   PTSP
+G3.6    CLOSED / MERGED — PR #12
+G3.6A   ACTIVE — UKS / Kesehatan source implemented, local SQL pending
+G3.6B   PTSP / NOT STARTED
 G3.7    Global Mobile Sweep
 G3.8    Viewport/WebView Readiness
 G4      Cordova APK
