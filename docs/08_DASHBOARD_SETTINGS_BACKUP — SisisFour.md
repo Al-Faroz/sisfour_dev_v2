@@ -292,11 +292,12 @@ G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK                   CLOSED / MERGED — PR #10
 G3.5 Dashboard Pimpinan                      CLOSED / MERGED — PR #11
 G3.6 Dashboard Siswa                         CLOSED / MERGED — PR #12
-G3.6 merge commit                            59b22b651ad0d508ea3a29261ef590d4c9506da4
-G3.6A Dashboard Kesehatan + UKS              IMPLEMENTED ON FEATURE BRANCH
-G3.6A localhost SQL                          PREPARED / PENDING EXECUTION
-G3.6A static/runtime/cross-role gate          PENDING
-G3.6A hosting                                NOT STARTED
+G3.6A Dashboard Kesehatan + UKS              CLOSED / MERGED — PR #13
+G3.6A merge commit                            90acc7f94fee391a5a7fbad2395e3f16571fe921
+G3.6B Dashboard PTSP                         IMPLEMENTED / FEATURE BRANCH
+G3.6B localhost SQL                          PREPARED / PENDING EXECUTION
+G3.6B static/runtime/cross-role gate         PENDING
+G3.6B hosting                                NOT AUTHORIZED
 ```
 
 ## 15. Phase Boundary
