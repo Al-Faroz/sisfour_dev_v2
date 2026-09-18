@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.4 — Dashboard/Workflow BK
+**Development aktif:** G3.5 — Dashboard Pimpinan
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -154,6 +154,7 @@ G3.1   CLOSED / MERGED — PR #6
 G3.2   CLOSED / MERGED — PR #7
 G3.3   CLOSED / MERGED — PR #8
 G3.3.1 CLOSED / MERGED — PR #9
+G3.4   CLOSED / MERGED — PR #10
 ```
 
 Merge baseline:
@@ -164,6 +165,7 @@ G3.1   d10ced5d70ffc68642067aac44feeb6a91cacd29
 G3.2   176e5f764850d030968524af47117f259449064c
 G3.3   06e4e559c045763096058fc889342da78d973314
 G3.3.1 27d0f867d1c0ca7636a4a48f6c0b3251538ee7f6
+G3.4   6f809913eab1032691f130c9df00e95da74b9a17
 ```
 
 ## 10. G3.3.1 — Fondasi BK + Konseling — Closed
@@ -242,8 +244,8 @@ merge commit                             27d0f867d1c0ca7636a4a48f6c0b3251538ee7f
 ## 11. G3 Roadmap Aktif
 
 ```text
-G3.4  BK Workflow + Dashboard BK       ACTIVE
-G3.5  Pimpinan
+G3.4  BK Workflow + Dashboard BK       CLOSED / MERGED — PR #10
+G3.5  Pimpinan                         ACTIVE
 G3.6  Siswa
 G3.6A UKS / Kesehatan
 G3.6B PTSP
@@ -296,7 +298,7 @@ PTSP diletakkan setelah UKS karena menambah public surface + public API yang mem
 
 ## 12. G3.4 — Dashboard/Workflow BK
 
-Branch aktif:
+Branch merged:
 
 ```text
 feat/g3-4-bk-dashboard-workflow-20260918
@@ -332,6 +334,52 @@ Jadwal follow-up memakai tanggal pada entry tindak lanjut terbaru bila histori s
 
 Recent/top list maksimal 5 item + Lihat Semua. Quick action permission-aware dan tidak menambah authorization.
 
+Closure:
+
+```text
+source implementation             PASS
+SSOT sync                         PASS
+local/runtime/privacy/mobile      PASS / user evidence
+final static gate                 PASS / user terminal evidence
+hosting deployment/re-smoke       PASS / user evidence
+PR #10                            MERGED
+merge commit                      6f809913eab1032691f130c9df00e95da74b9a17
+```
+
+## 13. G3.5 — Dashboard Pimpinan
+
+Branch aktif:
+
+```text
+feat/g3-5-pimpinan-dashboard-20260918
+```
+
+G3.5 memakai permission dan route existing. Tidak ada schema, permission, menu, route, atau mutation baru.
+
+Dashboard Pimpinan adalah current-state Tahun Ajaran aktif:
+
+```text
+KPI
+- Kelas Belum Presensi
+- Jadwal Belum Jurnal
+- EWS Alpha 14 Hari
+- Catatan Pelanggaran Bulan Ini
+
+Quick Action permission-aware
+- Rekap
+- Jurnal
+- EWS
+- Laporan
+
+Monitoring
+- Tren Presensi 7 Hari
+- EWS maksimal 5 + Lihat Semua
+- Prestasi Terbaru maksimal 5 + Lihat Semua
+- Ringkasan Master
+```
+
+Catatan Pelanggaran Bulan Ini dan Prestasi Terbaru wajib dibatasi Tahun Ajaran aktif. Pimpinan tetap readonly sesuai permission/domain. Konseling BK tidak menjadi payload/widget/detail/shortcut Pimpinan.
+
 Current gate:
 
 ```text
@@ -339,11 +387,12 @@ source implementation             IMPLEMENTED ON FEATURE BRANCH
 SSOT sync                         IN PROGRESS
 static gate                       PENDING
 local runtime/UAT                 PENDING
+cross-role regression             PENDING
 hosting deployment/re-smoke       NOT STARTED
 PR                                NOT OPENED
 ```
 
-## 13. G4 — Cordova APK
+## 14. G4 — Cordova APK
 
 Setelah G3 stable:
 
@@ -361,7 +410,7 @@ real-device regression
 signed package/distribution
 ```
 
-## 14. Release Rule
+## 15. Release Rule
 
 Setiap phase harus melewati SSOT + local/static/runtime + regression + production gate sesuai `00/00A/15`.
 
