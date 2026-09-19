@@ -128,16 +128,22 @@
         <td>${esc(row.berat_badan ?? '-')} / ${esc(row.tinggi_badan ?? '-')}</td>
         <td>${esc(status)}</td>
         <td>${esc(pressure || '-')}<div class="small text-muted">Gula: ${esc(row.gula_darah ?? '-')}</div></td>
-        ${manage ? '<td class="text-nowrap"><button class="btn btn-sm btn-outline-primary btn-ckg-edit" type="button">Edit</button> <button class="btn btn-sm btn-outline-danger btn-ckg-delete" type="button">Hapus</button></td>' : ''}
+        ${manage ? '<td class="text-nowrap"><button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-ckg-edit" type="button">Edit</button> <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-ckg-delete" type="button">Hapus</button></td>' : ''}
       </tr>`;
     }).join('') || empty;
 
     mobile.innerHTML = (rows || []).map((row) => `<div class="list-group-item py-3" data-json="${encodeURIComponent(JSON.stringify(row))}">
-      <div class="d-flex justify-content-between gap-2"><div><div class="fw-semibold">${esc(row.nama_siswa)}</div><div class="small text-muted">${esc(row.nisn)} · ${esc(row.nama_kelas || '-')}</div></div><span class="badge bg-label-primary">${esc(row.tanggal)}</span></div>
-      <div class="small mt-2">BB/TB: ${esc(row.berat_badan ?? '-')} / ${esc(row.tinggi_badan ?? '-')}</div>
-      <div class="small text-muted">${esc([row.status_gizi, row.status_tinggi].filter(Boolean).join(' · ') || '-')}</div>
-      ${manage ? '<div class="sisfour-mobile-actions mt-3"><button class="btn btn-sm btn-outline-primary btn-ckg-edit" type="button">Edit</button><button class="btn btn-sm btn-outline-danger btn-ckg-delete" type="button">Hapus</button></div>' : ''}
-    </div>`).join('') || '<div class="list-group-item text-center text-muted py-4">Tidak ada data.</div>';
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div class="min-w-0 flex-grow-1">
+          <div class="fw-semibold text-wrap">${esc(row.nama_siswa)}</div>
+          <div class="small text-muted text-wrap">${esc(row.nisn)} · ${esc(row.nama_kelas || '-')}</div>
+        </div>
+        <span class="badge bg-label-primary flex-shrink-0">${esc(row.tanggal)}</span>
+      </div>
+      <div class="small mt-2 text-wrap">BB/TB: ${esc(row.berat_badan ?? '-')} / ${esc(row.tinggi_badan ?? '-')}</div>
+      <div class="small text-muted text-wrap">${esc([row.status_gizi, row.status_tinggi].filter(Boolean).join(' · ') || '-')}</div>
+      ${manage ? '<div class="sisfour-mobile-actions mt-3"><button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-ckg-edit" type="button">Edit</button><button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-ckg-delete" type="button">Hapus</button></div>' : ''}
+    </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data.</div>';
 
     bindRows();
   }
