@@ -75,6 +75,34 @@ $brandingItems = [
                         <label class="form-label" for="maintenanceMessage">Pesan Maintenance</label>
                         <textarea id="maintenanceMessage" name="maintenance_message" class="form-control" rows="2"><?= esc($getSetting('maintenance_message', 'Sistem sedang dalam pemeliharaan...')) ?></textarea>
                     </div>
+
+                    <div class="col-12">
+                        <div class="border rounded p-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                <div>
+                                    <h6 class="mb-1">PTSP — Cetak Bukti Layanan</h6>
+                                    <div class="small text-muted">
+                                        Jika aktif, browser langsung membuka dialog cetak setelah Form Layanan PTSP berhasil disimpan.
+                                        Template cetak menggunakan lebar kertas thermal 80 mm.
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input
+                                        id="ptspLayananAutoPrint"
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        name="ptsp_layanan_auto_print"
+                                        value="1"
+                                        <?= $getSetting('ptsp_layanan_auto_print', '0') === '1' ? 'checked' : '' ?>
+                                    >
+                                    <label class="form-check-label" for="ptspLayananAutoPrint">Auto Print</label>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">
+                                Default OFF. Tombol cetak manual tetap tersedia walaupun Auto Print dimatikan.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card-footer sisfour-modal-actions">
