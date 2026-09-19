@@ -328,7 +328,7 @@ hosting pre/post SQL dump audit        PASS
 hosting SQL execution                  PASS / user evidence
 hosting source deployment              PASS / user evidence
 focused hosting runtime smoke          PASS / user runtime evidence
-PR #14                                 DRAFT / Ready authorized
+PR #14                                 READY FOR REVIEW
 merge                                  NOT AUTHORIZED
 ```
 
