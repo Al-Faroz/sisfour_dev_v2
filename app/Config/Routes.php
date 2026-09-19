@@ -44,6 +44,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('dashboard', 'Dashboard::index', ['filter' => 'permission:dashboard.view']);
     $routes->get('dashboard/data', 'Dashboard::data', ['filter' => 'permission:dashboard.view']);
 
+    // G3.6C Statistik — authenticated, read-only, Admin/Operator/Pimpinan via capability.
+    $routes->get('statistik', 'Statistik::index', ['filter' => 'permission:statistik.view']);
+    $routes->get('statistik/data', 'Statistik::data', ['filter' => 'permission:statistik.view']);
+    $routes->get('statistik/export/pdf', 'Statistik::exportPdf', ['filter' => 'permission:statistik.export_pdf']);
+
     // Searchable entity remote. Authorization data tetap diputuskan Service.
     $routes->get('ui/search/siswa', 'SearchableEntity::siswa');
 
