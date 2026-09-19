@@ -68,7 +68,7 @@ class Statistik extends BaseController
     public function exportPdf()
     {
         $userId = $this->currentActorUserId();
-        $input = $this->request->getMethod() === 'POST'
+        $input = strtoupper($this->request->getMethod()) === 'POST'
             ? $this->request->getPost()
             : $this->request->getGet();
 
@@ -84,7 +84,7 @@ class Statistik extends BaseController
         }
 
         $chartSvgs = [];
-        if ($this->request->getMethod() === 'POST') {
+        if (strtoupper($this->request->getMethod()) === 'POST') {
             $rawCharts = (string) ($this->request->getPost('chart_svgs') ?? '');
             if ($rawCharts !== '') {
                 $decoded = json_decode($rawCharts, true);
