@@ -69,6 +69,9 @@ $kpi = [
     <p class="text-muted mb-0">Ringkasan supervisi readonly berdasarkan data operasional yang diizinkan.</p>
   </div>
   <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+      <i class="bx bx-tv me-1"></i>EWS Signage
+    </a>
     <?php if ($tahun !== null): ?>
       <span class="badge bg-label-primary">
         <?= esc((string) ($tahun['nama_tahun'] ?? '-')) ?> · <?= esc((string) ($tahun['semester'] ?? '-')) ?>
