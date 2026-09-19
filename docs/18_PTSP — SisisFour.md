@@ -556,6 +556,6 @@ G3.6B hosting SQL execution  PASS / user evidence
 G3.6B post-SQL hosting dump  PASS / read-only dump audit
 G3.6B source deployment      PASS / user evidence
 G3.6B hosting runtime smoke  PASS / user runtime evidence
-PR Ready                    AUTHORIZED / pending GitHub transition
+PR Ready                    PASS / GitHub state
 Merge                       NOT AUTHORIZED
 ```
