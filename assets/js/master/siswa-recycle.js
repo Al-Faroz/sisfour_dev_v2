@@ -7,6 +7,7 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableSiswaRecycle');
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('siswaRecycleMobileList');
 
     let rows = [];
     let dataTable = null;
@@ -51,16 +52,28 @@
                 <td>${escapeHtml(siswa.deleted_at || '-')}</td>
                 <td>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-success btn-restore" data-id="${siswa.id}">
+                        <button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-restore" data-id="${siswa.id}">
                             <i class="bx bx-revision me-1"></i> Restore
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-force-delete" data-id="${siswa.id}">
+                        <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-force-delete" data-id="${siswa.id}">
                             <i class="bx bx-x me-1"></i> Permanen
                         </button>
                     </div>
                 </td>
             </tr>
         `).join('');
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((siswa) => `<div class="list-group-item py-3">
+                <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(siswa.nama)}</div>
+                <div class="small text-muted mt-1 sisfour-wrap-anywhere">NIK ${escapeHtml(siswa.nik)} · NISN ${escapeHtml(siswa.nisn)}</div>
+                <div class="small mt-1 sisfour-wrap-anywhere">${escapeHtml(siswa.status_aktif)} · dihapus ${escapeHtml(siswa.deleted_at || '-')}</div>
+                <div class="sisfour-mobile-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-mobile-proxy" data-action="restore" data-id="${siswa.id}">Restore</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-action="force" data-id="${siswa.id}">Permanen</button>
+                </div>
+            </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Recycle Bin Siswa kosong.</div>';
+        }
 
         if (typeof window.DataTable === 'function') {
             dataTable = new window.DataTable(table, {
@@ -84,6 +97,13 @@
             showError(error);
         }
     };
+
+    mobileList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-mobile-proxy');
+        if (!button) return;
+        const selector = button.dataset.action === 'restore' ? '.btn-restore' : '.btn-force-delete';
+        tbody.querySelector(`${selector}[data-id="${button.dataset.id}"]`)?.click();
+    });
 
     tbody.addEventListener('click', async (event) => {
         const restore = event.target.closest('.btn-restore');
