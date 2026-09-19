@@ -522,3 +522,34 @@ signed package/distribution
 Setiap phase harus melewati SSOT + local/static/runtime + regression + production gate sesuai `00/00A/15`.
 
 Tidak ada auto-deploy, auto-Ready, atau auto-merge. Setiap deploy/Ready/Merge membutuhkan approval eksplisit pengguna.
+
+## 17. G3.6C — Executive Visualization & EWS Signage
+
+Baseline:
+
+```text
+G3.6B PR #14 = CLOSED / MERGED
+main = f6f30ceaf070f342d609c322905ee77dc33f3e6f
+branch = feat/g3-6c-exec-viz-signage-20260919
+```
+
+SSOT detail: `19_G3_6C_EXEC_VIZ_SIGNAGE — SisisFour.md`.
+
+Scope:
+
+```text
+Dashboard Admin/Operator/Pimpinan -> shortcut EWS Signage
+Signage -> TemplateSIGNAGE three-panel layout + internal rotation
+Statistik -> Admin/Operator/Pimpinan only + PDF
+```
+
+Statistik tidak pernah membawa Konseling BK. Pelanggaran tetap tanpa poin. UKS/PTSP hanya aggregate-safe.
+
+Roadmap setelah phase ini:
+
+```text
+G3.6C Executive Visualization & EWS Signage
+G3.7  Global Mobile Sweep
+G3.8  WebView Readiness
+G4    Cordova APK
+```
