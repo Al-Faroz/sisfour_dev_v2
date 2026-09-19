@@ -563,15 +563,17 @@ filter tingkat/kelas
 Executive + Komposisi + Presensi + EWS + Pembelajaran
 Pelanggaran tanpa poin
 Prestasi
+Konseling aggregate confidential: total/status/bidang/tren
+Konseling tidak memuat nama siswa/topik/catatan/Guru BK/follow-up/jadwal individual
+Konseling mengabaikan filter Tingkat/Kelas
 UKS aggregate only
 PTSP aggregate only
 Mobilitas Siswa
-Konseling tidak ada di payload/UI/PDF
 ApexCharts lokal
 Export PDF mengikuti filter
 Export PDF section/card mengikuti urutan halaman Statistik
-Export PDF memakai visual ApexCharts halaman ketika JS tersedia
-Export PDF fallback tetap authoritative bila SVG client tidak tersedia
+Export PDF memakai PNG hasil render ApexCharts halaman ketika JS tersedia
+Export PDF fallback tetap authoritative bila PNG client tidak tersedia
 Export PDF tercatat di log_activity
 mobile no horizontal body overflow
 ```
