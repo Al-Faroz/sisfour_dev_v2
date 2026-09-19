@@ -156,9 +156,16 @@
         rankingChart('chartEwsAlpha', ews.top_alpha || []);
 
         const teachingToday = teaching.today || {};
+        const teachingApplicable = teachingToday.applicable !== false;
         document.querySelectorAll('[data-teaching]').forEach((el) => {
-            el.textContent = String(number(teachingToday[el.dataset.teaching]));
+            el.textContent = teachingApplicable
+                ? String(number(teachingToday[el.dataset.teaching]))
+                : '—';
         });
+        setText(
+            'teachingTodayContext',
+            teachingApplicable ? String(teachingToday.tanggal || '') : 'hanya Tahun aktif'
+        );
         donutRows('chartTeachingStatus', teaching.status_distribution || []);
         lineRows('chartTeachingTrend', teaching.trend || [], [
             { key: 'total', label: 'Jurnal/Presensi Mengajar' },
