@@ -340,7 +340,7 @@ Konseling G3.3.1     = CLOSED / MERGED — PR #9
 Dashboard Siswa G3.6 = CLOSED / MERGED — PR #12
 UKS/Kesehatan G3.6A  = CLOSED / MERGED — PR #13
 PTSP G3.6B            = CLOSED / MERGED — PR #14
-Statistik G3.6C       = IMPLEMENTED / feature branch; local gates PASS; hosting SQL PREPARED / NOT EXECUTED
+Statistik G3.6C       = IMPLEMENTED / deployed; local + hosting gates PASS; PR #15 remains Draft
 ```
 
 Dokumentasi tidak membuat capability tersedia di suatu environment. Availability final tetap mengikuti source yang terpasang + state database environment tersebut.
