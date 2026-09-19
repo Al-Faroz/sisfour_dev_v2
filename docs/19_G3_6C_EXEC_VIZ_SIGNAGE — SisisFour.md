@@ -389,7 +389,7 @@ database/20260919_G3_6C_EXEC_VIZ_LOCALHOST.sql
 database/20260919_G3_6C_EXEC_VIZ_HOSTING.sql
 ```
 
-Hosting SQL disusun setelah local SQL/UAT/post-SQL dump dan fresh hosting dump semuanya PASS. Eksekusi hosting tetap membutuhkan approval eksplisit terpisah.
+Hosting SQL disusun setelah local SQL/UAT/post-SQL dump dan fresh hosting dump semuanya PASS. SQL kemudian dieksekusi setelah approval eksplisit user, diverifikasi melalui post-SQL hosting dump audit, lalu source dideploy dan focused hosting runtime smoke dinyatakan PASS.
 
 ## 9. Gate
 
@@ -404,9 +404,14 @@ Counseling aggregate re-smoke   PASS / user runtime evidence
 PDF visual parity re-smoke      PASS / user runtime evidence
 Post-SQL local dump audit       PASS / read-only dump audit
 Table-count reconciliation      PASS / user evidence
-Fresh hosting dump audit        PASS / read-only dump audit
-Hosting SQL                     PREPARED / NOT EXECUTED
-Hosting SQL/source mutation     NOT AUTHORIZED
+Fresh hosting pre-SQL audit     PASS / read-only dump audit
+Hosting SQL execution           PASS / user evidence
+Post-SQL hosting dump audit     PASS / read-only dump audit
+Hosting source deployment       PASS / user evidence
+Hosting runtime smoke           PASS / user runtime evidence
+Kartu JPG ZIP add-on            PASS ALL
+Production gate                 PASS ALL
+PR #15                          OPEN / DRAFT
 PR Ready                        NOT AUTHORIZED
 Merge                           NOT AUTHORIZED
 ```
