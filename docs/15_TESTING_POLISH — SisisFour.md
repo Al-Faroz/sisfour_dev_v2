@@ -569,6 +569,9 @@ Mobilitas Siswa
 Konseling tidak ada di payload/UI/PDF
 ApexCharts lokal
 Export PDF mengikuti filter
+Export PDF section/card mengikuti urutan halaman Statistik
+Export PDF memakai visual ApexCharts halaman ketika JS tersedia
+Export PDF fallback tetap authoritative bila SVG client tidak tersedia
 Export PDF tercatat di log_activity
 mobile no horizontal body overflow
 ```
@@ -588,10 +591,12 @@ Gate:
 ```text
 G3.6C source                     IMPLEMENTED / feature branch
 G3.6C localhost SQL              PREPARED
-G3.6C GitHub structural audit    PENDING
+G3.6C GitHub structural audit    PASS / GitHub read evidence
 G3.6C local SQL execution        PASS / user evidence
-G3.6C static terminal gate       PASS / user terminal evidence
-G3.6C local runtime UAT          PENDING
+G3.6C static terminal gate       PASS / user terminal evidence @ pre-parity-fix SHA
+G3.6C focused static re-check    PENDING
+G3.6C local runtime UAT          PASS except PDF visual parity / user runtime evidence
+G3.6C PDF parity re-smoke        PENDING
 G3.6C post-SQL dump audit        PENDING
 G3.6C hosting                    NOT AUTHORIZED
 PR Ready                         NOT AUTHORIZED
