@@ -46,6 +46,85 @@ async function parseResponse(response) {
   return payload;
 }
 
+async function copyText(value) {
+  const text = String(value || '');
+  if (!text) {
+    throw new Error('Tidak ada teks yang dapat disalin.');
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.pointerEvents = 'none';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied = document.execCommand('copy');
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error('Browser tidak mengizinkan akses clipboard.');
+  }
+}
+
+function setCopyButtonState(button, copied) {
+  if (!button) return;
+
+  if (!button.dataset.originalHtml) {
+    button.dataset.originalHtml = button.innerHTML;
+  }
+
+  if (copied) {
+    button.innerHTML = '<i class="bx bx-check me-1"></i> Tersalin';
+    button.classList.add('btn-success');
+    button.classList.remove('btn-primary', 'btn-outline-secondary');
+
+    window.setTimeout(() => {
+      button.innerHTML = button.dataset.originalHtml || 'Copy';
+      button.classList.remove('btn-success');
+
+      if (button.classList.contains('api-copy-script')) {
+        button.classList.add('btn-primary');
+      } else {
+        button.classList.add('btn-outline-secondary');
+      }
+    }, 1600);
+  }
+}
+
+document.querySelectorAll('.api-copy-script').forEach(button => {
+  button.addEventListener('click', async () => {
+    const source = document.getElementById(button.dataset.sourceId || '');
+
+    try {
+      await copyText(source?.value || source?.textContent || '');
+      setCopyButtonState(button, true);
+      show('Script API PTSP berhasil disalin.', 'success');
+    } catch (error) {
+      show(error.message || 'Script API gagal disalin.');
+    }
+  });
+});
+
+document.querySelectorAll('.api-copy-endpoint').forEach(button => {
+  button.addEventListener('click', async () => {
+    try {
+      await copyText(button.dataset.copyValue || '');
+      setCopyButtonState(button, true);
+      show('Endpoint API PTSP berhasil disalin.', 'success');
+    } catch (error) {
+      show(error.message || 'Endpoint API gagal disalin.');
+    }
+  });
+});
+
 const formSistem = document.getElementById('formSistem');
 formSistem?.addEventListener('submit', async event => {
   event.preventDefault();
