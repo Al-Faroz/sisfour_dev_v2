@@ -341,3 +341,30 @@ PTSP G3.6B            = source/schema/permission/menu/public API IMPLEMENTED ON 
 ```
 
 Tidak ada permission/menu/route UKS/PTSP yang dianggap tersedia hanya karena sudah tercatat pada dokumen target.
+
+## G3.6C — Statistik Access Boundary
+
+Capability baru:
+
+```text
+statistik.view
+statistik.export_pdf
+```
+
+Matrix:
+
+```text
+Admin      SEMUA view + export
+Operator   SEMUA view + export
+Pimpinan   SEMUA view + export
+
+BK         DENY
+Kesehatan  DENY
+PTSP       DENY
+Guru/Wali  DENY
+Siswa      DENY
+```
+
+Menu `Statistik` bukan security boundary. Route memakai PermissionFilter dan `StatistikService` melakukan authorization ulang.
+
+Signage tetap OPEN/PUBLIC. Shortcut Signage hanya ditampilkan di dashboard Admin/Operator/Pimpinan sebagai experience shortcut, bukan sebagai pembatas route.
