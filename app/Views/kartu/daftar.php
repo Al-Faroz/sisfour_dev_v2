@@ -154,11 +154,18 @@
                         <button id="btnCetakBelakangKelas" class="btn btn-outline-success" type="button">
                             Cetak Belakang Per Kelas
                         </button>
+
+                        <?php if (!empty($initial['can_export_jpg_zip'])): ?>
+                            <button id="btnExportJpgKelas" class="btn btn-dark" type="button">
+                                Unduh JPG Depan Per Kelas (.ZIP)
+                            </button>
+                        <?php endif; ?>
                     </div>
 
                     <div class="form-text mt-2">
-                        Layout A4: 2 kolom × 5 baris = 10 kartu per lembar.
-                        Maksimum <?= (int) ($initial['max_print'] ?? 200) ?> kartu per file PDF.
+                        Layout PDF A4: 2 kolom × 5 baris = 10 kartu per lembar.
+                        Maksimum <?= (int) ($initial['max_print'] ?? 200) ?> kartu per proses.
+                        Export JPG ZIP hanya tersedia untuk Admin dan mengikuti data Cetak Depan Per Kelas.
                     </div>
                 </div>
             </div>
