@@ -428,13 +428,17 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
 G3.7 Wave 2 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 2 static gate             PENDING
 G3.7 Wave 2 dashboard runtime UAT   PENDING
+G3.7 Wave 3 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 3 static gate             PENDING
+G3.7 Wave 3 runtime UAT             PENDING
+G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
 G3.7 hosting deployment             NOT AUTHORIZED
@@ -770,13 +774,17 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
 Wave 2 GitHub diff audit      PASS / GitHub read evidence
 Wave 2 static gate            PENDING
 Wave 2 dashboard runtime UAT  PENDING
+Wave 3 GitHub diff audit      PASS / GitHub read evidence
+Wave 3 static gate            PENDING
+Wave 3 runtime UAT            PENDING
+Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
 hosting source deployment     NOT AUTHORIZED
@@ -876,4 +884,79 @@ Wave 2 implementation       IMPLEMENTED
 Wave 2 GitHub diff audit    PASS / GitHub read evidence
 Wave 2 static terminal gate PENDING
 Wave 2 dashboard runtime    PENDING
+```
+
+
+### Wave 3 — BK + Presensi + Laporan Guru/Wali
+
+Audit sebelum mutation:
+
+```text
+BK Kasus                  = existing mobile list / regression-only
+BK Konseling              = existing mobile list / regression-only
+BK Prestasi               = existing mobile list / regression-only
+Presensi Siswa Input      = existing mobile table/status grid / regression-only
+Presensi Mengajar         = existing mobile form/status grid / regression-only
+Presensi Mengajar Laporan = existing mobile list / regression-only
+Laporan Jurnal            = existing mobile list + fullscreen detail / regression-only
+```
+
+Implemented gap:
+
+```text
+BK Master Pelanggaran
+- desktop table preserved
+- mobile list mirrors same server rows
+- Edit/Hapus operate against same row identity
+- pagination state shared
+
+EWS Presensi Siswa
+- desktop table preserved
+- mobile list shows siswa + total Alpha
+- same in-memory rows + same pagination
+
+Rekap Presensi Siswa
+- desktop table preserved
+- mobile list shows siswa + tanggal/sesi + status
+- self-view and scoped-view use same server result
+- same server-side pagination/filter state
+```
+
+Changed runtime files:
+
+```text
+app/Views/bk/pelanggaran.php
+assets/js/bk/pelanggaran.js
+app/Views/presensi/siswa_ews.php
+assets/js/presensi/siswa-ews.js
+app/Views/presensi/siswa_rekap.php
+assets/js/presensi/siswa-rekap.js
+```
+
+Matrix Presensi:
+
+```text
+status = CANDIDATE EXCEPTION
+reason = intrinsically 2D (siswa × tanggal)
+rule   = horizontal scroll boleh hanya di matrix container
+UAT    = document/body tetap tidak overflow
+final exception = belum dikunci sampai runtime verification
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / RBAC / scope         = unchanged
+filter/pagination semantics  = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 3 implementation       IMPLEMENTED
+Wave 3 GitHub diff audit    PASS / GitHub read evidence
+Wave 3 static terminal gate PENDING
+Wave 3 runtime UAT          PENDING
 ```
