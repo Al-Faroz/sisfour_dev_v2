@@ -3,7 +3,10 @@
 
 <style>
 .kartu-scroll {
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 8px;
 }
 .kartu-canvas {
@@ -118,14 +121,19 @@
 }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="fw-bold mb-0">Preview Kartu Pelajar</h4>
+<div class="sisfour-page-header mb-3">
+    <div class="sisfour-page-header__copy">
+        <h4 class="fw-bold mb-0">Preview Kartu Pelajar</h4>
+        <p class="text-muted mb-0">Preview mempertahankan ukuran fisik kartu; geser area kartu bila layar lebih sempit.</p>
+    </div>
+    <div class="sisfour-page-actions">
     <a
-        class="btn btn-primary"
+        class="btn btn-primary sisfour-touch-target"
         href="<?= esc(base_url('kartu/download/' . $card['id'])) ?>"
     >
         Download PDF 2 Sisi
     </a>
+    </div>
 </div>
 
 <h6>Depan</h6>
