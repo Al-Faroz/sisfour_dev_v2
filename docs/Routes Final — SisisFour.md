@@ -212,6 +212,7 @@ GET  /kartu/daftar/json
 POST /kartu/generate
 POST /kartu/generate-bulk
 POST /kartu/cetak-massal
+POST /kartu/export-jpg-zip                  Admin only via Service + kartu_pelajar.manage route gate
 GET  /kartu/cetak/{id}
 GET  /kartu/preview/{id}
 GET  /kartu/preview/{id}/json
