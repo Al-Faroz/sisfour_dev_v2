@@ -554,5 +554,6 @@ G3.6B fresh hosting dump     PASS / read-only dump audit
 G3.6B hosting SQL            PREPARED / static audited
 G3.6B hosting SQL execution  PASS / user evidence
 G3.6B post-SQL hosting dump  PASS / read-only dump audit
-G3.6B source deployment      NOT AUTHORIZED
+G3.6B source deployment      AUTHORIZED / awaiting user execution
+G3.6B hosting runtime smoke  PENDING
 ```
