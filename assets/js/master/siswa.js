@@ -12,6 +12,7 @@
 
     const table = document.getElementById('tableSiswa');
     const tbody = table?.querySelector('tbody') ?? null;
+    const mobileList = document.getElementById('siswaMobileList');
     const filterForm = document.getElementById('formFilterSiswa');
 
     if (!table || !tbody || !filterForm) {
