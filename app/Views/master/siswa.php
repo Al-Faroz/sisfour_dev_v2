@@ -17,13 +17,13 @@
         </div>
         <div class="d-flex flex-wrap gap-2">
             <?php if (!empty($canManage)): ?>
-                <a href="<?= base_url('master/siswa/recycle') ?>" class="btn btn-outline-secondary"><i class="bx bx-trash me-1"></i> Recycle Bin</a>
-                <button type="button" class="btn btn-primary" id="btnTambahSiswa"><i class="bx bx-plus me-1"></i> Tambah Siswa</button>
+                <a href="<?= base_url('master/siswa/recycle') ?>" class="btn btn-outline-secondary sisfour-touch-target--compact"><i class="bx bx-trash me-1"></i> Recycle Bin</a>
+                <button type="button" class="btn btn-primary sisfour-touch-target" id="btnTambahSiswa"><i class="bx bx-plus me-1"></i> Tambah Siswa</button>
             <?php endif; ?>
             <?php if (!empty($canImportExport)): ?>
-                <a href="<?= base_url('master/siswa/template') ?>" class="btn btn-outline-primary"><i class="bx bx-download me-1"></i> Template</a>
-                <button type="button" class="btn btn-outline-primary" id="btnImportSiswa"><i class="bx bx-import me-1"></i> Import</button>
-                <a href="#" class="btn btn-outline-success" id="btnExportSiswa"><i class="bx bx-export me-1"></i> Export</a>
+                <a href="<?= base_url('master/siswa/template') ?>" class="btn btn-outline-primary sisfour-touch-target--compact"><i class="bx bx-download me-1"></i> Template</a>
+                <button type="button" class="btn btn-outline-primary sisfour-touch-target--compact" id="btnImportSiswa"><i class="bx bx-import me-1"></i> Import</button>
+                <a href="#" class="btn btn-outline-success sisfour-touch-target--compact" id="btnExportSiswa"><i class="bx bx-export me-1"></i> Export</a>
             <?php endif; ?>
         </div>
     </div>
@@ -75,13 +75,16 @@
                     <option value="Keluar">Keluar</option>
                 </select>
             </div>
-            <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button><button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button></div>
+            <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button><button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button></div>
         </form>
     </div></div>
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Daftar Siswa</h5><?php if (empty($canEdit) && empty($canManage)): ?><span class="badge bg-label-info">Readonly</span><?php endif; ?></div>
-        <div class="card-datatable table-responsive">
+        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h5 class="mb-0">Daftar Siswa</h5><?php if (empty($canEdit) && empty($canManage)): ?><span class="badge bg-label-info">Readonly</span><?php endif; ?></div>
+        <div id="siswaMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat data Siswa...</div>
+        </div>
+        <div class="d-none d-md-block card-datatable table-responsive">
             <table class="table table-hover align-middle" id="tableSiswa">
                 <thead><tr><th style="width:56px;">No.</th><th>Siswa</th><th>NIK / NISN</th><th>Kelas</th><th>JK</th><th>Status</th><th>Kontak</th><?php if (!empty($canEdit)||!empty($canManage)): ?><th style="min-width:150px;">Aksi</th><?php endif; ?></tr></thead>
                 <tbody></tbody>
@@ -112,7 +115,7 @@
                     <div class="col-md-4"><label class="form-label" for="nama_wali">Nama Wali</label><input type="text" class="form-control" id="nama_wali" name="nama_wali" maxlength="150"></div>
                     <div class="col-12"><label class="form-label" for="alamat">Alamat</label><textarea class="form-control" id="alamat" name="alamat" rows="3"></textarea></div>
                 </div></div>
-                <div class="modal-footer py-2 sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary" id="btnSimpanSiswa"><span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan</button></div>
+                <div class="modal-footer py-2 sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary" id="btnSimpanSiswa"><span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan</button></div>
             </form>
         </div>
     </div>
@@ -120,7 +123,7 @@
 
     <?php if (!empty($canImportExport)): ?>
     <div class="modal fade" id="modalImportSiswa" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formImportSiswa" class="modal-content">
                 <?= csrf_field() ?>
                 <div class="modal-header"><h5 class="modal-title">Import Data Siswa</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
@@ -129,7 +132,7 @@
                     <label class="form-label" for="fileImportSiswa">File Excel</label>
                     <input type="file" class="form-control" id="fileImportSiswa" name="file" accept=".xlsx,.xls" required>
                 </div>
-                <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Import</button></div>
+                <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Import</button></div>
             </form>
         </div>
     </div>
