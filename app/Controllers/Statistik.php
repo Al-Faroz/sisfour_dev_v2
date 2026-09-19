@@ -68,9 +68,13 @@ class Statistik extends BaseController
     public function exportPdf()
     {
         $userId = $this->currentActorUserId();
+        $input = $this->request->getMethod() === 'POST'
+            ? $this->request->getPost()
+            : $this->request->getGet();
+
         $result = $this->service->exportData(
             $userId,
-            $this->request->getGet()
+            $input
         );
 
         if (! ($result['success'] ?? false)) {
@@ -79,7 +83,16 @@ class Statistik extends BaseController
                 ->setBody($result['message'] ?? 'Export Statistik gagal.');
         }
 
-        $pdf = $this->pdfService->generate($result);
+        $chartSvgs = [];
+        if ($this->request->getMethod() === 'POST') {
+            $rawCharts = (string) ($this->request->getPost('chart_svgs') ?? '');
+            if ($rawCharts !== '') {
+                $decoded = json_decode($rawCharts, true);
+                $chartSvgs = is_array($decoded) ? $decoded : [];
+            }
+        }
+
+        $pdf = $this->pdfService->generate($result, $chartSvgs);
         if (! ($pdf['success'] ?? false)) {
             return $this->response
                 ->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
