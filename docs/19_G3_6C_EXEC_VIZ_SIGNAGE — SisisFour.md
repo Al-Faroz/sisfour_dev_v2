@@ -411,7 +411,22 @@ Hosting source deployment       PASS / user evidence
 Hosting runtime smoke           PASS / user runtime evidence
 Kartu JPG ZIP add-on            PASS ALL
 Production gate                 PASS ALL
-PR #15                          OPEN / DRAFT
-PR Ready                        NOT AUTHORIZED
-Merge                           NOT AUTHORIZED
+PR #15                          CLOSED / MERGED
+PR Ready                        PASS / user approval
+Merge                           PASS / user approval
+merge commit                    f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
+
+
+## 10. Closure
+
+G3.6C dan add-on Kartu Pelajar JPG ZIP ditutup melalui PR #15.
+
+```text
+feature head = df0331c515f8a0d0d02039dc5aeedd2fa4658818
+merge commit = f82a0299c8989da6c1026d84861f3e95d786f7dd
+PR #15       = CLOSED / MERGED
+production   = PASS ALL
+```
+
+Baseline G3.7 dimulai dari merge commit tersebut. Tidak ada mutation production tambahan yang disebabkan oleh merge.
