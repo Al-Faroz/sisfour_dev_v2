@@ -82,39 +82,39 @@ SELECT COUNT(*) AS total_tables
 FROM information_schema.tables
 WHERE table_schema='sisfour_dev_v2' AND table_type='BASE TABLE';
 
-SELECT COUNT(*) AS total_permissions FROM permissions;
-SELECT COUNT(*) AS total_role_permissions FROM role_permissions;
-SELECT COUNT(*) AS total_menus FROM menus;
-SELECT COUNT(*) AS total_role_menus FROM role_menus;
+SELECT COUNT(*) AS total_permissions FROM `sisfour_dev_v2`.`permissions`;
+SELECT COUNT(*) AS total_role_permissions FROM `sisfour_dev_v2`.`role_permissions`;
+SELECT COUNT(*) AS total_menus FROM `sisfour_dev_v2`.`menus`;
+SELECT COUNT(*) AS total_role_menus FROM `sisfour_dev_v2`.`role_menus`;
 
 SELECT p.permission_key, p.modul, p.scope_didukung, rp.role, rp.scope
-FROM permissions p
-LEFT JOIN role_permissions rp ON rp.id_permission=p.id
+FROM `sisfour_dev_v2`.`permissions` p
+LEFT JOIN `sisfour_dev_v2`.`role_permissions` rp ON rp.id_permission=p.id
 WHERE p.permission_key IN ('statistik.view','statistik.export_pdf')
 ORDER BY p.permission_key,rp.role;
 
 SELECT m.id,m.nama_menu,m.parent_id,m.urutan,m.icon,m.link,rm.role,rm.tampil
-FROM menus m
-LEFT JOIN role_menus rm ON rm.id_menu=m.id
+FROM `sisfour_dev_v2`.`menus` m
+LEFT JOIN `sisfour_dev_v2`.`role_menus` rm ON rm.id_menu=m.id
 WHERE m.link='statistik'
 ORDER BY rm.role;
 
 SELECT COUNT(*) AS statistik_permission_count
-FROM permissions
+FROM `sisfour_dev_v2`.`permissions`
 WHERE permission_key IN ('statistik.view','statistik.export_pdf');
 
 SELECT COUNT(*) AS statistik_role_permission_count
-FROM role_permissions rp
-JOIN permissions p ON p.id=rp.id_permission
+FROM `sisfour_dev_v2`.`role_permissions` rp
+JOIN `sisfour_dev_v2`.`permissions` p ON p.id=rp.id_permission
 WHERE p.permission_key IN ('statistik.view','statistik.export_pdf');
 
 SELECT COUNT(*) AS statistik_menu_count
-FROM menus
+FROM `sisfour_dev_v2`.`menus`
 WHERE link='statistik';
 
 SELECT COUNT(*) AS statistik_role_menu_count
-FROM role_menus rm
-JOIN menus m ON m.id=rm.id_menu
+FROM `sisfour_dev_v2`.`role_menus` rm
+JOIN `sisfour_dev_v2`.`menus` m ON m.id=rm.id_menu
 WHERE m.link='statistik';
 
 -- Expected post-SQL:
