@@ -8,6 +8,7 @@
   const canManage = app.dataset.canManage === '1';
   const table = document.getElementById('tablePegawai');
   const tbody = table?.querySelector('tbody');
+  const mobileList = document.getElementById('pegawaiMobileList');
   const filterForm = document.getElementById('formFilterPegawai');
   const form = document.getElementById('formPegawai');
   const modalEl = document.getElementById('modalPegawai');
