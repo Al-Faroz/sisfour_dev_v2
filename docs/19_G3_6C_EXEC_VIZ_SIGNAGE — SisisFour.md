@@ -299,6 +299,7 @@ Komposisi Siswa
 Presensi & EWS
 Pembelajaran
 Pembinaan
+Konseling BK — Aggregate Confidential
 UKS
 PTSP
 Mobilitas Siswa
@@ -382,14 +383,15 @@ Hosting SQL belum disusun. Harus menunggu local SQL + UAT + post-SQL dump PASS d
 
 ```text
 Contract / SSOT                 LOCKED by user approval
-Implementation                  IN PROGRESS
+Implementation                  IMPLEMENTED / feature branch
 Local SQL                       PREPARED
 Local SQL execution             PASS / user evidence
 Static terminal gate            PASS / user terminal evidence @ pre-parity-fix SHA
-Focused static re-check          PENDING
+Focused static re-check         PENDING
 Local runtime UAT               PASS except PDF visual parity / user runtime evidence
-Counseling aggregate re-smoke     PENDING
-PDF visual parity re-smoke       PENDING
+Counseling aggregate refinement IMPLEMENTED / re-smoke pending
+PDF PNG parity refinement       IMPLEMENTED / re-smoke pending
+PDF visual parity re-smoke      PENDING
 Post-SQL local dump audit       PENDING
 Fresh hosting dump audit        PENDING
 Hosting mutation/deploy         NOT AUTHORIZED
