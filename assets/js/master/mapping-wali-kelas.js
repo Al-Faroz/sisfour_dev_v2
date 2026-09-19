@@ -8,6 +8,7 @@
     const canManage = app.dataset.canManage === '1';
     const table = document.getElementById('tableMappingWali');
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('mappingWaliMobileList');
     const filterForm = document.getElementById('formFilterWali');
 
     let rows = [];
@@ -87,6 +88,21 @@
                 </tr>
             `;
         }).join('') || `<tr class="sisfour-empty-row"><td colspan="${colspan}" class="text-muted">Tidak ada Mapping Wali aktif.</td></tr>`;
+
+        if (mobileList) {
+            mobileList.innerHTML = pageRows.map((row) => `<div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama_guru)}</div>
+                        <div class="small text-muted font-monospace sisfour-wrap-anywhere">${escapeHtml(row.nip)}</div>
+                    </div>
+                    <span class="badge bg-label-success flex-shrink-0">Aktif</span>
+                </div>
+                <div class="small mt-2"><span class="badge bg-label-primary">${escapeHtml(row.nama_kelas)}</span></div>
+                <div class="small text-muted mt-1 sisfour-wrap-anywhere">${escapeHtml(row.nama_tahun)} - ${escapeHtml(row.semester)}${Number(row.tahun_aktif) === 1 ? ' · periode aktif' : ''}</div>
+                ${canManage ? `<div class="sisfour-mobile-actions mt-3"><button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-id="${row.id}">Nonaktifkan</button></div>` : ''}
+            </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada Mapping Wali aktif.</div>';
+        }
 
         pager?.render(state);
     };
@@ -211,6 +227,12 @@
                 button.disabled = false;
                 spinner.classList.add('d-none');
             }
+        });
+
+        mobileList?.addEventListener('click', (event) => {
+            const button = event.target.closest('.btn-mobile-proxy');
+            if (!button) return;
+            tbody.querySelector(`.btn-nonaktifkan[data-id="${button.dataset.id}"]`)?.click();
         });
 
         tbody.addEventListener('click', async (event) => {
