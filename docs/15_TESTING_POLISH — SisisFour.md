@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6A — **UKS / Kesehatan / local gates PASS; fresh hosting dump audited; hosting SQL prepared and execution authorized**
+**Phase aktif:** G3.6B — **PTSP / source + localhost SQL implemented on feature branch; local static/runtime gates pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -418,28 +418,28 @@ G3.4                                CLOSED / MERGED — PR #10
 G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
 G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
+G3.6A                               CLOSED / MERGED — PR #13
+G3.6A merge commit                  90acc7f94fee391a5a7fbad2395e3f16571fe921
 
-G3.6A contract                      LOCKED
-G3.6A source                        IMPLEMENTED / feature branch
-G3.6A docs sync                     PASS
-G3.6A localhost SQL                 PASS / user evidence
-G3.6A final static gate             PASS / user terminal evidence
-G3.6A local runtime UAT             PASS / user runtime evidence
-G3.6A cross-role/historical UAT     PASS / user runtime evidence
-G3.6A local dump audit              PASS / read-only dump audit
-G3.6A fresh hosting dump audit      PASS / read-only dump audit
-G3.6A hosting SQL                   PREPARED / static audit PASS
-G3.6A hosting SQL execution         AUTHORIZED / PENDING USER EXECUTION
-G3.6A hosting source deployment     NOT AUTHORIZED
-PR Ready                            NOT AUTHORIZED
+G3.6B contract                      LOCKED
+G3.6B source                        IMPLEMENTED / feature branch
+G3.6B localhost SQL                 PREPARED
+G3.6B GitHub structural audit       PASS / GitHub read evidence
+G3.6B static terminal gate          PENDING
+G3.6B local SQL execution           PENDING
+G3.6B local runtime/public UAT      PENDING
+G3.6B cross-role/CORS regression    PENDING
+G3.6B local post-SQL dump audit     PENDING
+G3.6B hosting                       NOT AUTHORIZED
+PR Ready                            PASS / GitHub state
 Merge                               NOT AUTHORIZED
 ```
 
 ## 18. Roadmap
 
 ```text
-G3.6A  UKS / Kesehatan       ACTIVE
-G3.6B  PTSP                  NEXT
+G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
+G3.6B  PTSP                  ACTIVE
 G3.7   Global Mobile Sweep
 G3.8   WebView Readiness
 G4     Cordova APK
@@ -448,3 +448,76 @@ G4     Cordova APK
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
 
 Setiap deployment/Ready/merge memerlukan approval eksplisit pengguna.
+
+
+## 19. G3.6B — PTSP Gate
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.6B
+node --check assets/js/ptsp/*.js
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Runtime minimum:
+
+```text
+Public landing /ptsp tampil sebagai kios 3 tombol besar
+urutan kios = Layanan PTSP -> Pengaduan -> Polling Kepuasan
+setiap tombol membuka halaman form tersendiri
+Public Layanan submit tanpa login + CSRF valid
+receipt thermal media 80 mm tanpa nomor tiket/antrian/tracking
+Auto Print OFF + Auto PDF OFF -> tombol cetak manual tersedia, tidak ada dialog/download otomatis
+Auto Print OFF + Auto PDF ON -> PDF bukti thermal 80mm otomatis terunduh
+Auto Print ON -> dialog print otomatis muncul dan Auto PDF tidak dijalankan
+PDF filename tidak memuat PII/public record ID
+PDF receipt tidak memuat ticket/antrian/tracking/public record ID
+PDF receipt normal 80mm muat 1 halaman
+jarak antarbaris compact dan footer tidak terdorong ke halaman kedua
+Public Polling submit berulang
+Public Pengaduan anonim + optional PDF/PNG/JPG/JPEG <= 5 MB
+attachment tidak dapat dibuka sebagai public URL
+Admin/Operator/PTSP full domain
+Pimpinan readonly + export, no mutation/hard-delete
+BK/Kesehatan/Guru/Wali/Siswa internal PTSP DENY
+Layanan Baru -> Diproses -> Selesai
+Pengaduan Masuk -> Diverifikasi -> Diproses/Selesai
+hard delete Admin/Operator/PTSP only
+XLSX mengikuti Tahun/filter
+public stats 3 endpoint aggregate-only
+public stats tidak mengeluarkan PII/raw record id
+cross-origin GET public stats bekerja tanpa credentials
+Settings Sistem menampilkan 3 card API PTSP
+Copy URL bekerja
+Copy Script API bekerja dan script memuat endpoint aktual
+dashboard PTSP current-state sesuai locked KPI/action
+mobile no horizontal body overflow
+Konseling tetap confidential
+```
+
+Gate saat ini:
+
+```text
+G3.6B contract                LOCKED
+G3.6B source                  IMPLEMENTED / feature branch
+G3.6B localhost SQL           PREPARED
+G3.6B static gate             RE-RUN PENDING after kiosk/auto-print refinement
+G3.6B initial public UAT       PASS / user runtime evidence on prior head
+G3.6B kiosk/auto-print re-smoke PASS / user runtime evidence on prior head
+G3.6B PDF auto-download re-smoke PASS / user runtime evidence on prior head
+G3.6B compact receipt re-smoke     PASS / user runtime evidence
+G3.6B remaining runtime UAT         PASS ALL / user runtime evidence
+G3.6B API settings card re-smoke    PASS / user runtime evidence
+G3.6B post-SQL local dump            PASS / read-only dump audit
+G3.6B fresh hosting dump             PASS / read-only dump audit
+G3.6B hosting SQL                    PREPARED / static audited
+G3.6B hosting SQL execution          PASS / user evidence
+G3.6B post-SQL hosting dump audit    PASS / read-only dump audit
+G3.6B hosting source deployment      PASS / user evidence
+G3.6B focused hosting runtime smoke  PASS / user runtime evidence
+PR Ready                            NOT AUTHORIZED
+Merge                               NOT AUTHORIZED
+```

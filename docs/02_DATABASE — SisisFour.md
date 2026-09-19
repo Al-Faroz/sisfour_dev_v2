@@ -2,8 +2,8 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 18 September 2026
-**Application baseline:** `main` @ `59b22b651ad0d508ea3a29261ef590d4c9506da4` + G3.6A feature branch
-**Database state:** G3.3.1 local+hosting CLOSED; G3.6A localhost SQL **prepared / execution pending**
+**Application baseline:** `main` @ `90acc7f94fee391a5a7fbad2395e3f16571fe921` + G3.6B feature branch
+**Database state:** G3.6A local+hosting CLOSED; G3.6B localhost SQL **prepared / execution pending**
 
 > Database adalah sumber integritas persistence. Exact DDL runtime tetap harus diverifikasi dari schema live/dump aktual dan SQL final di `database/`; dokumen ini menyatakan kontrak schema/business yang berlaku.
 
@@ -440,13 +440,71 @@ SQL hosting belum dibuat dan hanya boleh disusun setelah localhost SQL + runtime
 ```text
 G3.2 schema local/hosting                    PASS
 G3.3.1 final schema local/hosting            PASS / CLOSED
-G3.6 merge baseline                          59b22b651ad0d508ea3a29261ef590d4c9506da4
-G3.6A localhost SQL                          PREPARED
-G3.6A localhost SQL execution                PENDING
-G3.6A local runtime/UAT                      PENDING
-G3.6A post-UAT local dump audit              PENDING
-G3.6A hosting dump audit                     NOT STARTED
-G3.6A hosting delta SQL                      NOT STARTED
+G3.6A local/hosting schema                   PASS / CLOSED — PR #13
+G3.6A merge/main                             90acc7f94fee391a5a7fbad2395e3f16571fe921
+
+G3.6B localhost SQL                          PASS / user evidence
+G3.6B local runtime/UAT                      PASS / user runtime evidence
+G3.6B post-UAT local dump audit              PASS / read-only dump audit
+G3.6B fresh hosting dump audit               PASS / read-only dump audit
+G3.6B hosting delta SQL                      PREPARED / static audited
+G3.6B hosting SQL execution                  PASS / user evidence
+G3.6B post-SQL hosting dump audit            PASS / read-only dump audit
+G3.6B hosting source deployment              NOT AUTHORIZED
 ```
 
-Existing hosting PASS tidak membuktikan G3.6A. Hosting delta hanya disusun dari dump hosting aktual setelah localhost gate selesai.
+Hosting G3.6B belum boleh diturunkan dari localhost atau dump lama. Hosting delta hanya disusun setelah local gate PASS dan fresh hosting dump aktual diaudit.
+
+## 21. G3.6B — PTSP Schema
+
+G3.6B menambah role `ptsp` pada enum `users.role`, `user_roles.role`, `role_permissions.role`, dan `role_menus.role`.
+
+Tabel baru:
+
+```text
+ptsp_layanan
+ptsp_polling
+ptsp_pengaduan
+ptsp_pengaduan_klasifikasi
+```
+
+Invariant:
+
+- seluruh submission snapshot `id_tahun` aktif;
+- PTSP memakai hard delete sesuai contract, sehingga tidak menambah `deleted_at`;
+- Pengaduan multi-klasifikasi memakai junction PK `(id_pengaduan, klasifikasi)`;
+- junction Pengaduan cascade saat parent di-hard-delete;
+- lampiran hanya menyimpan path private relatif + nama asli + MIME; bytes berada di `WRITEPATH/uploads/ptsp/pengaduan/`;
+- public stats membaca agregat saja dan tidak membutuhkan tabel/materialized view terpisah.
+
+SQL artifacts:
+
+```text
+database/20260919_G3_6B_PTSP_LOCALHOST.sql
+database/20260919_G3_6B_PTSP_HOSTING.sql
+```
+
+Fresh pre-SQL hosting baseline:
+
+```text
+tables             41
+permissions        55
+role_permissions   183
+menus              46
+role_menus         156
+ptsp_* tables      0
+ptsp permissions   0
+ptsp menus         0
+```
+
+Expected post-hosting-SQL state:
+
+```text
+tables             45
+permissions        66
+role_permissions   223
+menus              50
+role_menus         173
+```
+
+Hosting execution tetap memerlukan approval eksplisit.

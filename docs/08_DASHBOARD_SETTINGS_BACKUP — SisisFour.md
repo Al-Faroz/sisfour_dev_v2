@@ -292,11 +292,12 @@ G3.3.1 Fondasi BK/Konseling                  CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK                   CLOSED / MERGED — PR #10
 G3.5 Dashboard Pimpinan                      CLOSED / MERGED — PR #11
 G3.6 Dashboard Siswa                         CLOSED / MERGED — PR #12
-G3.6 merge commit                            59b22b651ad0d508ea3a29261ef590d4c9506da4
-G3.6A Dashboard Kesehatan + UKS              IMPLEMENTED ON FEATURE BRANCH
-G3.6A localhost SQL                          PREPARED / PENDING EXECUTION
-G3.6A static/runtime/cross-role gate          PENDING
-G3.6A hosting                                NOT STARTED
+G3.6A Dashboard Kesehatan + UKS              CLOSED / MERGED — PR #13
+G3.6A merge commit                            90acc7f94fee391a5a7fbad2395e3f16571fe921
+G3.6B Dashboard PTSP                         IMPLEMENTED / FEATURE BRANCH
+G3.6B localhost SQL                          PREPARED / PENDING EXECUTION
+G3.6B static/runtime/cross-role gate         PENDING
+G3.6B hosting                                NOT AUTHORIZED
 ```
 
 ## 15. Phase Boundary
@@ -308,7 +309,83 @@ G3.3.1  fondasi BK/Konseling + period/follow-up
 G3.4    Dashboard/Workflow BK memakai foundation final
 G3.5    Dashboard Pimpinan readonly/monitoring
 G3.6    Dashboard Siswa self-service — CLOSED
-G3.6A   UKS / Kesehatan — ACTIVE
-G3.6B+  domain berikutnya
+G3.6A   UKS / Kesehatan — CLOSED / MERGED — PR #13
+G3.6B   PTSP — ACTIVE
 G4      Cordova integration
 ```
+
+
+## 9. PTSP — G3.6B Dashboard
+
+Dashboard PTSP memakai Tahun Ajaran aktif tanpa selector histori.
+
+```text
+KPI
+- Layanan Baru
+- Layanan Diproses
+- Pengaduan Masuk
+- Rata-rata Kepuasan
+
+Quick Action
+- Layanan PTSP
+- Polling Kepuasan
+- Pengaduan
+- Buka Public PTSP
+
+Recent
+- Layanan terbaru max 5
+- Pengaduan terbaru max 5
+- Ringkasan Kepuasan
+```
+
+Pimpinan tetap memakai dashboard supervisi existing dan mengakses PTSP dari menu readonly; tidak ada widget PTSP baru pada Dashboard Pimpinan.
+
+
+## 10. PTSP — Setting Cetak
+
+Setting keys:
+
+```text
+ptsp_layanan_auto_print
+ptsp_layanan_auto_download_pdf
+```
+
+Lokasi UI:
+
+```text
+Settings -> Setting Sistem -> PTSP — Cetak Bukti Layanan
+```
+
+Behavior:
+
+- kedua key default OFF bila belum ada;
+- Auto Print ON: submit sukses membuka dialog print browser;
+- Auto Print OFF + Auto Download PDF ON: submit sukses otomatis mengunduh PDF thermal lebar 80 mm;
+- keduanya OFF: submit sukses hanya menampilkan tombol Cetak Bukti 80mm;
+- bila kedua key ON, Auto Print mempunyai prioritas dan PDF tidak auto-download;
+- PDF dibuat dari receipt submit yang sudah tervalidasi, tanpa public record lookup;
+- setting ini tidak membuat silent/background print dan tidak menambah nomor tiket/antrean/tracking.
+
+
+## 11. PTSP — Public API Cards
+
+Settings Sistem menampilkan dokumentasi operasional tiga endpoint public PTSP dalam bentuk card:
+
+```text
+Layanan PTSP
+Pengaduan
+Polling Kepuasan
+```
+
+Tiap card menampilkan:
+
+- endpoint aktual mengikuti `base_url`;
+- method GET;
+- status PUBLIC;
+- CORS `*`;
+- Aggregate Only;
+- contoh script `fetch()`;
+- tombol Copy URL;
+- tombol Copy Script API.
+
+Clipboard memakai `navigator.clipboard` pada secure context dan fallback `document.execCommand('copy')` untuk compatibility. Card ini tidak menambah permission/API baru dan tidak mengubah response contract.

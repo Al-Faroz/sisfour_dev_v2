@@ -108,6 +108,8 @@ abstract class BaseController extends Controller
             'operator' => 'Operator',
             'pimpinan' => 'Pimpinan',
             'bk' => 'BK',
+            'kesehatan' => 'Kesehatan',
+            'ptsp' => 'PTSP',
             'guru' => $isWali ? 'Wali Kelas' : 'Guru',
             'siswa' => 'Siswa',
         ][$experienceRole] ?? '-';
@@ -178,7 +180,7 @@ abstract class BaseController extends Controller
     protected function resolveExperienceRole(array $roles): string
     {
         foreach (
-            ['admin', 'operator', 'pimpinan', 'bk', 'guru', 'siswa']
+            ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa']
             as $role
         ) {
             if (in_array($role, $roles, true)) {

@@ -7,7 +7,7 @@ $bodyClasses = [
     'sisfour-role-' . $roleSlug,
 ];
 
-if (in_array($roleSlug, ['pimpinan', 'bk', 'guru', 'siswa'], true)) {
+if (in_array($roleSlug, ['pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa'], true)) {
     $bodyClasses[] = 'sisfour-role-operational';
 }
 

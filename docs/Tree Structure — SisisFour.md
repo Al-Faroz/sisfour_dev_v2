@@ -84,7 +84,7 @@ app/Config/RoutesBKFoundation.php
 
 `Routing::$routeFiles` mendaftarkan route utama dan route foundation BK. `autoRoute=false`.
 
-G3.4, G3.5, dan G3.6 tidak menambah route baru. G3.6A menambah route UKS pada `Routes.php`. Route PTSP/public statistics API tetap belum dibuat sampai G3.6B.
+G3.4, G3.5, dan G3.6 tidak menambah route baru. G3.6A menambah route UKS pada `Routes.php`. Route PTSP/public statistics API diimplementasikan pada G3.6B.
 
 ## 4. Dashboard/BK Source — G3.3.1 + G3.4 + G3.5 + G3.6
 
@@ -253,7 +253,7 @@ Public API
 └── Pengaduan aggregate statistics
 ```
 
-Role `ptsp` memakai identity Pegawai. Source/schema/menu/route/API belum dibuat sampai phase G3.6B.
+Role `ptsp` memakai identity Pegawai. Source/schema/menu/route/API diimplementasikan pada branch G3.6B.
 
 ## 8. Frontend
 
@@ -358,7 +358,7 @@ writable/debugbar/
 writable/uploads/
 ```
 
-Upload Pengaduan PTSP belum mempunyai final physical path sampai phase G3.6B; docs/18 hanya menetapkan tipe file image/PDF.
+Upload Pengaduan PTSP disimpan private di `WRITEPATH/uploads/ptsp/pengaduan/`; tidak ada direct public file URL.
 
 ## 12. Canonical Docs
 
@@ -428,9 +428,42 @@ G3.3.1  CLOSED / MERGED — PR #9
 G3.4    CLOSED / MERGED — PR #10
 G3.5    CLOSED / MERGED — PR #11
 G3.6    CLOSED / MERGED — PR #12
-G3.6A   ACTIVE — UKS / Kesehatan source implemented, local SQL pending
-G3.6B   PTSP / NOT STARTED
+G3.6A   CLOSED / MERGED — PR #13
+G3.6B   ACTIVE — PTSP source implemented, local SQL pending
 G3.7    Global Mobile Sweep
 G3.8    Viewport/WebView Readiness
 G4      Cordova APK
+```
+
+
+### G3.6B concrete source
+
+```text
+app/Controllers/PtspPublic.php
+app/Controllers/PtspPublicStats.php
+app/Controllers/PtspLayanan.php
+app/Controllers/PtspPolling.php
+app/Controllers/PtspPengaduan.php
+
+app/Models/PtspLayananModel.php
+app/Models/PtspPollingModel.php
+app/Models/PtspPengaduanModel.php
+
+app/Services/PtspService.php
+app/Services/PtspExportService.php
+app/Services/PtspDashboardService.php
+
+app/Views/dashboard_ptsp.php
+app/Views/ptsp/public.php
+app/Views/ptsp/layanan.php
+app/Views/ptsp/polling.php
+app/Views/ptsp/pengaduan.php
+
+assets/js/ptsp/public.js
+assets/js/ptsp/layanan.js
+assets/js/ptsp/polling.js
+assets/js/ptsp/pengaduan.js
+assets/css/ptsp-public.css
+
+database/20260919_G3_6B_PTSP_LOCALHOST.sql
 ```

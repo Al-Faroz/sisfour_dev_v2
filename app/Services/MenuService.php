@@ -165,6 +165,19 @@ class MenuService
             return $uks;
         }
 
+        $ptsp = match ($link) {
+            'ptsp/layanan' => ['ptsp_layanan.view', 'ptsp_layanan.manage'],
+            'ptsp/polling' => ['ptsp_polling.view'],
+            'ptsp/pengaduan' => ['ptsp_pengaduan.view', 'ptsp_pengaduan.manage'],
+            default => $name === 'PTSP'
+                ? ['ptsp_layanan.view', 'ptsp_polling.view', 'ptsp_pengaduan.view']
+                : null,
+        };
+
+        if ($ptsp !== null) {
+            return $ptsp;
+        }
+
         return match ($idMenu) {
             1 => ['dashboard.view'],
 

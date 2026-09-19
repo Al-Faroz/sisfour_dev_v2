@@ -47,7 +47,7 @@ class UserModel extends Model
     protected $validationRules = [
         'username'     => 'required|max_length[50]|is_unique[users.username,id,{id}]',
         'password'     => 'required|max_length[255]',
-        'role'         => 'permit_empty|in_list[admin,operator,pimpinan,bk,kesehatan,guru,siswa]',
+        'role'         => 'permit_empty|in_list[admin,operator,pimpinan,bk,kesehatan,ptsp,guru,siswa]',
         'status_aktif' => 'permit_empty|in_list[0,1]',
         'auth_version' => 'permit_empty|integer',
     ];

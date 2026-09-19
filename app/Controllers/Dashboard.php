@@ -2,7 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Services\KesehatanDashboardService;
+use App\Services\PtspDashboardService;
 use App\Services\RoleAwareDashboardService;
 
 /**
@@ -17,7 +17,7 @@ class Dashboard extends BaseController
 
     public function __construct()
     {
-        $this->dashboardService = new KesehatanDashboardService();
+        $this->dashboardService = new PtspDashboardService();
     }
 
     public function index()
@@ -38,6 +38,7 @@ class Dashboard extends BaseController
             'pimpinan' => 'dashboard_pimpinan',
             'bk' => 'dashboard_bk',
             'kesehatan' => 'dashboard_kesehatan',
+            'ptsp' => 'dashboard_ptsp',
             'siswa' => 'dashboard_siswa',
             'guru' => $result['is_wali'] ? 'dashboard_wali' : 'dashboard_guru',
             default => 'dashboard_guru',

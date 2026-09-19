@@ -36,7 +36,7 @@ class UserRolesModel extends Model
     // Validation
     protected $validationRules = [
         'id_user' => 'required|integer',
-        'role'    => 'required|in_list[admin,operator,pimpinan,bk,kesehatan,guru,siswa]',
+        'role'    => 'required|in_list[admin,operator,pimpinan,bk,kesehatan,ptsp,guru,siswa]',
     ];
 
     protected $skipValidation = false;

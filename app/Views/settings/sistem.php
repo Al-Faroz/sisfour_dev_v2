@@ -19,6 +19,61 @@ $brandingItems = [
         'hint' => 'Digunakan sebagai favicon browser dan touch icon.',
     ],
 ];
+
+$ptspApiItems = [
+    'layanan' => [
+        'label' => 'Statistik Layanan PTSP',
+        'icon' => 'bx-file',
+        'endpoint' => base_url('api/public/ptsp/statistik/layanan'),
+        'description' => 'Total layanan, status, kategori pemohon, dan jenis layanan.',
+    ],
+    'pengaduan' => [
+        'label' => 'Statistik Pengaduan',
+        'icon' => 'bx-message-square-error',
+        'endpoint' => base_url('api/public/ptsp/statistik/pengaduan'),
+        'description' => 'Total pengaduan, status, dan klasifikasi laporan.',
+    ],
+    'polling' => [
+        'label' => 'Statistik Polling Kepuasan',
+        'icon' => 'bx-happy',
+        'endpoint' => base_url('api/public/ptsp/statistik/polling'),
+        'description' => 'Total respon, rata-rata score, kategori, label kepuasan, dan distribusi score.',
+    ],
+];
+
+$buildPtspApiScript = static function (string $endpoint): string {
+    $url = json_encode($endpoint, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    return <<<JS
+<script>
+(async () => {
+  const endpoint = {$url};
+
+  // Default: statistik Tahun Ajaran aktif.
+  // Untuk histori, gunakan: endpoint + '?id_tahun=ID_TAHUN'
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: { Accept: 'application/json' }
+  });
+
+  if (!response.ok) {
+    throw new Error('PTSP API HTTP ' + response.status);
+  }
+
+  const payload = await response.json();
+
+  if (payload.status !== 'success') {
+    throw new Error('PTSP API gagal.');
+  }
+
+  const statistics = payload.data;
+  console.log('PTSP statistics:', statistics);
+
+  // Render statistics ke UI portal/WordPress Anda di sini.
+})();
+</script>
+JS;
+};
 ?>
 
 <div id="settingsSistemApp" data-base-url="<?= esc(base_url()) ?>">
@@ -75,6 +130,49 @@ $brandingItems = [
                         <label class="form-label" for="maintenanceMessage">Pesan Maintenance</label>
                         <textarea id="maintenanceMessage" name="maintenance_message" class="form-control" rows="2"><?= esc($getSetting('maintenance_message', 'Sistem sedang dalam pemeliharaan...')) ?></textarea>
                     </div>
+
+                    <div class="col-12">
+                        <div class="border rounded p-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                <div>
+                                    <h6 class="mb-1">PTSP — Cetak Bukti Layanan</h6>
+                                    <div class="small text-muted">
+                                        Jika aktif, browser langsung membuka dialog cetak setelah Form Layanan PTSP berhasil disimpan.
+                                        Template cetak menggunakan lebar kertas thermal 80 mm.
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            id="ptspLayananAutoPrint"
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="ptsp_layanan_auto_print"
+                                            value="1"
+                                            <?= $getSetting('ptsp_layanan_auto_print', '0') === '1' ? 'checked' : '' ?>
+                                        >
+                                        <label class="form-check-label" for="ptspLayananAutoPrint">Auto Print</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input
+                                            id="ptspLayananAutoDownloadPdf"
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="ptsp_layanan_auto_download_pdf"
+                                            value="1"
+                                            <?= $getSetting('ptsp_layanan_auto_download_pdf', '0') === '1' ? 'checked' : '' ?>
+                                        >
+                                        <label class="form-check-label" for="ptspLayananAutoDownloadPdf">Auto Download PDF 80mm</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">
+                                Default keduanya OFF. Prioritas: Auto Print ON membuka dialog print.
+                                Jika Auto Print OFF dan Auto Download PDF ON, bukti PDF thermal 80mm otomatis diunduh.
+                                Tombol cetak manual tetap tersedia pada semua mode.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card-footer sisfour-modal-actions">
@@ -83,6 +181,82 @@ $brandingItems = [
                 </button>
             </div>
         </form>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                    <h5 class="mb-1">API Statistik PTSP</h5>
+                    <div class="small text-muted">
+                        Endpoint public aggregate-only untuk portal/WordPress. Default membaca Tahun Ajaran aktif dan dapat difilter dengan <code>?id_tahun=ID_TAHUN</code>.
+                    </div>
+                </div>
+                <span class="badge bg-label-success">PUBLIC API</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <?php foreach ($ptspApiItems as $apiKey => $api): ?>
+                    <?php $apiScript = $buildPtspApiScript($api['endpoint']); ?>
+                    <div class="col-12 col-xl-4">
+                        <div class="border rounded p-3 h-100 d-flex flex-column">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <span class="avatar-initial rounded bg-label-primary p-2">
+                                    <i class="bx <?= esc($api['icon']) ?> fs-4"></i>
+                                </span>
+                                <div class="min-w-0 flex-grow-1">
+                                    <h6 class="mb-1"><?= esc($api['label']) ?></h6>
+                                    <div class="small text-muted"><?= esc($api['description']) ?></div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="badge bg-label-primary">GET</span>
+                                <span class="badge bg-label-success">PUBLIC</span>
+                                <span class="badge bg-label-info">CORS *</span>
+                                <span class="badge bg-label-secondary">AGGREGATE ONLY</span>
+                            </div>
+
+                            <label class="form-label small mb-1">Endpoint</label>
+                            <div class="input-group input-group-sm mb-3">
+                                <input
+                                    class="form-control font-monospace"
+                                    type="text"
+                                    value="<?= esc($api['endpoint'], 'attr') ?>"
+                                    readonly
+                                    aria-label="<?= esc($api['label'], 'attr') ?>"
+                                >
+                                <button
+                                    class="btn btn-outline-secondary api-copy-endpoint"
+                                    type="button"
+                                    data-copy-value="<?= esc($api['endpoint'], 'attr') ?>"
+                                >
+                                    <i class="bx bx-copy me-1"></i> Copy URL
+                                </button>
+                            </div>
+
+                            <label class="form-label small mb-1">Script API</label>
+                            <pre class="bg-dark text-white rounded p-3 small mb-3 flex-grow-1 overflow-auto" style="max-height:260px"><code><?= esc($apiScript) ?></code></pre>
+                            <textarea id="ptspApiScript<?= esc(ucfirst($apiKey), 'attr') ?>" class="d-none" aria-hidden="true"><?= esc($apiScript) ?></textarea>
+
+                            <button
+                                class="btn btn-primary api-copy-script"
+                                type="button"
+                                data-source-id="ptspApiScript<?= esc(ucfirst($apiKey), 'attr') ?>"
+                            >
+                                <i class="bx bx-copy-alt me-1"></i> Copy Script API
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="alert alert-info sisfour-compact-note mt-3 mb-0">
+                API ini tidak membutuhkan login/token dan tidak mengirim nama, WhatsApp, isi laporan, lampiran, atau raw record ID.
+                Konsumen lintas-origin menggunakan <code>GET</code> tanpa credentials.
+            </div>
+        </div>
     </div>
 
     <div class="card mb-4">

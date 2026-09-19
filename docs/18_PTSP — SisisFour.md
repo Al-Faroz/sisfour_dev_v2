@@ -1,7 +1,7 @@
 # PTSP — SisisFour
 
-**Status:** Canonical Target / Belum Diimplementasikan
-**Tanggal Acuan:** 17 September 2026
+**Status:** Canonical / G3.6B Implementation Active
+**Tanggal Acuan:** 19 September 2026
 **Global guardrail:** `00_POLA_PENGERJAAN___SisisFour.md` + `00A_GLOBAL_STANDARD_SISFOUR.md`
 **Source field:** workbook `field-form-UKS-CKG-PTSP.xlsx`, sheet `Form Layanan PTSP`, `Pengaduan`, dan `Form Polling Kepuasan`.
 
@@ -35,16 +35,16 @@ PTSP
 └── Pengaduan
 ```
 
-Public surface:
+Public surface **LOCKED / refinement 19 September 2026**:
 
 ```text
-PTSP Landing Page
-├── Form Layanan PTSP
-├── Form Polling Kepuasan
-└── Form Pengaduan
+PTSP Landing Page — pola Kios
+├── Layanan PTSP
+├── Pengaduan
+└── Polling Kepuasan
 ```
 
-PTSP mempunyai landing page tersendiri untuk public form.
+Landing hanya menampilkan tiga tombol besar dalam urutan tersebut. Pengunjung memilih salah satu tombol untuk membuka halaman form tersendiri; form tidak lagi ditumpuk sebagai tab dalam satu halaman.
 
 ## 3. Access Boundary Internal
 
@@ -169,6 +169,32 @@ Petugas operasional adalah role PTSP; actor mutation tetap `users.id`.
 
 Catatan workbook lama `mencetak tiket antrian` **digantikan keputusan user terbaru**.
 
+Contract cetak G3.6B:
+
+```text
+media                   = thermal 80 mm
+manual print            = selalu tersedia setelah submit sukses
+auto print              = configurable ON/OFF
+setting key auto print       = ptsp_layanan_auto_print
+setting key auto PDF         = ptsp_layanan_auto_download_pdf
+setting location             = Settings -> Setting Sistem
+default                      = keduanya OFF
+Auto Print ON                = membuka dialog print browser setelah submit sukses
+Auto Print OFF + Auto PDF ON = otomatis download PDF thermal lebar 80 mm
+keduanya OFF                 = hanya tombol Cetak Bukti manual
+```
+
+Prioritas mode: Auto Print menang bila kedua setting ON. Auto Print tidak berarti silent/background printing; kontrol printer/browser tetap berlaku.
+
+PDF auto-download dibuat langsung dari receipt payload submit yang tervalidasi menggunakan Dompdf existing. PDF tidak memakai public lookup route, ticket, antrean, tracking code, atau public record ID. Lebar media PDF = 80 mm; tinggi mengikuti kebutuhan isi receipt.
+
+Presentation receipt **LOCKED refinement**:
+- layout dibuat compact seperti struk thermal;
+- label dan nilai menggunakan baris yang sama bila ruang memungkinkan;
+- spacing antarbaris, separator, dan footer diminimalkan;
+- receipt normal wajib muat satu halaman PDF 80 mm;
+- isi yang sangat panjang boleh menambah tinggi media agar tidak terpotong.
+
 Setelah submit:
 
 ```text
@@ -236,8 +262,12 @@ Judul Laporan
 Isi Laporan
 Tanggal Kejadian
 Lampiran (opsional)
-  - image/*
   - PDF
+  - PNG
+  - JPG/JPEG
+  - maksimal 5 MB
+  - private WRITEPATH, bukan public/uploads
+  - download hanya melalui authenticated authorization
 ```
 
 Form tidak meminta nama/kontak pelapor.
@@ -364,7 +394,31 @@ Lampiran
 raw record identifier yang dapat dipakai enumerasi data privat
 ```
 
-API bersifat GET/read-only dan dirancang dapat dikonsumsi lintas-origin oleh portal/WordPress. Implementasi dapat menyediakan reusable copy/paste JavaScript/widget snippet yang membaca endpoint tersebut.
+API bersifat GET/read-only dan dirancang dapat dikonsumsi lintas-origin oleh portal/WordPress.
+
+Discovery/documentation UI **LOCKED refinement**:
+
+```text
+Settings -> Setting Sistem -> API Statistik PTSP
+```
+
+UI menampilkan tiga card:
+- Statistik Layanan PTSP;
+- Statistik Pengaduan;
+- Statistik Polling Kepuasan.
+
+Setiap card wajib menampilkan endpoint aktual, badge GET/PUBLIC/CORS/Aggregate Only, contoh script `fetch()`, tombol Copy URL, dan tombol **Copy Script API**. Script memakai endpoint public aktual dari `base_url`, default Tahun Ajaran aktif, dengan komentar `?id_tahun=ID_TAHUN` untuk histori.
+
+CORS G3.6B **LOCKED**:
+
+```text
+surface            = hanya /api/public/ptsp/statistik/*
+allowed origin     = *
+allowed methods    = GET / OPTIONS
+credentials        = false
+```
+
+Konfigurasi CORS tidak boleh membuka API protected lain. Implementasi dapat menyediakan reusable copy/paste JavaScript/widget snippet yang membaca endpoint tersebut.
 
 ```mermaid
 flowchart LR
@@ -382,9 +436,34 @@ flowchart LR
 
 ## 12. Dashboard
 
-Role PTSP mempunyai landing/dashboard tersendiri.
+Role PTSP mempunyai landing/dashboard tersendiri. Dashboard adalah current-state Tahun Ajaran aktif dan tidak mempunyai selector histori.
 
-Dashboard internal dapat merangkum Layanan, Polling, dan Pengaduan sesuai filter period.
+Role experience priority G3.6B **LOCKED**:
+
+```text
+admin > operator > pimpinan > bk > kesehatan > ptsp > guru > siswa
+```
+
+Dashboard PTSP **LOCKED**:
+
+```text
+KPI
+- Layanan Baru
+- Layanan Diproses
+- Pengaduan Masuk
+- Rata-rata Kepuasan
+
+Quick Action
+- Layanan PTSP
+- Polling Kepuasan
+- Pengaduan
+- Buka Public PTSP
+
+Recent
+- Layanan terbaru max 5
+- Pengaduan terbaru max 5
+- Ringkasan Kepuasan
+```
 
 Pimpinan **tidak memerlukan widget PTSP tambahan pada dashboard utama Pimpinan**; Pimpinan mengakses data melalui menu PTSP ReadOnly.
 
@@ -423,14 +502,60 @@ WordPress/cross-origin consumption bekerja sesuai kontrak
 mobile/public landing no horizontal overflow
 ```
 
-## 15. Roadmap
+## 15. Implementation Mapping G3.6B
 
-Target phase:
+Branch:
 
 ```text
-G3.6B — PTSP
+feat/g3-6b-ptsp-20260919
+baseline main = 90acc7f94fee391a5a7fbad2395e3f16571fe921
 ```
 
-Dikerjakan setelah G3.6A UKS/Kesehatan. PTSP ditempatkan setelah role experience authenticated utama stabil karena mempunyai tambahan public landing + public submission + public statistics API yang memerlukan regression surface berbeda.
+Persistence:
 
-Belum ada source/schema/permission/menu/API implementation dari dokumen ini. Implementasi memerlukan phase dan approval terpisah.
+```text
+ptsp_layanan
+ptsp_polling
+ptsp_pengaduan
+ptsp_pengaduan_klasifikasi
+```
+
+Permission:
+
+```text
+ptsp_layanan.view
+ptsp_layanan.manage
+ptsp_layanan.export
+ptsp_layanan.delete
+ptsp_polling.view
+ptsp_polling.export
+ptsp_polling.delete
+ptsp_pengaduan.view
+ptsp_pengaduan.manage
+ptsp_pengaduan.export
+ptsp_pengaduan.delete
+```
+
+Klasifikasi Pengaduan disimpan relational melalui junction table, bukan JSON/string gabungan. Hard delete tetap capability eksplisit domain PTSP.
+
+Public submission tetap web same-origin agar CSRF global berlaku. Receipt thermal Layanan dibuat dari response submit yang baru diterima, tanpa public lookup ID/nomor tiket/antrean/tracking.
+
+## 16. Current Gate
+
+```text
+G3.6A UKS / Kesehatan        CLOSED / MERGED — PR #13
+G3.6A merge commit           90acc7f94fee391a5a7fbad2395e3f16571fe921
+G3.6B contract               LOCKED
+G3.6B source                 IMPLEMENTED / feature branch
+G3.6B localhost SQL          PASS / user evidence
+G3.6B static/local UAT       PASS / user evidence
+G3.6B local dump audit       PASS / read-only dump audit
+G3.6B fresh hosting dump     PASS / read-only dump audit
+G3.6B hosting SQL            PREPARED / static audited
+G3.6B hosting SQL execution  PASS / user evidence
+G3.6B post-SQL hosting dump  PASS / read-only dump audit
+G3.6B source deployment      PASS / user evidence
+G3.6B hosting runtime smoke  PASS / user runtime evidence
+PR Ready                    PASS / GitHub state
+Merge                       NOT AUTHORIZED
+```
