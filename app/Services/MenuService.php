@@ -178,6 +178,10 @@ class MenuService
             return $ptsp;
         }
 
+        if ($link === 'statistik') {
+            return ['statistik.view'];
+        }
+
         return match ($idMenu) {
             1 => ['dashboard.view'],
 

@@ -44,6 +44,12 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('dashboard', 'Dashboard::index', ['filter' => 'permission:dashboard.view']);
     $routes->get('dashboard/data', 'Dashboard::data', ['filter' => 'permission:dashboard.view']);
 
+    // G3.6C Statistik — authenticated, read-only, Admin/Operator/Pimpinan via capability.
+    $routes->get('statistik', 'Statistik::index', ['filter' => 'permission:statistik.view']);
+    $routes->get('statistik/data', 'Statistik::data', ['filter' => 'permission:statistik.view']);
+    $routes->get('statistik/export/pdf', 'Statistik::exportPdf', ['filter' => 'permission:statistik.export_pdf']);
+    $routes->post('statistik/export/pdf', 'Statistik::exportPdf', ['filter' => 'permission:statistik.export_pdf']);
+
     // Searchable entity remote. Authorization data tetap diputuskan Service.
     $routes->get('ui/search/siswa', 'SearchableEntity::siswa');
 
@@ -268,6 +274,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('generate', 'KartuPelajar::generate', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->post('generate-bulk', 'KartuPelajar::generateBulk', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->post('cetak-massal', 'KartuPelajar::cetakMassal', ['filter' => 'permission:kartu_pelajar.manage']);
+        $routes->post('export-jpg-zip', 'KartuPelajar::exportJpgZip', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->get('cetak/(:segment)', 'KartuPelajar::cetak/$1', ['filter' => 'permission:kartu_pelajar.manage,kartu_pelajar.view']);
         $routes->get('preview/(:segment)', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);
         $routes->get('preview/(:segment)/json', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);

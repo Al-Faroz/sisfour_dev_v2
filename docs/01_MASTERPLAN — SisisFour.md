@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.6B — PTSP
+**Tanggal Acuan:** 19 September 2026
+**Development aktif:** G3.6C — Executive Visualization & EWS Signage
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -253,7 +253,8 @@ G3.4  BK Workflow + Dashboard BK       CLOSED / MERGED — PR #10
 G3.5  Pimpinan                         CLOSED / MERGED — PR #11
 G3.6  Siswa                            CLOSED / MERGED — PR #12
 G3.6A UKS / Kesehatan                  CLOSED / MERGED — PR #13
-G3.6B PTSP                             ACTIVE / IMPLEMENTATION
+G3.6B PTSP                             CLOSED / MERGED — PR #14
+G3.6C Executive Visualization & EWS Signage ACTIVE / PRODUCTION GATE
 G3.7  Global Mobile Sweep
 G3.8  Viewport/WebView Readiness
 G4    Cordova APK
@@ -318,9 +319,9 @@ public aggregate statistics API per form untuk WordPress/portal
 
 PTSP diletakkan setelah UKS karena menambah public surface + public API yang memerlukan regression khusus di luar authenticated role experience.
 
-G3.6B implementation aktif pada branch `feat/g3-6b-ptsp-20260919` dari baseline main `90acc7f94fee391a5a7fbad2395e3f16571fe921`.
+G3.6B CLOSED / MERGED pada PR #14. Merge commit / baseline `main` untuk G3.6C adalah `f6f30ceaf070f342d609c322905ee77dc33f3e6f`.
 
-Production gate status:
+Closure:
 
 ```text
 local SQL/runtime/dump                 PASS
@@ -328,8 +329,8 @@ hosting pre/post SQL dump audit        PASS
 hosting SQL execution                  PASS / user evidence
 hosting source deployment              PASS / user evidence
 focused hosting runtime smoke          PASS / user runtime evidence
-PR #14                                 READY FOR REVIEW
-merge                                  NOT AUTHORIZED
+PR #14                                 MERGED
+merge commit                           f6f30ceaf070f342d609c322905ee77dc33f3e6f
 ```
 
 Contract tambahan yang dikunci:
@@ -522,3 +523,52 @@ signed package/distribution
 Setiap phase harus melewati SSOT + local/static/runtime + regression + production gate sesuai `00/00A/15`.
 
 Tidak ada auto-deploy, auto-Ready, atau auto-merge. Setiap deploy/Ready/Merge membutuhkan approval eksplisit pengguna.
+
+## 17. G3.6C — Executive Visualization & EWS Signage
+
+Baseline:
+
+```text
+G3.6B PR #14 = CLOSED / MERGED
+main = f6f30ceaf070f342d609c322905ee77dc33f3e6f
+branch = feat/g3-6c-exec-viz-signage-20260919
+```
+
+SSOT detail: `19_G3_6C_EXEC_VIZ_SIGNAGE — SisisFour.md`.
+
+Scope:
+
+```text
+Dashboard Admin/Operator/Pimpinan -> shortcut EWS Signage
+Signage -> TemplateSIGNAGE three-panel layout + internal rotation
+Statistik -> Admin/Operator/Pimpinan only + PDF
+```
+
+Statistik membawa Konseling BK hanya sebagai aggregate confidential school-wide (total/status/bidang/tren), tanpa membuka detail domain/record individual. Pelanggaran tetap tanpa poin. UKS/PTSP hanya aggregate-safe.
+
+Current G3.6C gate:
+
+```text
+local SQL execution              PASS / user evidence
+focused static re-check          PASS / user terminal evidence
+local runtime UAT                PASS / user runtime evidence
+post-SQL local dump audit        PASS / read-only dump audit
+fresh hosting pre-SQL audit      PASS / read-only dump audit
+hosting SQL execution            PASS / user evidence
+post-SQL hosting dump audit      PASS / read-only dump audit
+hosting source deployment        PASS / user evidence
+hosting runtime smoke            PASS / user runtime evidence
+Kartu JPG ZIP add-on             PASS ALL
+production gate                  PASS ALL
+PR Ready                         NOT AUTHORIZED
+Merge                            NOT AUTHORIZED
+```
+
+Roadmap setelah phase ini:
+
+```text
+G3.6C Executive Visualization & EWS Signage
+G3.7  Global Mobile Sweep
+G3.8  WebView Readiness
+G4    Cordova APK
+```

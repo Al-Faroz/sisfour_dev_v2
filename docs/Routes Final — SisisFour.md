@@ -212,6 +212,7 @@ GET  /kartu/daftar/json
 POST /kartu/generate
 POST /kartu/generate-bulk
 POST /kartu/cetak-massal
+POST /kartu/export-jpg-zip                  Admin only via Service + kartu_pelajar.manage route gate
 GET  /kartu/cetak/{id}
 GET  /kartu/preview/{id}
 GET  /kartu/preview/{id}/json
@@ -329,3 +330,20 @@ GET    /ptsp/pengaduan/export
 ```
 
 Public POST memakai CSRF global web. Aggregate API memakai CORS filter dan tidak memakai auth/raw-record endpoint.
+
+## G3.6C Routes
+
+Public unchanged:
+
+```text
+GET /signage
+GET /signage/data
+```
+
+Authenticated Statistik:
+
+```text
+GET /statistik             -> statistik.view
+GET /statistik/data        -> statistik.view
+GET /statistik/export/pdf  -> statistik.export_pdf
+```

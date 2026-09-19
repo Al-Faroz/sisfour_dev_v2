@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6B — **PTSP / source + localhost SQL implemented on feature branch; local static/runtime gates pending**
+**Tanggal Acuan:** 19 September 2026
+**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage + Kartu JPG ZIP add-on / production gate PASS ALL; PR #15 tetap Draft**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -29,6 +29,8 @@ G3.3.1 CLOSED / MERGED — PR #9
 G3.4   CLOSED / MERGED — PR #10
 G3.5   CLOSED / MERGED — PR #11
 G3.6   CLOSED / MERGED — PR #12
+G3.6A  CLOSED / MERGED — PR #13
+G3.6B  CLOSED / MERGED — PR #14
 ```
 
 ## 3. Global UI/UX Regression
@@ -417,21 +419,12 @@ G3.3.1                              CLOSED / MERGED — PR #9
 G3.4                                CLOSED / MERGED — PR #10
 G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
-G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
 G3.6A                               CLOSED / MERGED — PR #13
-G3.6A merge commit                  90acc7f94fee391a5a7fbad2395e3f16571fe921
-
-G3.6B contract                      LOCKED
-G3.6B source                        IMPLEMENTED / feature branch
-G3.6B localhost SQL                 PREPARED
-G3.6B GitHub structural audit       PASS / GitHub read evidence
-G3.6B static terminal gate          PENDING
-G3.6B local SQL execution           PENDING
-G3.6B local runtime/public UAT      PENDING
-G3.6B cross-role/CORS regression    PENDING
-G3.6B local post-SQL dump audit     PENDING
-G3.6B hosting                       NOT AUTHORIZED
-PR Ready                            PASS / GitHub state
+G3.6B                               CLOSED / MERGED — PR #14
+G3.6C production gate               PASS ALL
+Kartu JPG ZIP add-on                PASS ALL
+PR #15                              OPEN / DRAFT
+PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
 
@@ -439,8 +432,9 @@ Merge                               NOT AUTHORIZED
 
 ```text
 G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
-G3.6B  PTSP                  ACTIVE
-G3.7   Global Mobile Sweep
+G3.6B  PTSP                  CLOSED / MERGED — PR #14
+G3.6C  Executive Viz/Signage PRODUCTION GATE PASS / PR #15 DRAFT
+G3.7   Global Mobile Sweep   NEXT AFTER G3.6C CLOSE
 G3.8   WebView Readiness
 G4     Cordova APK
 ```
@@ -520,4 +514,175 @@ G3.6B hosting source deployment      PASS / user evidence
 G3.6B focused hosting runtime smoke  PASS / user runtime evidence
 PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
+```
+
+## 20. G3.6C — Executive Visualization Gate
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.6C
+node --check assets/js/signage.js
+node --check assets/js/statistik.js
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Runtime Signage:
+
+```text
+/signage tetap public
+header compact
+summary H/S/I/A jumlah + persentase
+coverage kelas tampil
+3 panel stabil sesuai TemplateSIGNAGE
+EWS internal rotation Sakit -> Izin -> Alpha
+ranking EWS = Sesi Awal / 14 hari / max20
+Kelas Belum Presensi auto-page
+Jadwal Belum Jurnal = selesai+15 menit dan belum ada presensi_mengajar
+rotasi 15 detik
+refresh fetch 5 menit
+tidak ada PII ekstra
+```
+
+Runtime Statistik:
+
+```text
+Admin/Operator/Pimpinan ALLOW
+BK/Kesehatan/PTSP/Guru/Wali/Siswa DENY
+Tahun Ajaran wajib
+all/bulan ini/30 hari/custom
+filter tingkat/kelas
+Executive + Komposisi + Presensi + EWS + Pembelajaran
+Pelanggaran tanpa poin
+Prestasi
+Konseling aggregate confidential: total/status/bidang/tren
+Konseling tidak memuat nama siswa/topik/catatan/Guru BK/follow-up/jadwal individual
+Konseling mengabaikan filter Tingkat/Kelas
+UKS aggregate only
+PTSP aggregate only
+Mobilitas Siswa
+ApexCharts lokal
+Export PDF mengikuti filter
+Export PDF section/card mengikuti urutan halaman Statistik
+Export PDF memakai PNG hasil render ApexCharts halaman ketika JS tersedia
+Export PDF fallback tetap authoritative bila PNG client tidak tersedia
+Export PDF tidak memiliki duplicate axis label / black SVG artifact
+Export PDF memakai explicit page sections; tidak ada orphan heading
+Export PDF tercatat di log_activity
+mobile no horizontal body overflow
+```
+
+Database expected setelah local SQL:
+
+```text
+G3.6C new tables    0
+physical tables     informational / environment-sensitive
+permissions         68
+role_permissions    229
+menus               51
+role_menus          176
+```
+
+Observed audit:
+
+```text
+localhost post-UAT physical tables  46
+hosting pre-G3.6C physical tables   45
+local-only framework table          migrations
+ci_sessions                          present on both
+```
+
+Framework/internal table count tidak menjadi invariant phase; yang dikunci adalah G3.6C tidak membuat tabel baru dan delta RBAC/menu di atas.
+
+Gate:
+
+```text
+G3.6C source                     IMPLEMENTED / feature branch
+G3.6C localhost SQL              PASS / user evidence
+G3.6C GitHub structural audit    PASS / GitHub read evidence
+G3.6C static terminal gate       PASS / user terminal evidence @ pre-parity-fix SHA
+G3.6C focused static re-check    PASS / user terminal evidence
+G3.6C local runtime UAT          PASS / user runtime evidence
+G3.6C counseling aggregate       PASS / user runtime evidence
+G3.6C PDF PNG parity re-smoke    PASS / user runtime evidence
+G3.6C post-SQL dump audit        PASS / read-only dump audit
+G3.6C table-count reconciliation PASS / user evidence
+G3.6C fresh hosting pre-SQL audit PASS / read-only dump audit
+G3.6C hosting SQL execution      PASS / user evidence
+G3.6C post-SQL hosting dump      PASS / read-only dump audit
+G3.6C hosting source deployment  PASS / user evidence
+G3.6C hosting runtime smoke      PASS / user runtime evidence
+G3.6C production gate            PASS ALL
+PR #15                           OPEN / DRAFT
+PR Ready                         NOT AUTHORIZED
+Merge                            NOT AUTHORIZED
+```
+
+
+## 21. Kartu Pelajar — JPG ZIP Front Per Kelas
+
+Contract add-on:
+
+```text
+Admin only
+no new permission
+reuse kartu_pelajar.manage route gate
+server effective-role Admin check
+same dataset as existing Cetak Depan Per Kelas PDF
+front only
+1 siswa = 1 JPG
+1 kelas = 1 ZIP
+max 200 kartu
+no DB/schema delta
+```
+
+Static gate:
+
+```text
+php -l app/Controllers/KartuPelajar.php
+php -l app/Services/KartuPelajarService.php
+php -l app/Services/KartuPrintService.php
+php -l app/Services/KartuRenderService.php
+php -l app/Views/kartu/daftar.php
+node --check assets/js/kartu/daftar.js
+php spark routes
+git diff --check origin/main...HEAD
+```
+
+Runtime minimum:
+
+```text
+Admin melihat tombol Unduh JPG Depan Per Kelas (.ZIP)
+Operator dan role lain tidak melihat tombol
+direct POST /kartu/export-jpg-zip oleh non-Admin = DENY
+pilih kelas wajib
+dataset siswa/kartu sama dengan Cetak Depan Per Kelas PDF
+hanya kartu Aktif
+urutan nama konsisten
+ZIP berisi 1 JPG per siswa
+JPG hanya sisi depan
+JPG memuat background/foto/QR/nomor/nama/NISN/kelas/JK/tahun/TTL/alamat
+QR pada JPG dapat dipindai
+layout JPG setara front card existing
+maksimum 200 kartu
+PDF existing front/back tetap normal
+mobile tidak overflow
+```
+
+Gate add-on:
+
+```text
+Contract                          LOCKED / user decision
+Source                            IMPLEMENTED / feature branch
+DB / permission delta             NONE
+Static gate                       PASS / user evidence
+Local runtime UAT                 PASS / user runtime evidence @ pre-UI-polish
+UI visual/mobile re-smoke         PASS / user runtime evidence
+Hosting redeploy add-on           PASS / user evidence
+Hosting runtime smoke             PASS / user runtime evidence
+Add-on gate                       PASS ALL
+PR Ready                          NOT AUTHORIZED
+Merge                             NOT AUTHORIZED
 ```

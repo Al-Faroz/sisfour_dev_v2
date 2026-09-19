@@ -2,84 +2,57 @@
     'use strict';
 
     const app = document.getElementById('signageApp');
-
-    if (!app) {
-        return;
-    }
+    if (!app) return;
 
     const dataUrl = String(app.dataset.dataUrl || '');
-    const refreshMinutes = Math.max(
-        1,
-        Number(app.dataset.refreshMinutes || 5)
-    );
-    const rotationSeconds = Math.max(
-        5,
-        Number(app.dataset.rotationSeconds || 15)
-    );
-    const rankingDays = Math.max(
-        1,
-        Number(app.dataset.rankingDays || 14)
-    );
-
+    const refreshMinutes = Math.max(1, Number(app.dataset.refreshMinutes || 5));
+    const rotationSeconds = Math.max(5, Number(app.dataset.rotationSeconds || 15));
+    const rankingDays = Math.max(1, Number(app.dataset.rankingDays || 14));
     const refreshMs = refreshMinutes * 60 * 1000;
     const rotationMs = rotationSeconds * 1000;
 
     const statusElement = document.getElementById('signageStatus');
-    const tableHead = document.getElementById('signageTableHead');
-    const tableBody = document.getElementById('signageTableBody');
-    const tableScroll = document.getElementById('signageTableScroll');
-    const slideTitle = document.getElementById('signageSlideTitle');
-    const slideSubtitle = document.getElementById('signageSlideSubtitle');
-    const slideKicker = document.getElementById('signageSlideKicker');
-    const slideCount = document.getElementById('signageSlideCount');
-    const dots = Array.from(
-        document.querySelectorAll('#signageSlideDots .signage-dot')
-    );
+    const ewsBody = document.getElementById('ewsBody');
+    const kelasBody = document.getElementById('kelasBody');
+    const jurnalBody = document.getElementById('jurnalBody');
 
-    const slides = [
-        {
-            key: 'top_alpha',
-            title: '20 Siswa Alpha Tertinggi',
-            kicker: 'EARLY WARNING • ALPHA',
-            totalLabel: 'Total Alpha',
-            empty: 'Belum ada data Alpha pada periode ini.',
-            type: 'ranking',
-        },
-        {
-            key: 'top_izin',
-            title: '20 Siswa Izin Tertinggi',
-            kicker: 'EARLY WARNING • IZIN',
-            totalLabel: 'Total Izin',
-            empty: 'Belum ada data Izin pada periode ini.',
-            type: 'ranking',
-        },
-        {
-            key: 'top_sakit',
-            title: '20 Siswa Sakit Tertinggi',
-            kicker: 'EARLY WARNING • SAKIT',
-            totalLabel: 'Total Sakit',
-            empty: 'Belum ada data Sakit pada periode ini.',
-            type: 'ranking',
-        },
-        {
-            key: 'tidak_masuk_hari_ini',
-            title: 'Tidak Masuk Hari Ini',
-            kicker: 'MONITORING HARI INI • SESI AWAL',
-            totalLabel: 'Status',
-            empty: 'Seluruh siswa yang sudah dipresensi tercatat hadir.',
-            type: 'today',
-        },
+    const ewsCategories = [
+        { key: 'top_sakit', label: 'Sakit', css: 'sakit' },
+        { key: 'top_izin', label: 'Izin', css: 'izin' },
+        { key: 'top_alpha', label: 'Alpha', css: 'alpha' },
     ];
 
     let currentData = null;
-    let currentSlide = 0;
-    let scrollFrame = 0;
+    let ewsFrames = [];
+    let kelasPages = [];
+    let jurnalPages = [];
+    let ewsIndex = 0;
+    let kelasIndex = 0;
+    let jurnalIndex = 0;
 
     const esc = (value) => {
         const div = document.createElement('div');
         div.textContent = value ?? '';
         return div.innerHTML;
     };
+
+    function pageSize() {
+        if (window.innerHeight >= 950) return 12;
+        if (window.innerHeight >= 780) return 9;
+        if (window.innerHeight >= 650) return 7;
+        return 5;
+    }
+
+    function chunk(rows, size) {
+        const safeRows = Array.isArray(rows) ? rows : [];
+        if (!safeRows.length) return [[]];
+
+        const pages = [];
+        for (let i = 0; i < safeRows.length; i += size) {
+            pages.push(safeRows.slice(i, i + size));
+        }
+        return pages;
+    }
 
     function updateClock() {
         const now = new Date();
@@ -88,241 +61,182 @@
 
         if (clock) {
             clock.textContent = now.toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
             });
         }
-
         if (date) {
             date.textContent = now.toLocaleDateString('id-ID', {
-                weekday: 'long',
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
+                weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
             });
         }
     }
 
-    function formatDateTime(value) {
-        if (!value) {
-            return '-';
-        }
-
-        const normalized = String(value).replace(' ', 'T');
-        const date = new Date(normalized);
-
-        if (Number.isNaN(date.getTime())) {
-            return String(value);
-        }
-
-        return date.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
+    function formatTime(value) {
+        if (!value) return '-';
+        const parsed = new Date(String(value).replace(' ', 'T'));
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return parsed.toLocaleTimeString('id-ID', {
+            hour: '2-digit', minute: '2-digit', hour12: false,
         });
     }
 
     function formatShortDate(value) {
-        if (!value) {
-            return '-';
-        }
-
-        const date = new Date(`${value}T00:00:00`);
-
-        if (Number.isNaN(date.getTime())) {
-            return String(value);
-        }
-
-        return date.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'short',
-        });
-    }
-
-    function statusBadge(value) {
-        const normalized = String(value || '');
-        const className = normalized === 'Alpha'
-            ? 'status-alpha'
-            : normalized === 'Izin'
-                ? 'status-izin'
-                : 'status-sakit';
-
-        return `<span class="signage-status-badge ${className}">${esc(normalized || '-')}</span>`;
-    }
-
-    function rankingSubtitle() {
-        const period = currentData?.ranking_period;
-
-        if (!period?.mulai || !period?.selesai) {
-            return `Sesi Awal • ${rankingDays} hari terakhir`;
-        }
-
-        return `Sesi Awal • ${formatShortDate(period.mulai)}–${formatShortDate(period.selesai)}`;
-    }
-
-    function renderRanking(rows, slide) {
-        tableHead.innerHTML = `
-            <tr>
-                <th class="col-no">No</th>
-                <th>Nama Siswa</th>
-                <th>Kelas</th>
-                <th class="col-center">${esc(slide.totalLabel)}</th>
-            </tr>
-        `;
-
-        tableBody.innerHTML = rows.length
-            ? rows.map((row, index) => `
-                <tr>
-                    <td class="col-no-value">${index + 1}</td>
-                    <td class="student-name">${esc(row.nama_siswa || '-')}</td>
-                    <td>${esc(row.nama_kelas || '-')}</td>
-                    <td class="col-center total-value">${Number(row.total || 0)}</td>
-                </tr>
-            `).join('')
-            : `
-                <tr>
-                    <td colspan="4" class="empty ok">
-                        ${esc(slide.empty)}
-                    </td>
-                </tr>
-            `;
-    }
-
-    function renderToday(rows, slide) {
-        tableHead.innerHTML = `
-            <tr>
-                <th class="col-no">No</th>
-                <th>Nama Siswa</th>
-                <th>Kelas</th>
-                <th class="col-center">Status</th>
-            </tr>
-        `;
-
-        tableBody.innerHTML = rows.length
-            ? rows.map((row, index) => `
-                <tr>
-                    <td class="col-no-value">${index + 1}</td>
-                    <td class="student-name">${esc(row.nama_siswa || '-')}</td>
-                    <td>${esc(row.nama_kelas || '-')}</td>
-                    <td class="col-center">${statusBadge(row.status)}</td>
-                </tr>
-            `).join('')
-            : `
-                <tr>
-                    <td colspan="4" class="empty ok">
-                        ${esc(slide.empty)}
-                    </td>
-                </tr>
-            `;
-    }
-
-    function updateDots() {
-        dots.forEach((dot, index) => {
-            dot.classList.toggle('is-active', index === currentSlide);
-        });
-    }
-
-    function restartAutoScroll() {
-        if (scrollFrame) {
-            cancelAnimationFrame(scrollFrame);
-            scrollFrame = 0;
-        }
-
-        if (!tableScroll) {
-            return;
-        }
-
-        tableScroll.scrollTop = 0;
-
-        let last = performance.now();
-        let pauseUntil = last + 1800;
-
-        const frame = (now) => {
-            const delta = Math.min(80, now - last);
-            last = now;
-
-            if (tableScroll.scrollHeight > tableScroll.clientHeight + 4) {
-                if (now >= pauseUntil) {
-                    tableScroll.scrollTop += delta * 0.022;
-
-                    if (
-                        tableScroll.scrollTop + tableScroll.clientHeight
-                        >= tableScroll.scrollHeight - 2
-                    ) {
-                        tableScroll.scrollTop = 0;
-                        pauseUntil = now + 2200;
-                    }
-                }
-            } else {
-                tableScroll.scrollTop = 0;
-            }
-
-            scrollFrame = requestAnimationFrame(frame);
-        };
-
-        scrollFrame = requestAnimationFrame(frame);
-    }
-
-    function renderSlide(index) {
-        if (!currentData || !slides[index]) {
-            return;
-        }
-
-        currentSlide = index;
-        const slide = slides[index];
-        const rows = Array.isArray(currentData[slide.key])
-            ? currentData[slide.key]
-            : [];
-
-        slideKicker.textContent = slide.kicker;
-        slideTitle.textContent = slide.title;
-        slideSubtitle.textContent = slide.type === 'today'
-            ? 'Sakit • Izin • Alpha pada Sesi Awal hari ini'
-            : rankingSubtitle();
-        slideCount.textContent = String(rows.length);
-
-        if (slide.type === 'today') {
-            renderToday(rows, slide);
-        } else {
-            renderRanking(rows, slide);
-        }
-
-        updateDots();
-        restartAutoScroll();
+        if (!value) return '-';
+        const parsed = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
     }
 
     function renderSummary(summary) {
-        const data = summary || {};
-        const sakit = Number(data.Sakit || 0);
-        const izin = Number(data.Izin || 0);
-        const alpha = Number(data.Alpha || 0);
-        const total = Number(data.total || sakit + izin + alpha);
+        const counts = summary?.counts || {};
+        const percent = summary?.percent || {};
+        ['Hadir', 'Sakit', 'Izin', 'Alpha'].forEach((status) => {
+            const countEl = document.getElementById(`summary${status}Count`);
+            const percentEl = document.getElementById(`summary${status}Percent`);
+            if (countEl) countEl.textContent = String(Number(counts[status] || 0));
+            if (percentEl) percentEl.textContent = `${Number(percent[status] || 0).toFixed(1)}%`;
+        });
 
-        document.getElementById('todaySakit').textContent = String(sakit);
-        document.getElementById('todayIzin').textContent = String(izin);
-        document.getElementById('todayAlpha').textContent = String(alpha);
-        document.getElementById('todayTotal').textContent = `${total} siswa tidak masuk`;
+        const coverage = summary?.coverage || {};
+        const coverageEl = document.getElementById('coverageText');
+        if (coverageEl) {
+            coverageEl.textContent =
+                `Coverage kelas: ${Number(coverage.sudah_kelas || 0)} / ${Number(coverage.wajib_kelas || 0)}`
+                + (Number(coverage.belum_kelas || 0) > 0
+                    ? ` • belum ${Number(coverage.belum_kelas || 0)}`
+                    : '');
+        }
     }
 
-    async function readJsonResponse(response) {
-        const payload = await response.json().catch(() => null);
+    function buildFrames() {
+        const size = pageSize();
+        ewsFrames = [];
 
-        if (!payload || typeof payload !== 'object') {
-            throw new Error('Response server tidak valid.');
+        ewsCategories.forEach((category) => {
+            const pages = chunk(currentData?.[category.key], size);
+            pages.forEach((rows, page) => {
+                ewsFrames.push({
+                    category,
+                    rows,
+                    page,
+                    pageCount: pages.length,
+                });
+            });
+        });
+
+        kelasPages = chunk(currentData?.kelas_belum_presensi, size);
+        jurnalPages = chunk(currentData?.jadwal_belum_jurnal, size);
+        ewsIndex %= Math.max(1, ewsFrames.length);
+        kelasIndex %= Math.max(1, kelasPages.length);
+        jurnalIndex %= Math.max(1, jurnalPages.length);
+    }
+
+    function renderEws() {
+        const frame = ewsFrames[ewsIndex] || {
+            category: ewsCategories[0],
+            rows: [],
+            page: 0,
+            pageCount: 1,
+        };
+        const { category, rows } = frame;
+        const period = currentData?.ranking_period;
+        const subtitle = document.getElementById('ewsSubtitle');
+        const totalHeader = document.getElementById('ewsTotalHeader');
+        const label = document.getElementById('ewsPageLabel');
+
+        if (subtitle) {
+            subtitle.textContent = period?.mulai && period?.selesai
+                ? `${category.label} tertinggi • ${formatShortDate(period.mulai)}–${formatShortDate(period.selesai)}`
+                : `${category.label} tertinggi • ${rankingDays} hari`;
+        }
+        if (totalHeader) totalHeader.textContent = `Total ${category.label}`;
+        if (label) {
+            label.className = `panel-page panel-page--${category.css}`;
+            label.textContent = `${category.label} • ${frame.page + 1}/${frame.pageCount}`;
         }
 
-        if (!response.ok || payload.status !== 'success') {
-            throw new Error(payload.message || 'Data gagal dimuat.');
+        if (!rows.length) {
+            ewsBody.innerHTML = `<tr><td colspan="4" class="empty">Belum ada data ${esc(category.label)} pada periode ini.</td></tr>`;
+            return;
         }
 
-        return payload;
+        const start = frame.page * pageSize();
+        ewsBody.innerHTML = rows.map((row, idx) => `
+            <tr>
+                <td class="no">${start + idx + 1}</td>
+                <td class="strong">${esc(row.nama_siswa || '-')}</td>
+                <td>${esc(row.nama_kelas || '-')}</td>
+                <td class="value">${Number(row.total || 0)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderKelas() {
+        const pages = kelasPages.length ? kelasPages : [[]];
+        const rows = pages[kelasIndex] || [];
+        const label = document.getElementById('kelasPageLabel');
+        if (label) label.textContent = `${kelasIndex + 1}/${pages.length}`;
+
+        if (!rows.length) {
+            kelasBody.innerHTML = '<tr><td colspan="3" class="empty ok">Seluruh kelas wajib sudah melakukan Presensi Sesi Awal.</td></tr>';
+            return;
+        }
+
+        const start = kelasIndex * pageSize();
+        kelasBody.innerHTML = rows.map((row, idx) => `
+            <tr>
+                <td class="no">${start + idx + 1}</td>
+                <td class="strong">${esc(row.nama_kelas || '-')}</td>
+                <td>${esc(row.wali_kelas || '-')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderJurnal() {
+        const pages = jurnalPages.length ? jurnalPages : [[]];
+        const rows = pages[jurnalIndex] || [];
+        const label = document.getElementById('jurnalPageLabel');
+        if (label) label.textContent = `${jurnalIndex + 1}/${pages.length}`;
+
+        if (!rows.length) {
+            jurnalBody.innerHTML = '<tr><td colspan="5" class="empty ok">Tidak ada jadwal yang melewati batas input dan belum memiliki jurnal.</td></tr>';
+            return;
+        }
+
+        const start = jurnalIndex * pageSize();
+        jurnalBody.innerHTML = rows.map((row, idx) => `
+            <tr>
+                <td class="no">${start + idx + 1}</td>
+                <td class="strong">${esc(row.nama_guru || '-')}</td>
+                <td>${esc(row.nama_kelas || '-')}</td>
+                <td>${esc(row.nama_mapel || '-')}</td>
+                <td class="jam">${esc(row.jam_mulai || '-')}–${esc(row.jam_selesai || '-')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderAll() {
+        if (!currentData) return;
+        renderSummary(currentData.attendance_summary || {});
+        renderEws();
+        renderKelas();
+        renderJurnal();
+    }
+
+    function rotate() {
+        if (!currentData) return;
+        if (ewsFrames.length > 1) ewsIndex = (ewsIndex + 1) % ewsFrames.length;
+        if (kelasPages.length > 1) kelasIndex = (kelasIndex + 1) % kelasPages.length;
+        if (jurnalPages.length > 1) jurnalIndex = (jurnalIndex + 1) % jurnalPages.length;
+        renderEws();
+        renderKelas();
+        renderJurnal();
     }
 
     async function loadData() {
         if (!dataUrl) {
             statusElement.textContent = 'URL data signage tidak tersedia.';
+            statusElement.classList.add('is-error');
             return;
         }
 
@@ -332,40 +246,41 @@
         try {
             const response = await fetch(`${dataUrl}?_=${Date.now()}`, {
                 cache: 'no-store',
-                headers: {
-                    Accept: 'application/json',
-                },
+                headers: { Accept: 'application/json' },
             });
+            const payload = await response.json().catch(() => null);
+            if (!payload || !response.ok || payload.status !== 'success') {
+                throw new Error(payload?.message || 'Response server tidak valid.');
+            }
 
-            const payload = await readJsonResponse(response);
             currentData = payload.data || {};
+            const tahun = document.getElementById('signageTahun');
+            const updated = document.getElementById('signageLastUpdate');
+            if (tahun) tahun.textContent = currentData.tahun_ajaran || 'Tahun Ajaran aktif belum tersedia';
+            if (updated) updated.textContent = formatTime(currentData.generated_at);
 
-            document.getElementById('signageTahun').textContent =
-                currentData.tahun_ajaran || 'Tahun Ajaran aktif belum tersedia';
-            document.getElementById('signageLastUpdate').textContent =
-                formatDateTime(currentData.generated_at);
-
-            renderSummary(currentData.today_summary);
-            renderSlide(currentSlide);
-
-            statusElement.textContent = `Data aktif • refresh ${refreshMinutes} menit`;
+            buildFrames();
+            renderAll();
+            statusElement.textContent = `Data aktif • ${Number(currentData.attendance_summary?.total_recorded || 0)} siswa tercatat`;
         } catch (error) {
-            statusElement.textContent = `Gagal memperbarui: ${error.message || 'error'}`;
+            statusElement.textContent = `Gagal memperbarui: ${error?.message || 'error'}`;
             statusElement.classList.add('is-error');
         }
     }
 
-    function nextSlide() {
-        if (!currentData) {
-            return;
-        }
-
-        renderSlide((currentSlide + 1) % slides.length);
-    }
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+            if (!currentData) return;
+            buildFrames();
+            renderAll();
+        }, 200);
+    });
 
     updateClock();
     window.setInterval(updateClock, 1000);
     loadData();
     window.setInterval(loadData, refreshMs);
-    window.setInterval(nextSlide, rotationMs);
+    window.setInterval(rotate, rotationMs);
 })();

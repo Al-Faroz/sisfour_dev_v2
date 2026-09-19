@@ -1,9 +1,9 @@
 # BK, Konseling, Prestasi & Kartu Pelajar — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Baseline Aplikasi:** `main` @ `6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce`
-**Development aktif:** `feat/g3-6-siswa-dashboard-20260918` — **G3.6 Dashboard Siswa**
+**Tanggal Acuan:** 19 September 2026
+**Baseline Aplikasi:** `main` @ `f6f30ceaf070f342d609c322905ee77dc33f3e6f` + G3.6C feature branch
+**Development aktif:** `feat/g3-6c-exec-viz-signage-20260919` — **G3.6C + Kartu Pelajar JPG ZIP add-on**
 
 > Dokumen ini menyatakan kontrak BK canonical. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
@@ -455,6 +455,29 @@ status_aktif
 ```
 
 Database menjaga maksimum satu kartu Aktif per siswa. Kartu operasional adalah current-state workflow dan tidak diberi filter Tahun Ajaran hanya demi konsistensi visual palsu.
+
+### 14.1 Export JPG Depan Per Kelas
+
+Add-on Kartu Pelajar menyediakan export massal JPG dengan kontrak:
+
+```text
+actor                 = Admin only
+permission baru       = TIDAK ADA
+route gate            = kartu_pelajar.manage
+service boundary      = effective role wajib mengandung admin
+mode                   = per kelas
+side                   = front/depan only
+dataset                = sama persis dengan Cetak Depan Per Kelas PDF
+kartu                  = status Aktif
+kelas/periode          = current class pada Tahun Ajaran aktif
+urutan                 = nama siswa ASC
+maksimum               = 200 kartu per proses
+output                 = 1 JPG per siswa
+container              = 1 ZIP
+database/schema        = tidak berubah
+```
+
+Renderer JPG memakai background depan, foto, QR, nomor kartu, nama, NISN, kelas, jenis kelamin, Tahun Ajaran, TTL, dan alamat yang sama dengan renderer kartu existing. Endpoint server tetap melakukan role check Admin meskipun tombol hanya dirender untuk Admin; View/JS bukan security boundary.
 
 ## 15. SQL G3.3.1 — Closed
 

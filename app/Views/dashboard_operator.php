@@ -11,7 +11,12 @@ $tahun = $widgets['tahun_aktif'] ?? [];
 
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
   <div><h4 class="mb-1">Dashboard Operator</h4><p class="text-muted mb-0">Prioritas operasional harian madrasah.</p></div>
-  <span class="badge bg-label-primary fs-6"><?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?></span>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+      <i class="bx bx-tv me-1"></i>EWS Signage
+    </a>
+    <span class="badge bg-label-primary fs-6"><?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?></span>
+  </div>
 </div>
 
 <div class="row g-3 mb-4">
