@@ -36,6 +36,7 @@
         'btnCetakBelakangSelected',
         'btnCetakDepanKelas',
         'btnCetakBelakangKelas',
+        'btnExportJpgKelas',
     ];
 
     const pager = window.SisfourPagination?.mount(
@@ -739,7 +740,7 @@
 
     const filenameFromResponse = (
         response,
-        side
+        fallbackFilename
     ) => {
         const disposition =
             response.headers.get(
@@ -772,12 +773,7 @@
             return plainMatch[1].trim();
         }
 
-        const label =
-            side === 'back'
-                ? 'BELAKANG'
-                : 'DEPAN';
-
-        return `kartu_pelajar_A4_${label}.pdf`;
+        return fallbackFilename;
     };
 
     const responseErrorMessage = async (
@@ -814,7 +810,7 @@
         return `Gagal membuat PDF (HTTP ${response.status}).`;
     };
 
-    const downloadPdfBlob = (
+    const downloadBlob = (
         blob,
         filename
     ) => {
@@ -946,13 +942,18 @@
                 );
             }
 
+            const label =
+                side === 'back'
+                    ? 'BELAKANG'
+                    : 'DEPAN';
+
             const filename =
                 filenameFromResponse(
                     response,
-                    side
+                    `kartu_pelajar_A4_${label}.pdf`
                 );
 
-            downloadPdfBlob(
+            downloadBlob(
                 blob,
                 filename
             );
@@ -971,6 +972,119 @@
             setPrintButtonsDisabled(false);
         }
     };
+
+    const submitJpgZip = async () => {
+        const idKelas =
+            document.getElementById(
+                'kartuKelas'
+            )?.value;
+
+        if (!idKelas) {
+            showAlert(
+                'Pilih kelas terlebih dahulu untuk export JPG ZIP.',
+                'warning'
+            );
+            return;
+        }
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            'id_kelas',
+            String(idKelas)
+        );
+
+        setPrintButtonsDisabled(true);
+
+        showAlert(
+            'Menyiapkan JPG depan per siswa dan arsip ZIP. Jangan menutup halaman ini.',
+            'info'
+        );
+
+        try {
+            const response = await fetch(
+                `${base}/kartu/export-jpg-zip`,
+                {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        Accept:
+                            'application/zip, application/json',
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+                    },
+                    credentials:
+                        'same-origin',
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    await responseErrorMessage(
+                        response
+                    )
+                );
+            }
+
+            const contentType = String(
+                response.headers.get(
+                    'Content-Type'
+                ) || ''
+            ).toLowerCase();
+
+            if (
+                !contentType.includes('application/zip')
+                && !contentType.includes('application/x-zip-compressed')
+            ) {
+                throw new Error(
+                    'Server tidak mengembalikan file ZIP yang valid.'
+                );
+            }
+
+            const blob =
+                await response.blob();
+
+            if (blob.size <= 0) {
+                throw new Error(
+                    'File ZIP kosong dan tidak dapat diunduh.'
+                );
+            }
+
+            const filename =
+                filenameFromResponse(
+                    response,
+                    'kartu_pelajar_JPG_DEPAN.zip'
+                );
+
+            downloadBlob(
+                blob,
+                filename
+            );
+
+            showAlert(
+                `JPG ZIP berhasil dibuat: ${filename}`,
+                'success'
+            );
+        } catch (error) {
+            showAlert(
+                error.message
+                || 'Gagal membuat JPG ZIP Kartu Pelajar.',
+                'danger'
+            );
+        } finally {
+            setPrintButtonsDisabled(false);
+        }
+    };
+
+    document
+        .getElementById(
+            'btnExportJpgKelas'
+        )
+        ?.addEventListener(
+            'click',
+            submitJpgZip
+        );
 
     document
         .getElementById(
