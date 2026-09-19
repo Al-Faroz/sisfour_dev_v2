@@ -285,10 +285,16 @@ Public web:
 
 ```text
 GET  /ptsp
+GET  /ptsp/form/layanan
+GET  /ptsp/form/pengaduan
+GET  /ptsp/form/polling
+
 POST /ptsp/layanan
 POST /ptsp/polling
 POST /ptsp/pengaduan
 ```
+
+`/ptsp` adalah landing pola kios; GET form routes dipisah agar tidak berbenturan dengan authenticated internal routes.
 
 Public aggregate API:
 
