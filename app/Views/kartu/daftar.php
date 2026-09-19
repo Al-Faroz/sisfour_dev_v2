@@ -73,7 +73,7 @@
                                 </div>
 
                                 <div class="col-12 col-md-4 d-grid">
-                                    <button class="btn btn-primary" type="submit">
+                                    <button class="btn btn-primary sisfour-touch-target" type="submit">
                                         <i class="bx bx-plus-circle me-1"></i>
                                         Generate Satu
                                     </button>
@@ -94,7 +94,7 @@
 
                             <button
                                 id="btnGenerateSemua"
-                                class="btn btn-outline-primary w-100 mt-3"
+                                class="btn btn-outline-primary w-100 mt-3 sisfour-touch-target"
                                 type="button"
                                 <?= empty($initial['eligible_total']) ? 'disabled' : '' ?>
                             >
@@ -161,7 +161,7 @@
                         </div>
 
                         <div class="col-6 col-md-4 col-lg-3 d-grid">
-                            <button id="btnKartuCari" class="btn btn-primary" type="button">
+                            <button id="btnKartuCari" class="btn btn-primary sisfour-primary-action" type="button">
                                 <i class="bx bx-filter-alt me-1"></i> Tampilkan
                             </button>
                         </div>
@@ -182,11 +182,11 @@
                             </div>
 
                             <div class="kartu-action-buttons kartu-action-buttons--pair">
-                                <button id="btnCetakDepanSelected" class="btn btn-primary" type="button">
+                                <button id="btnCetakDepanSelected" class="btn btn-primary sisfour-touch-target" type="button">
                                     <i class="bx bx-id-card me-1"></i>
                                     Depan A4
                                 </button>
-                                <button id="btnCetakBelakangSelected" class="btn btn-outline-primary" type="button">
+                                <button id="btnCetakBelakangSelected" class="btn btn-outline-primary sisfour-touch-target" type="button">
                                     <i class="bx bx-id-card me-1"></i>
                                     Belakang A4
                                 </button>
@@ -205,11 +205,11 @@
                             </div>
 
                             <div class="kartu-action-buttons kartu-action-buttons--pair">
-                                <button id="btnCetakDepanKelas" class="btn btn-success" type="button">
+                                <button id="btnCetakDepanKelas" class="btn btn-success sisfour-touch-target" type="button">
                                     <i class="bx bx-file me-1"></i>
                                     Depan PDF
                                 </button>
-                                <button id="btnCetakBelakangKelas" class="btn btn-outline-success" type="button">
+                                <button id="btnCetakBelakangKelas" class="btn btn-outline-success sisfour-touch-target" type="button">
                                     <i class="bx bx-file me-1"></i>
                                     Belakang PDF
                                 </button>
@@ -232,7 +232,7 @@
                                 </div>
 
                                 <div class="kartu-action-buttons">
-                                    <button id="btnExportJpgKelas" class="btn btn-dark" type="button">
+                                    <button id="btnExportJpgKelas" class="btn btn-dark sisfour-touch-target" type="button">
                                         <i class="bx bx-download me-1"></i>
                                         Unduh JPG Depan (.ZIP)
                                     </button>
@@ -256,10 +256,24 @@
         <div id="kartuAlert" class="alert d-none" role="alert"></div>
 
         <div class="card sisfour-table-card">
-            <div class="card-header">
+            <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0">Daftar Kartu Pelajar</h5>
+                <?php if (!empty($initial['can_manage'])): ?>
+                    <label class="d-md-none d-inline-flex align-items-center gap-2 mb-0 small">
+                        <input
+                            id="checkAllKartuMobile"
+                            class="form-check-input mt-0"
+                            type="checkbox"
+                            aria-label="Pilih semua kartu aktif pada halaman ini"
+                        >
+                        Pilih halaman
+                    </label>
+                <?php endif; ?>
             </div>
-            <div class="table-responsive">
+            <div id="kartuMobileList" class="d-md-none list-group list-group-flush">
+                <div class="list-group-item sisfour-mobile-state text-muted">Memuat kartu...</div>
+            </div>
+            <div class="d-none d-md-block table-responsive">
                 <table class="table table-hover align-middle mb-0" id="tableKartuPelajar">
                     <thead>
                         <tr>
