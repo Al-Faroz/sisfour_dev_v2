@@ -312,7 +312,16 @@ ringkasan tabel
 multi-page bila perlu
 ```
 
-Server membentuk visual PDF dari dataset authoritative yang sama. Tidak menerima screenshot/chart payload client sebagai source of truth.
+Server selalu membentuk ulang dataset authoritative dari filter yang dikirim sebelum export.
+
+Untuk menjaga visual parity dengan halaman, client boleh mengirim SVG ApexCharts yang sedang dirender sebagai presentation payload. SVG:
+- hanya untuk visual;
+- di-whitelist per chart;
+- dibatasi ukuran;
+- disanitasi dari script/foreignObject/external executable reference;
+- tidak pernah menjadi source of truth angka/filter.
+
+Jika SVG client tidak tersedia, server memakai fallback chart dari dataset authoritative.
 
 Export dicatat ke log_activity.
 
@@ -366,8 +375,10 @@ Contract / SSOT                 LOCKED by user approval
 Implementation                  IN PROGRESS
 Local SQL                       PREPARED
 Local SQL execution             PASS / user evidence
-Static terminal gate            PASS / user terminal evidence
-Local runtime UAT               PENDING
+Static terminal gate            PASS / user terminal evidence @ pre-parity-fix SHA
+Focused static re-check          PENDING
+Local runtime UAT               PASS except PDF visual parity / user runtime evidence
+PDF visual parity re-smoke       PENDING
 Post-SQL local dump audit       PENDING
 Fresh hosting dump audit        PENDING
 Hosting mutation/deploy         NOT AUTHORIZED
