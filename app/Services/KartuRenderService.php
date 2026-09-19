@@ -29,17 +29,24 @@ class KartuRenderService
 
     public function viewData(
         array $card,
-        bool $includeBackgrounds = true
+        bool $includeBackgrounds = true,
+        bool $includeQrSvg = true
     ): array {
         $payload = $this->buildQrPayload($card);
 
-        // Generate SVG lebih besar dari display 120px agar hasil cetak tetap tajam.
-        $qrCode = new QrCode(
-            data: $payload,
-            size: 360,
-            margin: 8
-        );
-        $qrDataUri = (new SvgWriter())->write($qrCode)->getDataUri();
+        $qrDataUri = null;
+
+        if ($includeQrSvg) {
+            // Generate SVG lebih besar dari display 120px agar hasil cetak tetap tajam.
+            $qrCode = new QrCode(
+                data: $payload,
+                size: 360,
+                margin: 8
+            );
+            $qrDataUri = (new SvgWriter())
+                ->write($qrCode)
+                ->getDataUri();
+        }
 
         $nama = mb_strtoupper(trim((string) ($card['nama'] ?? '')), 'UTF-8');
         $alamat = trim((string) ($card['alamat'] ?? ''));
@@ -123,6 +130,7 @@ class KartuRenderService
             || !function_exists('imagecreatefromstring')
             || !function_exists('imagejpeg')
             || !function_exists('imagettftext')
+            || !function_exists('imagettfbbox')
         ) {
             throw new RuntimeException(
                 'GD + FreeType diperlukan untuk export JPG Kartu Pelajar.'
@@ -140,6 +148,7 @@ class KartuRenderService
 
         $data = $this->viewData(
             $card,
+            false,
             false
         );
 
@@ -181,6 +190,7 @@ class KartuRenderService
             );
 
             imagedestroy($background);
+            $background = null;
 
             $white = imagecolorallocate(
                 $canvas,
