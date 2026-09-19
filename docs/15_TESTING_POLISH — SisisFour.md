@@ -431,7 +431,7 @@ G3.6B local runtime/public UAT      PENDING
 G3.6B cross-role/CORS regression    PENDING
 G3.6B local post-SQL dump audit     PENDING
 G3.6B hosting                       NOT AUTHORIZED
-PR Ready                            AUTHORIZED / pending GitHub transition
+PR Ready                            PASS / GitHub state
 Merge                               NOT AUTHORIZED
 ```
 
