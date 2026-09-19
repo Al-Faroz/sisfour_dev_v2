@@ -218,6 +218,33 @@
         exportEl.href = `${exportUrl}?${params.toString()}`;
     }
 
+    function collectChartSvgs() {
+        const result = {};
+        Object.keys(charts).forEach((id) => {
+            const svg = document.getElementById(id)?.querySelector('svg');
+            if (svg) result[id] = svg.outerHTML;
+        });
+        return result;
+    }
+
+    function prepareExportForm(params) {
+        const exportForm = document.getElementById('statistikExportForm');
+        const chartInput = document.getElementById('statistikChartSvgs');
+        if (!exportForm || !chartInput) return null;
+
+        exportForm.querySelectorAll('.statistik-export-filter').forEach((el) => el.remove());
+        params.forEach((value, key) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            input.className = 'statistik-export-filter';
+            exportForm.appendChild(input);
+        });
+        chartInput.value = JSON.stringify(collectChartSvgs());
+        return exportForm;
+    }
+
     function toggleCustomDate() {
         const custom = document.getElementById('filterPeriode')?.value === 'custom';
         document.querySelectorAll('.statistik-custom-date').forEach((el) => {
@@ -278,6 +305,17 @@
         const params = queryFromForm();
         params.delete('id_kelas');
         window.location.href = `${window.location.pathname}?${params.toString()}`;
+    });
+
+    exportEl?.addEventListener('click', (event) => {
+        event.preventDefault();
+        const params = queryFromForm();
+        const exportForm = prepareExportForm(params);
+        if (exportForm) {
+            exportForm.submit();
+        } else {
+            window.location.href = `${exportUrl}?${params.toString()}`;
+        }
     });
 
     toggleCustomDate();
