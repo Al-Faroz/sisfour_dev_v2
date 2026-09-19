@@ -53,7 +53,10 @@
             <h5 class="mb-0">Progress Kenaikan per Kelas</h5>
             <div class="small text-muted">Belum Diproses · Sebagian · Selesai</div>
         </div>
-        <div class="table-responsive">
+        <div id="kenaikanMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat progress kenaikan...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableKenaikanKelas">
                 <thead>
                     <tr>
@@ -79,7 +82,14 @@
                             $total = (int) ($kelas['jumlah_siswa'] ?? 0);
                             $done = (int) ($kelas['jumlah_dinaikkan'] ?? 0);
                         ?>
-                        <tr>
+                        <tr
+                            data-nama="<?= esc($kelas['nama_kelas'], 'attr') ?>"
+                            data-tingkat="<?= esc($kelas['tingkat'], 'attr') ?>"
+                            data-total="<?= $total ?>"
+                            data-done="<?= $done ?>"
+                            data-progress="<?= esc($progress, 'attr') ?>"
+                            data-badge="<?= esc($badgeClass, 'attr') ?>"
+                        >
                             <td class="fw-semibold"><?= esc($kelas['nama_kelas']) ?></td>
                             <td><?= esc($kelas['tingkat']) ?></td>
                             <td><?= $total ?> siswa</td>
@@ -94,7 +104,7 @@
                             <td>
                                 <button
                                     type="button"
-                                    class="btn btn-sm <?= $canProcess ? 'btn-primary' : 'btn-outline-secondary' ?> btn-proses-naik"
+                                    class="btn btn-sm <?= $canProcess ? 'btn-primary' : 'btn-outline-secondary' ?> sisfour-touch-target--compact btn-proses-naik"
                                     data-id="<?= (int)$kelas['id'] ?>"
                                     data-nama="<?= esc($kelas['nama_kelas']) ?>"
                                     <?= $canProcess ? '' : 'disabled' ?>
@@ -152,11 +162,11 @@
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
                         <strong>Checklist Siswa</strong>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaNaik">Pilih Semua Belum Diproses</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanNaik">Kosongkan</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" id="btnPilihSemuaNaik">Pilih Semua Belum Diproses</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact" id="btnKosongkanNaik">Kosongkan</button>
                         </div>
                     </div>
-                    <div class="table-responsive border rounded">
+                    <div class="table-responsive border rounded sisfour-admin-matrix-scroll" data-mobile-exception="bulk-student-selection">
                         <table class="table table-hover mb-0">
                             <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th><th>Status</th></tr></thead>
                             <tbody id="tbodyNaik"></tbody>
