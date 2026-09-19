@@ -12,10 +12,20 @@
     <div id="menuAlert" class="alert d-none" role="alert"></div>
 
     <div class="card sisfour-table-card">
-        <div class="card-header">
-            <h5 class="mb-0">Mapping Menu ke Role</h5>
+        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h5 class="mb-0">Mapping Menu ke Role</h5>
+                <div class="small text-muted d-md-none mt-1">Geser horizontal hanya di area tabel untuk melihat seluruh role.</div>
+            </div>
+            <span class="badge bg-label-info d-md-none">Matrix administratif</span>
         </div>
-        <div class="table-responsive">
+        <div
+            class="table-responsive sisfour-admin-matrix-scroll"
+            data-mobile-exception="menu-role-matrix"
+            role="region"
+            aria-label="Matrix mapping menu ke role"
+            tabindex="0"
+        >
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
@@ -61,7 +71,7 @@
                             </td>
                         <?php endforeach; ?>
                         <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary btn-save-menu">
+                            <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-save-menu">
                                 <i class="bx bx-save me-1"></i> Simpan
                             </button>
                         </td>
