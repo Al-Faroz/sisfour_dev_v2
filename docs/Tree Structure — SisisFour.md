@@ -467,3 +467,26 @@ assets/css/ptsp-public.css
 
 database/20260919_G3_6B_PTSP_LOCALHOST.sql
 ```
+
+## G3.6C Additions
+
+```text
+app/Controllers/Statistik.php
+app/Services/StatistikService.php
+app/Services/StatistikPdfService.php
+app/Views/statistik/index.php
+app/Views/statistik/pdf.php
+assets/js/statistik.js
+assets/css/statistik.css
+database/20260919_G3_6C_EXEC_VIZ_LOCALHOST.sql
+docs/19_G3_6C_EXEC_VIZ_SIGNAGE — SisisFour.md
+```
+
+Existing Signage files are refined in-place:
+
+```text
+app/Services/SignageService.php
+app/Views/signage/index.php
+assets/js/signage.js
+assets/css/signage.css
+```
