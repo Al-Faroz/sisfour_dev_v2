@@ -23,6 +23,9 @@ class StatistikPdfService
         'chartDisciplineTrend',
         'chartAchievement',
         'chartAchievementTrend',
+        'chartCounselingStatus',
+        'chartCounselingFields',
+        'chartCounselingTrend',
         'chartUks',
         'chartPtspLayanan',
         'chartPtspPengaduan',
@@ -31,15 +34,16 @@ class StatistikPdfService
         'chartMobility',
     ];
 
-    private const MAX_SVG_BYTES = 750000;
+    private const MAX_IMAGE_BYTES = 2500000;
+    private const MAX_TOTAL_IMAGE_BYTES = 24000000;
 
-    public function generate(array $report, array $clientSvgs = []): array
+    public function generate(array $report, array $clientImages = []): array
     {
         try {
             $data = $report['data'] ?? [];
             $charts = $this->charts($data);
 
-            foreach ($this->sanitizeClientCharts($clientSvgs) as $key => $uri) {
+            foreach ($this->sanitizeClientImages($clientImages) as $key => $uri) {
                 $charts[$key] = $uri;
             }
 
@@ -85,69 +89,77 @@ class StatistikPdfService
         }
     }
 
-    private function sanitizeClientCharts(array $charts): array
+    private function sanitizeClientImages(array $images): array
     {
         $allowed = array_fill_keys(self::CLIENT_CHART_KEYS, true);
         $result = [];
+        $totalBytes = 0;
 
-        foreach ($charts as $key => $svg) {
+        foreach ($images as $key => $uri) {
             $key = (string) $key;
-            if (! isset($allowed[$key]) || ! is_string($svg)) {
+            if (! isset($allowed[$key]) || ! is_string($uri)) {
                 continue;
             }
 
-            $svg = trim($svg);
+            $uri = trim($uri);
+            if (! preg_match('#^data:image/png;base64,([A-Za-z0-9+/=\r\n]+)$#', $uri, $match)) {
+                continue;
+            }
+
+            $binary = base64_decode(
+                preg_replace('/\s+/', '', $match[1]) ?? '',
+                true
+            );
+            if ($binary === false || $binary === '') {
+                continue;
+            }
+
+            $bytes = strlen($binary);
             if (
-                $svg === ''
-                || strlen($svg) > self::MAX_SVG_BYTES
-                || stripos($svg, '<svg') !== 0
+                $bytes > self::MAX_IMAGE_BYTES
+                || ($totalBytes + $bytes) > self::MAX_TOTAL_IMAGE_BYTES
             ) {
                 continue;
             }
 
-            // Presentation payload only. Remove executable/external content before Dompdf.
-            $svg = preg_replace(
-                '#<script\b[^>]*>.*?</script>#is',
-                '',
-                $svg
-            ) ?? '';
-            $svg = preg_replace(
-                '#<foreignObject\b[^>]*>.*?</foreignObject>#is',
-                '',
-                $svg
-            ) ?? '';
-            $svg = preg_replace(
-                '#<(image|use)\b([^>]*?)(?:href|xlink:href)\s*=\s*(["\'])(?:https?:|file:|javascript:).*?\3[^>]*?/?>#is',
-                '',
-                $svg
-            ) ?? '';
-
-            if ($svg === '' || stripos($svg, '<svg') !== 0) {
+            if (substr($binary, 0, 8) !== "\x89PNG\x0D\x0A\x1A\x0A") {
                 continue;
             }
 
-            $result[$key] = 'data:image/svg+xml;base64,' . base64_encode($svg);
+            $totalBytes += $bytes;
+            $result[$key] = 'data:image/png;base64,' . base64_encode($binary);
         }
 
         return $result;
     }
 
     /**
-     * Fallback server-side charts when JS is unavailable.
-     * Data tetap authoritative dari StatistikService.
+     * Fallback server-side charts when browser image export is unavailable.
+     * The authoritative numbers still come from StatistikService.
      */
     private function charts(array $data): array
     {
+        $composition = $data['composition'] ?? [];
         $attendance = $data['attendance']['summary'] ?? [];
         $attendanceClass = $data['attendance']['by_class'] ?? [];
         $ews = $data['ews'] ?? [];
-        $discipline = $data['discipline']['categories'] ?? [];
-        $achievement = $data['achievement']['levels'] ?? [];
-        $uks = $data['uks']['hasil'] ?? [];
-        $ptspService = $data['ptsp']['layanan_status'] ?? [];
-        $polling = $data['ptsp']['polling']['scores'] ?? [];
+        $teaching = $data['teaching'] ?? [];
+        $discipline = $data['discipline'] ?? [];
+        $achievement = $data['achievement'] ?? [];
+        $counseling = $data['counseling'] ?? [];
+        $uks = $data['uks'] ?? [];
+        $ptsp = $data['ptsp'] ?? [];
+        $mobility = $data['mobility'] ?? [];
 
         return [
+            'chartLevel' => $this->rowsChart(
+                $composition['by_level'] ?? [],
+                'Siswa per Tingkat'
+            ),
+            'chartGender' => $this->rowsChart(
+                $composition['by_gender'] ?? [],
+                'Jenis Kelamin'
+            ),
             'chartAttendanceSummary' => $this->barChart(
                 ['Hadir', 'Sakit', 'Izin', 'Alpha'],
                 [
@@ -169,46 +181,79 @@ class StatistikPdfService
                 12,
                 '%'
             ),
-            'chartEwsAlpha' => $this->barChart(
-                array_column($ews['top_alpha'] ?? [], 'nama_siswa'),
-                array_column($ews['top_alpha'] ?? [], 'total'),
-                'Top Alpha 14 Hari',
-                10
+            'chartEwsSakit' => $this->rankingChart($ews['top_sakit'] ?? [], 'Top Sakit 14 Hari'),
+            'chartEwsIzin' => $this->rankingChart($ews['top_izin'] ?? [], 'Top Izin 14 Hari'),
+            'chartEwsAlpha' => $this->rankingChart($ews['top_alpha'] ?? [], 'Top Alpha 14 Hari'),
+            'chartTeachingStatus' => $this->rowsChart(
+                $teaching['status_distribution'] ?? [],
+                'Status Presensi Mengajar'
             ),
-            'chartDiscipline' => $this->barChart(
-                array_column($discipline, 'label'),
-                array_column($discipline, 'total'),
-                'Kategori Pelanggaran',
-                10
+            'chartDiscipline' => $this->rowsChart(
+                $discipline['categories'] ?? [],
+                'Kategori Pelanggaran'
             ),
-            'chartAchievement' => $this->barChart(
-                array_column($achievement, 'label'),
-                array_column($achievement, 'total'),
-                'Tingkat Prestasi',
-                10
+            'chartAchievement' => $this->rowsChart(
+                $achievement['levels'] ?? [],
+                'Tingkat Prestasi'
             ),
-            'chartUks' => $this->barChart(
-                array_column($uks, 'label'),
-                array_column($uks, 'total'),
-                'Hasil Kunjungan UKS',
-                10
+            'chartCounselingStatus' => $this->rowsChart(
+                $counseling['status'] ?? [],
+                'Status Konseling'
             ),
-            'chartPtspLayanan' => $this->barChart(
-                array_column($ptspService, 'label'),
-                array_column($ptspService, 'total'),
-                'Status Layanan PTSP',
-                10
+            'chartCounselingFields' => $this->rowsChart(
+                $counseling['fields'] ?? [],
+                'Bidang Konseling'
+            ),
+            'chartUks' => $this->rowsChart(
+                $uks['hasil'] ?? [],
+                'Hasil Kunjungan UKS'
+            ),
+            'chartPtspLayanan' => $this->rowsChart(
+                $ptsp['layanan_status'] ?? [],
+                'Status Layanan PTSP'
+            ),
+            'chartPtspPengaduan' => $this->rowsChart(
+                $ptsp['pengaduan_status'] ?? [],
+                'Status Pengaduan'
+            ),
+            'chartPtspKlasifikasi' => $this->rowsChart(
+                $ptsp['pengaduan_klasifikasi'] ?? [],
+                'Klasifikasi Pengaduan'
             ),
             'chartPtspPolling' => $this->barChart(
                 array_map(
                     static fn ($value): string => 'Skor ' . (string) $value,
-                    array_column($polling, 'label')
+                    array_column($ptsp['polling']['scores'] ?? [], 'label')
                 ),
-                array_column($polling, 'total'),
+                array_column($ptsp['polling']['scores'] ?? [], 'total'),
                 'Distribusi Kepuasan PTSP',
                 5
             ),
+            'chartMobility' => $this->rowsChart(
+                $mobility['status'] ?? [],
+                'Mobilitas / Status Siswa'
+            ),
         ];
+    }
+
+    private function rowsChart(array $rows, string $title, int $limit = 10): ?string
+    {
+        return $this->barChart(
+            array_column($rows, 'label'),
+            array_column($rows, 'total'),
+            $title,
+            $limit
+        );
+    }
+
+    private function rankingChart(array $rows, string $title): ?string
+    {
+        return $this->barChart(
+            array_column($rows, 'nama_siswa'),
+            array_column($rows, 'total'),
+            $title,
+            10
+        );
     }
 
     private function barChart(
@@ -238,7 +283,7 @@ class StatistikPdfService
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $width
             . '" height="' . $height . '" viewBox="0 0 ' . $width . ' ' . $height . '">';
         $svg .= '<rect width="100%" height="100%" fill="#ffffff"/>';
-        $svg .= '<text x="12" y="22" font-family="DejaVu Sans" font-size="14" font-weight="700" fill="#263238">'
+        $svg .= '<text x="12" y="22" font-family="DejaVu Sans" font-size="14" font-weight="700" fill="#566a7f">'
             . $this->xml($title) . '</text>';
 
         foreach ($values as $i => $value) {
@@ -246,14 +291,14 @@ class StatistikPdfService
             $label = $this->short((string) ($labels[$i] ?? '-'), 27);
             $w = max(1, ($value / $max) * $barWidth);
             $svg .= '<text x="12" y="' . ($y + 16)
-                . '" font-family="DejaVu Sans" font-size="10" fill="#37474f">'
+                . '" font-family="DejaVu Sans" font-size="10" fill="#566a7f">'
                 . $this->xml($label) . '</text>';
             $svg .= '<rect x="' . $left . '" y="' . $y
-                . '" width="' . $barWidth . '" height="19" rx="3" fill="#eceff1"/>';
+                . '" width="' . $barWidth . '" height="19" rx="3" fill="#eceef1"/>';
             $svg .= '<rect x="' . $left . '" y="' . $y
                 . '" width="' . round($w, 2) . '" height="19" rx="3" fill="#696cff"/>';
             $svg .= '<text x="' . ($width - 8) . '" y="' . ($y + 15)
-                . '" text-anchor="end" font-family="DejaVu Sans" font-size="10" font-weight="700" fill="#263238">'
+                . '" text-anchor="end" font-family="DejaVu Sans" font-size="10" font-weight="700" fill="#566a7f">'
                 . $this->xml($this->number($value) . $suffix) . '</text>';
         }
 
