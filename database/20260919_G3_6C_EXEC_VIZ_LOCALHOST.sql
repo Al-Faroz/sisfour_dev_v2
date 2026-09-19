@@ -6,6 +6,10 @@
 --   2) Tidak ada tabel baru dan tidak ada perubahan enum role.
 --   3) Hosting SQL dibuat terpisah setelah local SQL/UAT/post-SQL dump PASS + fresh hosting dump audit.
 
+-- 0) Lock explicit localhost database context.
+USE `sisfour_dev_v2`;
+SELECT DATABASE() AS active_database;
+
 -- 1) Capability Statistik terpisah. Read-only untuk Admin / Operator / Pimpinan.
 INSERT INTO `permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 SELECT 'statistik.view', 'Lihat Statistik', 'Statistik', 'SEMUA'
