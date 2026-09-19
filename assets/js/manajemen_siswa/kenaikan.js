@@ -13,6 +13,7 @@
   const tingkatFilter = document.getElementById('filterTingkatKenaikan');
   const sourceTable = document.getElementById('tableKenaikanKelas');
   const sourceBody = sourceTable?.querySelector('tbody');
+  const mobileList = document.getElementById('kenaikanMobileList');
   const sourceRows = sourceBody
     ? Array.from(sourceBody.querySelectorAll('tr')).filter((row) => row.querySelector('.btn-proses-naik'))
     : [];
@@ -55,7 +56,7 @@
       })
     : null;
 
-  const tingkatRow = (row) => String(row.children[1]?.textContent || '').trim();
+  const tingkatRow = (row) => String(row.dataset.tingkat || row.children[1]?.textContent || '').trim();
 
   const renderSource = () => {
     const filtered = sourceRows.filter((row) => !tingkat || tingkatRow(row) === tingkat);
@@ -67,9 +68,36 @@
     state.offset = Math.min(state.offset, maxOffset);
 
     sourceRows.forEach((row) => row.classList.add('d-none'));
-    filtered
-      .slice(state.offset, state.offset + state.limit)
-      .forEach((row) => row.classList.remove('d-none'));
+    const pageRows = filtered.slice(state.offset, state.offset + state.limit);
+    pageRows.forEach((row) => row.classList.remove('d-none'));
+
+    if (mobileList) {
+      mobileList.innerHTML = pageRows.map((row) => {
+        const button = row.querySelector('.btn-proses-naik');
+        const badge = row.dataset.badge || 'secondary';
+        const label = String(button?.textContent || 'Proses').trim();
+
+        return `<div class="list-group-item py-3">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="min-w-0 flex-grow-1">
+              <div class="fw-semibold sisfour-wrap-anywhere">${esc(row.dataset.nama || '-')}</div>
+              <div class="small text-muted">Tingkat ${esc(row.dataset.tingkat || '-')} · ${Number(row.dataset.total || 0)} siswa</div>
+            </div>
+            <span class="badge bg-label-${esc(badge)} flex-shrink-0">${esc(row.dataset.progress || '-')}</span>
+          </div>
+          <div class="small text-muted mt-2">${Number(row.dataset.done || 0)} / ${Number(row.dataset.total || 0)} siswa diproses</div>
+          <div class="sisfour-mobile-actions mt-3">
+            <button
+              type="button"
+              class="btn btn-sm ${button?.disabled ? 'btn-outline-secondary' : 'btn-primary'} sisfour-touch-target--compact btn-proses-naik"
+              data-id="${button?.dataset.id || ''}"
+              data-nama="${esc(button?.dataset.nama || row.dataset.nama || '')}"
+              ${button?.disabled ? 'disabled' : ''}
+            >${esc(label)}</button>
+          </div>
+        </div>`;
+      }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada kelas untuk tingkat yang dipilih.</div>';
+    }
 
     let empty = sourceBody?.querySelector('.js-kenaikan-empty');
     if (!empty && sourceBody && sourceRows.length > 0) {
