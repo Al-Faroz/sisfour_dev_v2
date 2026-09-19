@@ -163,7 +163,7 @@
 
                         <?php if ($isSelf): ?>
                             <div class="mt-3">
-                                <a href="<?= esc($backUrl ?? '#', 'attr') ?>" class="btn btn-sm btn-outline-secondary">
+                                <a href="<?= esc($backUrl ?? '#', 'attr') ?>" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact">
                                     <i class="bx bx-edit me-1"></i>Edit Biodata di Profile
                                 </a>
                             </div>
@@ -354,7 +354,7 @@
                             <p>Ijazah, institusi, program studi, dan dokumen pendukung.</p>
                         </div>
                         <?php if ($canEdit): ?>
-                            <button class="btn btn-primary btn-add" data-category="pendidikan">
+                            <button class="btn btn-primary sisfour-touch-target btn-add" data-category="pendidikan">
                                 <i class="bx bx-plus me-1"></i>Tambah Pendidikan
                             </button>
                         <?php endif; ?>
@@ -366,7 +366,7 @@
                             <h6 class="mb-1">Belum ada riwayat pendidikan</h6>
                             <p class="text-muted mb-3">Tambahkan pendidikan formal agar riwayat dan portofolio lebih lengkap.</p>
                             <?php if ($canEdit): ?>
-                                <button class="btn btn-sm btn-outline-primary btn-add" data-category="pendidikan">
+                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-add" data-category="pendidikan">
                                     <i class="bx bx-plus me-1"></i>Tambah Pendidikan
                                 </button>
                             <?php endif; ?>
@@ -402,13 +402,13 @@
                                                 <span class="badge bg-label-secondary"><i class="bx bx-lock-alt me-1"></i>Terbatas</span>
                                             <?php else: ?>
                                                 <?php if (! empty($row['file_ijazah'])): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('pendidikan', (int) $row['id'], 'file_ijazah'), 'attr') ?>">
                                                         <i class="bx bx-file me-1"></i>Ijazah
                                                     </a>
                                                 <?php endif; ?>
                                                 <?php if (! empty($row['file_transkrip'])): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('pendidikan', (int) $row['id'], 'file_transkrip'), 'attr') ?>">
                                                         <i class="bx bx-file me-1"></i>Transkrip
                                                     </a>
@@ -421,11 +421,11 @@
                                         <?php if ($canEdit): ?>
                                             <td class="text-end text-nowrap">
                                                 <div class="sisfour-action-group">
-                                                    <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                    <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                         data-category="pendidikan"
                                                         data-record="<?= esc($encodeRow($row), 'attr') ?>"
                                                         title="Edit pendidikan"><i class="bx bx-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                    <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                         data-category="pendidikan" data-id="<?= (int) $row['id'] ?>"
                                                         title="Hapus pendidikan"><i class="bx bx-trash"></i></button>
                                                 </div>
@@ -442,8 +442,8 @@
                                 <div class="sisfour-record-card">
                                     <div class="d-flex justify-content-between gap-2">
                                         <div>
-                                            <div class="sisfour-record-card__title"><?= esc($row['nama_institusi']) ?></div>
-                                            <div class="sisfour-record-card__meta">
+                                            <div class="sisfour-record-card__title sisfour-wrap-anywhere"><?= esc($row['nama_institusi']) ?></div>
+                                            <div class="sisfour-record-card__meta sisfour-wrap-anywhere">
                                                 <?= esc($row['tingkat_pendidikan']) ?> ·
                                                 <?= esc($display($row['program_studi'] ?? null)) ?>
                                             </div>
@@ -459,21 +459,21 @@
                                                 <span class="badge bg-label-secondary">Dokumen terbatas</span>
                                             <?php else: ?>
                                                 <?php if (! empty($row['file_ijazah'])): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('pendidikan', (int) $row['id'], 'file_ijazah'), 'attr') ?>">Ijazah</a>
                                                 <?php endif; ?>
                                                 <?php if (! empty($row['file_transkrip'])): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('pendidikan', (int) $row['id'], 'file_transkrip'), 'attr') ?>">Transkrip</a>
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                         <?php if ($canEdit): ?>
                                             <div class="sisfour-action-group">
-                                                <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                     data-category="pendidikan"
                                                     data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                     data-category="pendidikan"
                                                     data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                             </div>
@@ -492,7 +492,7 @@
                             <p>Tugas, jabatan, mapel, periode, SK, dan dokumen pendukung.</p>
                         </div>
                         <?php if ($canEdit): ?>
-                            <button class="btn btn-primary btn-add" data-category="penugasan">
+                            <button class="btn btn-primary sisfour-touch-target btn-add" data-category="penugasan">
                                 <i class="bx bx-plus me-1"></i>Tambah Penugasan
                             </button>
                         <?php endif; ?>
@@ -504,7 +504,7 @@
                             <h6 class="mb-1">Belum ada riwayat penugasan</h6>
                             <p class="text-muted mb-3">Tambahkan tugas atau jabatan beserta periode yang benar.</p>
                             <?php if ($canEdit): ?>
-                                <button class="btn btn-sm btn-outline-primary btn-add" data-category="penugasan">
+                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-add" data-category="penugasan">
                                     <i class="bx bx-plus me-1"></i>Tambah Penugasan
                                 </button>
                             <?php endif; ?>
@@ -535,7 +535,7 @@
                                         <td>
                                             <?php if (! empty($row['file_sk_penugasan'])): ?>
                                                 <?php if ($canViewDocuments): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('penugasan', (int) $row['id'], 'file_sk_penugasan'), 'attr') ?>">
                                                         <i class="bx bx-file me-1"></i>SK
                                                     </a>
@@ -549,10 +549,10 @@
                                         <?php if ($canEdit): ?>
                                             <td class="text-end">
                                                 <div class="sisfour-action-group">
-                                                    <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                    <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                         data-category="penugasan"
                                                         data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                    <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                         data-category="penugasan"
                                                         data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                                 </div>
@@ -567,9 +567,9 @@
                         <div class="d-lg-none">
                             <?php foreach ($penugasan as $row): ?>
                                 <div class="sisfour-record-card">
-                                    <div class="sisfour-record-card__title"><?= esc($row['jabatan_tugas']) ?></div>
-                                    <div class="sisfour-record-card__meta"><?= esc($row['instansi_penugasan']) ?></div>
-                                    <div class="sisfour-record-card__meta">
+                                    <div class="sisfour-record-card__title sisfour-wrap-anywhere"><?= esc($row['jabatan_tugas']) ?></div>
+                                    <div class="sisfour-record-card__meta sisfour-wrap-anywhere"><?= esc($row['instansi_penugasan']) ?></div>
+                                    <div class="sisfour-record-card__meta sisfour-wrap-anywhere">
                                         <?= esc($formatDate($row['tanggal_mulai'] ?? null)) ?> —
                                         <?= esc(! empty($row['tanggal_selesai']) ? $formatDate($row['tanggal_selesai']) : 'Sekarang') ?>
                                     </div>
@@ -580,10 +580,10 @@
                                         <small class="text-muted">No. SK: <?= esc($display($row['no_sk_penugasan'] ?? null)) ?></small>
                                         <?php if ($canEdit): ?>
                                             <div class="sisfour-action-group">
-                                                <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                     data-category="penugasan"
                                                     data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                     data-category="penugasan"
                                                     data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                             </div>
@@ -602,7 +602,7 @@
                             <p>Digunakan untuk ASN/PPPK dan boleh kosong bila tidak relevan.</p>
                         </div>
                         <?php if ($canEdit): ?>
-                            <button class="btn btn-primary btn-add" data-category="pangkat">
+                            <button class="btn btn-primary sisfour-touch-target btn-add" data-category="pangkat">
                                 <i class="bx bx-plus me-1"></i>Tambah Pangkat
                             </button>
                         <?php endif; ?>
@@ -614,7 +614,7 @@
                             <h6 class="mb-1">Belum ada riwayat kepangkatan</h6>
                             <p class="text-muted mb-3">Kosongkan bagian ini bila tidak relevan dengan status kepegawaian.</p>
                             <?php if ($canEdit): ?>
-                                <button class="btn btn-sm btn-outline-primary btn-add" data-category="pangkat">
+                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-add" data-category="pangkat">
                                     <i class="bx bx-plus me-1"></i>Tambah Pangkat
                                 </button>
                             <?php endif; ?>
@@ -639,7 +639,7 @@
                                         <td>
                                             <?php if (! empty($row['file_sk_pangkat'])): ?>
                                                 <?php if ($canViewDocuments): ?>
-                                                    <a class="btn btn-sm btn-outline-secondary"
+                                                    <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                         href="<?= esc($fileUrl('pangkat', (int) $row['id'], 'file_sk_pangkat'), 'attr') ?>">
                                                         <i class="bx bx-file me-1"></i>SK
                                                     </a>
@@ -653,10 +653,10 @@
                                         <?php if ($canEdit): ?>
                                             <td class="text-end">
                                                 <div class="sisfour-action-group">
-                                                    <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                    <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                         data-category="pangkat"
                                                         data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                    <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                         data-category="pangkat"
                                                         data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                                 </div>
@@ -673,8 +673,8 @@
                                 <div class="sisfour-record-card">
                                     <div class="d-flex justify-content-between gap-2">
                                         <div>
-                                            <div class="sisfour-record-card__title"><?= esc($display($row['nama_pangkat'] ?? null)) ?></div>
-                                            <div class="sisfour-record-card__meta">
+                                            <div class="sisfour-record-card__title sisfour-wrap-anywhere"><?= esc($display($row['nama_pangkat'] ?? null)) ?></div>
+                                            <div class="sisfour-record-card__meta sisfour-wrap-anywhere">
                                                 TMT <?= esc($formatDate($row['tmt_pangkat'] ?? null)) ?>
                                             </div>
                                         </div>
@@ -684,10 +684,10 @@
                                         <small class="text-muted">No. SK: <?= esc($display($row['no_sk_pangkat'] ?? null)) ?></small>
                                         <?php if ($canEdit): ?>
                                             <div class="sisfour-action-group">
-                                                <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                     data-category="pangkat"
                                                     data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                     data-category="pangkat"
                                                     data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                             </div>
@@ -716,7 +716,7 @@
                                 <p>File disimpan non-public dan hanya diakses melalui endpoint berotorisasi.</p>
                             </div>
                             <?php if ($canEdit): ?>
-                                <button class="btn btn-primary btn-add" data-category="dokumen">
+                                <button class="btn btn-primary sisfour-touch-target btn-add" data-category="dokumen">
                                     <i class="bx bx-plus me-1"></i>Tambah Dokumen
                                 </button>
                             <?php endif; ?>
@@ -728,7 +728,7 @@
                                 <h6 class="mb-1">Belum ada dokumen personalia</h6>
                                 <p class="text-muted mb-3">Tambahkan dokumen pendukung sesuai kategori yang tersedia.</p>
                                 <?php if ($canEdit): ?>
-                                    <button class="btn btn-sm btn-outline-primary btn-add" data-category="dokumen">
+                                    <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-add" data-category="dokumen">
                                         <i class="bx bx-plus me-1"></i>Tambah Dokumen
                                     </button>
                                 <?php endif; ?>
@@ -759,7 +759,7 @@
                                             <td><?= esc($display($row['nomor_dokumen'] ?? null)) ?></td>
                                             <td><?= esc($formatDate($row['tanggal_dokumen'] ?? null)) ?></td>
                                             <td>
-                                                <a class="btn btn-sm btn-outline-secondary"
+                                                <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                     href="<?= esc($fileUrl('dokumen', (int) $row['id'], 'file_path'), 'attr') ?>">
                                                     <i class="bx bx-download me-1"></i>Buka
                                                 </a>
@@ -767,10 +767,10 @@
                                             <?php if ($canEdit): ?>
                                                 <td class="text-end">
                                                     <div class="sisfour-action-group">
-                                                        <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                        <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                             data-category="dokumen"
                                                             data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                        <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                        <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                             data-category="dokumen"
                                                             data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                                     </div>
@@ -797,16 +797,16 @@
                                             <?= esc($formatDate($row['tanggal_dokumen'] ?? null)) ?>
                                         </div>
                                         <div class="sisfour-record-card__footer">
-                                            <a class="btn btn-sm btn-outline-secondary"
+                                            <a class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                 href="<?= esc($fileUrl('dokumen', (int) $row['id'], 'file_path'), 'attr') ?>">
                                                 <i class="bx bx-download me-1"></i>Buka File
                                             </a>
                                             <?php if ($canEdit): ?>
                                                 <div class="sisfour-action-group">
-                                                    <button class="btn btn-sm btn-outline-primary btn-edit-record"
+                                                    <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-record"
                                                         data-category="dokumen"
                                                         data-record="<?= esc($encodeRow($row), 'attr') ?>"><i class="bx bx-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger btn-delete-record"
+                                                    <button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-record"
                                                         data-category="dokumen"
                                                         data-id="<?= (int) $row['id'] ?>"><i class="bx bx-trash"></i></button>
                                                 </div>
@@ -874,7 +874,7 @@
 
         <?php if ($canEdit): ?>
             <div class="modal fade" id="modalPendidikan" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
                     <div class="modal-content">
                         <form class="personalia-form" data-category="pendidikan">
                             <?= csrf_field() ?>
@@ -923,7 +923,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
+                            <div class="modal-footer sisfour-modal-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                                 <button type="submit" class="btn btn-primary">
                                     <span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan
@@ -935,7 +935,7 @@
             </div>
 
             <div class="modal fade" id="modalPenugasan" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
                     <div class="modal-content">
                         <form class="personalia-form" data-category="penugasan">
                             <?= csrf_field() ?>
@@ -984,7 +984,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
+                            <div class="modal-footer sisfour-modal-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                                 <button type="submit" class="btn btn-primary">
                                     <span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan
@@ -996,7 +996,7 @@
             </div>
 
             <div class="modal fade" id="modalPangkat" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
                     <div class="modal-content">
                         <form class="personalia-form" data-category="pangkat">
                             <?= csrf_field() ?>
@@ -1036,7 +1036,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
+                            <div class="modal-footer sisfour-modal-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                                 <button type="submit" class="btn btn-primary">
                                     <span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan
@@ -1048,7 +1048,7 @@
             </div>
 
             <div class="modal fade" id="modalDokumen" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
                     <div class="modal-content">
                         <form class="personalia-form" data-category="dokumen">
                             <?= csrf_field() ?>
@@ -1095,7 +1095,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer">
+                            <div class="modal-footer sisfour-modal-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                                 <button type="submit" class="btn btn-primary">
                                     <span class="spinner-border spinner-border-sm d-none me-1"></span>Simpan
