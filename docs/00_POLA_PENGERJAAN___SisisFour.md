@@ -733,9 +733,13 @@ local SQL execution              PASS / user evidence
 focused static re-check          PASS / user terminal evidence
 local runtime/UAT                PASS / user runtime evidence
 post-SQL local dump audit        PASS / read-only dump audit
-fresh hosting dump audit         PASS / read-only dump audit
-hosting delta SQL                PREPARED / NOT EXECUTED
-hosting SQL/source mutation      NOT AUTHORIZED
+fresh hosting pre-SQL audit      PASS / read-only dump audit
+hosting SQL execution            PASS / user evidence
+post-SQL hosting dump audit      PASS / read-only dump audit
+hosting source deployment        PASS / user evidence
+hosting runtime smoke            PASS / user runtime evidence
+Kartu JPG ZIP add-on             PASS ALL
+production gate                  PASS ALL
 PR Ready                         NOT AUTHORIZED
 Merge                            NOT AUTHORIZED
 ```
