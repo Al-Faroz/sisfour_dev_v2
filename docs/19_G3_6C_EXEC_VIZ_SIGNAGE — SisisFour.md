@@ -366,7 +366,7 @@ Contract / SSOT                 LOCKED by user approval
 Implementation                  IN PROGRESS
 Local SQL                       PREPARED
 Local SQL execution             PASS / user evidence
-Static terminal gate            PENDING
+Static terminal gate            PASS / user terminal evidence
 Local runtime UAT               PENDING
 Post-SQL local dump audit       PENDING
 Fresh hosting dump audit        PENDING
