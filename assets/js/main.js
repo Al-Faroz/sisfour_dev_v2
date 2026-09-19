@@ -14,6 +14,109 @@ const SISFOUR_SIDEBAR_STORAGE_KEY = 'sisfour.sidebar.desktop';
 const SISFOUR_SIDEBAR_EXPANDED = 'expanded';
 const SISFOUR_SIDEBAR_COMPACT = 'compact';
 
+let sisfourViewportFrame = 0;
+
+function sisfourSyncVisualViewport() {
+  const viewportHeight = window.visualViewport?.height
+    || window.innerHeight
+    || document.documentElement.clientHeight;
+
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) {
+    return;
+  }
+
+  document.documentElement.style.setProperty(
+    '--sisfour-visual-viewport-height',
+    `${Math.round(viewportHeight)}px`
+  );
+}
+
+function sisfourScheduleVisualViewportSync() {
+  if (sisfourViewportFrame) {
+    window.cancelAnimationFrame(sisfourViewportFrame);
+  }
+
+  sisfourViewportFrame = window.requestAnimationFrame(() => {
+    sisfourViewportFrame = 0;
+    sisfourSyncVisualViewport();
+  });
+}
+
+function sisfourHorizontalOverflowReport(root = document.body) {
+  const viewportWidth = document.documentElement.clientWidth;
+  const documentWidth = Math.max(
+    document.documentElement.scrollWidth,
+    document.body?.scrollWidth || 0
+  );
+  const ignoredLayer = [
+    '#layout-menu',
+    '.dropdown-menu:not(.show)',
+    '.modal:not(.show)',
+    '.offcanvas:not(.show)',
+    '.tooltip',
+    '.popover',
+  ].join(',');
+
+  const isContainedByOverflow = (element) => {
+    let parent = element.parentElement;
+
+    while (parent && parent !== document.body) {
+      const style = window.getComputedStyle(parent);
+      const overflowX = style.overflowX;
+
+      if (['auto', 'scroll', 'hidden', 'clip'].includes(overflowX)) {
+        const rect = parent.getBoundingClientRect();
+
+        if (rect.left >= -1 && rect.right <= viewportWidth + 1) {
+          return true;
+        }
+      }
+
+      parent = parent.parentElement;
+    }
+
+    return false;
+  };
+
+  const offenders = Array.from(root?.querySelectorAll?.('*') || [])
+    .filter((element) => {
+      if (!(element instanceof Element) || !element.getClientRects().length) {
+        return false;
+      }
+
+      if (element.closest(ignoredLayer) || isContainedByOverflow(element)) {
+        return false;
+      }
+
+      const rect = element.getBoundingClientRect();
+      return rect.left < -1 || rect.right > viewportWidth + 1;
+    })
+    .slice(0, 30)
+    .map((element) => {
+      const rect = element.getBoundingClientRect();
+
+      return {
+        tag: element.tagName.toLowerCase(),
+        id: element.id || '',
+        className: typeof element.className === 'string' ? element.className : '',
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        width: Math.round(rect.width),
+      };
+    });
+
+  return {
+    viewportWidth,
+    documentWidth,
+    hasDocumentOverflow: documentWidth > viewportWidth + 1,
+    offenders,
+  };
+}
+
+window.SisfourLayoutDiagnostics = {
+  horizontalOverflowReport: sisfourHorizontalOverflowReport,
+};
+
 function sisfourReadSidebarState() {
   try {
     const value = window.localStorage.getItem(SISFOUR_SIDEBAR_STORAGE_KEY);
@@ -126,7 +229,13 @@ document.addEventListener('DOMContentLoaded', function () {
   if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
     document.body.classList.add('ios');
   }
+
+  sisfourScheduleVisualViewportSync();
 });
+
+window.visualViewport?.addEventListener('resize', sisfourScheduleVisualViewportSync);
+window.visualViewport?.addEventListener('scroll', sisfourScheduleVisualViewportSync);
+window.addEventListener('orientationchange', sisfourScheduleVisualViewportSync);
 
 (function () {
   const layoutMenuEl = document.querySelectorAll('#layout-menu');
