@@ -48,3 +48,73 @@
         min-height: 210px;
     }
 }
+
+
+/* G3.7 Wave 6 — Statistik responsive containment */
+#statistikApp,
+#statistikApp .row > *,
+#statistikApp .card,
+#statistikApp .card-body,
+#statistikApp .card-header,
+#statistikApp .statistik-chart {
+    min-width: 0;
+}
+
+#statistikApp .statistik-chart {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#statistikApp .apexcharts-canvas,
+#statistikApp .apexcharts-svg,
+#statistikApp .apexcharts-inner,
+#statistikApp .apexcharts-graphical {
+    max-width: 100%;
+}
+
+#statistikApp .card-header > * {
+    min-width: 0;
+}
+
+#statistikApp .card-header h6,
+#statistikApp .card-header small,
+#statistikApp .statistik-section-title,
+#statistikApp .statistik-context .badge {
+    overflow-wrap: anywhere;
+}
+
+#statistikApp .statistik-context .badge {
+    white-space: normal;
+    text-align: start;
+}
+
+@media (max-width: 575.98px) {
+    #statistikApp .sisfour-page-actions,
+    #statistikApp .statistik-filter-actions {
+        width: 100%;
+    }
+
+    #statistikApp .sisfour-page-actions .btn,
+    #statistikApp .statistik-filter-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    #statistikApp .statistik-chart,
+    #statistikApp .statistik-chart--wide {
+        min-height: 240px;
+    }
+
+    #statistikApp .statistik-chart--compact {
+        min-height: 200px;
+    }
+
+    #statistikApp .card-body {
+        padding-left: .875rem;
+        padding-right: .875rem;
+    }
+
+    #statistikApp .statistik-kpi-grid .card-body {
+        padding: .875rem;
+    }
+}
