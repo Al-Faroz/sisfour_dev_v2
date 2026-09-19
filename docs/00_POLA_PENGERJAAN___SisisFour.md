@@ -936,9 +936,11 @@ SSOT lock                  PASS / user approval
 branch                     feat/g3-8-webview-readiness-20260919
 baseline main              7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 read-only readiness audit  PASS / GitHub read evidence
-source implementation      NOT STARTED
-static gate                PENDING
-runtime readiness UAT      PENDING
+source implementation      IMPLEMENTED / Wave 1A+1B
+runtime source head         d6640d0e11fe48f9e47266756b7da6cfc029bcec
+source diff audit           PASS / GitHub read evidence
+static gate                 PENDING
+runtime readiness UAT       PENDING
 hosting deployment         NOT AUTHORIZED
 PR Ready                   NOT AUTHORIZED
 Merge                      NOT AUTHORIZED
