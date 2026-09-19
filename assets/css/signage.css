@@ -1,13 +1,17 @@
 :root {
     color-scheme: dark;
     font-family: "Segoe UI", Arial, sans-serif;
-    background: #0d1020;
-    color: #f6f7fb;
+    --green-deep: #03451c;
+    --green-shell: #07551f;
+    --green-panel: #0c6b1c;
+    --green-head: #0a621a;
+    --red-panel: #7b0303;
+    --border: rgba(255, 255, 255, .72);
+    --muted: rgba(255, 255, 255, .76);
+    --white: #fff;
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html,
 body {
@@ -15,73 +19,67 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #0d1020;
+    background: var(--green-deep);
+    color: var(--white);
 }
 
-body {
-    min-width: 960px;
-}
+body { min-width: 980px; }
 
 .signage-shell {
     height: 100vh;
+    padding: 12px;
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
-    gap: 12px;
-    padding: 16px;
-    background:
-        radial-gradient(circle at 14% 8%, rgba(105, 108, 255, .18), transparent 31%),
-        radial-gradient(circle at 88% 92%, rgba(3, 195, 236, .10), transparent 25%),
-        #0d1020;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: 10px;
+    background: linear-gradient(160deg, #03451c 0%, #003917 100%);
 }
 
 .signage-header,
-.signage-summary,
+.signage-attendance,
 .signage-panel,
 .signage-footer {
-    border: 1px solid rgba(255, 255, 255, .10);
-    background: rgba(20, 25, 48, .95);
-    border-radius: 16px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+    border: 1.5px solid var(--border);
+    border-radius: 13px;
+    overflow: hidden;
 }
 
 .signage-header {
+    min-height: 70px;
+    padding: 7px 15px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 24px;
-    padding: 14px 20px;
+    justify-content: space-between;
+    gap: 18px;
+    background: var(--green-head);
 }
 
 .signage-brand {
-    min-width: 0;
     display: flex;
     align-items: center;
-    gap: 16px;
-}
-
-.signage-brand__text {
+    gap: 11px;
     min-width: 0;
 }
 
 .signage-logo {
-    width: 72px;
-    height: 72px;
+    width: 50px;
+    height: 50px;
     object-fit: contain;
     flex: 0 0 auto;
 }
 
-.signage-kicker,
-.signage-panel__kicker,
-.signage-summary__eyebrow {
-    font-size: .82rem;
-    letter-spacing: .12em;
-    color: #aeb8d6;
+.signage-brand__copy { min-width: 0; }
+
+.signage-kicker {
+    font-size: .68rem;
+    line-height: 1;
+    letter-spacing: .11em;
     font-weight: 800;
+    color: var(--muted);
 }
 
 .signage-header h1 {
-    margin: 4px 0 2px;
-    font-size: clamp(1.55rem, 2.35vw, 2.8rem);
+    margin: 2px 0 0;
+    font-size: clamp(1.25rem, 1.8vw, 2rem);
     line-height: 1.05;
     white-space: nowrap;
     overflow: hidden;
@@ -89,8 +87,9 @@ body {
 }
 
 .signage-year {
-    color: #bac4df;
-    font-size: 1rem;
+    margin-top: 2px;
+    font-size: .78rem;
+    color: var(--muted);
 }
 
 .signage-clock-wrap {
@@ -99,339 +98,251 @@ body {
 }
 
 .signage-date {
-    color: #bdc6df;
-    font-size: 1rem;
+    font-size: .77rem;
+    color: var(--muted);
 }
 
 .signage-clock {
-    font-size: clamp(2rem, 3vw, 3.55rem);
+    font-size: clamp(1.6rem, 2.45vw, 2.55rem);
+    line-height: 1;
     font-weight: 800;
     letter-spacing: .04em;
-    line-height: 1;
 }
 
 .signage-update {
-    margin-top: 4px;
-    color: #aab5d2;
-    font-size: .9rem;
+    margin-top: 2px;
+    font-size: .7rem;
+    color: var(--muted);
 }
 
-.signage-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 10px 14px 10px 18px;
-}
-
-.signage-summary__label {
+.signage-attendance {
+    min-height: 64px;
     display: grid;
-    gap: 3px;
+    grid-template-columns: minmax(270px, .9fr) minmax(620px, 1.7fr);
+    align-items: stretch;
+    background: var(--green-head);
 }
 
-.signage-summary__label strong {
-    font-size: clamp(1rem, 1.35vw, 1.35rem);
-}
-
-.signage-summary__items {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(108px, 1fr));
-    gap: 10px;
-}
-
-.signage-summary__item {
+.signage-attendance__title {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    min-width: 120px;
-    padding: 8px 12px;
-    border: 1px solid rgba(255, 255, 255, .08);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, .04);
+    flex-direction: column;
+    justify-content: center;
+    padding: 7px 15px;
+    border-right: 1px solid rgba(255,255,255,.45);
 }
 
-.signage-summary__item span {
-    color: #c8d0e6;
-    font-weight: 700;
-}
-
-.signage-summary__item strong {
-    font-size: 1.35rem;
-}
-
-.signage-summary__item--sakit strong {
-    color: #71dd37;
-}
-
-.signage-summary__item--izin strong {
-    color: #ffab00;
-}
-
-.signage-summary__item--alpha strong {
-    color: #ff3e1d;
-}
-
-.signage-stage {
-    min-height: 0;
-}
-
-.signage-panel {
-    height: 100%;
-    min-height: 0;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    overflow: hidden;
-}
-
-.signage-panel__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, .08);
-}
-
-.signage-panel__header h2 {
-    margin: 3px 0 0;
-    font-size: clamp(1.3rem, 1.9vw, 2rem);
-}
-
-.signage-panel__header p {
-    margin: 4px 0 0;
-    color: #9faaca;
-    font-size: .9rem;
-}
-
-.signage-badge {
-    min-width: 58px;
-    text-align: center;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(105, 108, 255, .22);
-    font-size: 1.15rem;
+.signage-attendance__title span {
+    font-size: clamp(1.05rem, 1.45vw, 1.55rem);
     font-weight: 800;
 }
 
-.signage-scroll {
+.signage-attendance__title small {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.signage-attendance__metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.attendance-metric {
+    min-width: 0;
+    padding: 7px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-content: center;
+    column-gap: 8px;
+    border-left: 1px solid rgba(255,255,255,.2);
+}
+
+.attendance-metric span {
+    grid-column: 1;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+.attendance-metric strong {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: clamp(1.35rem, 1.9vw, 2rem);
+    line-height: 1;
+}
+
+.attendance-metric em {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-style: normal;
+    font-size: clamp(.95rem, 1.3vw, 1.25rem);
+    font-weight: 800;
+}
+
+.attendance-metric--hadir em { color: #b9ff9c; }
+.attendance-metric--sakit em { color: #fff08a; }
+.attendance-metric--izin em { color: #aeeeff; }
+.attendance-metric--alpha em { color: #ffb1a4; }
+
+.signage-panels {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.signage-panel {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    background: var(--green-panel);
+}
+
+.signage-panel--ews { background: var(--red-panel); }
+
+.signage-panel__header {
+    min-height: 60px;
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,.65);
+}
+
+.signage-panel__header h2 {
+    margin: 0;
+    font-size: clamp(1.05rem, 1.55vw, 1.7rem);
+    line-height: 1.05;
+}
+
+.signage-panel__header small {
+    display: block;
+    margin-top: 4px;
+    font-size: .68rem;
+    color: var(--muted);
+}
+
+.panel-page {
+    flex: 0 0 auto;
+    padding: 5px 8px;
+    border: 1px solid rgba(255,255,255,.45);
+    border-radius: 999px;
+    font-size: .68rem;
+    font-weight: 800;
+    background: rgba(0,0,0,.15);
+}
+
+.panel-page--sakit { background: rgba(255, 205, 70, .2); }
+.panel-page--izin { background: rgba(85, 210, 255, .2); }
+.panel-page--alpha { background: rgba(255, 118, 90, .22); }
+
+.signage-panel__body {
     min-height: 0;
     overflow: hidden;
 }
 
-.signage-table {
+.panel-table {
     width: 100%;
+    height: auto;
     border-collapse: collapse;
     table-layout: fixed;
 }
 
-.signage-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: #171d38;
+.panel-table th,
+.panel-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(255,255,255,.23);
+    vertical-align: middle;
+    font-size: clamp(.69rem, .9vw, .92rem);
+    overflow-wrap: anywhere;
 }
 
-.signage-table th,
-.signage-table td {
-    padding: 11px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, .07);
+.panel-table th {
     text-align: left;
-    font-size: clamp(.9rem, 1.18vw, 1.2rem);
+    color: rgba(255,255,255,.84);
+    font-size: clamp(.62rem, .77vw, .8rem);
+    text-transform: uppercase;
+    letter-spacing: .025em;
+    background: rgba(0,0,0,.12);
 }
 
-.signage-table th {
-    color: #aeb9da;
-    font-weight: 700;
-}
+.panel-table td { font-weight: 600; }
 
-.signage-table td {
-    color: #f7f8fc;
-    font-weight: 600;
-}
-
-.signage-table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, .018);
-}
-
-.signage-table .col-no {
-    width: 72px;
-}
-
-.signage-table .col-center {
-    width: 160px;
+.panel-table .no {
+    width: 42px;
     text-align: center;
+    color: var(--muted);
 }
 
-.col-no-value {
-    color: #aeb9da !important;
-    font-variant-numeric: tabular-nums;
-}
-
-.student-name {
-    font-weight: 750 !important;
-}
-
-.total-value {
-    font-size: clamp(1rem, 1.35vw, 1.4rem) !important;
-    font-variant-numeric: tabular-nums;
-}
-
-.signage-table .empty {
+.panel-table .value {
+    width: 82px;
     text-align: center;
-    color: #9faaca;
-    padding: 34px 14px;
-    font-weight: 500;
-}
-
-.signage-table .ok {
-    color: #7de0a7;
-}
-
-.signage-status-badge {
-    display: inline-flex;
-    justify-content: center;
-    min-width: 82px;
-    padding: 5px 9px;
-    border-radius: 999px;
-    font-size: .9em;
+    font-variant-numeric: tabular-nums;
     font-weight: 800;
 }
 
-.status-sakit {
-    color: #b9f39b;
-    background: rgba(113, 221, 55, .16);
+.panel-table .jam {
+    width: 92px;
+    text-align: center;
+    white-space: nowrap;
 }
 
-.status-izin {
-    color: #ffd36b;
-    background: rgba(255, 171, 0, .16);
+.panel-table .strong { font-weight: 800; }
+
+.panel-table .empty {
+    text-align: center;
+    padding: 30px 12px;
+    color: rgba(255,255,255,.72);
+    font-weight: 600;
 }
 
-.status-alpha {
-    color: #ff9a86;
-    background: rgba(255, 62, 29, .17);
-}
+.panel-table .empty.ok { color: #caffb7; }
+
+.panel-table--jurnal th:nth-child(2) { width: 27%; }
+.panel-table--jurnal th:nth-child(3) { width: 18%; }
+.panel-table--jurnal th:nth-child(4) { width: 27%; }
 
 .signage-footer {
+    min-height: 34px;
+    padding: 5px 12px;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 16px;
-    padding: 8px 14px;
-    color: #9ea9c8;
-    font-size: .86rem;
-}
-
-.signage-footer__left {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    min-width: 0;
-}
-
-.signage-footer__separator {
-    opacity: .6;
+    gap: 12px;
+    background: var(--green-head);
+    color: var(--muted);
+    font-size: .7rem;
 }
 
 .signage-status {
-    justify-self: end;
-    text-align: right;
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
 }
 
-.signage-status.is-error {
-    color: #ff9a86;
+.signage-status.is-error { color: #ffb3a8; }
+.signage-footer__right { text-align: right; }
+
+@media (max-aspect-ratio: 4/3), (max-width: 900px) {
+    html, body { overflow: auto; }
+    body { min-width: 0; }
+    .signage-shell { height: auto; min-height: 100vh; }
+    .signage-attendance { grid-template-columns: 1fr; }
+    .signage-attendance__title { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.4); }
+    .signage-panels { grid-template-columns: 1fr; }
+    .signage-panel { min-height: 430px; }
+    .signage-footer { grid-template-columns: 1fr; }
+    .signage-footer__right { text-align: left; }
 }
 
-.signage-dots {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-}
-
-.signage-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .25);
-    transition: width .2s ease, border-radius .2s ease, background .2s ease;
-}
-
-.signage-dot.is-active {
-    width: 28px;
-    border-radius: 999px;
-    background: #696cff;
-}
-
-@media (max-aspect-ratio: 4/3) {
-    html,
-    body {
-        overflow: auto;
-    }
-
-    body {
-        min-width: 0;
-    }
-
-    .signage-shell {
-        min-height: 100vh;
-        height: auto;
-        grid-template-rows: auto auto minmax(520px, 1fr) auto;
-    }
-
-    .signage-header,
-    .signage-summary {
-        align-items: flex-start;
-    }
-
-    .signage-summary {
-        flex-direction: column;
-    }
-
-    .signage-summary__items {
-        width: 100%;
-    }
-
-    .signage-footer {
-        grid-template-columns: 1fr;
-    }
-
-    .signage-dots,
-    .signage-status {
-        justify-self: start;
-    }
-}
-
-@media (max-width: 760px) {
-    .signage-shell {
-        padding: 10px;
-        gap: 10px;
-    }
-
-    .signage-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .signage-clock-wrap {
-        text-align: left;
-    }
-
-    .signage-logo {
-        width: 56px;
-        height: 56px;
-    }
-
-    .signage-summary__items {
-        grid-template-columns: 1fr;
-    }
-
-    .signage-table .col-center {
-        width: 120px;
-    }
-
-    .signage-footer__left {
-        flex-wrap: wrap;
-    }
+@media (max-width: 620px) {
+    .signage-shell { padding: 7px; gap: 7px; }
+    .signage-header { align-items: flex-start; }
+    .signage-clock-wrap { text-align: right; }
+    .signage-logo { width: 42px; height: 42px; }
+    .signage-attendance__metrics { grid-template-columns: repeat(2, 1fr); }
 }
