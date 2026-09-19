@@ -25,6 +25,9 @@ $routes->get('signage/data', 'Signage::data');
 
 // PTSP public landing/submission. Web POST tetap terkena CSRF global.
 $routes->get('ptsp', 'PtspPublic::index');
+$routes->get('ptsp/form/layanan', 'PtspPublic::layananForm');
+$routes->get('ptsp/form/pengaduan', 'PtspPublic::pengaduanForm');
+$routes->get('ptsp/form/polling', 'PtspPublic::pollingForm');
 $routes->post('ptsp/layanan', 'PtspPublic::layanan');
 $routes->post('ptsp/polling', 'PtspPublic::polling');
 $routes->post('ptsp/pengaduan', 'PtspPublic::pengaduan');
