@@ -9,7 +9,7 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-4" id="kelulusanSiswaTabs" role="tablist">
+    <ul class="nav nav-tabs flex-nowrap overflow-x-auto mb-4" id="kelulusanSiswaTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button
                 class="nav-link active"
@@ -58,7 +58,21 @@
 
             <div class="card sisfour-table-card">
                 <div class="card-header"><h5 class="mb-0">Kelas Tingkat 9</h5></div>
-                <div class="table-responsive">
+                <div id="kelulusanKelasMobileList" class="d-md-none list-group list-group-flush">
+                    <?php foreach ($sourceClasses as $kelas): ?>
+                        <div class="list-group-item py-3">
+                            <div class="fw-semibold sisfour-wrap-anywhere"><?= esc($kelas['nama_kelas']) ?></div>
+                            <div class="small text-muted mt-1"><?= (int) $kelas['jumlah_siswa'] ?> siswa</div>
+                            <div class="sisfour-mobile-actions mt-3">
+                                <button type="button" class="btn btn-sm btn-danger sisfour-touch-target--compact btn-proses-lulus" data-id="<?= (int) $kelas['id'] ?>" data-nama="<?= esc($kelas['nama_kelas'], 'attr') ?>">Proses</button>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if ($sourceClasses === []): ?>
+                        <div class="list-group-item sisfour-mobile-state text-muted">Tidak ada kelas tingkat 9 pada tahun ajaran aktif.</div>
+                    <?php endif; ?>
+                </div>
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr><th>Kelas</th><th>Jumlah Siswa</th><th style="width:160px;">Aksi</th></tr>
@@ -69,7 +83,7 @@
                                     <td class="fw-semibold"><?= esc($kelas['nama_kelas']) ?></td>
                                     <td><?= (int) $kelas['jumlah_siswa'] ?> siswa</td>
                                     <td>
-                                        <button type="button" class="btn btn-sm btn-danger btn-proses-lulus" data-id="<?= (int) $kelas['id'] ?>" data-nama="<?= esc($kelas['nama_kelas']) ?>">
+                                        <button type="button" class="btn btn-sm btn-danger sisfour-touch-target--compact btn-proses-lulus" data-id="<?= (int) $kelas['id'] ?>" data-nama="<?= esc($kelas['nama_kelas']) ?>">
                                             Proses
                                         </button>
                                     </td>
@@ -104,7 +118,35 @@
                     </div>
                     <span class="badge bg-label-success"><?= count($alumniRows ?? []) ?> alumni</span>
                 </div>
-                <div class="table-responsive">
+                <div id="alumniMobileList" class="d-md-none list-group list-group-flush">
+                    <?php foreach (($alumniRows ?? []) as $row): ?>
+                        <?php $canRestore = !empty($row['can_restore']); ?>
+                        <div class="list-group-item py-3">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div class="min-w-0 flex-grow-1">
+                                    <div class="fw-semibold sisfour-wrap-anywhere"><?= esc($row['nama'] ?? '-') ?></div>
+                                    <div class="small text-muted font-monospace sisfour-wrap-anywhere"><?= esc($row['nisn'] ?? '-') ?></div>
+                                </div>
+                                <span class="badge <?= (int) ($row['tahun_aktif'] ?? 0) === 1 ? 'bg-label-success' : 'bg-label-secondary' ?> flex-shrink-0">
+                                    <?= (int) ($row['tahun_aktif'] ?? 0) === 1 ? 'Periode Aktif' : 'Periode Nonaktif' ?>
+                                </span>
+                            </div>
+                            <div class="small mt-2 sisfour-wrap-anywhere"><?= esc($row['nama_kelas'] ?? '-') ?> · <?= esc($row['nama_tahun'] ?? '-') ?><?= !empty($row['semester']) ? ' - ' . esc($row['semester']) : '' ?></div>
+                            <div class="small text-muted mt-1 sisfour-wrap-anywhere">Lulus <?= esc($row['tanggal_selesai'] ?? $row['tanggal_mutasi'] ?? '-') ?> · <?= esc($row['keterangan'] ?? $row['keterangan_mutasi'] ?? '-') ?></div>
+                            <div class="sisfour-mobile-actions mt-3">
+                                <?php if ($canRestore): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-restore-lulus" data-history-id="<?= (int) $row['id'] ?>" data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>"><i class="bx bx-undo me-1"></i>Restore</button>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact" disabled>Restore</button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (($alumniRows ?? []) === []): ?>
+                        <div class="list-group-item sisfour-mobile-state text-muted">Belum ada data alumni / siswa Lulus.</div>
+                    <?php endif; ?>
+                </div>
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
@@ -144,7 +186,7 @@
                                         <?php if ($canRestore): ?>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-outline-primary btn-restore-lulus"
+                                                class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-restore-lulus"
                                                 data-history-id="<?= (int) $row['id'] ?>"
                                                 data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>"
                                             >
@@ -153,7 +195,7 @@
                                         <?php else: ?>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-outline-secondary"
+                                                class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                                                 disabled
                                                 title="Restore hanya tersedia untuk histori kelulusan terbaru pada periode yang masih aktif."
                                             >
@@ -191,11 +233,11 @@
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-2">
                         <strong id="jumlahLulusDipilih">0 siswa dipilih</strong>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnPilihSemuaLulus">Pilih Semua</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnKosongkanLulus">Kosongkan</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" id="btnPilihSemuaLulus">Pilih Semua</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact" id="btnKosongkanLulus">Kosongkan</button>
                         </div>
                     </div>
-                    <div class="table-responsive border rounded">
+                    <div class="table-responsive border rounded sisfour-admin-matrix-scroll" data-mobile-exception="bulk-student-selection">
                         <table class="table table-hover mb-0">
                             <thead><tr><th style="width:50px;"></th><th>Nama</th><th>NISN</th><th>JK</th></tr></thead>
                             <tbody id="tbodyLulus"></tbody>
