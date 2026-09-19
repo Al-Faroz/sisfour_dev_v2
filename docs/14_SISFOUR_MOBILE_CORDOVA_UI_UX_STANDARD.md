@@ -381,8 +381,8 @@ Untuk G3.3.1 rework, baseline hosting smoke lama tidak menutup perubahan 17 Sept
 ```text
 G2   = stabilization
 G3.1–G3.6C = role/domain mobile foundations + feature delivery
-G3.7 = Global Mobile Sweep — LOCAL GATE PASS / PRE-DEPLOY
-G3.8 = Viewport/WebView Readiness
+G3.7 = Global Mobile Sweep — CLOSED / MERGED — PR #16
+G3.8 = Viewport/WebView Readiness — ACTIVE / SSOT LOCKED
 G4   = Cordova APK packaging/integration
 ```
 
@@ -453,3 +453,50 @@ PR Ready / Merge                 = NOT AUTHORIZED
 ```
 
 Exception yang diterima pada UAT tetap exception terlokalisasi: Settings Menu matrix, bulk selection Kenaikan/Kelulusan, Matrix Presensi, dan fixed physical Kartu preview. Exception tidak mengizinkan body/document overflow.
+
+
+## 29. G3.8 — Viewport/WebView Readiness Contract
+
+G3.8 mempertahankan satu UI Web yang sama. Tujuannya bukan membuat style khusus Cordova, tetapi memastikan source Web tidak mempunyai perilaku yang akan gagal ketika dibungkus WebView pada G4.
+
+Baseline:
+
+```text
+main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+branch = feat/g3-8-webview-readiness-20260919
+```
+
+Invariant:
+
+```text
+business rule       = unchanged
+RBAC/permission     = unchanged
+scope/period        = unchanged
+DB/schema/SQL       = NONE
+route/menu          = unchanged
+server authority    = unchanged
+Cordova project     = OUT OF SCOPE / G4
+native plugin API   = OUT OF SCOPE / G4
+```
+
+Readiness checklist Web:
+
+```text
+viewport-fit=cover untuk shell/login dan standalone public page relevan
+safe-area top/right/bottom/left tidak menutup content/action
+360/390/412 tetap usable
+short-height + landscape tidak memotong modal/action
+visualViewport mengikuti keyboard open/close
+modal scroll tetap vertikal dan action footer terjangkau
+SearchableSelect dropdown tetap terlihat di atas keyboard
+focus input tidak menyebabkan body horizontal overflow
+session expiry Fetch tidak menyuntik HTML login ke JSON/modal/table
+network failure/error tetap error; tidak ada sukses palsu
+browser upload input tetap dapat memilih file
+browser download/export/preview tetap reachable
+internal navigation tetap same-origin Web
+external navigation hanya diaudit; native dispatch ditangani G4
+desktop/tablet behavior G3.7 tidak regression
+```
+
+Acceptance G3.8 tidak boleh mengklaim PASS native Android Back, geolocation permission, share/open bridge, status bar, edge-to-edge native config, deviceready, atau signed APK. Semua item tersebut baru dapat dibuktikan pada G4.
