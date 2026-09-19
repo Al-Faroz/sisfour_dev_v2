@@ -1,7 +1,7 @@
 # UI/UX Role Experience — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
+**Tanggal Acuan:** 19 September 2026
 **Role experience:** Admin, Operator, Pimpinan, BK, Kesehatan, PTSP, Guru, Guru+Wali, Siswa
 
 > Dokumen ini menetapkan hierarchy pengalaman pengguna per role/context. Ia tidak mengubah role, permission, route, scope, atau business rule. Mobile/WebView mengikuti `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`.
@@ -14,6 +14,7 @@ operator
 pimpinan
 bk
 kesehatan
+ptsp
 guru
 siswa
 ```
@@ -422,7 +423,9 @@ G3.4 BK role experience           CLOSED / MERGED — PR #10
 G3.5 Pimpinan role experience     CLOSED / MERGED — PR #11
 G3.6 Siswa role experience        CLOSED / MERGED — PR #12
 G3.6A Kesehatan/UKS experience    CLOSED / MERGED — PR #13
-G3.6B PTSP experience              ACTIVE / SOURCE IMPLEMENTED / LOCAL SQL PENDING
+G3.6B PTSP experience              CLOSED / MERGED — PR #14
+G3.6C Statistik/Signage experience CLOSED / MERGED — PR #15
+G3.7 Global Mobile Sweep           ACTIVE
 ```
 
 ## 21. Acceptance
@@ -472,3 +475,27 @@ Mobile/public acceptance:
 - Auto Print receipt dikontrol `Settings -> Setting Sistem -> PTSP — Cetak Bukti Layanan`, default OFF;
 - Pengaduan tidak meminta nama/kontak;
 - attachment tidak mempunyai direct public URL.
+
+
+## 22. G3.7 — Global Mobile Sweep
+
+G3.7 tidak mengubah hierarchy experience atau permission. Sweep hanya mengadaptasi presentation sesuai kebutuhan role/context yang sudah sah.
+
+Prioritas:
+
+```text
+Pimpinan / BK / Guru / Guru+Wali / Siswa = mobile-first
+Kesehatan / PTSP                         = operasional mobile
+Admin / Operator                         = responsive
+```
+
+Aturan:
+
+- dashboard tetap compact dan permission-aware;
+- tabel/list role operasional tidak boleh mengandalkan horizontal scroll;
+- informasi utama diprioritaskan, metadata sekunder digabung/disembunyikan dan tetap dapat dicapai melalui detail;
+- filter mobile stack/collapse sesuai ruang tanpa mengubah filter bisnis;
+- action utama tetap mudah dicapai, secondary action boleh dipadatkan;
+- modal/form panjang harus usable pada portrait + keyboard;
+- desktop/laptop tidak boleh regression;
+- heavy administrative matrix Admin/Operator boleh exception hanya bila reduksi menghilangkan fungsi dan exception dicatat pada UAT.
