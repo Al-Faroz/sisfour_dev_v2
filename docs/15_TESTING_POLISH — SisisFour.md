@@ -1535,9 +1535,11 @@ safe-area foundation          PRESENT / GitHub read evidence
 visualViewport foundation     PRESENT / GitHub read evidence
 session-expiry Fetch recovery PRESENT / GitHub read evidence
 Cordova project/plugin        ABSENT / CORRECT FOR G3.8
-source implementation         NOT STARTED
-static gate                   PENDING
-runtime readiness UAT         PENDING
+source implementation         IMPLEMENTED / Wave 1A+1B
+runtime source head            d6640d0e11fe48f9e47266756b7da6cfc029bcec
+source diff audit              PASS / GitHub read evidence
+static gate                    PENDING
+runtime readiness UAT          PENDING
 hosting deployment            NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
 Merge                         NOT AUTHORIZED
