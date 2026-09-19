@@ -791,7 +791,7 @@
 
             return data.message
                 || data.data?.message
-                || `Gagal membuat PDF (HTTP ${response.status}).`;
+                || `Gagal membuat file (HTTP ${response.status}).`;
         }
 
         const text =
@@ -807,7 +807,7 @@
             return cleanText.slice(0, 240);
         }
 
-        return `Gagal membuat PDF (HTTP ${response.status}).`;
+        return `Gagal membuat file (HTTP ${response.status}).`;
     };
 
     const downloadBlob = (
