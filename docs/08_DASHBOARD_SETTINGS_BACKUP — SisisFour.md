@@ -339,3 +339,26 @@ Recent
 ```
 
 Pimpinan tetap memakai dashboard supervisi existing dan mengakses PTSP dari menu readonly; tidak ada widget PTSP baru pada Dashboard Pimpinan.
+
+
+## 10. PTSP — Setting Cetak
+
+Setting key:
+
+```text
+ptsp_layanan_auto_print
+```
+
+Lokasi UI:
+
+```text
+Settings -> Setting Sistem -> PTSP — Cetak Bukti Layanan
+```
+
+Behavior:
+
+- default OFF bila key belum ada;
+- OFF: submit Layanan sukses tetap menampilkan tombol Cetak Bukti 80mm;
+- ON: setelah submit sukses browser otomatis membuka dialog print;
+- ukuran media receipt = thermal 80 mm;
+- setting ini tidak membuat silent/background print dan tidak menambah nomor tiket/antrean/tracking.
