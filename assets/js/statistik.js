@@ -42,10 +42,60 @@
                 fontFamily: 'inherit',
                 height: options.height || 285,
                 type: options.type || 'bar',
+                width: '100%',
+                parentHeightOffset: 0,
+                redrawOnParentResize: true,
+                redrawOnWindowResize: true,
             },
             noData: { text: 'Belum ada data' },
             dataLabels: { enabled: false },
-            legend: { position: 'bottom' },
+            legend: {
+                position: 'bottom',
+                horizontalAlign: 'center',
+                itemMargin: { horizontal: 6, vertical: 4 },
+            },
+            responsive: [
+                {
+                    breakpoint: 576,
+                    options: {
+                        chart: {
+                            height: Math.min(options.height || 285, 250),
+                            width: '100%',
+                        },
+                        legend: {
+                            fontSize: '11px',
+                            itemMargin: { horizontal: 4, vertical: 3 },
+                        },
+                        xaxis: {
+                            labels: {
+                                rotate: 0,
+                                trim: true,
+                                hideOverlappingLabels: true,
+                                style: { fontSize: '10px' },
+                            },
+                        },
+                        yaxis: {
+                            labels: {
+                                maxWidth: 84,
+                                style: { fontSize: '10px' },
+                            },
+                        },
+                    },
+                },
+                {
+                    breakpoint: 768,
+                    options: {
+                        legend: { fontSize: '11px' },
+                        xaxis: {
+                            labels: {
+                                trim: true,
+                                hideOverlappingLabels: true,
+                                style: { fontSize: '10px' },
+                            },
+                        },
+                    },
+                },
+            ],
             ...options,
         });
         charts[id].render();
