@@ -17,7 +17,7 @@
         <div class="sisfour-page-actions">
             <button
                 type="button"
-                class="btn btn-outline-success"
+                class="btn btn-outline-success sisfour-touch-target--compact"
                 id="btnExportMapel"
             >
                 <i class="bx bx-export me-1"></i>
@@ -26,7 +26,7 @@
 
             <button
                 type="button"
-                class="btn btn-primary"
+                class="btn btn-primary sisfour-touch-target"
                 id="btnTambahMapel"
             >
                 <i class="bx bx-plus me-1"></i>
@@ -82,7 +82,7 @@
                 <div class="col-12 col-md-3 sisfour-filter-actions">
                     <button
                         type="button"
-                        class="btn btn-outline-secondary"
+                        class="btn btn-outline-secondary sisfour-touch-target--compact"
                         id="btnResetFilter"
                     >
                         Reset
@@ -105,7 +105,8 @@
             <h5 class="mb-0">Daftar Mata Pelajaran</h5>
         </div>
 
-        <div class="table-responsive">
+        <div id="mapelMobileList" class="d-md-none list-group list-group-flush"><div class="list-group-item sisfour-mobile-state text-muted">Memuat mata pelajaran...</div></div>
+        <div class="d-none d-md-block table-responsive">
             <table
                 class="table table-hover align-middle mb-0"
                 id="tableMapel"
@@ -130,7 +131,7 @@
         tabindex="-1"
         aria-hidden="true"
     >
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formMapel" class="modal-content">
                 <?= csrf_field() ?>
 
