@@ -443,12 +443,12 @@ G3.3.1 final schema local/hosting            PASS / CLOSED
 G3.6A local/hosting schema                   PASS / CLOSED — PR #13
 G3.6A merge/main                             90acc7f94fee391a5a7fbad2395e3f16571fe921
 
-G3.6B localhost SQL                          PREPARED
-G3.6B localhost SQL execution                PENDING
-G3.6B local runtime/UAT                      PENDING
-G3.6B post-UAT local dump audit              PENDING
-G3.6B fresh hosting dump audit               PENDING
-G3.6B hosting delta SQL                      NOT AUTHORIZED
+G3.6B localhost SQL                          PASS / user evidence
+G3.6B local runtime/UAT                      PASS / user runtime evidence
+G3.6B post-UAT local dump audit              PASS / read-only dump audit
+G3.6B fresh hosting dump audit               PASS / read-only dump audit
+G3.6B hosting delta SQL                      PREPARED / static audited
+G3.6B hosting SQL execution                  NOT AUTHORIZED
 ```
 
 Hosting G3.6B belum boleh diturunkan dari localhost atau dump lama. Hosting delta hanya disusun setelah local gate PASS dan fresh hosting dump aktual diaudit.
@@ -475,10 +475,34 @@ Invariant:
 - lampiran hanya menyimpan path private relatif + nama asli + MIME; bytes berada di `WRITEPATH/uploads/ptsp/pengaduan/`;
 - public stats membaca agregat saja dan tidak membutuhkan tabel/materialized view terpisah.
 
-SQL localhost:
+SQL artifacts:
 
 ```text
 database/20260919_G3_6B_PTSP_LOCALHOST.sql
+database/20260919_G3_6B_PTSP_HOSTING.sql
 ```
 
-Status: PREPARED / execution pending.
+Fresh pre-SQL hosting baseline:
+
+```text
+tables             41
+permissions        55
+role_permissions   183
+menus              46
+role_menus         156
+ptsp_* tables      0
+ptsp permissions   0
+ptsp menus         0
+```
+
+Expected post-hosting-SQL state:
+
+```text
+tables             45
+permissions        66
+role_permissions   223
+menus              50
+role_menus         173
+```
+
+Hosting execution tetap memerlukan approval eksplisit.
