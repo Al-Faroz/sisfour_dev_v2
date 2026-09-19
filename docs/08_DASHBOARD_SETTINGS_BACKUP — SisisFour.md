@@ -343,10 +343,11 @@ Pimpinan tetap memakai dashboard supervisi existing dan mengakses PTSP dari menu
 
 ## 10. PTSP — Setting Cetak
 
-Setting key:
+Setting keys:
 
 ```text
 ptsp_layanan_auto_print
+ptsp_layanan_auto_download_pdf
 ```
 
 Lokasi UI:
@@ -357,8 +358,10 @@ Settings -> Setting Sistem -> PTSP — Cetak Bukti Layanan
 
 Behavior:
 
-- default OFF bila key belum ada;
-- OFF: submit Layanan sukses tetap menampilkan tombol Cetak Bukti 80mm;
-- ON: setelah submit sukses browser otomatis membuka dialog print;
-- ukuran media receipt = thermal 80 mm;
+- kedua key default OFF bila belum ada;
+- Auto Print ON: submit sukses membuka dialog print browser;
+- Auto Print OFF + Auto Download PDF ON: submit sukses otomatis mengunduh PDF thermal lebar 80 mm;
+- keduanya OFF: submit sukses hanya menampilkan tombol Cetak Bukti 80mm;
+- bila kedua key ON, Auto Print mempunyai prioritas dan PDF tidak auto-download;
+- PDF dibuat dari receipt submit yang sudah tervalidasi, tanpa public record lookup;
 - setting ini tidak membuat silent/background print dan tidak menambah nomor tiket/antrean/tracking.
