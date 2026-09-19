@@ -396,6 +396,19 @@ raw record identifier yang dapat dipakai enumerasi data privat
 
 API bersifat GET/read-only dan dirancang dapat dikonsumsi lintas-origin oleh portal/WordPress.
 
+Discovery/documentation UI **LOCKED refinement**:
+
+```text
+Settings -> Setting Sistem -> API Statistik PTSP
+```
+
+UI menampilkan tiga card:
+- Statistik Layanan PTSP;
+- Statistik Pengaduan;
+- Statistik Polling Kepuasan.
+
+Setiap card wajib menampilkan endpoint aktual, badge GET/PUBLIC/CORS/Aggregate Only, contoh script `fetch()`, tombol Copy URL, dan tombol **Copy Script API**. Script memakai endpoint public aktual dari `base_url`, default Tahun Ajaran aktif, dengan komentar `?id_tahun=ID_TAHUN` untuk histori.
+
 CORS G3.6B **LOCKED**:
 
 ```text
