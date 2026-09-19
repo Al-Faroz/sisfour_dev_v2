@@ -18,10 +18,16 @@
     const body =
         document.getElementById('kartuBody');
 
+    const mobileList =
+        document.getElementById('kartuMobileList');
+
     const checkAll =
         document.getElementById('checkAllKartu');
 
-    if (!body) {
+    const checkAllMobile =
+        document.getElementById('checkAllKartuMobile');
+
+    if (!body || !mobileList) {
         return;
     }
 
@@ -48,9 +54,11 @@
                 state.limit = next.limit;
                 state.offset = next.offset;
 
-                if (checkAll) {
-                    checkAll.checked = false;
-                }
+                [checkAll, checkAllMobile]
+                    .filter(Boolean)
+                    .forEach((control) => {
+                        control.checked = false;
+                    });
 
                 load();
             },
@@ -272,6 +280,61 @@
             });
     };
 
+    const updateCheckAllState = () => {
+        const activeIds = new Set(
+            Array.from(
+                document.querySelectorAll(
+                    '.check-kartu:not(:disabled)'
+                )
+            ).map((checkbox) => checkbox.value)
+        );
+
+        const checkedIds = new Set(
+            Array.from(
+                document.querySelectorAll(
+                    '.check-kartu:checked'
+                )
+            ).map((checkbox) => checkbox.value)
+        );
+
+        const allChecked =
+            activeIds.size > 0
+            && Array.from(activeIds)
+                .every((id) => checkedIds.has(id));
+
+        [checkAll, checkAllMobile]
+            .filter(Boolean)
+            .forEach((control) => {
+                control.checked = allChecked;
+            });
+    };
+
+    const bindSelection = () => {
+        document
+            .querySelectorAll('.check-kartu')
+            .forEach((checkbox) => {
+                checkbox.addEventListener(
+                    'change',
+                    () => {
+                        document
+                            .querySelectorAll('.check-kartu')
+                            .forEach((peer) => {
+                                if (
+                                    peer !== checkbox
+                                    && peer.value === checkbox.value
+                                ) {
+                                    peer.checked = checkbox.checked;
+                                }
+                            });
+
+                        updateCheckAllState();
+                    }
+                );
+            });
+
+        updateCheckAllState();
+    };
+
     const renderRows = (
         rows,
         serverCanManage
@@ -287,6 +350,7 @@
                                         class="form-check-input check-kartu"
                                         type="checkbox"
                                         value="${Number(card.id)}"
+                                        aria-label="Pilih kartu ${esc(card.nama)}"
                                         ${card.status_aktif === 'Aktif' ? '' : 'disabled'}
                                     >
                                 </td>
@@ -313,13 +377,13 @@
                     </td>
                     <td class="text-end text-nowrap">
                         <a
-                            class="btn btn-sm btn-outline-primary"
+                            class="btn btn-sm btn-outline-primary sisfour-touch-target--compact"
                             href="${base}/kartu/preview/${Number(card.id)}"
                         >
                             Preview
                         </a>
                         <a
-                            class="btn btn-sm btn-outline-secondary"
+                            class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
                             href="${base}/kartu/download/${Number(card.id)}"
                         >
                             PDF
@@ -328,7 +392,7 @@
                             serverCanManage
                                 ? `
                                     <button
-                                        class="btn btn-sm btn-outline-warning btn-reissue"
+                                        class="btn btn-sm btn-outline-warning sisfour-touch-target--compact btn-reissue"
                                         data-id="${Number(card.id)}"
                                         type="button"
                                     >
@@ -351,6 +415,87 @@
                 </tr>
             `;
 
+        mobileList.innerHTML =
+            rows.map((card) => `
+                <div class="list-group-item py-3 kartu-mobile-card">
+                    <div class="kartu-mobile-card__head">
+                        <div class="kartu-mobile-card__identity">
+                            <div class="font-monospace small text-muted">
+                                ${esc(card.nisn)}
+                            </div>
+                            <strong class="d-block text-wrap">
+                                ${esc(card.nama)}
+                            </strong>
+                            <small class="d-block text-muted text-wrap">
+                                ${esc(card.nama_kelas || '-')}
+                            </small>
+                        </div>
+                        <span class="badge ${
+                            card.status_aktif === 'Aktif'
+                                ? 'bg-label-success'
+                                : 'bg-label-secondary'
+                        } flex-shrink-0">
+                            ${esc(card.status_aktif)}
+                        </span>
+                    </div>
+
+                    <div class="kartu-mobile-card__meta small mt-2">
+                        <div><span class="text-muted">Nomor:</span> ${esc(card.nomor_kartu)}</div>
+                        <div><span class="text-muted">Terbit:</span> ${esc(card.tanggal_terbit)}</div>
+                    </div>
+
+                    ${
+                        canManage
+                            ? `
+                                <label class="kartu-mobile-card__select mt-2">
+                                    <input
+                                        class="form-check-input check-kartu mt-0"
+                                        type="checkbox"
+                                        value="${Number(card.id)}"
+                                        ${card.status_aktif === 'Aktif' ? '' : 'disabled'}
+                                    >
+                                    <span>
+                                        ${card.status_aktif === 'Aktif'
+                                            ? 'Pilih untuk cetak massal'
+                                            : 'Kartu nonaktif'}
+                                    </span>
+                                </label>
+                            `
+                            : ''
+                    }
+
+                    <div class="kartu-mobile-card__actions">
+                        <a
+                            class="btn btn-sm btn-outline-primary sisfour-touch-target--compact"
+                            href="${base}/kartu/preview/${Number(card.id)}"
+                        >
+                            Preview
+                        </a>
+                        <a
+                            class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact"
+                            href="${base}/kartu/download/${Number(card.id)}"
+                        >
+                            PDF
+                        </a>
+                        ${
+                            serverCanManage
+                                ? `
+                                    <button
+                                        class="btn btn-sm btn-outline-warning sisfour-touch-target--compact btn-reissue"
+                                        data-id="${Number(card.id)}"
+                                        type="button"
+                                    >
+                                        Reissue
+                                    </button>
+                                `
+                                : ''
+                        }
+                    </div>
+                </div>
+            `).join('')
+            || '<div class="list-group-item sisfour-mobile-state text-muted">Belum ada kartu.</div>';
+
+        bindSelection();
         bindReissue();
     };
 
@@ -369,6 +514,8 @@
                 </td>
             </tr>
         `;
+        mobileList.innerHTML =
+            '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat kartu...</div>';
 
         try {
             const response = await fetch(
@@ -431,14 +578,18 @@
             pager?.render(state);
             syncUrl();
 
-            if (checkAll) {
-                checkAll.checked = false;
-            }
+            [checkAll, checkAllMobile]
+                .filter(Boolean)
+                .forEach((control) => {
+                    control.checked = false;
+                });
         } catch (error) {
             showAlert(
                 error.message,
                 'danger'
             );
+            mobileList.innerHTML =
+                `<div class="list-group-item sisfour-mobile-state text-danger">${esc(error.message)}</div>`;
         } finally {
             pager?.setDisabled(false);
         }
@@ -703,28 +854,44 @@
             }
         );
 
+    const setPageSelection = (checked) => {
+        document
+            .querySelectorAll(
+                '.check-kartu:not(:disabled)'
+            )
+            .forEach((checkbox) => {
+                checkbox.checked = checked;
+            });
+
+        [checkAll, checkAllMobile]
+            .filter(Boolean)
+            .forEach((control) => {
+                control.checked = checked;
+            });
+    };
+
     checkAll?.addEventListener(
         'change',
-        () => {
-            document
-                .querySelectorAll(
-                    '.check-kartu:not(:disabled)'
-                )
-                .forEach((checkbox) => {
-                    checkbox.checked =
-                        checkAll.checked;
-                });
-        }
+        () => setPageSelection(checkAll.checked)
+    );
+
+    checkAllMobile?.addEventListener(
+        'change',
+        () => setPageSelection(checkAllMobile.checked)
     );
 
     const selectedIds = () =>
         Array.from(
-            document.querySelectorAll(
-                '.check-kartu:checked'
+            new Set(
+                Array.from(
+                    document.querySelectorAll(
+                        '.check-kartu:checked'
+                    )
+                ).map(
+                    (checkbox) =>
+                        Number(checkbox.value)
+                ).filter(Number.isFinite)
             )
-        ).map(
-            (checkbox) =>
-                Number(checkbox.value)
         );
 
     const setPrintButtonsDisabled = (disabled) => {
