@@ -1538,8 +1538,9 @@ Cordova project/plugin        ABSENT / CORRECT FOR G3.8
 source implementation         IMPLEMENTED / Wave 1A+1B
 runtime source head            d6640d0e11fe48f9e47266756b7da6cfc029bcec
 source diff audit              PASS / GitHub read evidence
-static gate                    PENDING
-runtime readiness UAT          PENDING
+static gate                    PASS / user terminal evidence
+runtime readiness UAT          PASS / user runtime evidence
+local G3.8 readiness           PASS
 hosting deployment            NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
 Merge                         NOT AUTHORIZED
