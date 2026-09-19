@@ -19,7 +19,7 @@
             <div class="sisfour-page-actions">
                 <a
                     href="<?= base_url('master/wali-kelas/recycle') ?>"
-                    class="btn btn-outline-secondary"
+                    class="btn btn-outline-secondary sisfour-touch-target--compact"
                 >
                     <i class="bx bx-history me-1"></i>
                     Histori / Recycle Bin
@@ -27,7 +27,7 @@
 
                 <button
                     type="button"
-                    class="btn btn-outline-success"
+                    class="btn btn-outline-success sisfour-touch-target--compact"
                     id="btnExportWali"
                 >
                     <i class="bx bx-export me-1"></i>
@@ -36,7 +36,7 @@
 
                 <button
                     type="button"
-                    class="btn btn-primary"
+                    class="btn btn-primary sisfour-touch-target"
                     id="btnAssignWali"
                 >
                     <i class="bx bx-plus me-1"></i>
@@ -135,7 +135,7 @@
                 <div class="col-12 sisfour-filter-actions">
                     <button
                         type="button"
-                        class="btn btn-outline-secondary"
+                        class="btn btn-outline-secondary sisfour-touch-target--compact"
                         id="btnResetFilter"
                     >
                         Reset
@@ -154,7 +154,7 @@
     </div>
 
     <div class="card sisfour-table-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
             <h5 class="mb-0">Daftar Wali Kelas Aktif</h5>
 
             <?php if (empty($canManage)): ?>
@@ -164,7 +164,8 @@
             <?php endif; ?>
         </div>
 
-        <div class="table-responsive">
+        <div id="mappingWaliMobileList" class="d-md-none list-group list-group-flush"><div class="list-group-item sisfour-mobile-state text-muted">Memuat mapping wali...</div></div>
+        <div class="d-none d-md-block table-responsive">
             <table
                 class="table table-hover align-middle mb-0"
                 id="tableMappingWali"
@@ -193,7 +194,7 @@
             tabindex="-1"
             aria-hidden="true"
         >
-            <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form id="formAssignWali" class="modal-content">
                     <?= csrf_field() ?>
 
@@ -299,7 +300,7 @@
                     <div class="modal-footer py-2 sisfour-modal-actions">
                         <button
                             type="button"
-                            class="btn btn-outline-secondary"
+                            class="btn btn-outline-secondary sisfour-touch-target--compact"
                             data-bs-dismiss="modal"
                         >
                             Batal
