@@ -17,7 +17,7 @@
 
         <?php if (! empty($canManage)): ?>
             <div class="d-flex flex-wrap gap-2">
-                <a href="<?= base_url('master/guru/recycle') ?>" class="btn btn-outline-secondary">
+                <a href="<?= base_url('master/guru/recycle') ?>" class="btn btn-outline-secondary sisfour-touch-target--compact">
                     <i class="bx bx-trash me-1"></i> Recycle Bin
                 </a>
                 <a href="<?= base_url('master/guru/template') ?>" class="btn btn-outline-primary">
@@ -26,10 +26,10 @@
                 <button type="button" class="btn btn-outline-primary" id="btnImportGuru">
                     <i class="bx bx-import me-1"></i> Import
                 </button>
-                <a href="#" class="btn btn-outline-success" id="btnExportGuru">
+                <a href="#" class="btn btn-outline-success sisfour-touch-target--compact" id="btnExportGuru">
                     <i class="bx bx-export me-1"></i> Export
                 </a>
-                <button type="button" class="btn btn-primary" id="btnTambahGuru">
+                <button type="button" class="btn btn-primary sisfour-touch-target" id="btnTambahGuru">
                     <i class="bx bx-plus me-1"></i> Tambah Guru
                 </button>
             </div>
@@ -74,8 +74,8 @@
                     </select>
                 </div>
                 <div class="col-12 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button>
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
+                    <button type="submit" class="btn btn-primary sisfour-touch-target"><i class="bx bx-filter-alt me-1"></i> Terapkan</button>
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button>
                 </div>
             </form>
         </div>
@@ -88,7 +88,10 @@
                 <span class="badge bg-label-info">Readonly</span>
             <?php endif; ?>
         </div>
-        <div class="table-responsive">
+        <div id="guruMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat data Guru...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle" id="tableGuru">
                 <thead>
                     <tr>
@@ -108,7 +111,7 @@
     </div>
 
     <div class="modal fade" id="modalDetailGuru" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Detail Guru</h5>
@@ -208,8 +211,8 @@
                         </div>
                     </div>
                     <div class="modal-footer py-2 sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary" id="btnSimpanGuru">
+                        <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary sisfour-touch-target" id="btnSimpanGuru">
                             <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                             Simpan
                         </button>
@@ -235,8 +238,8 @@
                             <input type="file" class="form-control" id="fileImportGuru" name="file" accept=".xlsx,.xls" required>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary sisfour-touch-target">
                                 <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                 Import
                             </button>
