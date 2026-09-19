@@ -16,6 +16,9 @@ $tahun = $widgets['tahun_aktif'] ?? [];
     <p class="text-muted mb-0">Ringkasan sistem dan operasional SisisFour.</p>
   </div>
   <div class="sisfour-page-actions">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+      <i class="bx bx-tv me-1"></i>EWS Signage
+    </a>
     <span class="badge bg-label-primary fs-6">
       <?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?>
     </span>
