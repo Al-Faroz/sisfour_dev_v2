@@ -10,6 +10,7 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableKelasSiswa');
     const tbody = table?.querySelector('tbody');
+    const mobileList = document.getElementById('kelasSiswaMobileList');
     const filter = document.getElementById('formFilterKelasSiswa');
     const form = document.getElementById('formAturKelas');
     const modalElement = document.getElementById('modalAturKelas');
@@ -111,7 +112,7 @@
                     <td>
                         <button
                             type="button"
-                            class="btn btn-sm btn-primary btn-atur"
+                            class="btn btn-sm btn-primary sisfour-touch-target--compact btn-atur"
                             data-id="${row.id}"
                         >
                             ${hasClass ? 'Pindah Kelas' : 'Tempatkan'}
@@ -129,6 +130,21 @@
                     </td>
                 </tr>
             `;
+        }
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((row) => {
+                const hasClass = Number(row.id_kelas || 0) > 0;
+                return `<div class="list-group-item py-3">
+                    <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama)}</div>
+                    <div class="small text-muted font-monospace sisfour-wrap-anywhere">NISN ${escapeHtml(row.nisn)} · NIK ${escapeHtml(row.nik)}</div>
+                    <div class="small mt-2">${hasClass ? `<span class="badge bg-label-primary">${escapeHtml(row.nama_kelas)}</span>` : '<span class="badge bg-label-warning">Belum Ada Kelas</span>'}</div>
+                    <div class="small text-muted mt-1">${row.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                    <div class="sisfour-mobile-actions mt-3">
+                        <button type="button" class="btn btn-sm btn-primary sisfour-touch-target--compact btn-atur" data-id="${row.id}">${hasClass ? 'Pindah Kelas' : 'Tempatkan'}</button>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data siswa.</div>';
         }
     };
 
@@ -160,6 +176,9 @@
                 </td>
             </tr>
         `;
+        if (mobileList) {
+            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
+        }
 
         try {
             const response = await fetch(
@@ -201,7 +220,9 @@
         }
     }
 
-    tbody.addEventListener('click', (event) => {
+    [tbody, mobileList]
+        .filter(Boolean)
+        .forEach((container) => container.addEventListener('click', (event) => {
         const button = event.target.closest('.btn-atur');
 
         if (!button) {
@@ -225,7 +246,7 @@
         document.getElementById('idKelasTujuan').value = '';
 
         modal.show();
-    });
+    }));
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
