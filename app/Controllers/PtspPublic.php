@@ -21,10 +21,23 @@ class PtspPublic extends BaseController
         return $this->response->setBody(view('ptsp/public', [
             'pageTitle' => 'PTSP',
             'systemSettings' => $this->publicSettings(),
-            'options' => $this->service->publicOptions(),
-            'extraJs' => ['assets/js/ptsp/public.js'],
             'extraCss' => ['assets/css/ptsp-public.css'],
         ]));
+    }
+
+    public function layananForm()
+    {
+        return $this->formPage('layanan');
+    }
+
+    public function pengaduanForm()
+    {
+        return $this->formPage('pengaduan');
+    }
+
+    public function pollingForm()
+    {
+        return $this->formPage('polling');
     }
 
     public function layanan()
@@ -45,6 +58,25 @@ class PtspPublic extends BaseController
         ));
     }
 
+    private function formPage(string $type)
+    {
+        if (! in_array($type, ['layanan', 'pengaduan', 'polling'], true)) {
+            return $this->response->setStatusCode(404);
+        }
+
+        return $this->response->setBody(view('ptsp/public_form', [
+            'pageTitle' => match ($type) {
+                'layanan' => 'Layanan PTSP',
+                'pengaduan' => 'Pengaduan PTSP',
+                default => 'Polling Kepuasan PTSP',
+            },
+            'formType' => $type,
+            'systemSettings' => $this->publicSettings(),
+            'options' => $this->service->publicOptions(),
+            'extraCss' => ['assets/css/ptsp-public.css'],
+        ]));
+    }
+
     private function publicSettings(): array
     {
         $settings = [
@@ -52,6 +84,7 @@ class PtspPublic extends BaseController
             'alamat_sekolah' => '',
             'logo_sekolah' => '',
             'icon_sekolah' => '',
+            'ptsp_layanan_auto_print' => '0',
         ];
 
         try {
