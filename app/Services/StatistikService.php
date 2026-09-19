@@ -224,6 +224,7 @@ class StatistikService
             'ews' => $this->ews($f),
             'teaching' => $this->teaching($f),
             'discipline' => $this->discipline($f),
+            'counseling' => $this->counseling($f),
             'achievement' => $this->achievement($f),
             'uks' => $this->uks($f),
             'ptsp' => $this->ptsp($f),
@@ -624,6 +625,67 @@ class StatistikService
             'total' => $total,
             'categories' => $this->normalizeLabelTotal($categories),
             'trend' => $this->normalizeDateTotal($trend),
+        ];
+    }
+
+    private function counseling(array $f): array
+    {
+        // Confidential domain: aggregate only. Class/student filters are intentionally
+        // not applied so the Statistik surface cannot be drilled down to individuals.
+        $base = $this->db
+            ->table('konseling_bk kb')
+            ->where('kb.id_tahun', $f['id_tahun']);
+        $this->applyDateFilter($base, 'kb.tanggal', $f);
+        $total = $base->countAllResults();
+
+        $statusBuilder = $this->db
+            ->table('konseling_bk kb')
+            ->select(
+                "COALESCE(NULLIF(TRIM(kb.status),''),'Tidak ditentukan') AS label, "
+                . 'COUNT(kb.id) AS total',
+                false
+            )
+            ->where('kb.id_tahun', $f['id_tahun']);
+        $this->applyDateFilter($statusBuilder, 'kb.tanggal', $f);
+        $status = $statusBuilder
+            ->groupBy('kb.status')
+            ->orderBy('total', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $fieldBuilder = $this->db
+            ->table('konseling_bk kb')
+            ->select(
+                "COALESCE(NULLIF(TRIM(kb.bidang),''),'Tidak ditentukan') AS label, "
+                . 'COUNT(kb.id) AS total',
+                false
+            )
+            ->where('kb.id_tahun', $f['id_tahun']);
+        $this->applyDateFilter($fieldBuilder, 'kb.tanggal', $f);
+        $fields = $fieldBuilder
+            ->groupBy('kb.bidang')
+            ->orderBy('total', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $trendBuilder = $this->db
+            ->table('konseling_bk kb')
+            ->select('kb.tanggal, COUNT(kb.id) AS total', false)
+            ->where('kb.id_tahun', $f['id_tahun']);
+        $this->applyDateFilter($trendBuilder, 'kb.tanggal', $f);
+        $trend = $trendBuilder
+            ->groupBy('kb.tanggal')
+            ->orderBy('kb.tanggal', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return [
+            'total' => $total,
+            'status' => $this->normalizeLabelTotal($status),
+            'fields' => $this->normalizeLabelTotal($fields),
+            'trend' => $this->normalizeDateTotal($trend),
+            'aggregate_only' => true,
+            'class_filter_applied' => false,
         ];
     }
 
