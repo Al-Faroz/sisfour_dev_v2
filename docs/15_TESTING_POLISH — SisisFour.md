@@ -517,7 +517,7 @@ G3.6B hosting SQL                    PREPARED / static audited
 G3.6B hosting SQL execution          PASS / user evidence
 G3.6B post-SQL hosting dump audit    PASS / read-only dump audit
 G3.6B hosting source deployment      PASS / user evidence
-G3.6B focused hosting runtime smoke  PENDING
-PR Ready                      NOT AUTHORIZED
-Merge                         NOT AUTHORIZED
+G3.6B focused hosting runtime smoke  PASS / user runtime evidence
+PR Ready                            NOT AUTHORIZED
+Merge                               NOT AUTHORIZED
 ```
