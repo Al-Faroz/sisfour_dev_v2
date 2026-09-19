@@ -463,9 +463,12 @@ Authenticated PTSP memakai shell CI4/Sneat existing. Public PTSP memakai landing
 
 Mobile/public acceptance:
 
-- tiga form public stack vertikal pada viewport sempit;
+- landing public memakai pola kios dengan tiga tombol besar berurutan: Layanan PTSP → Pengaduan → Polling Kepuasan;
+- setiap tombol membuka halaman form tersendiri;
+- form public tetap responsif satu kolom pada viewport sempit;
 - internal list memakai card presentation pada mobile dan table desktop;
 - mutation controls tidak dirender untuk Pimpinan;
-- receipt thermal hanya muncul untuk Layanan yang baru disubmit dan tidak memuat ticket/queue/tracking number;
+- receipt thermal 80 mm hanya muncul untuk Layanan yang baru disubmit dan tidak memuat ticket/queue/tracking number;
+- Auto Print receipt dikontrol `Settings -> Setting Sistem -> PTSP — Cetak Bukti Layanan`, default OFF;
 - Pengaduan tidak meminta nama/kontak;
 - attachment tidak mempunyai direct public URL.
