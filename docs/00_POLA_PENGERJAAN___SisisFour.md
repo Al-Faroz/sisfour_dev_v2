@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.8 — Viewport/WebView Readiness / SSOT locked
-**Branch aktif:** `feat/g3-8-webview-readiness-20260919`
-**Baseline `main`:** setelah merge PR #16 / G3.7 (`7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9`)
+**Development aktif:** G3.8 — CLOSED / MERGED — PR #17; G4 NOT STARTED
+**Branch aktif:** `main`
+**Baseline `main`:** setelah merge PR #17 / G3.8 (`2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -364,8 +364,8 @@ G3.6A UKS / Kesehatan      CLOSED / MERGED — PR #13
 G3.6B PTSP                 CLOSED / MERGED — PR #14
 G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
 G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
-G3.8 Viewport/WebView readiness ACTIVE / SSOT LOCKED
-G4 Cordova APK
+G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
+G4 Cordova APK              NOT STARTED
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
@@ -929,7 +929,7 @@ keystore/signing/distribution
 real APK multi-device gate
 ```
 
-Gate awal:
+Closure:
 
 ```text
 SSOT lock                  PASS / user approval
@@ -942,7 +942,12 @@ source diff audit           PASS / GitHub read evidence
 static gate                 PASS / user terminal evidence
 runtime readiness UAT       PASS / user runtime evidence
 local G3.8 readiness        PASS
-hosting deployment         NOT AUTHORIZED
-PR Ready                   NOT AUTHORIZED
-Merge                      NOT AUTHORIZED
+hosting deployment         NOT AUTHORIZED / NOT EXECUTED
+PR #17                     CLOSED / MERGED
+PR Ready                   PASS / user approval
+Merge                      PASS / user approval
+feature head               52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+merge commit               2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+main after merge           2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+G4/Cordova                 NOT STARTED
 ```

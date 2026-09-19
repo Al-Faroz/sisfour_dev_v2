@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.8 — Viewport/WebView Readiness / SSOT locked
+**Development aktif:** G3.8 — CLOSED / MERGED — PR #17; G4 NOT STARTED
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -256,8 +256,8 @@ G3.6A UKS / Kesehatan                  CLOSED / MERGED — PR #13
 G3.6B PTSP                             CLOSED / MERGED — PR #14
 G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
 G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
-G3.8  Viewport/WebView Readiness            ACTIVE / SSOT LOCKED
-G4    Cordova APK
+G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
+G4    Cordova APK                            NOT STARTED
 ```
 
 ### G3.6A — UKS / Kesehatan
@@ -667,3 +667,19 @@ responsive/RBAC/scope/privacy G3.7 tetap utuh
 ```
 
 Native-only decision seperti Android Back, deviceready, geolocation permission, download/share bridge, external intent, status bar, signing, dan real APK device matrix tetap G4.
+
+Closure G3.8:
+
+```text
+local readiness        = PASS
+static gate            = PASS / user terminal evidence
+runtime readiness UAT  = PASS / user runtime evidence
+feature head           = 52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+PR #17                 = CLOSED / MERGED
+PR Ready               = PASS / user approval
+Merge                  = PASS / user approval
+merge commit           = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+main after merge       = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+hosting deployment     = NOT AUTHORIZED / NOT EXECUTED
+G4/Cordova             = NOT STARTED
+```

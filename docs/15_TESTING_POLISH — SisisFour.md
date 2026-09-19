@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** G3.8 — **Viewport/WebView Readiness / SSOT locked**
+**Phase aktif:** Tidak ada mutation phase aktif — **G3.8 CLOSED / MERGED — PR #17; G4 NOT STARTED**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -33,6 +33,7 @@ G3.6A  CLOSED / MERGED — PR #13
 G3.6B  CLOSED / MERGED — PR #14
 G3.6C  CLOSED / MERGED — PR #15
 G3.7   CLOSED / MERGED — PR #16
+G3.8   CLOSED / MERGED — PR #17
 ```
 
 ## 3. Global UI/UX Regression
@@ -480,8 +481,8 @@ G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
 G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
-G3.8   WebView Readiness      ACTIVE / SSOT LOCKED
-G4     Cordova APK
+G3.8   WebView Readiness      CLOSED / MERGED — PR #17
+G4     Cordova APK             NOT STARTED
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1523,7 +1524,7 @@ signed APK
 multi-device real APK regression
 ```
 
-Current gate:
+Closure gate:
 
 ```text
 G3.8 SSOT lock                PASS / user approval
@@ -1541,7 +1542,12 @@ source diff audit              PASS / GitHub read evidence
 static gate                    PASS / user terminal evidence
 runtime readiness UAT          PASS / user runtime evidence
 local G3.8 readiness           PASS
-hosting deployment            NOT AUTHORIZED
-PR Ready                      NOT AUTHORIZED
-Merge                         NOT AUTHORIZED
+hosting deployment            NOT AUTHORIZED / NOT EXECUTED
+feature head                  52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+PR #17                        CLOSED / MERGED
+PR Ready                      PASS / user approval
+Merge                         PASS / user approval
+merge commit                  2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+main after merge              2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+G4/Cordova                    NOT STARTED
 ```

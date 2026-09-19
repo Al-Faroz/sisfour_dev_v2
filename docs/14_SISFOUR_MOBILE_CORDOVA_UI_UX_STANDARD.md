@@ -382,8 +382,8 @@ Untuk G3.3.1 rework, baseline hosting smoke lama tidak menutup perubahan 17 Sept
 G2   = stabilization
 G3.1–G3.6C = role/domain mobile foundations + feature delivery
 G3.7 = Global Mobile Sweep — CLOSED / MERGED — PR #16
-G3.8 = Viewport/WebView Readiness — ACTIVE / SSOT LOCKED
-G4   = Cordova APK packaging/integration
+G3.8 = Viewport/WebView Readiness — CLOSED / MERGED — PR #17
+G4   = Cordova APK packaging/integration — NOT STARTED
 ```
 
 
@@ -506,3 +506,16 @@ desktop/tablet behavior G3.7 tidak regression
 ```
 
 Acceptance G3.8 tidak boleh mengklaim PASS native Android Back, geolocation permission, share/open bridge, status bar, edge-to-edge native config, deviceready, atau signed APK. Semua item tersebut baru dapat dibuktikan pada G4.
+
+Closure G3.8:
+
+```text
+local WebView readiness = PASS
+feature head            = 52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+PR #17                  = CLOSED / MERGED
+PR Ready                = PASS / user approval
+Merge                   = PASS / user approval
+merge commit            = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+hosting deployment      = NOT AUTHORIZED / NOT EXECUTED
+G4/Cordova              = NOT STARTED
+```

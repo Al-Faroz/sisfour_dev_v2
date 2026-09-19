@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Current Boundary:** G3.8 WebView readiness aktif; Cordova implementation tetap G4
+**Current Boundary:** G3.8 WebView readiness CLOSED / MERGED — PR #17; G4/Cordova NOT STARTED
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
@@ -29,7 +29,7 @@ G4      Cordova integration + APK packaging
 
 Cordova project/plugin tidak ditambahkan ke G3 hanya untuk persiapan dini.
 
-### G3.8 Locked Boundary
+### G3.8 Closure Boundary
 
 ```text
 SSOT lock = PASS / user approval
@@ -60,6 +60,20 @@ APK/signing         = OUT OF SCOPE
 Web-side readiness G3.8 mencakup viewport-fit, safe-area, short-height/landscape, visualViewport/soft keyboard, modal/SearchableSelect, Fetch session expiry, network failure UX, browser upload/download/export, dan navigation inventory.
 
 G3.8 **tidak** membuktikan `deviceready`, Android Back, permission geolocation native, download/share bridge, external intent, status bar/edge-to-edge native config, signed build, atau real-device APK matrix. Bukti tersebut tetap G4.
+
+Closure:
+
+```text
+local WebView readiness = PASS
+feature head            = 52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+PR #17                  = CLOSED / MERGED
+PR Ready                = PASS / user approval
+Merge                   = PASS / user approval
+merge commit            = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+main after merge        = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+hosting deployment      = NOT AUTHORIZED / NOT EXECUTED
+G4/Cordova              = NOT STARTED
+```
 
 ## 3. G4 Architecture Spike
 

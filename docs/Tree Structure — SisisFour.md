@@ -432,8 +432,8 @@ G3.6A   CLOSED / MERGED — PR #13
 G3.6B   CLOSED / MERGED — PR #14
 G3.6C   CLOSED / MERGED — PR #15
 G3.7    CLOSED / MERGED — PR #16
-G3.8    ACTIVE / SSOT LOCKED — Viewport/WebView Readiness
-G4      Cordova APK
+G3.8    CLOSED / MERGED — PR #17 — Viewport/WebView Readiness
+G4      Cordova APK — NOT STARTED
 ```
 
 
@@ -528,11 +528,16 @@ Tidak ada folder domain, migration, SQL, permission, atau menu baru yang diwajib
 
 ## G3.8 Readiness Boundary
 
-Branch:
+Branch (historical):
 
 ```text
 feat/g3-8-webview-readiness-20260919
 baseline main = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+feature head  = 52143aad25b2d273ee585bcc318ebdedcb3ccfa4
+PR #17        = CLOSED / MERGED
+merge commit  = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+main current  = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
+G4/Cordova    = NOT STARTED
 ```
 
 G3.8 tidak menambah top-level Cordova project atau domain folder baru secara default. Audit/mutation diarahkan ke source Web existing yang menentukan readiness:
