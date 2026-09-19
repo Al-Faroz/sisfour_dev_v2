@@ -9,7 +9,7 @@ use Throwable;
 class PtspReceiptPdfService
 {
     private const PAPER_WIDTH_MM = 80.0;
-    private const MIN_HEIGHT_MM = 110.0;
+    private const MIN_HEIGHT_MM = 105.0;
     private const MAX_HEIGHT_MM = 260.0;
 
     public function generate(array $receipt, array $settings = []): array
@@ -82,16 +82,17 @@ class PtspReceiptPdfService
         );
 
         return '<!doctype html><html><head><meta charset="utf-8"><style>
-            @page { margin: 4mm; }
-            body { margin:0; padding:0; color:#000; font-family:"DejaVu Sans",sans-serif; font-size:9.5pt; line-height:1.35; }
+            @page { margin: 3mm; }
+            body { margin:0; padding:0; color:#000; font-family:"DejaVu Sans",sans-serif; font-size:8.6pt; line-height:1.18; }
             .center { text-align:center; }
-            .title { font-weight:700; font-size:11pt; margin-bottom:1mm; }
-            .school { font-weight:600; margin-bottom:2mm; }
-            .rule { border-top:.3mm dashed #000; margin:2.5mm 0; }
-            .row { margin-bottom:1.6mm; }
-            .label { font-weight:700; display:block; }
-            .value { word-wrap:break-word; white-space:normal; }
-            .note { font-size:8pt; margin-top:2mm; }
+            .title { font-weight:700; font-size:10pt; line-height:1.15; margin:0 0 .5mm 0; }
+            .school { font-weight:600; margin:0 0 .8mm 0; }
+            .rule { border-top:.25mm dashed #000; margin:1.4mm 0; }
+            .row { display:table; width:100%; table-layout:fixed; margin:0; padding:0 0 .65mm 0; page-break-inside:avoid; }
+            .label { display:table-cell; width:18mm; padding-right:1.5mm; font-weight:700; vertical-align:top; }
+            .value { display:table-cell; word-wrap:break-word; white-space:normal; vertical-align:top; }
+            .footer { line-height:1.18; }
+            .note { font-size:7.5pt; line-height:1.15; margin-top:.8mm; }
         </style></head><body>
             <div class="center title">BUKTI PENGISIAN LAYANAN PTSP</div>
             <div class="center school">' . $e($data['school']) . '</div>
@@ -102,7 +103,7 @@ class PtspReceiptPdfService
             <div class="row"><span class="label">Layanan</span><span class="value">' . $e($data['service']) . '</span></div>
             <div class="row"><span class="label">Keterangan</span><span class="value">' . $e($data['description']) . '</span></div>
             <div class="rule"></div>
-            <div class="center">Pengajuan berhasil diterima.</div>
+            <div class="center footer">Pengajuan berhasil diterima.</div>
             <div class="center note">Bukti ini bukan nomor antrean atau kode tracking.</div>
         </body></html>';
     }
@@ -120,8 +121,8 @@ class PtspReceiptPdfService
             ? mb_strlen($text, 'UTF-8')
             : strlen($text);
 
-        $estimatedLines = max(1, (int) ceil($length / 34));
-        $height = 88.0 + ($estimatedLines * 4.6);
+        $estimatedLines = max(1, (int) ceil($length / 42));
+        $height = 82.0 + ($estimatedLines * 4.2);
 
         return max(self::MIN_HEIGHT_MM, min(self::MAX_HEIGHT_MM, $height));
     }
