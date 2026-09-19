@@ -48,6 +48,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('statistik', 'Statistik::index', ['filter' => 'permission:statistik.view']);
     $routes->get('statistik/data', 'Statistik::data', ['filter' => 'permission:statistik.view']);
     $routes->get('statistik/export/pdf', 'Statistik::exportPdf', ['filter' => 'permission:statistik.export_pdf']);
+    $routes->post('statistik/export/pdf', 'Statistik::exportPdf', ['filter' => 'permission:statistik.export_pdf']);
 
     // Searchable entity remote. Authorization data tetap diputuskan Service.
     $routes->get('ui/search/siswa', 'SearchableEntity::siswa');
