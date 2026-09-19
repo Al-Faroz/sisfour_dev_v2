@@ -490,6 +490,9 @@ XLSX mengikuti Tahun/filter
 public stats 3 endpoint aggregate-only
 public stats tidak mengeluarkan PII/raw record id
 cross-origin GET public stats bekerja tanpa credentials
+Settings Sistem menampilkan 3 card API PTSP
+Copy URL bekerja
+Copy Script API bekerja dan script memuat endpoint aktual
 dashboard PTSP current-state sesuai locked KPI/action
 mobile no horizontal body overflow
 Konseling tetap confidential
@@ -505,8 +508,9 @@ G3.6B static gate             RE-RUN PENDING after kiosk/auto-print refinement
 G3.6B initial public UAT       PASS / user runtime evidence on prior head
 G3.6B kiosk/auto-print re-smoke PASS / user runtime evidence on prior head
 G3.6B PDF auto-download re-smoke PASS / user runtime evidence on prior head
-G3.6B compact receipt re-smoke     PENDING
-G3.6B remaining runtime UAT    PENDING
+G3.6B compact receipt re-smoke     PASS / user runtime evidence
+G3.6B remaining runtime UAT         PASS ALL / user runtime evidence
+G3.6B API settings card re-smoke    PENDING
 G3.6B post-SQL local dump     PENDING
 G3.6B hosting                 NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
