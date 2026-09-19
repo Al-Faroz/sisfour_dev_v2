@@ -83,16 +83,16 @@ class Statistik extends BaseController
                 ->setBody($result['message'] ?? 'Export Statistik gagal.');
         }
 
-        $chartSvgs = [];
+        $chartImages = [];
         if (strtoupper($this->request->getMethod()) === 'POST') {
-            $rawCharts = (string) ($this->request->getPost('chart_svgs') ?? '');
+            $rawCharts = (string) ($this->request->getPost('chart_images') ?? '');
             if ($rawCharts !== '') {
                 $decoded = json_decode($rawCharts, true);
-                $chartSvgs = is_array($decoded) ? $decoded : [];
+                $chartImages = is_array($decoded) ? $decoded : [];
             }
         }
 
-        $pdf = $this->pdfService->generate($result, $chartSvgs);
+        $pdf = $this->pdfService->generate($result, $chartImages);
         if (! ($pdf['success'] ?? false)) {
             return $this->response
                 ->setStatusCode(ResponseInterface::HTTP_INTERNAL_SERVER_ERROR)
