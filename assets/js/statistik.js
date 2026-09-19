@@ -111,6 +111,7 @@
         const teaching = data.teaching || {};
         const discipline = data.discipline || {};
         const achievement = data.achievement || {};
+        const counseling = data.counseling || {};
         const uks = data.uks || {};
         const ptsp = data.ptsp || {};
         const mobility = data.mobility || {};
@@ -183,6 +184,13 @@
             { key: 'total', label: 'Prestasi' },
         ]);
 
+        setText('counselingTotal', String(number(counseling.total)));
+        donutRows('chartCounselingStatus', counseling.status || []);
+        barRows('chartCounselingFields', counseling.fields || []);
+        lineRows('chartCounselingTrend', counseling.trend || [], [
+            { key: 'total', label: 'Konseling' },
+        ]);
+
         setText('uksKunjungan', String(number(uks.kunjungan)));
         setText('uksCkg', String(number(uks.ckg)));
         setText('uksRujukan', String(number(uks.rujukan_klinik)));
@@ -218,18 +226,25 @@
         exportEl.href = `${exportUrl}?${params.toString()}`;
     }
 
-    function collectChartSvgs() {
+    async function collectChartImages() {
         const result = {};
-        Object.keys(charts).forEach((id) => {
-            const svg = document.getElementById(id)?.querySelector('svg');
-            if (svg) result[id] = svg.outerHTML;
-        });
+        await Promise.all(Object.entries(charts).map(async ([id, chart]) => {
+            if (!chart || typeof chart.dataURI !== 'function') return;
+            try {
+                const rendered = await chart.dataURI({ scale: 1 });
+                if (rendered?.imgURI && String(rendered.imgURI).startsWith('data:image/png;base64,')) {
+                    result[id] = rendered.imgURI;
+                }
+            } catch (_) {
+                // Server-side fallback chart remains available.
+            }
+        }));
         return result;
     }
 
-    function prepareExportForm(params) {
+    async function prepareExportForm(params) {
         const exportForm = document.getElementById('statistikExportForm');
-        const chartInput = document.getElementById('statistikChartSvgs');
+        const chartInput = document.getElementById('statistikChartImages');
         if (!exportForm || !chartInput) return null;
 
         exportForm.querySelectorAll('.statistik-export-filter').forEach((el) => el.remove());
@@ -241,7 +256,7 @@
             input.className = 'statistik-export-filter';
             exportForm.appendChild(input);
         });
-        chartInput.value = JSON.stringify(collectChartSvgs());
+        chartInput.value = JSON.stringify(await collectChartImages());
         return exportForm;
     }
 
@@ -307,14 +322,24 @@
         window.location.href = `${window.location.pathname}?${params.toString()}`;
     });
 
-    exportEl?.addEventListener('click', (event) => {
+    exportEl?.addEventListener('click', async (event) => {
         event.preventDefault();
         const params = queryFromForm();
-        const exportForm = prepareExportForm(params);
-        if (exportForm) {
-            exportForm.submit();
-        } else {
-            window.location.href = `${exportUrl}?${params.toString()}`;
+        exportEl.classList.add('disabled');
+        exportEl.setAttribute('aria-disabled', 'true');
+        statusEl.textContent = 'Menyiapkan visual PDF...';
+
+        try {
+            const exportForm = await prepareExportForm(params);
+            if (exportForm) {
+                exportForm.submit();
+                statusEl.textContent = 'PDF diproses.';
+            } else {
+                window.location.href = `${exportUrl}?${params.toString()}`;
+            }
+        } finally {
+            exportEl.classList.remove('disabled');
+            exportEl.removeAttribute('aria-disabled');
         }
     });
 
