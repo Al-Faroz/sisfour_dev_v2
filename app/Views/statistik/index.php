@@ -41,7 +41,7 @@ $initialJson = json_encode(
                       target="_blank"
                       action="<?= esc(base_url('statistik/export/pdf')) ?>">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="chart_svgs" id="statistikChartSvgs" value="">
+                    <input type="hidden" name="chart_images" id="statistikChartImages" value="">
                 </form>
             <?php endif; ?>
         </div>
