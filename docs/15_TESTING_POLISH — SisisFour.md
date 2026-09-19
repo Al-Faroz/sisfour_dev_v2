@@ -521,3 +521,79 @@ G3.6B focused hosting runtime smoke  PASS / user runtime evidence
 PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
+
+## 20. G3.6C — Executive Visualization Gate
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.6C
+node --check assets/js/signage.js
+node --check assets/js/statistik.js
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Runtime Signage:
+
+```text
+/signage tetap public
+header compact
+summary H/S/I/A jumlah + persentase
+coverage kelas tampil
+3 panel stabil sesuai TemplateSIGNAGE
+EWS internal rotation Sakit -> Izin -> Alpha
+ranking EWS = Sesi Awal / 14 hari / max20
+Kelas Belum Presensi auto-page
+Jadwal Belum Jurnal = selesai+15 menit dan belum ada presensi_mengajar
+rotasi 15 detik
+refresh fetch 5 menit
+tidak ada PII ekstra
+```
+
+Runtime Statistik:
+
+```text
+Admin/Operator/Pimpinan ALLOW
+BK/Kesehatan/PTSP/Guru/Wali/Siswa DENY
+Tahun Ajaran wajib
+all/bulan ini/30 hari/custom
+filter tingkat/kelas
+Executive + Komposisi + Presensi + EWS + Pembelajaran
+Pelanggaran tanpa poin
+Prestasi
+UKS aggregate only
+PTSP aggregate only
+Mobilitas Siswa
+Konseling tidak ada di payload/UI/PDF
+ApexCharts lokal
+Export PDF mengikuti filter
+Export PDF tercatat di log_activity
+mobile no horizontal body overflow
+```
+
+Database expected setelah local SQL:
+
+```text
+tables             45
+permissions        68
+role_permissions   229
+menus              51
+role_menus         176
+```
+
+Gate:
+
+```text
+G3.6C source                     IMPLEMENTED / feature branch
+G3.6C localhost SQL              PREPARED
+G3.6C GitHub structural audit    PENDING
+G3.6C local SQL execution        PENDING
+G3.6C static terminal gate       PENDING
+G3.6C local runtime UAT          PENDING
+G3.6C post-SQL dump audit        PENDING
+G3.6C hosting                    NOT AUTHORIZED
+PR Ready                         NOT AUTHORIZED
+Merge                            NOT AUTHORIZED
+```
