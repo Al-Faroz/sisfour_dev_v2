@@ -623,3 +623,67 @@ G3.6C hosting SQL/source mutation NOT AUTHORIZED
 PR Ready                         NOT AUTHORIZED
 Merge                            NOT AUTHORIZED
 ```
+
+
+## 21. Kartu Pelajar — JPG ZIP Front Per Kelas
+
+Contract add-on:
+
+```text
+Admin only
+no new permission
+reuse kartu_pelajar.manage route gate
+server effective-role Admin check
+same dataset as existing Cetak Depan Per Kelas PDF
+front only
+1 siswa = 1 JPG
+1 kelas = 1 ZIP
+max 200 kartu
+no DB/schema delta
+```
+
+Static gate:
+
+```text
+php -l app/Controllers/KartuPelajar.php
+php -l app/Services/KartuPelajarService.php
+php -l app/Services/KartuPrintService.php
+php -l app/Services/KartuRenderService.php
+php -l app/Views/kartu/daftar.php
+node --check assets/js/kartu/daftar.js
+php spark routes
+git diff --check origin/main...HEAD
+```
+
+Runtime minimum:
+
+```text
+Admin melihat tombol Unduh JPG Depan Per Kelas (.ZIP)
+Operator dan role lain tidak melihat tombol
+direct POST /kartu/export-jpg-zip oleh non-Admin = DENY
+pilih kelas wajib
+dataset siswa/kartu sama dengan Cetak Depan Per Kelas PDF
+hanya kartu Aktif
+urutan nama konsisten
+ZIP berisi 1 JPG per siswa
+JPG hanya sisi depan
+JPG memuat background/foto/QR/nomor/nama/NISN/kelas/JK/tahun/TTL/alamat
+QR pada JPG dapat dipindai
+layout JPG setara front card existing
+maksimum 200 kartu
+PDF existing front/back tetap normal
+mobile tidak overflow
+```
+
+Gate add-on:
+
+```text
+Contract                          LOCKED / user decision
+Source                            IMPLEMENTATION IN PROGRESS
+DB / permission delta             NONE
+Static gate                       PENDING
+Local runtime UAT                 PENDING
+Hosting redeploy add-on           NOT AUTHORIZED
+PR Ready                          NOT AUTHORIZED
+Merge                             NOT AUTHORIZED
+```
