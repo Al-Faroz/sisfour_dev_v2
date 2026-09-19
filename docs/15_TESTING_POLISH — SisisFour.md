@@ -428,7 +428,7 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
@@ -444,6 +444,9 @@ G3.7 Wave 4 runtime UAT             PENDING
 G3.7 Wave 5 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 5 static gate             PENDING
 G3.7 Wave 5 runtime UAT             PENDING
+G3.7 Wave 6 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 6 static gate             PENDING
+G3.7 Wave 6 runtime UAT             PENDING
 G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
@@ -780,7 +783,7 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
@@ -796,6 +799,9 @@ Wave 4 runtime UAT            PENDING
 Wave 5 GitHub diff audit      PASS / GitHub read evidence
 Wave 5 static gate            PENDING
 Wave 5 runtime UAT            PENDING
+Wave 6 GitHub diff audit      PASS / GitHub read evidence
+Wave 6 static gate            PENDING
+Wave 6 runtime UAT            PENDING
 Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
@@ -1141,4 +1147,70 @@ Wave 5 implementation       IMPLEMENTED
 Wave 5 GitHub diff audit    PASS / GitHub read evidence
 Wave 5 static terminal gate PENDING
 Wave 5 runtime UAT          PENDING
+```
+
+
+### Wave 6 — Statistik + Remaining Operational Surfaces
+
+Audit sebelum mutation:
+
+```text
+Statistik                = responsive grid existing; chart breakpoint/containment gap
+UKS Master               = card/list existing; action/modal mobile polish gap
+Signage                  = special public display surface / regression-only
+Log Activity             = Admin/Operator administrative surface -> Wave 7
+Master/Settings/Backup   = Admin/Operator administrative surface -> Wave 7
+BK TOP                   = legacy view; no active route found
+BK Konseling Settings    = view/controller exist; explicit route registration not found
+```
+
+G3.7 tidak menambah atau memperbaiki route orphan/ambiguity. Route/RBAC tetap unchanged.
+
+Implemented polish:
+
+```text
+Statistik
+- filter/context/card headers wrap-safe
+- chart/card containers min-width:0 and max-width containment
+- ApexCharts width 100% + parent/window resize
+- responsive breakpoints at 576px and 768px
+- mobile legend/axis font/label overlap guards
+- chart heights compact on narrow screens
+- data payload, section order, and PDF export contract unchanged
+
+UKS Master
+- card headers and list rows wrap-safe
+- nama/status/action do not force document overflow
+- Tambah/Edit/Nonaktifkan compact touch targets
+- modal becomes scrollable fullscreen-sm-down
+- create/update/delete semantics unchanged
+```
+
+Changed runtime files:
+
+```text
+app/Views/statistik/index.php
+assets/css/statistik.css
+assets/js/statistik.js
+app/Views/uks/master.php
+```
+
+Invariant:
+
+```text
+Statistik payload/agregasi       = unchanged
+Statistik PDF output             = unchanged
+UKS Master persistence           = unchanged
+Controller / Service / Model     = unchanged
+route / RBAC / scope             = unchanged
+DB/schema/SQL                    = NONE
+```
+
+Evidence:
+
+```text
+Wave 6 implementation       IMPLEMENTED
+Wave 6 GitHub diff audit    PASS / GitHub read evidence
+Wave 6 static terminal gate PENDING
+Wave 6 runtime UAT          PENDING
 ```
