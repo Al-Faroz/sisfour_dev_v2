@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\SettingSistemModel;
+use App\Services\PtspReceiptPdfService;
 use App\Services\PtspService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
@@ -10,10 +11,12 @@ use Throwable;
 class PtspPublic extends BaseController
 {
     protected PtspService $service;
+    protected PtspReceiptPdfService $receiptPdfService;
 
     public function __construct()
     {
         $this->service = new PtspService();
+        $this->receiptPdfService = new PtspReceiptPdfService();
     }
 
     public function index()
@@ -42,7 +45,33 @@ class PtspPublic extends BaseController
 
     public function layanan()
     {
-        return $this->respond($this->service->submitLayanan($this->request->getPost()));
+        $settings = $this->publicSettings();
+        $result = $this->service->submitLayanan($this->request->getPost());
+
+        $autoPrint = (string) ($settings['ptsp_layanan_auto_print'] ?? '0') === '1';
+        $autoDownloadPdf = (string) ($settings['ptsp_layanan_auto_download_pdf'] ?? '0') === '1';
+
+        if (
+            ! empty($result['success'])
+            && ! $autoPrint
+            && $autoDownloadPdf
+            && is_array($result['receipt'] ?? null)
+        ) {
+            $pdf = $this->receiptPdfService->generate($result['receipt'], $settings);
+
+            if (! empty($pdf['success'])) {
+                $result['receipt_pdf'] = [
+                    'filename' => (string) ($pdf['filename'] ?? 'bukti-layanan-ptsp.pdf'),
+                    'mime_type' => (string) ($pdf['mime_type'] ?? 'application/pdf'),
+                    'base64' => (string) ($pdf['base64'] ?? ''),
+                    'paper_width_mm' => (int) ($pdf['paper_width_mm'] ?? 80),
+                ];
+            } else {
+                $result['receipt_pdf_error'] = 'PDF bukti otomatis gagal dibuat. Gunakan tombol Cetak Bukti 80mm.';
+            }
+        }
+
+        return $this->respond($result);
     }
 
     public function polling()
@@ -85,6 +114,7 @@ class PtspPublic extends BaseController
             'logo_sekolah' => '',
             'icon_sekolah' => '',
             'ptsp_layanan_auto_print' => '0',
+            'ptsp_layanan_auto_download_pdf' => '0',
         ];
 
         try {
