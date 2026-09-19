@@ -428,7 +428,7 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A + Wave 7B implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
@@ -450,7 +450,12 @@ G3.7 Wave 6 runtime UAT             PENDING
 G3.7 Wave 7A GitHub diff audit      PASS / GitHub read evidence
 G3.7 Wave 7A static gate            PENDING
 G3.7 Wave 7A runtime UAT            PENDING
-G3.7 Wave 7B implementation         NOT STARTED
+G3.7 Wave 7B GitHub diff audit      PASS / GitHub read evidence
+G3.7 Wave 7B static gate            PENDING
+G3.7 Wave 7B runtime UAT            PENDING
+G3.7 Settings Menu mobile           DOCUMENTED MATRIX EXCEPTION / UAT REQUIRED
+G3.7 Kenaikan bulk mobile           DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
+G3.7 Kelulusan bulk mobile          DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
 G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
@@ -787,7 +792,7 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A + Wave 7B implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
@@ -809,7 +814,12 @@ Wave 6 runtime UAT            PENDING
 Wave 7A GitHub diff audit     PASS / GitHub read evidence
 Wave 7A static gate           PENDING
 Wave 7A runtime UAT           PENDING
-Wave 7B implementation        NOT STARTED
+Wave 7B GitHub diff audit     PASS / GitHub read evidence
+Wave 7B static gate           PENDING
+Wave 7B runtime UAT           PENDING
+Settings Menu mobile          DOCUMENTED MATRIX EXCEPTION / UAT REQUIRED
+Kenaikan bulk mobile          DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
+Kelulusan bulk mobile         DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
 Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
@@ -1290,3 +1300,92 @@ Wave 7A GitHub diff audit    PASS / GitHub read evidence
 Wave 7A static terminal gate PENDING
 Wave 7A runtime UAT          PENDING
 ```
+
+
+### Wave 7B — Heavy CRUD + Documented Exceptions
+
+Implemented adaptive surfaces:
+
+```text
+Master Guru
+Master Pegawai
+Master Siswa
+Jadwal Guru
+Manajemen Siswa — Atur Kelas
+Manajemen Siswa — Mutasi
+```
+
+Hybrid surfaces:
+
+```text
+Manajemen Siswa — Kenaikan
+- outer class/progress surface gets mobile companion view
+- bulk student checkbox table remains local horizontal-scroll
+- selection/process semantics unchanged
+
+Manajemen Siswa — Kelulusan
+- source classes + alumni history get mobile companion views
+- bulk student checkbox table remains local horizontal-scroll
+- restore/process semantics unchanged
+```
+
+Documented matrix exception:
+
+```text
+Settings Menu
+- true 2D menu × role matrix
+- no card conversion
+- horizontal scroll restricted to table-responsive container
+- matrix container has region label + keyboard focus
+- document/body overflow remains forbidden
+```
+
+Settings Sistem remains regression-only because it is form/card based and did not require a presentation rewrite.
+
+Changed runtime files:
+
+```text
+app/Views/master/guru.php
+assets/js/master/guru.js
+app/Views/master/pegawai.php
+assets/js/master/pegawai.js
+app/Views/master/siswa.php
+assets/js/master/siswa.js
+app/Views/master/jadwal_guru.php
+assets/js/master/jadwal-guru.js
+app/Views/manajemen_siswa/kelas.php
+assets/js/manajemen_siswa/kelas.js
+app/Views/manajemen_siswa/kenaikan.php
+assets/js/manajemen_siswa/kenaikan.js
+app/Views/manajemen_siswa/kelulusan.php
+assets/js/manajemen_siswa/kelulusan.js
+app/Views/manajemen_siswa/mutasi.php
+assets/js/manajemen_siswa/mutasi.js
+app/Views/settings/menu.php
+```
+
+Invariant:
+
+```text
+Guru/Pegawai/Siswa CRUD            = unchanged
+Jadwal CRUD/import                 = unchanged
+Atur Kelas semantics               = unchanged
+Kenaikan/Kelulusan bulk semantics  = unchanged
+Mutasi/restore semantics           = unchanged
+Menu-role mapping semantics        = unchanged
+Controller / Service / Model       = unchanged
+route / RBAC / scope               = unchanged
+DB/schema/SQL                      = NONE
+```
+
+Evidence:
+
+```text
+Wave 7B implementation       IMPLEMENTED
+Wave 7B GitHub diff audit    PASS / GitHub read evidence
+Wave 7B JS parse-only check  PASS / GitHub read evidence
+Wave 7B static terminal gate PENDING
+Wave 7B runtime UAT          PENDING
+```
+
+Exception acceptance is runtime-only and requires body/document horizontal overflow = false at the tested mobile viewport.
