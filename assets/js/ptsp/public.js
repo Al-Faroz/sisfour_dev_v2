@@ -4,6 +4,7 @@
 
   const base = String(app.dataset.baseUrl || '').replace(/\/$/, '');
   const autoPrint = app.dataset.autoPrint === '1';
+  const autoDownloadPdf = app.dataset.autoDownloadPdf === '1';
   const alertBox = document.getElementById('ptspPublicAlert');
   const receipt = document.getElementById('ptspReceipt');
   const receiptBody = document.getElementById('ptspReceiptBody');
@@ -59,6 +60,34 @@
     window.print();
   }
 
+  function downloadReceiptPdf(pdf) {
+    if (!pdf?.base64) return false;
+
+    try {
+      const binary = atob(String(pdf.base64));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], {
+        type: String(pdf.mime_type || 'application/pdf')
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = String(pdf.filename || 'bukti-layanan-ptsp.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   document.getElementById('formPublicLayanan')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -93,6 +122,21 @@
 
       if (autoPrint) {
         window.setTimeout(printReceipt, 250);
+      } else if (autoDownloadPdf) {
+        const pdf = payload.data?.receipt_pdf || null;
+        const downloaded = downloadReceiptPdf(pdf);
+
+        if (!downloaded) {
+          const warning = payload.data?.receipt_pdf_error
+            || 'PDF otomatis tidak dapat diunduh. Gunakan tombol Cetak Bukti 80mm.';
+          show(
+            payload.message || 'Pengajuan berhasil.',
+            'warning',
+            ` <span class="ms-1">${esc(warning)}</span> <button id="btnPrintPtspReceiptFallback" class="btn btn-sm btn-outline-warning ms-2" type="button">Cetak Manual</button>`
+          );
+          document.getElementById('btnPrintPtspReceiptFallback')
+            ?.addEventListener('click', printReceipt, {once:true});
+        }
       }
     } catch (error) {
       show(error.message || 'Pengajuan gagal.');
