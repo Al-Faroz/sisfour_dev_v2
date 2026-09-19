@@ -428,7 +428,7 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
@@ -447,6 +447,10 @@ G3.7 Wave 5 runtime UAT             PENDING
 G3.7 Wave 6 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 6 static gate             PENDING
 G3.7 Wave 6 runtime UAT             PENDING
+G3.7 Wave 7A GitHub diff audit      PASS / GitHub read evidence
+G3.7 Wave 7A static gate            PENDING
+G3.7 Wave 7A runtime UAT            PENDING
+G3.7 Wave 7B implementation         NOT STARTED
 G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
@@ -783,7 +787,7 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
@@ -802,6 +806,10 @@ Wave 5 runtime UAT            PENDING
 Wave 6 GitHub diff audit      PASS / GitHub read evidence
 Wave 6 static gate            PENDING
 Wave 6 runtime UAT            PENDING
+Wave 7A GitHub diff audit     PASS / GitHub read evidence
+Wave 7A static gate           PENDING
+Wave 7A runtime UAT           PENDING
+Wave 7B implementation        NOT STARTED
 Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
@@ -1213,4 +1221,72 @@ Wave 6 implementation       IMPLEMENTED
 Wave 6 GitHub diff audit    PASS / GitHub read evidence
 Wave 6 static terminal gate PENDING
 Wave 6 runtime UAT          PENDING
+```
+
+
+### Wave 7A — Adaptive Admin Surfaces
+
+Scope:
+
+```text
+Backup Database
+Log Activity
+Settings User
+Master Kelas
+Master Mata Pelajaran
+Master Tahun Ajaran
+Mapping Wali Kelas
+Recycle Bin Guru
+Recycle Bin Pegawai
+Recycle Bin Siswa
+Recycle Bin Kelas
+Histori / Recycle Bin Wali Kelas
+Recycle Bin Tahun Ajaran
+```
+
+Implemented pattern:
+
+```text
+desktop table              = preserved
+mobile list/card           = added from same runtime dataset
+pagination/filter state    = shared with existing renderer where present
+mobile action              = existing handler or proxy to existing desktop handler
+touch target               = compact/primary mobile primitive
+modal                      = fullscreen-sm-down where relevant
+business endpoint          = unchanged
+```
+
+Wave 7A intentionally excludes:
+
+```text
+Master Guru / Pegawai / Siswa
+Jadwal Guru
+Manajemen Siswa Kelas/Kenaikan/Kelulusan/Mutasi
+Settings Menu matrix
+Settings Sistem
+```
+
+Those remain Wave 7B / documented-exception work.
+
+Changed runtime files: 26 files = 13 View/JS pairs.
+
+Invariant:
+
+```text
+CRUD semantics                  = unchanged
+restore/force-delete semantics  = unchanged
+role/user semantics             = unchanged
+pagination/filter authority     = unchanged
+Controller / Service / Model    = unchanged
+route / RBAC / scope            = unchanged
+DB/schema/SQL                   = NONE
+```
+
+Evidence:
+
+```text
+Wave 7A implementation       IMPLEMENTED
+Wave 7A GitHub diff audit    PASS / GitHub read evidence
+Wave 7A static terminal gate PENDING
+Wave 7A runtime UAT          PENDING
 ```
