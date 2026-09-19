@@ -42,6 +42,9 @@ class KartuPelajar extends BaseController
                         $userId,
                         []
                     ),
+                    'extraCss' => [
+                        'assets/css/kartu-daftar.css',
+                    ],
                     'extraJs' => [
                         'assets/js/kartu/daftar.js',
                     ],
