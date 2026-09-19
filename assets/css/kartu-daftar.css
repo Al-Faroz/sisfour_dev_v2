@@ -265,3 +265,57 @@
         font-size: .76rem;
     }
 }
+
+
+/* G3.7 Wave 5 — mobile Kartu list */
+.kartu-page .kartu-mobile-card {
+    min-width: 0;
+}
+
+.kartu-page .kartu-mobile-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: .75rem;
+}
+
+.kartu-page .kartu-mobile-card__identity {
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+.kartu-page .kartu-mobile-card__identity strong,
+.kartu-page .kartu-mobile-card__identity small,
+.kartu-page .kartu-mobile-card__meta {
+    overflow-wrap: anywhere;
+}
+
+.kartu-page .kartu-mobile-card__select {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+}
+
+.kartu-page .kartu-mobile-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: .85rem;
+}
+
+.kartu-page .kartu-mobile-card__actions .btn {
+    min-height: 2.5rem;
+}
+
+@media (max-width: 575.98px) {
+    .kartu-page .kartu-count-row {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .kartu-page .kartu-mobile-card__actions .btn {
+        flex: 1 1 auto;
+    }
+}
