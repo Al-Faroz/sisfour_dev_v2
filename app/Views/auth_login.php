@@ -134,6 +134,7 @@ $iconType = $hasIcon ? 'image/png' : 'image/x-icon';
 
         body {
             min-height: 100vh;
+            min-height: 100dvh;
             margin: 0;
             background:
                 radial-gradient(
@@ -153,10 +154,15 @@ $iconType = $hasIcon ? 'image/png' : 'image/x-icon';
 
         .login-page {
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 32px 20px;
+            padding:
+                max(32px, env(safe-area-inset-top))
+                max(20px, env(safe-area-inset-right))
+                max(32px, env(safe-area-inset-bottom))
+                max(20px, env(safe-area-inset-left));
         }
 
         .login-shell {
@@ -309,7 +315,11 @@ $iconType = $hasIcon ? 'image/png' : 'image/x-icon';
         @media (max-width: 575.98px) {
             .login-page {
                 align-items: flex-start;
-                padding: 18px 14px 24px;
+                padding:
+                    max(18px, env(safe-area-inset-top))
+                    max(14px, env(safe-area-inset-right))
+                    max(24px, env(safe-area-inset-bottom))
+                    max(14px, env(safe-area-inset-left));
             }
 
             .login-shell {
@@ -350,8 +360,8 @@ $iconType = $hasIcon ? 'image/png' : 'image/x-icon';
         @media (max-height: 700px) and (min-width: 576px) {
             .login-page {
                 align-items: flex-start;
-                padding-top: 24px;
-                padding-bottom: 24px;
+                padding-top: max(24px, env(safe-area-inset-top));
+                padding-bottom: max(24px, env(safe-area-inset-bottom));
             }
         }
     </style>
