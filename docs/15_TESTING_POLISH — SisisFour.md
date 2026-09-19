@@ -428,7 +428,7 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
@@ -441,6 +441,9 @@ G3.7 Wave 3 runtime UAT             PENDING
 G3.7 Wave 4 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 4 static gate             PENDING
 G3.7 Wave 4 runtime UAT             PENDING
+G3.7 Wave 5 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 5 static gate             PENDING
+G3.7 Wave 5 runtime UAT             PENDING
 G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
@@ -777,7 +780,7 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
@@ -790,6 +793,9 @@ Wave 3 runtime UAT            PENDING
 Wave 4 GitHub diff audit      PASS / GitHub read evidence
 Wave 4 static gate            PENDING
 Wave 4 runtime UAT            PENDING
+Wave 5 GitHub diff audit      PASS / GitHub read evidence
+Wave 5 static gate            PENDING
+Wave 5 runtime UAT            PENDING
 Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
@@ -1048,4 +1054,91 @@ Wave 4 implementation       IMPLEMENTED
 Wave 4 GitHub diff audit    PASS / GitHub read evidence
 Wave 4 static terminal gate PENDING
 Wave 4 runtime UAT          PENDING
+```
+
+
+### Wave 5 — Siswa + Kartu + Profile
+
+Audit sebelum mutation:
+
+```text
+Dashboard Siswa       = existing mobile-adaptive / regression-only
+Kartu Daftar          = table-only gap
+Kartu Preview         = fixed physical canvas with local horizontal scroll
+Profile Siswa         = biodata adaptive; class history table-only gap
+Profile Guru          = existing responsive profile primitive
+Profile Pegawai       = existing responsive profile primitive
+Personalia Detail     = existing mobile record-card; edit modals need mobile polish
+Kartu PDF/JPG output  = physical renderer / regression-only
+Portfolio PDF         = output renderer / regression-only
+```
+
+Implemented polish:
+
+```text
+Kartu Daftar
+- desktop table preserved
+- mobile card list mirrors same server rows
+- mobile/desktop checkbox controls synchronized by card ID
+- selectedIds deduplicated before print request
+- Preview/PDF/Reissue touch-friendly
+- pagination/filter/generate/reissue/cetak endpoints unchanged
+
+Kartu Preview
+- page header/action mobile-safe
+- physical 1011×638 canvas preserved
+- horizontal scroll remains local to .kartu-scroll
+
+Profile Siswa
+- readonly contract preserved
+- biodata long values wrap-safe
+- Riwayat Kelas gets mobile record-card renderer
+- desktop table preserved
+
+Profile Guru / Pegawai
+- existing responsive layout preserved
+- navigation/hero/upload/save actions touch-friendly
+- long metadata wrap-safe
+- Pegawai page header aligned to canonical primitive
+
+Personalia Detail
+- existing desktop tables + mobile record-cards preserved
+- 4 edit modals become scrollable fullscreen-sm-down
+- mobile document/edit/delete/add actions get touch target
+- record title/meta wrap-safe
+```
+
+Changed runtime files:
+
+```text
+app/Views/kartu/daftar.php
+assets/js/kartu/daftar.js
+assets/css/kartu-daftar.css
+app/Views/kartu/preview.php
+app/Views/profile/siswa.php
+app/Views/profile/guru.php
+app/Views/profile/pegawai.php
+app/Views/personalia/detail.php
+```
+
+Invariant:
+
+```text
+Kartu generate/reissue          = unchanged
+PDF/JPG ZIP output              = unchanged
+selected-card print semantics   = unchanged
+Profile persistence             = unchanged
+Personalia persistence          = unchanged
+Controller / Service / Model    = unchanged
+route / RBAC / scope            = unchanged
+DB/schema/SQL                   = NONE
+```
+
+Evidence:
+
+```text
+Wave 5 implementation       IMPLEMENTED
+Wave 5 GitHub diff audit    PASS / GitHub read evidence
+Wave 5 static terminal gate PENDING
+Wave 5 runtime UAT          PENDING
 ```
