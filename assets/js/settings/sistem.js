@@ -59,6 +59,7 @@ formSistem?.addEventListener('submit', async event => {
     const fd = new FormData(form);
     const payload = Object.fromEntries(fd.entries());
     payload.geofencing_aktif = form.elements.geofencing_aktif.checked ? '1' : '0';
+    payload.ptsp_layanan_auto_print = form.elements.ptsp_layanan_auto_print?.checked ? '1' : '0';
 
     const response = await fetch(`${base}/settings/sistem/update`, {
       method: 'PUT',
