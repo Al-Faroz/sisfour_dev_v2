@@ -329,3 +329,20 @@ GET    /ptsp/pengaduan/export
 ```
 
 Public POST memakai CSRF global web. Aggregate API memakai CORS filter dan tidak memakai auth/raw-record endpoint.
+
+## G3.6C Routes
+
+Public unchanged:
+
+```text
+GET /signage
+GET /signage/data
+```
+
+Authenticated Statistik:
+
+```text
+GET /statistik             -> statistik.view
+GET /statistik/data        -> statistik.view
+GET /statistik/export/pdf  -> statistik.export_pdf
+```
