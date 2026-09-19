@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.6C — Executive Visualization & EWS Signage
-**Branch aktif:** `feat/g3-6c-exec-viz-signage-20260919`
-**Baseline `main`:** setelah merge PR #14 / G3.6B (`f6f30ceaf070f342d609c322905ee77dc33f3e6f`)
+**Development aktif:** G3.7 — Global Mobile Sweep
+**Branch aktif:** `feat/g3-7-global-mobile-sweep-20260919`
+**Baseline `main`:** setelah merge PR #15 / G3.6C (`f82a0299c8989da6c1026d84861f3e95d786f7dd`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -360,9 +360,10 @@ G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
 G3.4 Dashboard/Workflow BK CLOSED / MERGED — PR #10
 G3.5 Pimpinan              CLOSED / MERGED — PR #11
 G3.6 Siswa                 CLOSED / MERGED — PR #12
-G3.6A UKS / Kesehatan      ACTIVE
-G3.6B PTSP                 setelah G3.6A
-G3.7 Global mobile sweep
+G3.6A UKS / Kesehatan      CLOSED / MERGED — PR #13
+G3.6B PTSP                 CLOSED / MERGED — PR #14
+G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
+G3.7 Global mobile sweep   ACTIVE
 G3.8 Viewport/WebView readiness
 G4 Cordova APK
 ```
@@ -740,6 +741,94 @@ hosting source deployment        PASS / user evidence
 hosting runtime smoke            PASS / user runtime evidence
 Kartu JPG ZIP add-on             PASS ALL
 production gate                  PASS ALL
+PR #15                          CLOSED / MERGED
+PR Ready                         PASS / user approval
+Merge                            PASS / user approval
+merge commit                     f82a0299c8989da6c1026d84861f3e95d786f7dd
+```
+
+
+## 17. G3.7 — Global Mobile Sweep
+
+G3.7 adalah phase presentation/regression lintas aplikasi setelah seluruh domain utama sampai G3.6C masuk `main`.
+
+Contract:
+
+```text
+Use Case           = menyamakan usability mobile/responsive seluruh surface aktif
+Access Boundary    = TIDAK BERUBAH
+Capability / Scope = TIDAK BERUBAH
+Period Context     = TIDAK BERUBAH
+Business Invariant = TIDAK BERUBAH
+Persistence        = NONE
+DB / schema / SQL  = NONE
+Route / menu       = tidak berubah kecuali kebutuhan nyata terpisah ditemukan
+Service boundary   = tidak diubah hanya untuk presentation
+Presentation UI    = responsive/adaptive sesuai docs/11/13/14
+Output channel     = Web desktop + mobile browser; WebView-specific behavior ditahan untuk G3.8
+```
+
+Prioritas:
+
+```text
+mobile-first = Pimpinan / BK / Guru / Guru+Wali / Siswa
+operasional  = Kesehatan / PTSP
+responsive   = Admin / Operator
+exception    = matrix administratif dua dimensi yang tidak dapat direduksi tanpa kehilangan fungsi
+```
+
+Acceptance global:
+
+```text
+no body horizontal overflow
+no horizontal table scroll untuk role operasional
+360px usable
+action tidak clipped
+touch target nyaman
+filter mobile stack/compact
+modal + keyboard usable
+long content wrap aman
+dashboard/list/card adaptif
+desktop tidak regression
+```
+
+Viewport wajib:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Urutan pengerjaan:
+
+```text
+Wave 1  shell/global primitives
+Wave 2  dashboard seluruh role
+Wave 3  BK + Presensi + Laporan Guru/Wali
+Wave 4  UKS + PTSP
+Wave 5  Siswa + Kartu + Profile
+Wave 6  Statistik + remaining operational surfaces
+Wave 7  Admin/Operator heavy CRUD + documented exceptions
+Wave 8  full viewport regression
+```
+
+Current gate:
+
+```text
+SSOT lock                        PASS / user approval
+branch                           feat/g3-7-global-mobile-sweep-20260919
+baseline main                    f82a0299c8989da6c1026d84861f3e95d786f7dd
+source implementation            NOT STARTED
+static gate                      PENDING
+local viewport/runtime UAT       PENDING
+cross-role regression            PENDING
+hosting source deployment        NOT AUTHORIZED
+hosting runtime smoke            PENDING
 PR Ready                         NOT AUTHORIZED
 Merge                            NOT AUTHORIZED
 ```
