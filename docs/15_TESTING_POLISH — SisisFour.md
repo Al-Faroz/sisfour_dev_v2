@@ -590,7 +590,7 @@ G3.6C source                     IMPLEMENTED / feature branch
 G3.6C localhost SQL              PREPARED
 G3.6C GitHub structural audit    PENDING
 G3.6C local SQL execution        PASS / user evidence
-G3.6C static terminal gate       PENDING
+G3.6C static terminal gate       PASS / user terminal evidence
 G3.6C local runtime UAT          PENDING
 G3.6C post-SQL dump audit        PENDING
 G3.6C hosting                    NOT AUTHORIZED
