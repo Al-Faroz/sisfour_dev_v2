@@ -35,16 +35,16 @@ PTSP
 └── Pengaduan
 ```
 
-Public surface:
+Public surface **LOCKED / refinement 19 September 2026**:
 
 ```text
-PTSP Landing Page
-├── Form Layanan PTSP
-├── Form Polling Kepuasan
-└── Form Pengaduan
+PTSP Landing Page — pola Kios
+├── Layanan PTSP
+├── Pengaduan
+└── Polling Kepuasan
 ```
 
-PTSP mempunyai landing page tersendiri untuk public form.
+Landing hanya menampilkan tiga tombol besar dalam urutan tersebut. Pengunjung memilih salah satu tombol untuk membuka halaman form tersendiri; form tidak lagi ditumpuk sebagai tab dalam satu halaman.
 
 ## 3. Access Boundary Internal
 
@@ -168,6 +168,20 @@ Petugas operasional adalah role PTSP; actor mutation tetap `users.id`.
 ### Cetak Thermal
 
 Catatan workbook lama `mencetak tiket antrian` **digantikan keputusan user terbaru**.
+
+Contract cetak G3.6B:
+
+```text
+media                   = thermal 80 mm
+manual print            = selalu tersedia setelah submit sukses
+auto print              = configurable ON/OFF
+setting key             = ptsp_layanan_auto_print
+setting location        = Settings -> Setting Sistem
+default                 = OFF
+auto print behavior     = membuka dialog print browser setelah submit sukses
+```
+
+Auto Print tidak berarti silent/background printing; kontrol printer/browser tetap berlaku. Receipt tidak memuat nomor tiket, antrean, tracking code, atau public record ID.
 
 Setelah submit:
 
