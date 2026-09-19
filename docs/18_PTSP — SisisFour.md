@@ -175,13 +175,18 @@ Contract cetak G3.6B:
 media                   = thermal 80 mm
 manual print            = selalu tersedia setelah submit sukses
 auto print              = configurable ON/OFF
-setting key             = ptsp_layanan_auto_print
-setting location        = Settings -> Setting Sistem
-default                 = OFF
-auto print behavior     = membuka dialog print browser setelah submit sukses
+setting key auto print       = ptsp_layanan_auto_print
+setting key auto PDF         = ptsp_layanan_auto_download_pdf
+setting location             = Settings -> Setting Sistem
+default                      = keduanya OFF
+Auto Print ON                = membuka dialog print browser setelah submit sukses
+Auto Print OFF + Auto PDF ON = otomatis download PDF thermal lebar 80 mm
+keduanya OFF                 = hanya tombol Cetak Bukti manual
 ```
 
-Auto Print tidak berarti silent/background printing; kontrol printer/browser tetap berlaku. Receipt tidak memuat nomor tiket, antrean, tracking code, atau public record ID.
+Prioritas mode: Auto Print menang bila kedua setting ON. Auto Print tidak berarti silent/background printing; kontrol printer/browser tetap berlaku.
+
+PDF auto-download dibuat langsung dari receipt payload submit yang tervalidasi menggunakan Dompdf existing. PDF tidak memakai public lookup route, ticket, antrean, tracking code, atau public record ID. Lebar media PDF = 80 mm; tinggi mengikuti kebutuhan isi receipt.
 
 Setelah submit:
 
