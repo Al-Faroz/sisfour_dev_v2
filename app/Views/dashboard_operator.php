@@ -9,9 +9,9 @@ $kartu = $widgets['kartu'] ?? [];
 $tahun = $widgets['tahun_aktif'] ?? [];
 ?>
 
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
-  <div><h4 class="mb-1">Dashboard Operator</h4><p class="text-muted mb-0">Prioritas operasional harian madrasah.</p></div>
-  <div class="d-flex flex-wrap gap-2 justify-content-end">
+<div class="sisfour-page-header">
+  <div class="sisfour-page-header__copy"><h4 class="mb-1">Dashboard Operator</h4><p class="text-muted mb-0">Prioritas operasional harian madrasah.</p></div>
+  <div class="sisfour-page-actions">
     <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
       <i class="bx bx-tv me-1"></i>EWS Signage
     </a>
@@ -47,8 +47,63 @@ $tahun = $widgets['tahun_aktif'] ?? [];
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-5"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Tren Presensi 7 Hari</h5></div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Tanggal</th><th>% Hadir</th></tr></thead><tbody><?php foreach (($widgets['tren_presensi'] ?? []) as $row): ?><tr><td><?= esc($row['tanggal']) ?></td><td><?= esc((string)$row['persen_hadir']) ?>%</td></tr><?php endforeach; ?></tbody></table></div></div></div>
-  <div class="col-lg-7"><div class="card h-100"><div class="card-header"><h5 class="mb-0">Aktivitas Terakhir</h5></div><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Waktu</th><th>Modul</th><th>Aksi</th></tr></thead><tbody><?php if(empty($widgets['aktivitas_terakhir'])): ?><tr><td colspan="3" class="text-center text-muted py-4">Belum ada aktivitas.</td></tr><?php else: foreach($widgets['aktivitas_terakhir'] as $log): ?><tr><td><?= esc($log['waktu']) ?></td><td><?= esc($log['modul']) ?></td><td><?= esc($log['aksi']) ?></td></tr><?php endforeach; endif; ?></tbody></table></div></div></div>
+  <div class="col-lg-5">
+    <div class="card sisfour-table-card h-100">
+      <div class="card-header"><h5 class="mb-0">Tren Presensi 7 Hari</h5></div>
+      <div class="d-md-none list-group list-group-flush">
+        <?php if (empty($widgets['tren_presensi'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada data tren.</div>
+        <?php else: foreach (($widgets['tren_presensi'] ?? []) as $row): ?>
+          <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+            <span class="min-w-0 text-wrap"><?= esc($row['tanggal']) ?></span>
+            <strong class="flex-shrink-0"><?= esc((string) $row['persen_hadir']) ?>%</strong>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+      <div class="d-none d-md-block table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Tanggal</th><th>% Hadir</th></tr></thead>
+          <tbody>
+            <?php if (empty($widgets['tren_presensi'])): ?>
+              <tr class="sisfour-empty-row"><td colspan="2" class="text-muted">Belum ada data tren.</td></tr>
+            <?php else: foreach (($widgets['tren_presensi'] ?? []) as $row): ?>
+              <tr><td><?= esc($row['tanggal']) ?></td><td><?= esc((string) $row['persen_hadir']) ?>%</td></tr>
+            <?php endforeach; endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card sisfour-table-card h-100">
+      <div class="card-header"><h5 class="mb-0">Aktivitas Terakhir</h5></div>
+      <div class="d-md-none list-group list-group-flush">
+        <?php if (empty($widgets['aktivitas_terakhir'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada aktivitas.</div>
+        <?php else: foreach ($widgets['aktivitas_terakhir'] as $log): ?>
+          <div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+              <strong class="min-w-0 text-wrap"><?= esc($log['modul']) ?></strong>
+              <small class="text-muted flex-shrink-0"><?= esc($log['waktu']) ?></small>
+            </div>
+            <div class="small fw-semibold text-wrap"><?= esc($log['aksi']) ?></div>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+      <div class="d-none d-md-block table-responsive">
+        <table class="table table-sm mb-0">
+          <thead><tr><th>Waktu</th><th>Modul</th><th>Aksi</th></tr></thead>
+          <tbody>
+            <?php if (empty($widgets['aktivitas_terakhir'])): ?>
+              <tr><td colspan="3" class="text-center text-muted py-4">Belum ada aktivitas.</td></tr>
+            <?php else: foreach ($widgets['aktivitas_terakhir'] as $log): ?>
+              <tr><td><?= esc($log['waktu']) ?></td><td><?= esc($log['modul']) ?></td><td><?= esc($log['aksi']) ?></td></tr>
+            <?php endforeach; endif; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?= $this->endSection() ?>
