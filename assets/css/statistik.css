@@ -1,0 +1,50 @@
+.statistik-section-title {
+    margin-bottom: .75rem;
+}
+
+.statistik-section-title h5 {
+    margin: 0;
+    font-weight: 700;
+}
+
+.statistik-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.statistik-chart {
+    min-height: 285px;
+}
+
+.statistik-chart--compact {
+    min-height: 220px;
+}
+
+.statistik-chart--wide {
+    min-height: 320px;
+}
+
+#statistikApp .card {
+    overflow: hidden;
+}
+
+#statistikApp .apexcharts-canvas {
+    max-width: 100%;
+}
+
+#statistikApp .apexcharts-xaxis-label,
+#statistikApp .apexcharts-yaxis-label {
+    font-size: 11px;
+}
+
+@media (max-width: 767.98px) {
+    .statistik-chart,
+    .statistik-chart--wide {
+        min-height: 260px;
+    }
+
+    .statistik-chart--compact {
+        min-height: 210px;
+    }
+}
