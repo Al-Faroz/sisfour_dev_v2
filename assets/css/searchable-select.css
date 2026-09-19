@@ -1,9 +1,13 @@
 .sisfour-searchable {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sisfour-searchable__input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sisfour-searchable__dropdown {
@@ -12,8 +16,11 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  max-height: 280px;
+  max-width: 100%;
+  max-height: min(280px, 45dvh);
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--bs-body-bg, #fff);
   border: 1px solid var(--bs-border-color, #d9dee3);
   border-radius: .375rem;
@@ -27,7 +34,9 @@
   border-bottom: 1px solid rgba(0, 0, 0, .05);
   background: transparent;
   text-align: left;
+  min-height: 40px;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .sisfour-searchable__item:last-child {
@@ -55,4 +64,20 @@
   clip: rect(0, 0, 0, 0) !important;
   white-space: nowrap !important;
   border: 0 !important;
+}
+
+
+@media (max-width: 575.98px) {
+  .sisfour-searchable__dropdown {
+    max-height: min(
+      240px,
+      calc(var(--sisfour-visual-viewport-height, 100dvh) * 0.42)
+    );
+  }
+
+  .sisfour-searchable__item {
+    min-height: 44px;
+    padding-top: .65rem;
+    padding-bottom: .65rem;
+  }
 }
