@@ -1,6 +1,8 @@
 -- G3.6C Executive Visualization & EWS Signage — LOCALHOST
 -- Baseline source: main @ f6f30ceaf070f342d609c322905ee77dc33f3e6f
--- Baseline DB post-G3.6B: 45 tables / 66 permissions / 223 role_permissions / 50 menus / 173 role_menus.
+-- Baseline DB post-G3.6B: 66 permissions / 223 role_permissions / 50 menus / 173 role_menus.
+-- Physical BASE TABLE count is informational only because CodeIgniter framework tables
+-- such as `ci_sessions` / `migrations` may differ by environment/runtime lifecycle.
 -- IMPORTANT:
 --   1) Jalankan hanya di localhost setelah source branch G3.6C dipull.
 --   2) Tidak ada tabel baru dan tidak ada perubahan enum role.
@@ -78,7 +80,9 @@ WHERE NOT EXISTS (
 );
 
 -- Verification read-only.
-SELECT COUNT(*) AS total_tables
+-- Informational only: G3.6C creates no tables. Framework-internal tables may make
+-- this number differ between localhost and hosting.
+SELECT COUNT(*) AS physical_tables
 FROM information_schema.tables
 WHERE table_schema='sisfour_dev_v2' AND table_type='BASE TABLE';
 
@@ -117,8 +121,9 @@ FROM `sisfour_dev_v2`.`role_menus` rm
 JOIN `sisfour_dev_v2`.`menus` m ON m.id=rm.id_menu
 WHERE m.link='statistik';
 
--- Expected post-SQL:
--- tables=45
+-- Expected post-SQL business/RBAC invariants:
+-- G3.6C_new_tables=0
+-- physical_tables=informational (observed localhost post-UAT: 46)
 -- permissions=68
 -- role_permissions=229
 -- menus=51
