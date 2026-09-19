@@ -225,7 +225,7 @@
                                     <div class="flex-grow-1">
                                         <div class="d-flex align-items-center justify-content-between gap-2">
                                             <h6 class="mb-1">JPG Per Kelas</h6>
-                                            <span class="badge bg-label-dark">Admin</span>
+                                            <span class="badge bg-label-secondary">Admin</span>
                                         </div>
                                         <p class="mb-0">Satu JPG sisi depan per siswa, otomatis dikemas dalam ZIP.</p>
                                     </div>
