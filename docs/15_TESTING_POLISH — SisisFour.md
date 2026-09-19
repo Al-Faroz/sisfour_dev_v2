@@ -510,9 +510,11 @@ G3.6B kiosk/auto-print re-smoke PASS / user runtime evidence on prior head
 G3.6B PDF auto-download re-smoke PASS / user runtime evidence on prior head
 G3.6B compact receipt re-smoke     PASS / user runtime evidence
 G3.6B remaining runtime UAT         PASS ALL / user runtime evidence
-G3.6B API settings card re-smoke    PENDING
-G3.6B post-SQL local dump     PENDING
-G3.6B hosting                 NOT AUTHORIZED
+G3.6B API settings card re-smoke    PASS / user runtime evidence
+G3.6B post-SQL local dump            PASS / read-only dump audit
+G3.6B fresh hosting dump             PASS / read-only dump audit
+G3.6B hosting SQL                    PREPARED / static audited
+G3.6B hosting execution              NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
 Merge                         NOT AUTHORIZED
 ```
