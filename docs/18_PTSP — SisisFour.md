@@ -188,6 +188,13 @@ Prioritas mode: Auto Print menang bila kedua setting ON. Auto Print tidak berart
 
 PDF auto-download dibuat langsung dari receipt payload submit yang tervalidasi menggunakan Dompdf existing. PDF tidak memakai public lookup route, ticket, antrean, tracking code, atau public record ID. Lebar media PDF = 80 mm; tinggi mengikuti kebutuhan isi receipt.
 
+Presentation receipt **LOCKED refinement**:
+- layout dibuat compact seperti struk thermal;
+- label dan nilai menggunakan baris yang sama bila ruang memungkinkan;
+- spacing antarbaris, separator, dan footer diminimalkan;
+- receipt normal wajib muat satu halaman PDF 80 mm;
+- isi yang sangat panjang boleh menambah tinggi media agar tidak terpotong.
+
 Setelah submit:
 
 ```text
