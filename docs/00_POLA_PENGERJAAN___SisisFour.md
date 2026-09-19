@@ -823,8 +823,9 @@ Current gate:
 SSOT lock                        PASS / user approval
 branch                           feat/g3-7-global-mobile-sweep-20260919
 baseline main                    f82a0299c8989da6c1026d84861f3e95d786f7dd
-source implementation            NOT STARTED
-static gate                      PENDING
+source implementation            IN PROGRESS / Wave 1 implemented
+Wave 1 GitHub diff audit         PASS / GitHub read evidence
+Wave 1 static gate               PENDING
 local viewport/runtime UAT       PENDING
 cross-role regression            PENDING
 hosting source deployment        NOT AUTHORIZED
