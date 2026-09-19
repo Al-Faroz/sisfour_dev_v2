@@ -189,6 +189,9 @@
                     </td>
                 </tr>
             `;
+            if (mobileList) {
+                mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data Siswa pada filter ini.</div>';
+            }
             return;
         }
 
@@ -209,7 +212,7 @@
                 ? `
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-primary btn-edit"
+                        class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit"
                         data-id="${siswa.id}"
                         title="Edit biodata"
                     >
@@ -222,7 +225,7 @@
                 ? `
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-danger btn-delete"
+                        class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete"
                         data-id="${siswa.id}"
                         title="Pindahkan ke Recycle Bin"
                     >
@@ -277,6 +280,34 @@
                 </tr>
             `;
         }).join('');
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((siswa) => {
+                const kelas = siswa.nama_kelas_aktif
+                    ? `<span class="badge bg-label-primary">${escapeHtml(siswa.nama_kelas_aktif)}</span>`
+                    : '<span class="badge bg-label-warning">Belum Ada Kelas</span>';
+                const editButton = canEdit
+                    ? `<button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit" data-id="${siswa.id}">Edit</button>`
+                    : '';
+                const deleteButton = canManage
+                    ? `<button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete" data-id="${siswa.id}">Hapus</button>`
+                    : '';
+
+                return `<div class="list-group-item py-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(siswa.nama)}</div>
+                            <div class="small text-muted sisfour-wrap-anywhere">${escapeHtml(siswa.tempat_lahir || '-')} · ${siswa.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                        </div>
+                        ${statusBadge(siswa.status_aktif)}
+                    </div>
+                    <div class="small mt-2 font-monospace sisfour-wrap-anywhere">NIK ${escapeHtml(siswa.nik)} · NISN ${escapeHtml(siswa.nisn)}</div>
+                    <div class="small mt-2">${kelas}</div>
+                    <div class="small text-muted mt-1 sisfour-wrap-anywhere">${siswa.no_telepon ? escapeHtml(siswa.no_telepon) : '-'}</div>
+                    ${(canEdit || canManage) ? `<div class="sisfour-mobile-actions mt-3">${editButton}${deleteButton}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
     };
 
     const loadData = async () => {
@@ -290,6 +321,9 @@
                 </td>
             </tr>
         `;
+        if (mobileList) {
+            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
+        }
 
         try {
             const params = filterParams(true);
@@ -395,7 +429,9 @@
                     modalSiswa.show();
                 });
 
-            tbody.addEventListener('click', async (event) => {
+            [tbody, mobileList]
+                .filter(Boolean)
+                .forEach((container) => container.addEventListener('click', async (event) => {
                 const editButton = event.target.closest('.btn-edit');
                 const deleteButton = event.target.closest('.btn-delete');
 
@@ -486,7 +522,7 @@
                         showError(error);
                     }
                 }
-            });
+            }));
 
             formSiswa.addEventListener(
                 'submit',
