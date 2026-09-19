@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.7 — Global Mobile Sweep
+**Development aktif:** G3.7 — Global Mobile Sweep / local gate PASS
 **Branch aktif:** `feat/g3-7-global-mobile-sweep-20260919`
 **Baseline `main`:** setelah merge PR #15 / G3.6C (`f82a0299c8989da6c1026d84861f3e95d786f7dd`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
@@ -363,7 +363,7 @@ G3.6 Siswa                 CLOSED / MERGED — PR #12
 G3.6A UKS / Kesehatan      CLOSED / MERGED — PR #13
 G3.6B PTSP                 CLOSED / MERGED — PR #14
 G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
-G3.7 Global mobile sweep   ACTIVE
+G3.7 Global mobile sweep   LOCAL GATE PASS / PRE-DEPLOY
 G3.8 Viewport/WebView readiness
 G4 Cordova APK
 ```
@@ -823,37 +823,40 @@ Current gate:
 SSOT lock                        PASS / user approval
 branch                           feat/g3-7-global-mobile-sweep-20260919
 baseline main                    f82a0299c8989da6c1026d84861f3e95d786f7dd
-source implementation            IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 + Wave 6 + Wave 7A + Wave 7B implemented
+runtime source head              00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+source implementation            IMPLEMENTED / Wave 1–7B complete
 Wave 1 GitHub diff audit         PASS / GitHub read evidence
 Wave 1 static gate               PASS / user terminal evidence
-Wave 1 runtime UAT               PARTIAL / overflow @720px PASS
+Wave 1 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
 Wave 2 GitHub diff audit         PASS / GitHub read evidence
-Wave 2 static gate               PENDING
-Wave 2 dashboard runtime UAT     PENDING
+Wave 2 static gate               PASS / user terminal evidence
+Wave 2 dashboard runtime UAT     PASS / user runtime evidence via Wave 8 full regression
 Wave 3 GitHub diff audit         PASS / GitHub read evidence
-Wave 3 static gate               PENDING
-Wave 3 runtime UAT               PENDING
+Wave 3 static gate               PASS / user terminal evidence
+Wave 3 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
 Wave 4 GitHub diff audit         PASS / GitHub read evidence
-Wave 4 static gate               PENDING
-Wave 4 runtime UAT               PENDING
+Wave 4 static gate               PASS / user terminal evidence
+Wave 4 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
 Wave 5 GitHub diff audit         PASS / GitHub read evidence
-Wave 5 static gate               PENDING
-Wave 5 runtime UAT               PENDING
+Wave 5 static gate               PASS / user terminal evidence
+Wave 5 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
 Wave 6 GitHub diff audit         PASS / GitHub read evidence
-Wave 6 static gate               PENDING
-Wave 6 runtime UAT               PENDING
+Wave 6 static gate               PASS / user terminal evidence
+Wave 6 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
 Wave 7A GitHub diff audit        PASS / GitHub read evidence
-Wave 7A static gate              PENDING
-Wave 7A runtime UAT              PENDING
+Wave 7A static gate              PASS / user terminal evidence
+Wave 7A runtime UAT              PASS / user runtime evidence via Wave 8 full regression
 Wave 7B GitHub diff audit        PASS / GitHub read evidence
-Wave 7B static gate              PENDING
-Wave 7B runtime UAT              PENDING
-Settings Menu mobile             DOCUMENTED MATRIX EXCEPTION / UAT REQUIRED
-Kenaikan bulk mobile             DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
-Kelulusan bulk mobile            DOCUMENTED LOCAL-SCROLL EXCEPTION / UAT REQUIRED
-Matrix Presensi mobile           CANDIDATE EXCEPTION / UAT REQUIRED
-local viewport/runtime UAT       PARTIAL
-cross-role regression            PENDING
+Wave 7B static gate              PASS / user terminal evidence
+Wave 7B runtime UAT              PASS / user runtime evidence via Wave 8 full regression
+Wave 8 full viewport regression  PASS / user runtime evidence
+Settings Menu mobile             PASS / user runtime evidence — documented matrix exception
+Kenaikan bulk mobile             PASS / user runtime evidence — documented local-scroll exception
+Kelulusan bulk mobile            PASS / user runtime evidence — documented local-scroll exception
+Matrix Presensi mobile           PASS / user runtime evidence — local-scroll exception
+local viewport/runtime UAT       PASS / user runtime evidence
+cross-role regression            PASS / user runtime evidence
+local G3.7 gate                  PASS ALL
 hosting source deployment        NOT AUTHORIZED
 hosting runtime smoke            PENDING
 PR Ready                         NOT AUTHORIZED
