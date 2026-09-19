@@ -7,6 +7,7 @@
 <?php
 $type = (string) ($formType ?? '');
 $autoPrint = (string) ($systemSettings['ptsp_layanan_auto_print'] ?? '0') === '1';
+$autoDownloadPdf = (string) ($systemSettings['ptsp_layanan_auto_download_pdf'] ?? '0') === '1';
 ?>
 <main class="container py-4 py-md-5">
     <div
@@ -15,6 +16,7 @@ $autoPrint = (string) ($systemSettings['ptsp_layanan_auto_print'] ?? '0') === '1
         data-base-url="<?= esc(base_url()) ?>"
         data-form-type="<?= esc($type) ?>"
         data-auto-print="<?= $autoPrint ? '1' : '0' ?>"
+        data-auto-download-pdf="<?= $autoDownloadPdf ? '1' : '0' ?>"
     >
         <div class="d-flex align-items-center justify-content-between gap-3 mb-4">
             <a class="btn btn-outline-secondary" href="<?= esc(base_url('ptsp')) ?>">
