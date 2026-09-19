@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage + Kartu JPG ZIP add-on / production gate PASS ALL; PR #15 tetap Draft**
+**Phase aktif:** G3.7 — **Global Mobile Sweep / SSOT locked; implementation pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -31,6 +31,7 @@ G3.5   CLOSED / MERGED — PR #11
 G3.6   CLOSED / MERGED — PR #12
 G3.6A  CLOSED / MERGED — PR #13
 G3.6B  CLOSED / MERGED — PR #14
+G3.6C  CLOSED / MERGED — PR #15
 ```
 
 ## 3. Global UI/UX Regression
@@ -421,9 +422,17 @@ G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
 G3.6A                               CLOSED / MERGED — PR #13
 G3.6B                               CLOSED / MERGED — PR #14
-G3.6C production gate               PASS ALL
-Kartu JPG ZIP add-on                PASS ALL
-PR #15                              OPEN / DRAFT
+G3.6C                               CLOSED / MERGED — PR #15
+G3.6C merge commit                  f82a0299c8989da6c1026d84861f3e95d786f7dd
+Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
+
+G3.7 contract                       LOCKED / user approval
+G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
+G3.7 source                         NOT STARTED
+G3.7 static gate                    PENDING
+G3.7 local viewport/runtime UAT     PENDING
+G3.7 cross-role regression          PENDING
+G3.7 hosting deployment             NOT AUTHORIZED
 PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
@@ -433,8 +442,8 @@ Merge                               NOT AUTHORIZED
 ```text
 G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
 G3.6B  PTSP                  CLOSED / MERGED — PR #14
-G3.6C  Executive Viz/Signage PRODUCTION GATE PASS / PR #15 DRAFT
-G3.7   Global Mobile Sweep   NEXT AFTER G3.6C CLOSE
+G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
+G3.7   Global Mobile Sweep   ACTIVE
 G3.8   WebView Readiness
 G4     Cordova APK
 ```
@@ -615,9 +624,10 @@ G3.6C post-SQL hosting dump      PASS / read-only dump audit
 G3.6C hosting source deployment  PASS / user evidence
 G3.6C hosting runtime smoke      PASS / user runtime evidence
 G3.6C production gate            PASS ALL
-PR #15                           OPEN / DRAFT
-PR Ready                         NOT AUTHORIZED
-Merge                            NOT AUTHORIZED
+PR #15                           CLOSED / MERGED
+PR Ready                         PASS / user approval
+Merge                            PASS / user approval
+merge commit                     f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
 
 
@@ -683,6 +693,84 @@ UI visual/mobile re-smoke         PASS / user runtime evidence
 Hosting redeploy add-on           PASS / user evidence
 Hosting runtime smoke             PASS / user runtime evidence
 Add-on gate                       PASS ALL
-PR Ready                          NOT AUTHORIZED
-Merge                             NOT AUTHORIZED
+PR #15                            CLOSED / MERGED
+PR Ready                          PASS / user approval
+Merge                             PASS / user approval
+merge commit                      f82a0299c8989da6c1026d84861f3e95d786f7dd
+```
+
+
+## 22. G3.7 — Global Mobile Sweep Gate
+
+G3.7 tidak mempunyai SQL/schema/RBAC delta.
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.7
+node --check seluruh JS changed G3.7
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Viewport minimum:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Role/runtime matrix minimum:
+
+```text
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
+Siswa
+Kesehatan
+PTSP
+Public PTSP
+```
+
+Acceptance:
+
+```text
+no body/document horizontal overflow
+no table horizontal scroll role operasional
+mobile primary information tetap lengkap secara fungsional
+action tidak clipped
+touch target utama nyaman
+filter mobile stack/compact
+modal/form keyboard-safe
+pager usable
+chart/card/list tidak keluar viewport
+desktop/tablet regression PASS
+RBAC/scope/period/privacy unchanged
+expected DENY tetap DENY
+no uncaught browser error
+```
+
+Heavy administrative matrix Admin/Operator dapat menjadi exception hanya jika dua dimensi tidak dapat direduksi tanpa kehilangan fungsi; setiap exception wajib dicatat eksplisit pada UAT.
+
+Current gate:
+
+```text
+SSOT lock                     PASS / user approval
+source implementation         NOT STARTED
+static gate                   PENDING
+local viewport/runtime UAT    PENDING
+cross-role regression         PENDING
+hosting source deployment     NOT AUTHORIZED
+hosting runtime smoke         PENDING
+PR Ready                      NOT AUTHORIZED
+Merge                         NOT AUTHORIZED
 ```
