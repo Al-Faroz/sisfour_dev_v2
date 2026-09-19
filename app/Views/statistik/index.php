@@ -199,6 +199,26 @@ $initialJson = json_encode(
             <div class="row g-3">
                 <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Pelanggaran</h6><span class="badge bg-label-warning"><span id="disciplineTotal">0</span> catatan</span></div><div class="card-body"><div id="chartDiscipline" class="statistik-chart"></div><div id="chartDisciplineTrend" class="statistik-chart statistik-chart--compact"></div><small class="text-muted">Berdasarkan jumlah catatan/kategori, tanpa poin.</small></div></div></div>
                 <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Prestasi</h6><span class="badge bg-label-success"><span id="achievementTotal">0</span> data</span></div><div class="card-body"><div id="chartAchievement" class="statistik-chart"></div><div id="chartAchievementTrend" class="statistik-chart statistik-chart--compact"></div></div></div></div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                            <div>
+                                <h6 class="mb-0">Konseling BK — Aggregate Confidential</h6>
+                                <small class="text-muted">Statistik sekolah; filter Tingkat/Kelas tidak diterapkan untuk mencegah drill-down individual.</small>
+                            </div>
+                            <span class="badge bg-label-primary"><span id="counselingTotal">0</span> konseling</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-lg-4"><div id="chartCounselingStatus" class="statistik-chart"></div></div>
+                                <div class="col-lg-4"><div id="chartCounselingFields" class="statistik-chart"></div></div>
+                                <div class="col-lg-4"><div id="chartCounselingTrend" class="statistik-chart"></div></div>
+                            </div>
+                            <small class="text-muted">Tidak menampilkan nama siswa, topik, catatan, Guru BK, tindak lanjut, atau jadwal individual.</small>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -231,7 +251,7 @@ $initialJson = json_encode(
 
         <div class="alert alert-secondary mb-0">
             <i class="bx bx-shield-quarter me-1"></i>
-            Konseling BK tidak termasuk halaman Statistik. UKS dan PTSP hanya ditampilkan sebagai agregat.
+            Konseling BK, UKS, dan PTSP hanya ditampilkan sebagai agregat; tidak ada detail individual.
         </div>
 
         <script type="application/json" id="statistikInitialData"><?= $initialJson ?: '{}' ?></script>
