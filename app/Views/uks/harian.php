@@ -14,7 +14,7 @@ $refs = $initial['refs'] ?? ['keluhan' => [], 'tindakan' => [], 'hasil' => []];
             <h4 class="fw-bold mb-1">Catatan Harian UKS</h4>
             <p class="text-muted mb-0">Satu kunjungan siswa = satu catatan UKS.</p>
         </div>
-        <?php if ($canManage): ?><div class="sisfour-page-actions"><button class="btn btn-primary" id="btnHarianBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Kunjungan</button></div><?php endif; ?>
+        <?php if ($canManage): ?><div class="sisfour-page-actions"><button class="btn btn-primary sisfour-touch-target" id="btnHarianBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Kunjungan</button></div><?php endif; ?>
     </div>
 
     <?php if (empty($initial['success'])): ?>
@@ -29,14 +29,14 @@ $refs = $initial['refs'] ?? ['keluhan' => [], 'tindakan' => [], 'hasil' => []];
                 <div class="col-6 col-md-3"><label class="form-label" for="harianSelesai">Sampai</label><input id="harianSelesai" type="date" class="form-control"></div>
                 <div class="col-6 col-md-3"><label class="form-label" for="harianKeluhan">Keluhan</label><select id="harianKeluhan" class="form-select" data-searchable-off="1"><option value="">Semua</option><?php foreach (($refs['keluhan'] ?? []) as $row): ?><option value="<?= (int) $row['id'] ?>"><?= esc($row['nama']) ?></option><?php endforeach; ?></select></div>
                 <div class="col-6 col-md-3"><label class="form-label" for="harianHasil">Hasil</label><select id="harianHasil" class="form-select" data-searchable-off="1"><option value="">Semua</option><?php foreach (($refs['hasil'] ?? []) as $row): ?><option value="<?= (int) $row['id'] ?>"><?= esc($row['nama']) ?></option><?php endforeach; ?></select></div>
-                <div class="col-12"><div class="sisfour-filter-actions justify-content-md-end"><button id="btnHarianReset" class="btn btn-outline-secondary" type="button"><i class="bx bx-reset me-1"></i> Reset</button><button id="btnHarianCari" class="btn btn-primary" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button></div></div>
+                <div class="col-12"><div class="sisfour-filter-actions justify-content-md-end"><button id="btnHarianReset" class="btn btn-outline-secondary sisfour-touch-target--compact" type="button"><i class="bx bx-reset me-1"></i> Reset</button><button id="btnHarianCari" class="btn btn-primary sisfour-primary-action" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button></div></div>
             <?php endif; ?>
         </div></div></div>
 
         <div id="harianAlert" class="alert d-none"></div>
 
         <div class="card sisfour-table-card">
-            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"><h5 class="mb-0">Riwayat Kunjungan</h5><?php if ($canExport): ?><a href="#" id="btnHarianExport" class="btn btn-sm btn-outline-primary"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?></div>
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2"><h5 class="mb-0">Riwayat Kunjungan</h5><?php if ($canExport): ?><a href="#" id="btnHarianExport" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?></div>
             <div id="harianMobileList" class="d-md-none list-group list-group-flush"></div>
             <div class="d-none d-md-block table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Waktu</th><th>Siswa</th><th>Keluhan</th><th>Tindakan</th><th>Hasil</th><th>Petugas</th><?php if ($canManage): ?><th>Aksi</th><?php endif; ?></tr></thead><tbody id="harianBody"></tbody></table></div>
             <div class="card-footer"><div id="uksHarianPager"></div></div>
@@ -44,7 +44,7 @@ $refs = $initial['refs'] ?? ['keluhan' => [], 'tindakan' => [], 'hasil' => []];
 
         <?php if ($canManage): ?>
         <div class="modal fade" id="modalHarian" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form class="modal-content" id="formHarian">
                     <div class="modal-header"><h5 class="modal-title" id="judulModalHarian">Catatan UKS</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                     <div class="modal-body">
