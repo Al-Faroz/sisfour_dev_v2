@@ -381,7 +381,7 @@ Untuk G3.3.1 rework, baseline hosting smoke lama tidak menutup perubahan 17 Sept
 ```text
 G2   = stabilization
 G3.1–G3.6C = role/domain mobile foundations + feature delivery
-G3.7 = Global Mobile Sweep — ACTIVE
+G3.7 = Global Mobile Sweep — LOCAL GATE PASS / PRE-DEPLOY
 G3.8 = Viewport/WebView Readiness
 G4   = Cordova APK packaging/integration
 ```
@@ -436,3 +436,20 @@ desktop/tablet tidak regression
 ```
 
 Catatan: `overflow-x:hidden` pada body bukan bukti masalah selesai. UAT harus mengecek elemen penyebab overflow dan lebar dokumen aktual.
+
+Closure local G3.7:
+
+```text
+runtime source head              = 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+static Wave 1–7B                = PASS / user terminal evidence
+full viewport regression         = PASS / user runtime evidence
+360/375/390/412 mobile sweep     = PASS / user runtime evidence
+768×1024 / 1024×768 tablet       = PASS / user runtime evidence
+1366×768 desktop regression      = PASS / user runtime evidence
+document/body overflow           = PASS / user runtime evidence
+documented local-scroll surfaces = PASS / user runtime evidence
+hosting                          = NOT AUTHORIZED
+PR Ready / Merge                 = NOT AUTHORIZED
+```
+
+Exception yang diterima pada UAT tetap exception terlokalisasi: Settings Menu matrix, bulk selection Kenaikan/Kelulusan, Matrix Presensi, dan fixed physical Kartu preview. Exception tidak mengizinkan body/document overflow.
