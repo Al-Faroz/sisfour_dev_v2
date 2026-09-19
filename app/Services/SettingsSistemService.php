@@ -46,6 +46,7 @@ class SettingsSistemService
         $lng = trim((string) ($input['longitude_sekolah'] ?? ''));
         $radius = trim((string) ($input['radius_geofencing'] ?? ''));
         $geofence = $this->boolValue($input['geofencing_aktif'] ?? '0');
+        $ptspAutoPrint = $this->boolValue($input['ptsp_layanan_auto_print'] ?? '0');
         $nama = trim((string) ($input['nama_sekolah'] ?? ''));
         $alamat = trim((string) ($input['alamat_sekolah'] ?? ''));
         $message = trim((string) ($input['maintenance_message'] ?? ''));
@@ -78,6 +79,7 @@ class SettingsSistemService
             'nama_sekolah' => [$nama, 'string'],
             'alamat_sekolah' => [$alamat, 'string'],
             'maintenance_message' => [$message, 'string'],
+            'ptsp_layanan_auto_print' => [$ptspAutoPrint ? '1' : '0', 'boolean'],
         ]);
 
         $this->clearCache();
