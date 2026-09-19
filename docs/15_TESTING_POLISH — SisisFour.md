@@ -679,7 +679,7 @@ Gate add-on:
 
 ```text
 Contract                          LOCKED / user decision
-Source                            IMPLEMENTATION IN PROGRESS
+Source                            IMPLEMENTED / feature branch
 DB / permission delta             NONE
 Static gate                       PENDING
 Local runtime UAT                 PENDING
