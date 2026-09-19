@@ -515,7 +515,7 @@ G3.6B post-SQL local dump            PASS / read-only dump audit
 G3.6B fresh hosting dump             PASS / read-only dump audit
 G3.6B hosting SQL                    PREPARED / static audited
 G3.6B hosting SQL execution          PASS / user evidence
-G3.6B post-SQL hosting dump audit    PENDING
+G3.6B post-SQL hosting dump audit    PASS / read-only dump audit
 G3.6B hosting source deployment      NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
 Merge                         NOT AUTHORIZED
