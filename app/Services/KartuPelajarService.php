@@ -390,7 +390,7 @@ class KartuPelajarService
                 'VALIDATION',
                 'Maksimum '
                 . self::MAX_PRINT
-                . ' kartu per file PDF. Cetak per kelas atau per pilihan.'
+                . ' kartu per proses cetak/export. Pilih satu kelas atau kurangi pilihan.'
             );
         }
 
