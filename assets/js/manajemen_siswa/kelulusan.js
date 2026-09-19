@@ -10,6 +10,7 @@
     const form = document.getElementById('formKelulusan');
     const tbody = document.getElementById('tbodyLulus');
     const alumniBody = document.getElementById('tbodyAlumni');
+    const alumniMobileList = document.getElementById('alumniMobileList');
 
     const endpoint = (path) =>
         `${baseUrl}/${path.replace(/^\/+/, '')}`;
@@ -123,7 +124,9 @@
         }
     });
 
-    alumniBody?.addEventListener('click', async (event) => {
+    [alumniBody, alumniMobileList]
+        .filter(Boolean)
+        .forEach((container) => container.addEventListener('click', async (event) => {
         const button = event.target.closest('.btn-restore-lulus');
         if (!button) return;
 
@@ -167,7 +170,7 @@
                 error.message || 'Restore siswa Lulus gagal.'
             );
         }
-    });
+    }));
 
     tbody.addEventListener('change', countSelected);
 
