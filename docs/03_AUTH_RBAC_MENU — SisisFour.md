@@ -196,10 +196,12 @@ Access Boundary Konseling:
 
 ```text
 Admin / Operator / BK = masuk domain sesuai permission
-Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses Konseling
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = TIDAK memiliki akses domain/detail Konseling
 ```
 
 Permission parent dan Tindak Lanjut Konseling 1:N mengikuti boundary yang sama.
+
+G3.6C exception: halaman Statistik boleh menampilkan aggregate school-wide Konseling kepada Admin/Operator/Pimpinan (total/status/bidang/tren) tanpa record/detail individual. Exception ini tidak memberi `bk_konseling.*` kepada Pimpinan dan tidak membuka menu/listing/detail/export Konseling.
 
 ## 12. UKS / Kesehatan — G3.6A RBAC
 
