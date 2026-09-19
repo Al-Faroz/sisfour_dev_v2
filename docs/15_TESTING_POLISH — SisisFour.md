@@ -475,6 +475,8 @@ Auto Print OFF + Auto PDF ON -> PDF bukti thermal 80mm otomatis terunduh
 Auto Print ON -> dialog print otomatis muncul dan Auto PDF tidak dijalankan
 PDF filename tidak memuat PII/public record ID
 PDF receipt tidak memuat ticket/antrian/tracking/public record ID
+PDF receipt normal 80mm muat 1 halaman
+jarak antarbaris compact dan footer tidak terdorong ke halaman kedua
 Public Polling submit berulang
 Public Pengaduan anonim + optional PDF/PNG/JPG/JPEG <= 5 MB
 attachment tidak dapat dibuka sebagai public URL
@@ -502,7 +504,8 @@ G3.6B localhost SQL           PREPARED
 G3.6B static gate             RE-RUN PENDING after kiosk/auto-print refinement
 G3.6B initial public UAT       PASS / user runtime evidence on prior head
 G3.6B kiosk/auto-print re-smoke PASS / user runtime evidence on prior head
-G3.6B PDF auto-download re-smoke PENDING
+G3.6B PDF auto-download re-smoke PASS / user runtime evidence on prior head
+G3.6B compact receipt re-smoke     PENDING
 G3.6B remaining runtime UAT    PENDING
 G3.6B post-SQL local dump     PENDING
 G3.6B hosting                 NOT AUTHORIZED
