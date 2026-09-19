@@ -428,10 +428,14 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
-G3.7 static gate                    PENDING
-G3.7 local viewport/runtime UAT     PENDING
+G3.7 Wave 1 static gate             PASS / user terminal evidence
+G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
+G3.7 Wave 2 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 2 static gate             PENDING
+G3.7 Wave 2 dashboard runtime UAT   PENDING
+G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
 G3.7 hosting deployment             NOT AUTHORIZED
 PR Ready                            NOT AUTHORIZED
@@ -766,10 +770,14 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
-static gate                   PENDING
-local viewport/runtime UAT    PENDING
+Wave 1 static gate            PASS / user terminal evidence
+Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
+Wave 2 GitHub diff audit      PASS / GitHub read evidence
+Wave 2 static gate            PENDING
+Wave 2 dashboard runtime UAT  PENDING
+local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
 hosting source deployment     NOT AUTHORIZED
 hosting runtime smoke         PENDING
@@ -822,3 +830,50 @@ SisfourLayoutDiagnostics.horizontalOverflowReport()
 ```
 
 Helper tersebut read-only dan tidak mengubah layout/business state.
+
+
+### Wave 2 — Dashboard Seluruh Role
+
+Audit seluruh dashboard dilakukan sebelum mutation.
+
+```text
+Pimpinan   = existing mobile-adaptive / regression-only
+Guru       = existing mobile-adaptive / regression-only
+Guru+Wali  = existing mobile-adaptive / regression-only
+Siswa      = existing mobile-adaptive / regression-only
+
+Admin      = mobile Tren + Aktivitas list; desktop table preserved
+Operator   = canonical page header + mobile Tren/Aktivitas list; desktop table preserved
+BK         = KPI 2×2 canonical + header/list wrap safety
+Kesehatan  = KPI 2×2 + primary/quick action + recent-list mobile safety
+PTSP       = KPI 2×2 + quick action + recent-list mobile safety
+```
+
+Changed runtime files:
+
+```text
+app/Views/dashboard_admin.php
+app/Views/dashboard_operator.php
+app/Views/dashboard_bk.php
+app/Views/dashboard_kesehatan.php
+app/Views/dashboard_ptsp.php
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / RBAC / scope         = unchanged
+dashboard payload            = unchanged
+KPI/query/business meaning   = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 2 implementation       IMPLEMENTED
+Wave 2 GitHub diff audit    PASS / GitHub read evidence
+Wave 2 static terminal gate PENDING
+Wave 2 dashboard runtime    PENDING
+```
