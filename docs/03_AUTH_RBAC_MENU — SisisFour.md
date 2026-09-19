@@ -1,8 +1,8 @@
 # Authentication, RBAC & Menu — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Application baseline:** `main` @ `90acc7f94fee391a5a7fbad2395e3f16571fe921` + G3.6B feature branch
+**Tanggal Acuan:** 19 September 2026
+**Application baseline:** `main` @ `f6f30ceaf070f342d609c322905ee77dc33f3e6f` + G3.6C feature branch
 
 > Authorization final ditentukan Route/Filter + Service. Menu/JS/View hanya presentation/navigation dan tidak menjadi security boundary.
 
@@ -339,10 +339,11 @@ Public PTSP surface diuji terpisah dari authenticated role matrix.
 Konseling G3.3.1     = CLOSED / MERGED — PR #9
 Dashboard Siswa G3.6 = CLOSED / MERGED — PR #12
 UKS/Kesehatan G3.6A  = CLOSED / MERGED — PR #13
-PTSP G3.6B            = source/schema/permission/menu/public API IMPLEMENTED ON FEATURE BRANCH; localhost SQL PENDING
+PTSP G3.6B            = CLOSED / MERGED — PR #14
+Statistik G3.6C       = IMPLEMENTED / feature branch; local gates PASS; hosting SQL PREPARED / NOT EXECUTED
 ```
 
-Tidak ada permission/menu/route UKS/PTSP yang dianggap tersedia hanya karena sudah tercatat pada dokumen target.
+Dokumentasi tidak membuat capability tersedia di suatu environment. Availability final tetap mengikuti source yang terpasang + state database environment tersebut.
 
 ## G3.6C — Statistik Access Boundary
 
