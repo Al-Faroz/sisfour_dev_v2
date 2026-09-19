@@ -441,6 +441,7 @@ Closure local G3.7:
 
 ```text
 runtime source head              = 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+feature head                     = 7fb760c0945b33c0739e7ef83b0cbeeabfc7b295
 static Wave 1–7B                = PASS / user terminal evidence
 full viewport regression         = PASS / user runtime evidence
 360/375/390/412 mobile sweep     = PASS / user runtime evidence
@@ -448,8 +449,13 @@ full viewport regression         = PASS / user runtime evidence
 1366×768 desktop regression      = PASS / user runtime evidence
 document/body overflow           = PASS / user runtime evidence
 documented local-scroll surfaces = PASS / user runtime evidence
-hosting                          = NOT AUTHORIZED
-PR Ready / Merge                 = NOT AUTHORIZED
+hosting source deployment        = PASS / user evidence
+hosting runtime smoke            = PASS / user runtime evidence
+production gate                  = PASS ALL
+PR #16                           = CLOSED / MERGED
+PR Ready                         = PASS / user approval
+Merge                            = PASS / user approval
+merge commit                     = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 ```
 
 Exception yang diterima pada UAT tetap exception terlokalisasi: Settings Menu matrix, bulk selection Kenaikan/Kelulusan, Matrix Presensi, dan fixed physical Kartu preview. Exception tidak mengizinkan body/document overflow.
