@@ -91,14 +91,18 @@
     top:0;
     width:80mm!important;
     box-sizing:border-box;
-    padding:4mm!important;
+    padding:3mm!important;
     margin:0!important;
     font-family:monospace;
-    font-size:11px;
-    line-height:1.35;
+    font-size:10px;
+    line-height:1.18;
     color:#000;
     background:#fff;
   }
+  #ptspReceipt .mb-1{margin-bottom:.7mm!important}
+  #ptspReceipt .mb-2{margin-bottom:.8mm!important}
+  #ptspReceipt hr{margin:1.4mm 0!important;border-top:.25mm dashed #000!important;opacity:1!important}
+  #ptspReceipt .small{font-size:9px!important;line-height:1.15!important;margin-top:.8mm!important}
   @page{
     size:80mm auto;
     margin:0;
