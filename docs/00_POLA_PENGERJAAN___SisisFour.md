@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.7 — Global Mobile Sweep / local gate PASS
-**Branch aktif:** `feat/g3-7-global-mobile-sweep-20260919`
-**Baseline `main`:** setelah merge PR #15 / G3.6C (`f82a0299c8989da6c1026d84861f3e95d786f7dd`)
+**Development aktif:** G3.8 — Viewport/WebView Readiness / SSOT locked
+**Branch aktif:** `feat/g3-8-webview-readiness-20260919`
+**Baseline `main`:** setelah merge PR #16 / G3.7 (`7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -363,8 +363,8 @@ G3.6 Siswa                 CLOSED / MERGED — PR #12
 G3.6A UKS / Kesehatan      CLOSED / MERGED — PR #13
 G3.6B PTSP                 CLOSED / MERGED — PR #14
 G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
-G3.7 Global mobile sweep   LOCAL GATE PASS / PRE-DEPLOY
-G3.8 Viewport/WebView readiness
+G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
+G3.8 Viewport/WebView readiness ACTIVE / SSOT LOCKED
 G4 Cordova APK
 ```
 
@@ -857,8 +857,89 @@ Matrix Presensi mobile           PASS / user runtime evidence — local-scroll e
 local viewport/runtime UAT       PASS / user runtime evidence
 cross-role regression            PASS / user runtime evidence
 local G3.7 gate                  PASS ALL
-hosting source deployment        NOT AUTHORIZED
-hosting runtime smoke            PENDING
-PR Ready                         NOT AUTHORIZED
-Merge                            NOT AUTHORIZED
+hosting source deployment        PASS / user evidence
+hosting runtime smoke            PASS / user runtime evidence
+production gate                  PASS ALL
+PR #16                           CLOSED / MERGED
+PR Ready                         PASS / user approval
+Merge                            PASS / user approval
+feature head                     7fb760c0945b33c0739e7ef83b0cbeeabfc7b295
+merge commit                     7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+```
+
+
+## 18. G3.8 — Viewport/WebView Readiness
+
+Baseline:
+
+```text
+main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+branch = feat/g3-8-webview-readiness-20260919
+G3.7  = CLOSED / MERGED — PR #16
+```
+
+G3.8 adalah readiness phase pada source Web sebelum project/plugin Cordova dibuat di G4.
+
+Contract locked:
+
+```text
+Use Case           = memastikan Web SisisFour siap dibungkus WebView tanpa mengubah domain bisnis
+Access Boundary    = TIDAK BERUBAH
+Capability / Scope = TIDAK BERUBAH
+Period Context     = TIDAK BERUBAH
+Business Invariant = TIDAK BERUBAH
+Persistence        = NONE
+DB / schema / SQL  = NONE
+Route / menu       = unchanged kecuali kebutuhan nyata terpisah mendapat approval
+Service boundary   = authoritative server boundary tetap
+Presentation UI    = Web/WebView-compatible readiness pada source existing
+Output channel     = browser desktop/mobile + WebView-compatible Web source
+Cordova project    = OUT OF SCOPE / G4
+plugin/native API  = OUT OF SCOPE / G4
+APK/signing        = OUT OF SCOPE / G4
+```
+
+Readiness focus:
+
+```text
+viewport-fit + safe-area consistency
+short-height / landscape viewport
+visualViewport + soft keyboard
+modal/SearchableSelect keyboard containment
+same-origin Fetch session-expiry recovery
+network failure tidak menjadi sukses palsu
+browser file input / download / export audit
+internal vs external navigation audit
+login/logout/redirect continuity
+no Cordova/native dependency pada source Web
+G3.7 responsive/RBAC/privacy regression tetap intact
+```
+
+Boundary G4 yang tidak boleh dimajukan ke G3.8:
+
+```text
+Cordova project/config
+deviceready
+native Android Back handling
+native geolocation permission
+native download/open/share bridge
+external-browser/app intent bridge
+status-bar/edge-to-edge native config
+keystore/signing/distribution
+real APK multi-device gate
+```
+
+Gate awal:
+
+```text
+SSOT lock                  PASS / user approval
+branch                     feat/g3-8-webview-readiness-20260919
+baseline main              7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+read-only readiness audit  PASS / GitHub read evidence
+source implementation      NOT STARTED
+static gate                PENDING
+runtime readiness UAT      PENDING
+hosting deployment         NOT AUTHORIZED
+PR Ready                   NOT AUTHORIZED
+Merge                      NOT AUTHORIZED
 ```
