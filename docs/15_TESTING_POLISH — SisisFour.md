@@ -574,6 +574,8 @@ Export PDF mengikuti filter
 Export PDF section/card mengikuti urutan halaman Statistik
 Export PDF memakai PNG hasil render ApexCharts halaman ketika JS tersedia
 Export PDF fallback tetap authoritative bila PNG client tidak tersedia
+Export PDF tidak memiliki duplicate axis label / black SVG artifact
+Export PDF memakai explicit page sections; tidak ada orphan heading
 Export PDF tercatat di log_activity
 mobile no horizontal body overflow
 ```
@@ -598,6 +600,8 @@ G3.6C local SQL execution        PASS / user evidence
 G3.6C static terminal gate       PASS / user terminal evidence @ pre-parity-fix SHA
 G3.6C focused static re-check    PENDING
 G3.6C local runtime UAT          PASS except PDF visual parity / user runtime evidence
+G3.6C counseling aggregate       IMPLEMENTED / re-smoke pending
+G3.6C PDF PNG parity fix         IMPLEMENTED / re-smoke pending
 G3.6C PDF parity re-smoke        PENDING
 G3.6C post-SQL dump audit        PENDING
 G3.6C hosting                    NOT AUTHORIZED
