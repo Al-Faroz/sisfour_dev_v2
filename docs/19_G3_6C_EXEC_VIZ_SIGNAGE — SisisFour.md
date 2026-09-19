@@ -361,40 +361,52 @@ Operator
 Pimpinan
 ```
 
-Expected post-local-SQL:
+Expected post-local-SQL business/RBAC invariants:
 
 ```text
-tables             45
-permissions        68
-role_permissions   229
-menus              51
-role_menus         176
+G3.6C new tables    0
+permissions         68
+role_permissions    229
+menus               51
+role_menus          176
 ```
 
-SQL localhost:
+Physical BASE TABLE count bersifat informational, bukan phase invariant, karena tabel internal framework dapat berbeda per environment/runtime. Audit aktual:
+
+```text
+localhost post-UAT physical tables  46
+hosting pre-G3.6C physical tables   45
+ci_sessions                          ada di keduanya
+migrations                           local-only
+```
+
+Dengan demikian perbedaan 46 vs 45 bukan schema delta G3.6C.
+
+SQL artifacts:
 
 ```text
 database/20260919_G3_6C_EXEC_VIZ_LOCALHOST.sql
+database/20260919_G3_6C_EXEC_VIZ_HOSTING.sql
 ```
 
-Hosting SQL belum disusun. Harus menunggu local SQL + UAT + post-SQL dump PASS dan fresh hosting dump read-only audit.
+Hosting SQL disusun setelah local SQL/UAT/post-SQL dump dan fresh hosting dump semuanya PASS. Eksekusi hosting tetap membutuhkan approval eksplisit terpisah.
 
 ## 9. Gate
 
 ```text
 Contract / SSOT                 LOCKED by user approval
 Implementation                  IMPLEMENTED / feature branch
-Local SQL                       PREPARED
 Local SQL execution             PASS / user evidence
 Static terminal gate            PASS / user terminal evidence @ pre-parity-fix SHA
-Focused static re-check         PENDING
-Local runtime UAT               PASS except PDF visual parity / user runtime evidence
-Counseling aggregate refinement IMPLEMENTED / re-smoke pending
-PDF PNG parity refinement       IMPLEMENTED / re-smoke pending
-PDF visual parity re-smoke      PENDING
-Post-SQL local dump audit       PENDING
-Fresh hosting dump audit        PENDING
-Hosting mutation/deploy         NOT AUTHORIZED
+Focused static re-check         PASS / user terminal evidence
+Local runtime UAT               PASS / user runtime evidence
+Counseling aggregate re-smoke   PASS / user runtime evidence
+PDF visual parity re-smoke      PASS / user runtime evidence
+Post-SQL local dump audit       PASS / read-only dump audit
+Table-count reconciliation      PASS / user evidence
+Fresh hosting dump audit        PASS / read-only dump audit
+Hosting SQL                     PREPARED / NOT EXECUTED
+Hosting SQL/source mutation     NOT AUTHORIZED
 PR Ready                        NOT AUTHORIZED
 Merge                           NOT AUTHORIZED
 ```
