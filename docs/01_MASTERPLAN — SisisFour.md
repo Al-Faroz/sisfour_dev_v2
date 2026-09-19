@@ -320,6 +320,18 @@ PTSP diletakkan setelah UKS karena menambah public surface + public API yang mem
 
 G3.6B implementation aktif pada branch `feat/g3-6b-ptsp-20260919` dari baseline main `90acc7f94fee391a5a7fbad2395e3f16571fe921`.
 
+Production gate status:
+
+```text
+local SQL/runtime/dump                 PASS
+hosting pre/post SQL dump audit        PASS
+hosting SQL execution                  PASS / user evidence
+hosting source deployment              PASS / user evidence
+focused hosting runtime smoke          PASS / user runtime evidence
+PR #14                                 DRAFT / awaiting Ready approval
+merge                                  NOT AUTHORIZED
+```
+
 Contract tambahan yang dikunci:
 
 ```text
