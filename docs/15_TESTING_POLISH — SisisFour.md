@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage / local gates PASS; hosting SQL prepared, execution not authorized**
+**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage + Kartu JPG ZIP add-on / production gate PASS ALL; PR #15 tetap Draft**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -419,21 +419,12 @@ G3.3.1                              CLOSED / MERGED — PR #9
 G3.4                                CLOSED / MERGED — PR #10
 G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
-G3.6 merge commit                   59b22b651ad0d508ea3a29261ef590d4c9506da4
 G3.6A                               CLOSED / MERGED — PR #13
-G3.6A merge commit                  90acc7f94fee391a5a7fbad2395e3f16571fe921
-
-G3.6B contract                      LOCKED
-G3.6B source                        IMPLEMENTED / feature branch
-G3.6B localhost SQL                 PREPARED
-G3.6B GitHub structural audit       PASS / GitHub read evidence
-G3.6B static terminal gate          PENDING
-G3.6B local SQL execution           PENDING
-G3.6B local runtime/public UAT      PENDING
-G3.6B cross-role/CORS regression    PENDING
-G3.6B local post-SQL dump audit     PENDING
-G3.6B hosting                       NOT AUTHORIZED
-PR Ready                            PASS / GitHub state
+G3.6B                               CLOSED / MERGED — PR #14
+G3.6C production gate               PASS ALL
+Kartu JPG ZIP add-on                PASS ALL
+PR #15                              OPEN / DRAFT
+PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
 
@@ -441,8 +432,9 @@ Merge                               NOT AUTHORIZED
 
 ```text
 G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
-G3.6B  PTSP                  ACTIVE
-G3.7   Global Mobile Sweep
+G3.6B  PTSP                  CLOSED / MERGED — PR #14
+G3.6C  Executive Viz/Signage PRODUCTION GATE PASS / PR #15 DRAFT
+G3.7   Global Mobile Sweep   NEXT AFTER G3.6C CLOSE
 G3.8   WebView Readiness
 G4     Cordova APK
 ```
@@ -617,9 +609,13 @@ G3.6C counseling aggregate       PASS / user runtime evidence
 G3.6C PDF PNG parity re-smoke    PASS / user runtime evidence
 G3.6C post-SQL dump audit        PASS / read-only dump audit
 G3.6C table-count reconciliation PASS / user evidence
-G3.6C fresh hosting dump audit   PASS / read-only dump audit
-G3.6C hosting SQL                PREPARED / NOT EXECUTED
-G3.6C hosting SQL/source mutation NOT AUTHORIZED
+G3.6C fresh hosting pre-SQL audit PASS / read-only dump audit
+G3.6C hosting SQL execution      PASS / user evidence
+G3.6C post-SQL hosting dump      PASS / read-only dump audit
+G3.6C hosting source deployment  PASS / user evidence
+G3.6C hosting runtime smoke      PASS / user runtime evidence
+G3.6C production gate            PASS ALL
+PR #15                           OPEN / DRAFT
 PR Ready                         NOT AUTHORIZED
 Merge                            NOT AUTHORIZED
 ```
@@ -683,8 +679,10 @@ Source                            IMPLEMENTED / feature branch
 DB / permission delta             NONE
 Static gate                       PASS / user evidence
 Local runtime UAT                 PASS / user runtime evidence @ pre-UI-polish
-UI layout polish                  IMPLEMENTED / visual re-smoke pending
-Hosting redeploy add-on           NOT AUTHORIZED
+UI visual/mobile re-smoke         PASS / user runtime evidence
+Hosting redeploy add-on           PASS / user evidence
+Hosting runtime smoke             PASS / user runtime evidence
+Add-on gate                       PASS ALL
 PR Ready                          NOT AUTHORIZED
 Merge                             NOT AUTHORIZED
 ```
