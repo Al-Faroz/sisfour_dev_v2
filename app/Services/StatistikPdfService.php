@@ -8,11 +8,40 @@ use Throwable;
 
 class StatistikPdfService
 {
-    public function generate(array $report): array
+    private const CLIENT_CHART_KEYS = [
+        'chartLevel',
+        'chartGender',
+        'chartAttendanceSummary',
+        'chartAttendanceTrend',
+        'chartAttendanceClass',
+        'chartEwsSakit',
+        'chartEwsIzin',
+        'chartEwsAlpha',
+        'chartTeachingStatus',
+        'chartTeachingTrend',
+        'chartDiscipline',
+        'chartDisciplineTrend',
+        'chartAchievement',
+        'chartAchievementTrend',
+        'chartUks',
+        'chartPtspLayanan',
+        'chartPtspPengaduan',
+        'chartPtspKlasifikasi',
+        'chartPtspPolling',
+        'chartMobility',
+    ];
+
+    private const MAX_SVG_BYTES = 750000;
+
+    public function generate(array $report, array $clientSvgs = []): array
     {
         try {
             $data = $report['data'] ?? [];
             $charts = $this->charts($data);
+
+            foreach ($this->sanitizeClientCharts($clientSvgs) as $key => $uri) {
+                $charts[$key] = $uri;
+            }
 
             $options = new Options();
             $options->set('isRemoteEnabled', false);
@@ -56,6 +85,57 @@ class StatistikPdfService
         }
     }
 
+    private function sanitizeClientCharts(array $charts): array
+    {
+        $allowed = array_fill_keys(self::CLIENT_CHART_KEYS, true);
+        $result = [];
+
+        foreach ($charts as $key => $svg) {
+            $key = (string) $key;
+            if (! isset($allowed[$key]) || ! is_string($svg)) {
+                continue;
+            }
+
+            $svg = trim($svg);
+            if (
+                $svg === ''
+                || strlen($svg) > self::MAX_SVG_BYTES
+                || stripos($svg, '<svg') !== 0
+            ) {
+                continue;
+            }
+
+            // Presentation payload only. Remove executable/external content before Dompdf.
+            $svg = preg_replace(
+                '#<script\b[^>]*>.*?</script>#is',
+                '',
+                $svg
+            ) ?? '';
+            $svg = preg_replace(
+                '#<foreignObject\b[^>]*>.*?</foreignObject>#is',
+                '',
+                $svg
+            ) ?? '';
+            $svg = preg_replace(
+                '#<(image|use)\b([^>]*?)(?:href|xlink:href)\s*=\s*(["\'])(?:https?:|file:|javascript:).*?\3[^>]*?/?>#is',
+                '',
+                $svg
+            ) ?? '';
+
+            if ($svg === '' || stripos($svg, '<svg') !== 0) {
+                continue;
+            }
+
+            $result[$key] = 'data:image/svg+xml;base64,' . base64_encode($svg);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fallback server-side charts when JS is unavailable.
+     * Data tetap authoritative dari StatistikService.
+     */
     private function charts(array $data): array
     {
         $attendance = $data['attendance']['summary'] ?? [];
@@ -68,7 +148,7 @@ class StatistikPdfService
         $polling = $data['ptsp']['polling']['scores'] ?? [];
 
         return [
-            'attendance' => $this->barChart(
+            'chartAttendanceSummary' => $this->barChart(
                 ['Hadir', 'Sakit', 'Izin', 'Alpha'],
                 [
                     (float) ($attendance['Hadir'] ?? 0),
@@ -78,7 +158,7 @@ class StatistikPdfService
                 ],
                 'Presensi Siswa'
             ),
-            'attendance_class' => $this->barChart(
+            'chartAttendanceClass' => $this->barChart(
                 array_column($attendanceClass, 'label'),
                 array_map(
                     static fn (array $row): float =>
@@ -89,37 +169,37 @@ class StatistikPdfService
                 12,
                 '%'
             ),
-            'ews_alpha' => $this->barChart(
+            'chartEwsAlpha' => $this->barChart(
                 array_column($ews['top_alpha'] ?? [], 'nama_siswa'),
                 array_column($ews['top_alpha'] ?? [], 'total'),
                 'Top Alpha 14 Hari',
                 10
             ),
-            'discipline' => $this->barChart(
+            'chartDiscipline' => $this->barChart(
                 array_column($discipline, 'label'),
                 array_column($discipline, 'total'),
                 'Kategori Pelanggaran',
                 10
             ),
-            'achievement' => $this->barChart(
+            'chartAchievement' => $this->barChart(
                 array_column($achievement, 'label'),
                 array_column($achievement, 'total'),
                 'Tingkat Prestasi',
                 10
             ),
-            'uks' => $this->barChart(
+            'chartUks' => $this->barChart(
                 array_column($uks, 'label'),
                 array_column($uks, 'total'),
                 'Hasil Kunjungan UKS',
                 10
             ),
-            'ptsp_service' => $this->barChart(
+            'chartPtspLayanan' => $this->barChart(
                 array_column($ptspService, 'label'),
                 array_column($ptspService, 'total'),
                 'Status Layanan PTSP',
                 10
             ),
-            'polling' => $this->barChart(
+            'chartPtspPolling' => $this->barChart(
                 array_map(
                     static fn ($value): string => 'Skor ' . (string) $value,
                     array_column($polling, 'label')
@@ -171,7 +251,7 @@ class StatistikPdfService
             $svg .= '<rect x="' . $left . '" y="' . $y
                 . '" width="' . $barWidth . '" height="19" rx="3" fill="#eceff1"/>';
             $svg .= '<rect x="' . $left . '" y="' . $y
-                . '" width="' . round($w, 2) . '" height="19" rx="3" fill="#2e7d32"/>';
+                . '" width="' . round($w, 2) . '" height="19" rx="3" fill="#696cff"/>';
             $svg .= '<text x="' . ($width - 8) . '" y="' . ($y + 15)
                 . '" text-anchor="end" font-family="DejaVu Sans" font-size="10" font-weight="700" fill="#263238">'
                 . $this->xml($this->number($value) . $suffix) . '</text>';
