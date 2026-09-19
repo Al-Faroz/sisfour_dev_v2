@@ -2,11 +2,13 @@
 
 <?= $this->section('content') ?>
 
-<div class="mb-4">
-    <h4 class="fw-bold mb-1">Profile Siswa</h4>
-    <p class="text-muted mb-0">
-        Profile Siswa bersifat readonly. Perubahan data administratif dilakukan melalui petugas yang berwenang.
-    </p>
+<div class="sisfour-page-header">
+    <div class="sisfour-page-header__copy">
+        <h4 class="fw-bold mb-1">Profile Siswa</h4>
+        <p class="text-muted mb-0">
+            Profile Siswa bersifat readonly. Perubahan data administratif dilakukan melalui petugas yang berwenang.
+        </p>
+    </div>
 </div>
 
 <?php if (!empty($profileError)): ?>
@@ -85,13 +87,13 @@
                         <?php foreach ($items as $label => $value): ?>
                             <div class="col-md-6">
                                 <div class="small text-muted"><?= esc($label) ?></div>
-                                <div class="fw-semibold"><?= esc($value ?: '-') ?></div>
+                                <div class="fw-semibold sisfour-wrap-anywhere"><?= esc($value ?: '-') ?></div>
                             </div>
                         <?php endforeach; ?>
 
                         <div class="col-12">
                             <div class="small text-muted">Alamat</div>
-                            <div class="fw-semibold">
+                            <div class="fw-semibold sisfour-wrap-anywhere">
                                 <?= nl2br(esc($profile['alamat'] ?? '-')) ?>
                             </div>
                         </div>
@@ -103,7 +105,30 @@
                 <div class="card-header">
                     <h5 class="mb-0">Riwayat Kelas</h5>
                 </div>
-                <div class="table-responsive">
+                <div class="d-md-none">
+                    <?php foreach (($profile['riwayat_kelas'] ?? []) as $row): ?>
+                        <div class="sisfour-record-card">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div class="min-w-0 flex-grow-1">
+                                    <div class="sisfour-record-card__title sisfour-wrap-anywhere"><?= esc($row['nama_kelas']) ?></div>
+                                    <div class="sisfour-record-card__meta sisfour-wrap-anywhere">
+                                        <?= esc($row['nama_tahun']) ?> · <?= esc($row['semester']) ?>
+                                    </div>
+                                </div>
+                                <span class="badge bg-label-primary flex-shrink-0"><?= esc($row['status']) ?></span>
+                            </div>
+                            <div class="sisfour-record-card__meta mt-2 sisfour-wrap-anywhere">
+                                <?= esc($row['tanggal_mulai']) ?> — <?= esc($row['tanggal_selesai'] ?: 'sekarang') ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+
+                    <?php if (empty($profile['riwayat_kelas'])): ?>
+                        <div class="sisfour-mobile-state text-muted">Belum ada riwayat kelas.</div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
