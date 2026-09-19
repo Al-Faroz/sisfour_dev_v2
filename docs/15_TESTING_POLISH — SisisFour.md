@@ -428,7 +428,7 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 implemented
+G3.7 source                         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 implemented
 G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 1 static gate             PASS / user terminal evidence
 G3.7 Wave 1 runtime UAT             PARTIAL / overflow @720px PASS
@@ -438,6 +438,9 @@ G3.7 Wave 2 dashboard runtime UAT   PENDING
 G3.7 Wave 3 GitHub diff audit       PASS / GitHub read evidence
 G3.7 Wave 3 static gate             PENDING
 G3.7 Wave 3 runtime UAT             PENDING
+G3.7 Wave 4 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 4 static gate             PENDING
+G3.7 Wave 4 runtime UAT             PENDING
 G3.7 Matrix mobile                  CANDIDATE EXCEPTION / UAT REQUIRED
 G3.7 local viewport/runtime UAT     PARTIAL
 G3.7 cross-role regression          PENDING
@@ -774,7 +777,7 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 implemented
+source implementation         IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 implemented
 Wave 1 GitHub diff audit      PASS / GitHub read evidence
 Wave 1 static gate            PASS / user terminal evidence
 Wave 1 runtime UAT            PARTIAL / overflow @720px PASS
@@ -784,6 +787,9 @@ Wave 2 dashboard runtime UAT  PENDING
 Wave 3 GitHub diff audit      PASS / GitHub read evidence
 Wave 3 static gate            PENDING
 Wave 3 runtime UAT            PENDING
+Wave 4 GitHub diff audit      PASS / GitHub read evidence
+Wave 4 static gate            PENDING
+Wave 4 runtime UAT            PENDING
 Matrix mobile                 CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT    PARTIAL
 cross-role regression         PENDING
@@ -959,4 +965,87 @@ Wave 3 implementation       IMPLEMENTED
 Wave 3 GitHub diff audit    PASS / GitHub read evidence
 Wave 3 static terminal gate PENDING
 Wave 3 runtime UAT          PENDING
+```
+
+
+### Wave 4 — UKS + PTSP
+
+Audit sebelum mutation:
+
+```text
+UKS CKG          = existing mobile list + desktop table
+UKS Harian       = existing mobile list + desktop table
+PTSP Layanan     = existing mobile list + desktop table
+PTSP Pengaduan   = existing mobile list + desktop table
+PTSP Polling     = existing mobile list + desktop table
+PTSP Public      = existing responsive public CSS / regression-only
+```
+
+Implemented polish:
+
+```text
+UKS CKG
+- page/filter/export actions mendapat touch target
+- modal data + import fullscreen-sm-down / scrollable
+- mobile identity/status row wrap-safe
+- Edit/Hapus mobile compact touch target
+
+UKS Harian
+- page/filter/export actions mendapat touch target
+- modal catatan fullscreen-sm-down
+- mobile identity/keluhan/tindakan/hasil/petugas wrap-safe
+- Edit/Hapus mobile compact touch target
+
+PTSP Layanan
+- page/filter/export actions mendapat touch target
+- card header wrap-safe
+- modal Tambah Internal scrollable + fullscreen-sm-down
+- mobile pemohon/layanan/status/petugas wrap-safe
+- mutation actions + pager compact touch target
+
+PTSP Pengaduan
+- filter/export/header mobile polish
+- judul/klasifikasi/isi/status/lampiran wrap-safe
+- status/delete/lampiran action touch target
+- pager wrap-safe
+
+PTSP Polling
+- filter/export/header mobile polish
+- responden/kategori/score/kepuasan/masukan wrap-safe
+- delete + pager compact touch target
+```
+
+Changed runtime files:
+
+```text
+app/Views/uks/ckg.php
+app/Views/uks/harian.php
+assets/js/uks/ckg.js
+assets/js/uks/harian.js
+app/Views/ptsp/layanan.php
+app/Views/ptsp/pengaduan.php
+app/Views/ptsp/polling.php
+assets/js/ptsp/layanan.js
+assets/js/ptsp/pengaduan.js
+assets/js/ptsp/polling.js
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / permission / scope   = unchanged
+UKS / PTSP workflow          = unchanged
+filter/pagination semantics  = unchanged
+Public PTSP contract         = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 4 implementation       IMPLEMENTED
+Wave 4 GitHub diff audit    PASS / GitHub read evidence
+Wave 4 static terminal gate PENDING
+Wave 4 runtime UAT          PENDING
 ```
