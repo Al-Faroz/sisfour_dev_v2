@@ -16,7 +16,7 @@ $rankingDays = max(1, (int) ($info['ranking_days'] ?? 14));
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>EWS Digital Signage - <?= esc($namaSekolah) ?></title>
     <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/signage.css') ?>">
 </head>

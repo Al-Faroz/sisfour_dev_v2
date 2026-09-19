@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.7 — Global Mobile Sweep / local gate PASS
+**Development aktif:** G3.8 — Viewport/WebView Readiness / SSOT locked
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -255,8 +255,8 @@ G3.6  Siswa                            CLOSED / MERGED — PR #12
 G3.6A UKS / Kesehatan                  CLOSED / MERGED — PR #13
 G3.6B PTSP                             CLOSED / MERGED — PR #14
 G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
-G3.7  Global Mobile Sweep                  LOCAL GATE PASS / PRE-DEPLOY
-G3.8  Viewport/WebView Readiness
+G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
+G3.8  Viewport/WebView Readiness            ACTIVE / SSOT LOCKED
 G4    Cordova APK
 ```
 
@@ -603,6 +603,7 @@ Closure local G3.7:
 
 ```text
 runtime source head              = 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+feature head                     = 7fb760c0945b33c0739e7ef83b0cbeeabfc7b295
 source implementation            = IMPLEMENTED
 static Wave 1–7B                = PASS / user terminal evidence
 Wave 8 full viewport regression  = PASS / user runtime evidence
@@ -613,9 +614,56 @@ Kelulusan bulk exception         = PASS / user runtime evidence
 Matrix Presensi exception        = PASS / user runtime evidence
 DB/schema/SQL                    = NONE
 RBAC/permission/menu             = UNCHANGED
-hosting deployment               = NOT AUTHORIZED
-PR Ready                         = NOT AUTHORIZED
-Merge                            = NOT AUTHORIZED
+hosting deployment               = PASS / user evidence
+hosting runtime smoke            = PASS / user runtime evidence
+production gate                  = PASS ALL
+PR #16                           = CLOSED / MERGED
+PR Ready                         = PASS / user approval
+Merge                            = PASS / user approval
+merge commit                     = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 ```
 
-G3.7 belum berstatus CLOSED/MERGED sampai deployment/PR/merge mendapat approval dan evidence terpisah.
+G3.7 CLOSED / MERGED melalui PR #16. Merge tidak memicu deployment tambahan; production gate sudah PASS sebelum merge.
+
+
+### G3.8 — Viewport/WebView Readiness
+
+Baseline:
+
+```text
+main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+branch = feat/g3-8-webview-readiness-20260919
+G3.7  = CLOSED / MERGED — PR #16
+```
+
+G3.8 tidak membuat APK atau project Cordova. Phase ini mengunci kesiapan source Web agar G4 dapat fokus pada wrapper/native integration, bukan memperbaiki ulang behavior Web.
+
+```text
+DB/schema/SQL       = NONE
+RBAC/permission     = NONE
+menu                = NONE
+route               = unchanged kecuali kebutuhan nyata terpisah disetujui
+business rule       = unchanged
+period/scope        = unchanged
+server authority    = unchanged
+Cordova project     = deferred to G4
+native plugin/API   = deferred to G4
+APK/signing         = deferred to G4
+```
+
+Readiness yang diuji G3.8:
+
+```text
+viewport-fit=cover pada shell/login/public surface relevan
+safe-area token dan short-height/landscape containment
+visualViewport saat keyboard terbuka
+modal + SearchableSelect tidak tertutup keyboard
+AJAX/Fetch session expiry kembali ke login tanpa HTML-login-as-JSON
+network/error path tidak menampilkan sukses palsu
+browser file input/download/export tetap bekerja
+internal/external navigation inventory konsisten
+login/logout/redirect tidak regression
+responsive/RBAC/scope/privacy G3.7 tetap utuh
+```
+
+Native-only decision seperti Android Back, deviceready, geolocation permission, download/share bridge, external intent, status bar, signing, dan real APK device matrix tetap G4.

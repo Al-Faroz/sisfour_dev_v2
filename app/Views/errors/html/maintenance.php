@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Maintenance | SisisFour</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex,nofollow" />
   <style>
     * {
@@ -13,10 +13,15 @@
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding:
+        max(24px, env(safe-area-inset-top))
+        max(24px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(24px, env(safe-area-inset-left));
       background: #f5f5f9;
       color: #444050;
       font-family: Arial, Helvetica, sans-serif;

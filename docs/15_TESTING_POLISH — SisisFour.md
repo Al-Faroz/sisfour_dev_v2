@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** G3.7 — **Global Mobile Sweep / local gate PASS; pre-deploy**
+**Phase aktif:** G3.8 — **Viewport/WebView Readiness / SSOT locked**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -32,6 +32,7 @@ G3.6   CLOSED / MERGED — PR #12
 G3.6A  CLOSED / MERGED — PR #13
 G3.6B  CLOSED / MERGED — PR #14
 G3.6C  CLOSED / MERGED — PR #15
+G3.7   CLOSED / MERGED — PR #16
 ```
 
 ## 3. Global UI/UX Regression
@@ -462,10 +463,14 @@ G3.7 Matrix mobile                  PASS / user runtime evidence — local-scrol
 G3.7 local viewport/runtime UAT     PASS / user runtime evidence
 G3.7 cross-role regression          PASS / user runtime evidence
 G3.7 local gate                     PASS ALL
-G3.7 hosting deployment             NOT AUTHORIZED
-G3.7 hosting runtime smoke          PENDING
-PR Ready                            NOT AUTHORIZED
-Merge                               NOT AUTHORIZED
+G3.7 hosting deployment             PASS / user evidence
+G3.7 hosting runtime smoke          PASS / user runtime evidence
+G3.7 production gate                PASS ALL
+G3.7 PR #16                         CLOSED / MERGED
+G3.7 PR Ready                       PASS / user approval
+G3.7 Merge                          PASS / user approval
+G3.7 feature head                   7fb760c0945b33c0739e7ef83b0cbeeabfc7b295
+G3.7 merge commit                   7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 ```
 
 ## 18. Roadmap
@@ -474,8 +479,8 @@ Merge                               NOT AUTHORIZED
 G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
 G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
-G3.7   Global Mobile Sweep   LOCAL GATE PASS / PRE-DEPLOY
-G3.8   WebView Readiness
+G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
+G3.8   WebView Readiness      ACTIVE / SSOT LOCKED
 G4     Cordova APK
 ```
 
@@ -830,10 +835,14 @@ Matrix mobile                 PASS / user runtime evidence — local-scroll exce
 local viewport/runtime UAT    PASS / user runtime evidence
 cross-role regression         PASS / user runtime evidence
 local G3.7 gate               PASS ALL
-hosting source deployment     NOT AUTHORIZED
-hosting runtime smoke         PENDING
-PR Ready                      NOT AUTHORIZED
-Merge                         NOT AUTHORIZED
+hosting source deployment     PASS / user evidence
+hosting runtime smoke         PASS / user runtime evidence
+production gate               PASS ALL
+PR #16                        CLOSED / MERGED
+PR Ready                      PASS / user approval
+Merge                         PASS / user approval
+feature head                  7fb760c0945b33c0739e7ef83b0cbeeabfc7b295
+merge commit                  7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 ```
 
 
@@ -1443,4 +1452,96 @@ body/document horizontal overflow   PASS / user runtime evidence
 local G3.7 gate                     PASS ALL
 ```
 
-G3.7 tetap PRE-DEPLOY. Hosting source deployment, hosting runtime smoke, PR Ready, dan Merge memerlukan approval/evidence terpisah dan belum dilakukan.
+G3.7 CLOSED / MERGED melalui PR #16. Hosting source deployment dan hosting runtime smoke telah PASS sebelum merge; merge commit = `7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9`.
+
+
+## 23. G3.8 — Viewport/WebView Readiness Gate
+
+Baseline:
+
+```text
+main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+branch = feat/g3-8-webview-readiness-20260919
+```
+
+Scope G3.8 adalah source-Web readiness. Tidak ada project/plugin Cordova, native bridge, APK, signing, atau schema change pada phase ini.
+
+Static/read audit minimum:
+
+```text
+viewport meta + viewport-fit pada shell/login/public standalone relevan
+safe-area token tersedia
+visualViewport integration tidak regression
+csrf-fetch session-expiry recovery tetap aktif
+tidak ada Cordova/native dependency prematur
+php -l seluruh PHP changed bila ada source mutation
+node --check seluruh JS changed bila ada source mutation
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Runtime readiness minimum:
+
+```text
+360×800
+390×844
+412×915
+landscape / short-height representative viewport
+768×1024
+1024×768
+1366×768
+
+login/logout/redirect normal
+session expiry pada Fetch kembali ke login; HTML login tidak dirender sebagai JSON/table/modal
+keyboard open/close tidak menutup active input
+fullscreen/scrollable modal tetap usable dengan keyboard
+SearchableSelect tetap terlihat/usable saat keyboard terbuka
+safe-area tidak menutup header/footer/action
+body/document horizontal overflow = false
+network failure tidak menjadi sukses palsu
+busy guard / anti double-submit tidak regression
+browser file input dapat dipakai pada surface yang memilikinya
+browser PDF/XLSX/export/preview tetap reachable
+internal navigation tetap same-origin
+external-link inventory tidak memerlukan native assumption
+RBAC/scope/period/privacy unchanged
+expected DENY tetap DENY
+no uncaught browser error
+```
+
+Native-only G4 gate yang belum boleh diklaim G3.8:
+
+```text
+deviceready
+Android Back
+native geolocation permission
+native download/open/share
+external browser/app intent
+status bar / edge-to-edge native configuration
+signed APK
+multi-device real APK regression
+```
+
+Current gate:
+
+```text
+G3.8 SSOT lock                PASS / user approval
+branch                        feat/g3-8-webview-readiness-20260919
+baseline main                 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+read-only readiness audit     PASS / GitHub read evidence
+viewport-fit foundation       PRESENT / GitHub read evidence
+safe-area foundation          PRESENT / GitHub read evidence
+visualViewport foundation     PRESENT / GitHub read evidence
+session-expiry Fetch recovery PRESENT / GitHub read evidence
+Cordova project/plugin        ABSENT / CORRECT FOR G3.8
+source implementation         IMPLEMENTED / Wave 1A+1B
+runtime source head            d6640d0e11fe48f9e47266756b7da6cfc029bcec
+source diff audit              PASS / GitHub read evidence
+static gate                    PASS / user terminal evidence
+runtime readiness UAT          PASS / user runtime evidence
+local G3.8 readiness           PASS
+hosting deployment            NOT AUTHORIZED
+PR Ready                      NOT AUTHORIZED
+Merge                         NOT AUTHORIZED
+```

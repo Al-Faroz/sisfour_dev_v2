@@ -431,8 +431,8 @@ G3.6    CLOSED / MERGED — PR #12
 G3.6A   CLOSED / MERGED — PR #13
 G3.6B   CLOSED / MERGED — PR #14
 G3.6C   CLOSED / MERGED — PR #15
-G3.7    ACTIVE — Global Mobile Sweep
-G3.8    Viewport/WebView Readiness
+G3.7    CLOSED / MERGED — PR #16
+G3.8    ACTIVE / SSOT LOCKED — Viewport/WebView Readiness
 G4      Cordova APK
 ```
 
@@ -524,3 +524,47 @@ assets/js/* page-specific existing
 ```
 
 Tidak ada folder domain, migration, SQL, permission, atau menu baru yang diwajibkan oleh contract G3.7. Perubahan reusable masuk foundation global; adaptation unik tetap page/module-specific.
+
+
+## G3.8 Readiness Boundary
+
+Branch:
+
+```text
+feat/g3-8-webview-readiness-20260919
+baseline main = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+```
+
+G3.8 tidak menambah top-level Cordova project atau domain folder baru secara default. Audit/mutation diarahkan ke source Web existing yang menentukan readiness:
+
+```text
+app/Views/_header.php
+app/Views/auth_login.php
+app/Views/main.php
+app/Views/_navbar.php
+app/Views/_sidebar.php
+standalone public Views bila relevan
+
+assets/js/csrf-fetch.js
+assets/js/main.js
+assets/js/components/searchable-select.js
+assets/js module-specific existing bila ditemukan gap
+
+assets/css/sisfour-mobile.css
+assets/css/sisfour-modal.css
+assets/css/searchable-select.css
+page-specific CSS existing bila ditemukan gap
+```
+
+Struktur yang tetap deferred ke G4:
+
+```text
+Cordova project/config.xml
+platforms/
+plugins/
+native Android bridge
+keystore/signing material
+APK build/distribution artifact
+```
+
+DB/schema/SQL, route, permission, menu, Controller/Service/Model tidak berubah hanya karena kebutuhan WebView presentation/readiness.

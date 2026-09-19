@@ -1,8 +1,8 @@
 # Cordova Packaging & Integration — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
-**Implementation Phase:** G4, setelah G3 Mobile UI selesai
+**Tanggal Acuan:** 19 September 2026
+**Current Boundary:** G3.8 WebView readiness aktif; Cordova implementation tetap G4
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
@@ -22,12 +22,44 @@ Server tetap source of truth untuk auth, RBAC, scope, period context, business r
 
 ```text
 G2      Master Data/lifecycle fixing + stabilization
-G3      Mobile role UI + WebView readiness
-G3.3.1  BK foundation + periodic/follow-up contract
+G3.1–G3.7 Mobile role UI + responsive foundation
+G3.8    Web-side Viewport/WebView Readiness
 G4      Cordova integration + APK packaging
 ```
 
 Cordova project/plugin tidak ditambahkan ke G3 hanya untuk persiapan dini.
+
+### G3.8 Locked Boundary
+
+```text
+SSOT lock = PASS / user approval
+```
+
+Baseline:
+
+```text
+main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
+branch = feat/g3-8-webview-readiness-20260919
+G3.7  = CLOSED / MERGED — PR #16
+```
+
+G3.8 hanya menguji dan, bila ada gap nyata, memperbaiki source Web agar wrapper G4 tidak perlu mengoreksi ulang behavior browser.
+
+```text
+DB/schema/SQL       = NONE
+RBAC/permission     = unchanged
+scope/period        = unchanged
+business rule       = unchanged
+route/menu          = unchanged
+server auth/session = tetap authoritative
+Cordova project     = OUT OF SCOPE
+plugin/native API   = OUT OF SCOPE
+APK/signing         = OUT OF SCOPE
+```
+
+Web-side readiness G3.8 mencakup viewport-fit, safe-area, short-height/landscape, visualViewport/soft keyboard, modal/SearchableSelect, Fetch session expiry, network failure UX, browser upload/download/export, dan navigation inventory.
+
+G3.8 **tidak** membuktikan `deviceready`, Android Back, permission geolocation native, download/share bridge, external intent, status bar/edge-to-edge native config, signed build, atau real-device APK matrix. Bukti tersebut tetap G4.
 
 ## 3. G4 Architecture Spike
 
