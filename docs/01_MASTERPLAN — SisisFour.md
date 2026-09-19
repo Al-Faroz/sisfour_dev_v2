@@ -543,7 +543,7 @@ Signage -> TemplateSIGNAGE three-panel layout + internal rotation
 Statistik -> Admin/Operator/Pimpinan only + PDF
 ```
 
-Statistik tidak pernah membawa Konseling BK. Pelanggaran tetap tanpa poin. UKS/PTSP hanya aggregate-safe.
+Statistik membawa Konseling BK hanya sebagai aggregate confidential school-wide (total/status/bidang/tren), tanpa membuka detail domain/record individual. Pelanggaran tetap tanpa poin. UKS/PTSP hanya aggregate-safe.
 
 Roadmap setelah phase ini:
 
