@@ -428,7 +428,8 @@ Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
 
 G3.7 contract                       LOCKED / user approval
 G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
-G3.7 source                         NOT STARTED
+G3.7 source                         IN PROGRESS / Wave 1 implemented
+G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
 G3.7 static gate                    PENDING
 G3.7 local viewport/runtime UAT     PENDING
 G3.7 cross-role regression          PENDING
@@ -765,7 +766,8 @@ Current gate:
 
 ```text
 SSOT lock                     PASS / user approval
-source implementation         NOT STARTED
+source implementation         IN PROGRESS / Wave 1 implemented
+Wave 1 GitHub diff audit      PASS / GitHub read evidence
 static gate                   PENDING
 local viewport/runtime UAT    PENDING
 cross-role regression         PENDING
@@ -774,3 +776,49 @@ hosting runtime smoke         PENDING
 PR Ready                      NOT AUTHORIZED
 Merge                         NOT AUTHORIZED
 ```
+
+
+### Wave 1 — Global Foundation
+
+Implemented scope:
+
+```text
+navbar/sidebar accessibility + role fallback
+visualViewport height sync for keyboard-safe modal sizing
+horizontal overflow diagnostic helper (manual/UAT only)
+global min-width/max-width responsive guards
+reusable mobile card/wrap primitives
+compact mobile pagination without horizontal pager strip
+searchable-select mobile size/viewport guards
+modal footer touch targets + responsive width guard
+```
+
+Changed runtime files:
+
+```text
+app/Views/_navbar.php
+app/Views/_sidebar.php
+assets/js/main.js
+assets/js/components/pagination.js
+assets/css/searchable-select.css
+assets/css/sisfour-mobile.css
+assets/css/sisfour-modal.css
+```
+
+Evidence:
+
+```text
+implementation            IMPLEMENTED
+GitHub diff audit          PASS / GitHub read evidence
+automated GitHub CI        NONE / no workflow runs on exact head
+terminal syntax gate       PENDING
+local viewport re-smoke    PENDING
+```
+
+Manual overflow diagnostic untuk UAT dapat dipanggil di browser console:
+
+```js
+SisfourLayoutDiagnostics.horizontalOverflowReport()
+```
+
+Helper tersebut read-only dan tidak mengubah layout/business state.
