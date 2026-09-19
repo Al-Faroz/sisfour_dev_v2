@@ -340,7 +340,7 @@ Konseling G3.3.1     = CLOSED / MERGED — PR #9
 Dashboard Siswa G3.6 = CLOSED / MERGED — PR #12
 UKS/Kesehatan G3.6A  = CLOSED / MERGED — PR #13
 PTSP G3.6B            = CLOSED / MERGED — PR #14
-Statistik G3.6C       = IMPLEMENTED / deployed; local + hosting gates PASS; PR #15 remains Draft
+Statistik G3.6C       = CLOSED / MERGED — PR #15; merge f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
 
 Dokumentasi tidak membuat capability tersedia di suatu environment. Availability final tetap mengikuti source yang terpasang + state database environment tersebut.
@@ -371,3 +371,19 @@ Siswa      DENY
 Menu `Statistik` bukan security boundary. Route memakai PermissionFilter dan `StatistikService` melakukan authorization ulang.
 
 Signage tetap OPEN/PUBLIC. Shortcut Signage hanya ditampilkan di dashboard Admin/Operator/Pimpinan sebagai experience shortcut, bukan sebagai pembatas route.
+
+
+## G3.7 — RBAC Invariant
+
+Global Mobile Sweep tidak membuka access baru.
+
+```text
+new role            = NONE
+new permission      = NONE
+new role_permission = NONE
+new menu            = NONE
+scope change        = NONE
+period rule change  = NONE
+```
+
+Semua responsive/mobile adaptation tetap presentation-only. Route/Filter + Service existing tetap authoritative. Expected DENY pada cross-role regression tetap wajib dipertahankan.
