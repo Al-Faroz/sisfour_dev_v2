@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Phase aktif:** G3.6B — **PTSP / source + localhost SQL implemented on feature branch; local static/runtime gates pending**
+**Tanggal Acuan:** 19 September 2026
+**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage / local gates PASS; hosting SQL prepared, execution not authorized**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -29,6 +29,8 @@ G3.3.1 CLOSED / MERGED — PR #9
 G3.4   CLOSED / MERGED — PR #10
 G3.5   CLOSED / MERGED — PR #11
 G3.6   CLOSED / MERGED — PR #12
+G3.6A  CLOSED / MERGED — PR #13
+G3.6B  CLOSED / MERGED — PR #14
 ```
 
 ## 3. Global UI/UX Regression
@@ -583,28 +585,41 @@ mobile no horizontal body overflow
 Database expected setelah local SQL:
 
 ```text
-tables             45
-permissions        68
-role_permissions   229
-menus              51
-role_menus         176
+G3.6C new tables    0
+physical tables     informational / environment-sensitive
+permissions         68
+role_permissions    229
+menus               51
+role_menus          176
 ```
+
+Observed audit:
+
+```text
+localhost post-UAT physical tables  46
+hosting pre-G3.6C physical tables   45
+local-only framework table          migrations
+ci_sessions                          present on both
+```
+
+Framework/internal table count tidak menjadi invariant phase; yang dikunci adalah G3.6C tidak membuat tabel baru dan delta RBAC/menu di atas.
 
 Gate:
 
 ```text
 G3.6C source                     IMPLEMENTED / feature branch
-G3.6C localhost SQL              PREPARED
+G3.6C localhost SQL              PASS / user evidence
 G3.6C GitHub structural audit    PASS / GitHub read evidence
-G3.6C local SQL execution        PASS / user evidence
 G3.6C static terminal gate       PASS / user terminal evidence @ pre-parity-fix SHA
-G3.6C focused static re-check    PENDING
-G3.6C local runtime UAT          PASS except PDF visual parity / user runtime evidence
-G3.6C counseling aggregate       IMPLEMENTED / re-smoke pending
-G3.6C PDF PNG parity fix         IMPLEMENTED / re-smoke pending
-G3.6C PDF parity re-smoke        PENDING
-G3.6C post-SQL dump audit        PENDING
-G3.6C hosting                    NOT AUTHORIZED
+G3.6C focused static re-check    PASS / user terminal evidence
+G3.6C local runtime UAT          PASS / user runtime evidence
+G3.6C counseling aggregate       PASS / user runtime evidence
+G3.6C PDF PNG parity re-smoke    PASS / user runtime evidence
+G3.6C post-SQL dump audit        PASS / read-only dump audit
+G3.6C table-count reconciliation PASS / user evidence
+G3.6C fresh hosting dump audit   PASS / read-only dump audit
+G3.6C hosting SQL                PREPARED / NOT EXECUTED
+G3.6C hosting SQL/source mutation NOT AUTHORIZED
 PR Ready                         NOT AUTHORIZED
 Merge                            NOT AUTHORIZED
 ```
