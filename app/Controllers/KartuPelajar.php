@@ -207,6 +207,68 @@ class KartuPelajar extends BaseController
             ->setBody($pdf);
     }
 
+    public function exportJpgZip()
+    {
+        $result = $this->service->getCardsForJpgZip(
+            $this->currentActorUserId(),
+            $this->getPayload()
+        );
+
+        if (!$result['success']) {
+            return $this->respond($result);
+        }
+
+        try {
+            $zip = $this->printService->frontJpgZip(
+                $result['cards']
+            );
+        } catch (\Throwable $e) {
+            log_message(
+                'error',
+                'Export JPG ZIP Kartu Pelajar gagal: {message}',
+                ['message' => $e->getMessage()]
+            );
+
+            return $this->response
+                ->setStatusCode(
+                    ResponseInterface::HTTP_INTERNAL_SERVER_ERROR
+                )
+                ->setJSON([
+                    'status' => 'error',
+                    'message' => 'Gagal membentuk JPG ZIP Kartu Pelajar.',
+                ]);
+        }
+
+        $kelas = trim((string) (
+            $result['cards'][0]['kelas']['nama_kelas']
+            ?? 'KELAS'
+        ));
+
+        $kelas = preg_replace(
+            '/[^A-Za-z0-9_-]+/',
+            '_',
+            $kelas
+        ) ?: 'KELAS';
+
+        $filename =
+            'kartu_pelajar_JPG_DEPAN_'
+            . $kelas
+            . '_'
+            . date('Ymd_His')
+            . '.zip';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/zip')
+            ->setHeader(
+                'Content-Disposition',
+                'attachment; filename="'
+                . $filename
+                . '"'
+            )
+            ->setHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->setBody($zip);
+    }
+
     public function reissue($id)
     {
         return $this->respond(
