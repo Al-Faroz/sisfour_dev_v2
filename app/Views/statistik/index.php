@@ -35,6 +35,14 @@ $initialJson = json_encode(
                    href="<?= esc(base_url('statistik/export/pdf')) ?>">
                     <i class="bx bx-file me-1"></i>Export PDF
                 </a>
+                <form id="statistikExportForm"
+                      class="d-none"
+                      method="post"
+                      target="_blank"
+                      action="<?= esc(base_url('statistik/export/pdf')) ?>">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="chart_svgs" id="statistikChartSvgs" value="">
+                </form>
             <?php endif; ?>
         </div>
     </div>
