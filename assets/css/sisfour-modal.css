@@ -72,7 +72,10 @@
 }
 
 .modal-dialog {
-  max-width: calc(100vw - 2rem);
+  max-width: min(
+    var(--bs-modal-width, 500px),
+    calc(100vw - 2rem)
+  );
 }
 
 .modal-dialog .modal-header,
