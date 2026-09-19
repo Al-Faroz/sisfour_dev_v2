@@ -2,9 +2,6 @@
 <html lang="id">
 <head>
 <?= $this->include('_header') ?>
-<?php if (isset($extraCss)): foreach ((array) $extraCss as $css): ?>
-<link rel="stylesheet" href="<?= sisfour_asset_url((string) $css) ?>" />
-<?php endforeach; endif; ?>
 </head>
 <body class="ptsp-kiosk-body">
 <?php
