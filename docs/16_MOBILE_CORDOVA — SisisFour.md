@@ -31,6 +31,10 @@ Cordova project/plugin tidak ditambahkan ke G3 hanya untuk persiapan dini.
 
 ### G3.8 Locked Boundary
 
+```text
+SSOT lock = PASS / user approval
+```
+
 Baseline:
 
 ```text
