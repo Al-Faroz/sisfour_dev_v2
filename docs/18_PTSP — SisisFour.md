@@ -547,9 +547,10 @@ G3.6A UKS / Kesehatan        CLOSED / MERGED — PR #13
 G3.6A merge commit           90acc7f94fee391a5a7fbad2395e3f16571fe921
 G3.6B contract               LOCKED
 G3.6B source                 IMPLEMENTED / feature branch
-G3.6B localhost SQL          PREPARED
-G3.6B static gate            PENDING user terminal evidence
-G3.6B local runtime UAT      PENDING
-G3.6B local dump audit       PENDING
-G3.6B hosting                NOT AUTHORIZED
+G3.6B localhost SQL          PASS / user evidence
+G3.6B static/local UAT       PASS / user evidence
+G3.6B local dump audit       PASS / read-only dump audit
+G3.6B fresh hosting dump     PASS / read-only dump audit
+G3.6B hosting SQL            PREPARED / static audited
+G3.6B hosting execution      NOT AUTHORIZED
 ```
