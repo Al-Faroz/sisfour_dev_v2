@@ -1,14 +1,23 @@
 (() => {
   const app = document.getElementById('ptspPublicApp');
   if (!app) return;
+
   const base = String(app.dataset.baseUrl || '').replace(/\/$/, '');
+  const autoPrint = app.dataset.autoPrint === '1';
   const alertBox = document.getElementById('ptspPublicAlert');
   const receipt = document.getElementById('ptspReceipt');
   const receiptBody = document.getElementById('ptspReceiptBody');
 
-  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  }[c]));
 
   function show(message, type = 'danger', extra = '') {
+    if (!alertBox) return;
     alertBox.className = `alert alert-${type}`;
     alertBox.innerHTML = `${esc(message)}${extra}`;
     alertBox.scrollIntoView({behavior:'smooth', block:'center'});
@@ -31,7 +40,10 @@
     if (form.dataset.busy === '1') return null;
     busy(form, true);
     try {
-      const response = await fetch(`${base}/${endpoint}`, {method:'POST', body:new FormData(form)});
+      const response = await fetch(`${base}/${endpoint}`, {
+        method:'POST',
+        body:new FormData(form)
+      });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.status !== 'success') {
         throw new Error(payload.message || 'Permintaan gagal.');
@@ -42,24 +54,46 @@
     }
   }
 
+  function printReceipt() {
+    if (!receipt || receipt.classList.contains('d-none')) return;
+    window.print();
+  }
+
   document.getElementById('formPublicLayanan')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
+
     try {
       const payload = await submit(form, 'ptsp/layanan');
       if (!payload) return;
+
       const r = payload.data?.receipt || {};
-      receiptBody.innerHTML = [
-        ['Waktu', r.submitted_at],
-        ['Nama', r.nama_lengkap],
-        ['Kategori', r.kategori_pemohon],
-        ['Layanan', r.jenis_layanan],
-        ['Keterangan', r.tujuan_keterangan],
-      ].map(([k,v]) => `<div class="mb-1"><strong>${esc(k)}:</strong> ${esc(v || '-')}</div>`).join('');
-      receipt.classList.remove('d-none');
-      show(payload.message || 'Pengajuan berhasil.', 'success', ' <button id="btnPrintPtspReceipt" class="btn btn-sm btn-outline-success ms-2" type="button">Cetak Bukti</button>');
-      document.getElementById('btnPrintPtspReceipt')?.addEventListener('click', () => window.print(), {once:true});
+      if (receiptBody) {
+        receiptBody.innerHTML = [
+          ['Waktu', r.submitted_at],
+          ['Nama', r.nama_lengkap],
+          ['Kategori', r.kategori_pemohon],
+          ['Layanan', r.jenis_layanan],
+          ['Keterangan', r.tujuan_keterangan],
+        ].map(([k,v]) =>
+          `<div class="mb-1"><strong>${esc(k)}:</strong> ${esc(v || '-')}</div>`
+        ).join('');
+      }
+
+      receipt?.classList.remove('d-none');
+      show(
+        payload.message || 'Pengajuan berhasil.',
+        'success',
+        ' <button id="btnPrintPtspReceipt" class="btn btn-sm btn-outline-success ms-2" type="button">Cetak Bukti 80mm</button>'
+      );
+      document.getElementById('btnPrintPtspReceipt')
+        ?.addEventListener('click', printReceipt, {once:true});
+
       form.reset();
+
+      if (autoPrint) {
+        window.setTimeout(printReceipt, 250);
+      }
     } catch (error) {
       show(error.message || 'Pengajuan gagal.');
     }
@@ -85,6 +119,7 @@
       show('Pilih minimal satu klasifikasi laporan.');
       return;
     }
+
     try {
       const payload = await submit(form, 'ptsp/pengaduan');
       if (!payload) return;
