@@ -1,5 +1,11 @@
 .ptsp-kiosk-body{
   min-height:100vh;
+  min-height:100dvh;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top);
+  padding-right:env(safe-area-inset-right);
+  padding-bottom:env(safe-area-inset-bottom);
+  padding-left:env(safe-area-inset-left);
   background:
     radial-gradient(circle at top left, rgba(105,108,255,.12), transparent 34rem),
     #f5f5f9;
