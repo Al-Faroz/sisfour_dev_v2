@@ -274,6 +274,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('generate', 'KartuPelajar::generate', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->post('generate-bulk', 'KartuPelajar::generateBulk', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->post('cetak-massal', 'KartuPelajar::cetakMassal', ['filter' => 'permission:kartu_pelajar.manage']);
+        $routes->post('export-jpg-zip', 'KartuPelajar::exportJpgZip', ['filter' => 'permission:kartu_pelajar.manage']);
         $routes->get('cetak/(:segment)', 'KartuPelajar::cetak/$1', ['filter' => 'permission:kartu_pelajar.manage,kartu_pelajar.view']);
         $routes->get('preview/(:segment)', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);
         $routes->get('preview/(:segment)/json', 'KartuPelajar::preview/$1', ['filter' => 'permission:kartu_pelajar.view']);
