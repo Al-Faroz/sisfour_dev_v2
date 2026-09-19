@@ -20,7 +20,7 @@ B. Refresh layout + rotasi EWS Signage berdasarkan TemplateSIGNAGE.pdf
 C. Halaman Statistik cross-domain + Export PDF
 ```
 
-Tidak ada perubahan domain Konseling, tidak ada pengaktifan kembali Poin Pelanggaran, dan tidak ada tabel snapshot Statistik/Signage.
+Tidak ada perubahan permission/domain detail Konseling, tidak ada pengaktifan kembali Poin Pelanggaran, dan tidak ada tabel snapshot Statistik/Signage. G3.6C menambahkan exception khusus Statistik berupa aggregate-only Konseling untuk Admin/Operator/Pimpinan tanpa membuka record/detail Konseling.
 
 ## 3. Shortcut EWS Signage
 
@@ -252,6 +252,14 @@ Prestasi
 - tingkat prestasi
 - tren
 
+Konseling BK — aggregate confidential
+- total konseling
+- distribusi status
+- distribusi bidang
+- tren
+- school-wide only; filter Tingkat/Kelas tidak diterapkan
+- tidak ada nama siswa/topik/catatan/Guru BK/follow-up/jadwal individual
+
 UKS
 - jumlah kunjungan
 - jumlah CKG
@@ -272,7 +280,9 @@ Mobilitas Siswa
 
 ### 5.4 Privacy
 
-Konseling BK tidak pernah masuk payload Statistik karena Pimpinan adalah actor Statistik tetapi Access Boundary Konseling melarang Pimpinan.
+Access Boundary detail Konseling tetap: Pimpinan tidak mendapat menu, listing, record, topik, catatan, Guru BK, tindak lanjut, jadwal, export domain, atau direct access Konseling.
+
+Exception G3.6C hanya pada halaman Statistik: Admin/Operator/Pimpinan boleh melihat aggregate school-wide Konseling (total/status/bidang/tren). Filter Tingkat/Kelas sengaja tidak diterapkan pada dataset Konseling agar statistik tidak berubah menjadi drill-down individual.
 
 UKS dan PTSP hanya aggregate-safe.
 
@@ -314,14 +324,14 @@ multi-page bila perlu
 
 Server selalu membentuk ulang dataset authoritative dari filter yang dikirim sebelum export.
 
-Untuk menjaga visual parity dengan halaman, client boleh mengirim SVG ApexCharts yang sedang dirender sebagai presentation payload. SVG:
+Untuk menjaga visual parity dengan halaman, client boleh mengirim PNG hasil render ApexCharts (`chart.dataURI()`) sebagai presentation payload. PNG:
 - hanya untuk visual;
 - di-whitelist per chart;
-- dibatasi ukuran;
-- disanitasi dari script/foreignObject/external executable reference;
+- divalidasi data-URI + PNG signature;
+- dibatasi ukuran per image dan total;
 - tidak pernah menjadi source of truth angka/filter.
 
-Jika SVG client tidak tersedia, server memakai fallback chart dari dataset authoritative.
+Jika PNG client tidak tersedia, server memakai fallback chart dari dataset authoritative.
 
 Export dicatat ke log_activity.
 
