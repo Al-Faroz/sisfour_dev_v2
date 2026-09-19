@@ -86,20 +86,35 @@ $brandingItems = [
                                         Template cetak menggunakan lebar kertas thermal 80 mm.
                                     </div>
                                 </div>
-                                <div class="form-check form-switch">
-                                    <input
-                                        id="ptspLayananAutoPrint"
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        name="ptsp_layanan_auto_print"
-                                        value="1"
-                                        <?= $getSetting('ptsp_layanan_auto_print', '0') === '1' ? 'checked' : '' ?>
-                                    >
-                                    <label class="form-check-label" for="ptspLayananAutoPrint">Auto Print</label>
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            id="ptspLayananAutoPrint"
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="ptsp_layanan_auto_print"
+                                            value="1"
+                                            <?= $getSetting('ptsp_layanan_auto_print', '0') === '1' ? 'checked' : '' ?>
+                                        >
+                                        <label class="form-check-label" for="ptspLayananAutoPrint">Auto Print</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input
+                                            id="ptspLayananAutoDownloadPdf"
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            name="ptsp_layanan_auto_download_pdf"
+                                            value="1"
+                                            <?= $getSetting('ptsp_layanan_auto_download_pdf', '0') === '1' ? 'checked' : '' ?>
+                                        >
+                                        <label class="form-check-label" for="ptspLayananAutoDownloadPdf">Auto Download PDF 80mm</label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="form-text mt-2">
-                                Default OFF. Tombol cetak manual tetap tersedia walaupun Auto Print dimatikan.
+                                Default keduanya OFF. Prioritas: Auto Print ON membuka dialog print.
+                                Jika Auto Print OFF dan Auto Download PDF ON, bukti PDF thermal 80mm otomatis diunduh.
+                                Tombol cetak manual tetap tersedia pada semua mode.
                             </div>
                         </div>
                     </div>
