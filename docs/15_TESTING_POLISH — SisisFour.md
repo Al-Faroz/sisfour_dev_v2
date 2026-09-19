@@ -681,8 +681,9 @@ Gate add-on:
 Contract                          LOCKED / user decision
 Source                            IMPLEMENTED / feature branch
 DB / permission delta             NONE
-Static gate                       PENDING
-Local runtime UAT                 PENDING
+Static gate                       PASS / user evidence
+Local runtime UAT                 PASS / user runtime evidence @ pre-UI-polish
+UI layout polish                  IMPLEMENTED / visual re-smoke pending
 Hosting redeploy add-on           NOT AUTHORIZED
 PR Ready                          NOT AUTHORIZED
 Merge                             NOT AUTHORIZED
