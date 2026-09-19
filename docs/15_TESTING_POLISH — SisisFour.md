@@ -465,8 +465,13 @@ git status
 Runtime minimum:
 
 ```text
+Public landing /ptsp tampil sebagai kios 3 tombol besar
+urutan kios = Layanan PTSP -> Pengaduan -> Polling Kepuasan
+setiap tombol membuka halaman form tersendiri
 Public Layanan submit tanpa login + CSRF valid
-receipt thermal tanpa nomor tiket/antrian/tracking
+receipt thermal media 80 mm tanpa nomor tiket/antrian/tracking
+Auto Print OFF -> tombol cetak manual tersedia, dialog tidak otomatis
+Auto Print ON -> dialog print otomatis muncul setelah submit sukses
 Public Polling submit berulang
 Public Pengaduan anonim + optional PDF/PNG/JPG/JPEG <= 5 MB
 attachment tidak dapat dibuka sebagai public URL
@@ -491,8 +496,10 @@ Gate saat ini:
 G3.6B contract                LOCKED
 G3.6B source                  IMPLEMENTED / feature branch
 G3.6B localhost SQL           PREPARED
-G3.6B static gate             PENDING
-G3.6B local runtime UAT       PENDING
+G3.6B static gate             RE-RUN PENDING after kiosk/auto-print refinement
+G3.6B initial public UAT       PASS / user runtime evidence on prior head
+G3.6B focused public re-smoke  PENDING
+G3.6B remaining runtime UAT    PENDING
 G3.6B post-SQL local dump     PENDING
 G3.6B hosting                 NOT AUTHORIZED
 PR Ready                      NOT AUTHORIZED
