@@ -1,10 +1,10 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Development aktif:** G3.6A — UKS / Kesehatan
-**Branch aktif:** `feat/g3-6a-uks-kesehatan-20260918`
-**Baseline `main`:** setelah merge PR #12 / G3.6 (`59b22b651ad0d508ea3a29261ef590d4c9506da4`)
+**Tanggal Acuan:** 19 September 2026
+**Development aktif:** G3.6C — Executive Visualization & EWS Signage
+**Branch aktif:** `feat/g3-6c-exec-viz-signage-20260919`
+**Baseline `main`:** setelah merge PR #14 / G3.6B (`f6f30ceaf070f342d609c322905ee77dc33f3e6f`)
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -689,7 +689,7 @@ SSOT lock
 -> explicit merge
 ```
 
-Current gate:
+Historical implementation-start gate (G3.6A; superseded by closure in `docs/17_UKS_KESEHATAN — SisisFour.md`):
 
 ```text
 contract                         LOCKED
@@ -704,4 +704,38 @@ local dump audit                 PENDING
 hosting                          NOT STARTED
 ```
 
-Tidak ada hosting SQL/source mutation pada tahap ini.
+## 16. G3.6C — Executive Visualization & EWS Signage
+
+Canonical order untuk G3.6C mengikuti pola global:
+
+```text
+SSOT lock
+-> localhost SQL
+-> source/backend/RBAC/UI
+-> static gate
+-> local SQL + runtime UAT
+-> post-SQL local dump audit
+-> fresh hosting dump audit
+-> hosting delta SQL prepared
+-> explicit hosting SQL approval
+-> hosting source deployment approval
+-> hosting smoke
+-> explicit Ready
+-> explicit merge
+```
+
+Current gate:
+
+```text
+contract                         LOCKED
+source                           IMPLEMENTED / feature branch
+local SQL execution              PASS / user evidence
+focused static re-check          PASS / user terminal evidence
+local runtime/UAT                PASS / user runtime evidence
+post-SQL local dump audit        PASS / read-only dump audit
+fresh hosting dump audit         PASS / read-only dump audit
+hosting delta SQL                PREPARED / NOT EXECUTED
+hosting SQL/source mutation      NOT AUTHORIZED
+PR Ready                         NOT AUTHORIZED
+Merge                            NOT AUTHORIZED
+```
