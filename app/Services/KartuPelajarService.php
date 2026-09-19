@@ -49,6 +49,14 @@ class KartuPelajarService
             true
         );
 
+        $canExportJpgZip =
+            $canManage
+            && in_array(
+                'admin',
+                $this->authService->getUserRoles($userId),
+                true
+            );
+
         $limit = max(
             1,
             min(200, (int) ($input['limit'] ?? 50))
@@ -95,6 +103,7 @@ class KartuPelajarService
             'success' => true,
             'scope' => $scope['scope'],
             'can_manage' => $canManage,
+            'can_export_jpg_zip' => $canExportJpgZip,
             'rows' => $this->model->getPaged(
                 $filter,
                 $scope['student_ids'],
@@ -397,6 +406,29 @@ class KartuPelajarService
             'cards' => $cards,
             'count' => count($cards),
         ];
+    }
+
+    public function getCardsForJpgZip(
+        int $userId,
+        array $input
+    ): array {
+        if (!in_array(
+            'admin',
+            $this->authService->getUserRoles($userId),
+            true
+        )) {
+            return $this->fail(
+                'FORBIDDEN',
+                'Export JPG ZIP Kartu Pelajar hanya tersedia untuk Admin.'
+            );
+        }
+
+        $input['mode'] = 'kelas';
+
+        return $this->getCardsForPrint(
+            $userId,
+            $input
+        );
     }
 
     public function reissue(
