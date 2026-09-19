@@ -54,22 +54,20 @@ $kpi = [
   <?php endif; ?>
 </div>
 
-<div class="row g-3 mb-4">
+<div class="sisfour-mobile-kpi-grid mb-4">
   <?php foreach ($kpi as $item): ?>
     <?php if ($item['value'] === null): continue; endif; ?>
-    <div class="col-6 col-xl-3">
-      <div class="card h-100">
-        <div class="card-body d-flex align-items-start gap-3">
-          <span class="avatar flex-shrink-0 bg-label-<?= esc($item['color']) ?> rounded">
-            <i class="bx <?= esc($item['icon']) ?>"></i>
-          </span>
-          <div class="min-w-0">
-            <small class="text-muted d-block mb-1"><?= esc($item['label']) ?></small>
-            <h3 class="mb-1 text-<?= esc($item['color']) ?>"><?= (int) $item['value'] ?></h3>
-            <?php if (! empty($item['meta'])): ?>
-              <small class="text-muted d-block"><?= esc((string) $item['meta']) ?></small>
-            <?php endif; ?>
-          </div>
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-start gap-3">
+        <span class="avatar flex-shrink-0 bg-label-<?= esc($item['color']) ?> rounded">
+          <i class="bx <?= esc($item['icon']) ?>"></i>
+        </span>
+        <div class="min-w-0">
+          <small class="text-muted d-block mb-1 text-wrap"><?= esc($item['label']) ?></small>
+          <h3 class="mb-1 text-<?= esc($item['color']) ?>"><?= (int) $item['value'] ?></h3>
+          <?php if (! empty($item['meta'])): ?>
+            <small class="text-muted d-block text-wrap"><?= esc((string) $item['meta']) ?></small>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -104,7 +102,7 @@ $kpi = [
 
 <?php if (($access['konseling'] ?? false) === true): ?>
 <div class="card mb-4">
-  <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+  <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <h5 class="mb-1">Jadwal Follow-up Terdekat</h5>
       <small class="text-muted">Berdasarkan tanggal berikutnya yang tersimpan pada workflow Konseling.</small>
@@ -117,7 +115,7 @@ $kpi = [
     <?php else: ?>
       <?php foreach ($widgets['konseling_terdekat'] as $row): ?>
         <div class="list-group-item py-3">
-          <div class="d-flex justify-content-between align-items-start gap-3">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div class="min-w-0">
               <strong class="d-block text-wrap"><?= esc((string) ($row['nama_siswa'] ?? '-')) ?></strong>
               <small class="text-muted d-block text-wrap">
@@ -144,7 +142,7 @@ $kpi = [
   <?php if (($access['pelanggaran'] ?? false) === true): ?>
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+      <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h5 class="mb-0">Catatan Pelanggaran Terbaru</h5>
         <a href="<?= base_url('bk/kasus') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target">Lihat Semua</a>
       </div>
@@ -160,7 +158,7 @@ $kpi = [
                 : ($kategori === 'Sedang' ? 'warning' : 'secondary');
             ?>
             <div class="list-group-item py-3">
-              <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
                 <div class="min-w-0">
                   <strong class="d-block text-wrap"><?= esc((string) ($row['nama'] ?? '-')) ?></strong>
                   <?php if (! empty($row['nisn'])): ?>
@@ -182,7 +180,7 @@ $kpi = [
   <?php if (($access['ews'] ?? false) === true): ?>
   <div class="col-lg-6">
     <div class="card h-100">
-      <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+      <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
         <h5 class="mb-0">EWS Alpha 14 Hari</h5>
         <a href="<?= base_url('presensi/siswa/ews') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target">Lihat Semua</a>
       </div>
@@ -192,7 +190,7 @@ $kpi = [
         <?php else: ?>
           <?php foreach ($widgets['ews_top'] as $row): ?>
             <div class="list-group-item py-3 d-flex justify-content-between align-items-center gap-3">
-              <strong class="text-wrap min-w-0"><?= esc((string) ($row['nama'] ?? '-')) ?></strong>
+              <strong class="text-wrap min-w-0 flex-grow-1"><?= esc((string) ($row['nama'] ?? '-')) ?></strong>
               <span class="badge bg-label-danger flex-shrink-0"><?= (int) ($row['total_alpha'] ?? 0) ?> Alpha</span>
             </div>
           <?php endforeach; ?>
@@ -205,7 +203,7 @@ $kpi = [
 
 <?php if (($access['prestasi'] ?? false) === true): ?>
 <div class="card mb-4">
-  <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
+  <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h5 class="mb-0">Prestasi Terbaru</h5>
     <a href="<?= base_url('bk/prestasi') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target">Lihat Semua</a>
   </div>
