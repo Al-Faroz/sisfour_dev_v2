@@ -174,7 +174,7 @@ $initialJson = json_encode(
             <div class="statistik-section-title"><h5>Pembelajaran</h5></div>
             <div class="row g-3">
                 <div class="col-lg-4">
-                    <div class="card h-100"><div class="card-header"><h6 class="mb-0">Jadwal / Jurnal Hari Ini</h6></div>
+                    <div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><h6 class="mb-0">Jadwal / Jurnal Hari Ini</h6><small id="teachingTodayContext" class="text-muted"></small></div>
                         <div class="card-body"><div class="row text-center g-2">
                             <?php foreach ([['wajib','Wajib'],['sudah','Sudah'],['belum','Belum']] as $item): ?>
                                 <div class="col-4"><small class="text-muted d-block"><?= $item[1] ?></small><strong class="fs-4" data-teaching="<?= $item[0] ?>">0</strong></div>
