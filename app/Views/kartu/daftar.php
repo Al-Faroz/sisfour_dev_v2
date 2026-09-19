@@ -6,6 +6,7 @@
     data-base-url="<?= esc(base_url()) ?>"
     data-max-print="<?= (int) ($initial['max_print'] ?? 200) ?>"
     data-can-manage="<?= !empty($initial['can_manage']) ? '1' : '0' ?>"
+    class="kartu-page"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
@@ -23,16 +24,28 @@
     <?php else: ?>
 
         <?php if (!empty($initial['can_manage'])): ?>
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Generate Kartu</h5>
+            <div class="card mb-4 kartu-panel">
+                <div class="card-header kartu-panel-header">
+                    <div class="kartu-panel-title">
+                        <span class="kartu-panel-icon" aria-hidden="true">
+                            <i class="bx bx-id-card"></i>
+                        </span>
+                        <div>
+                            <h5 class="mb-1">Generate Kartu</h5>
+                            <p class="mb-0 text-muted">
+                                Terbitkan kartu siswa satu per satu atau proses seluruh kartu yang belum terbit.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-body">
-                    <div class="row g-3 align-items-stretch">
-                        <div class="col-lg-7">
-                            <form id="formGenerateKartu" class="row g-3 align-items-end h-100">
-                                <div class="col-md-8">
+                <div class="card-body pt-2">
+                    <div class="kartu-generate-grid">
+                        <div class="kartu-generate-box">
+                            <div class="kartu-box-kicker">Generate individu</div>
+
+                            <form id="formGenerateKartu" class="row g-3 align-items-end">
+                                <div class="col-12 col-md-8">
                                     <label class="form-label" for="generateKartuSiswa">
                                         Siswa aktif yang belum memiliki kartu
                                     </label>
@@ -59,35 +72,40 @@
                                     </select>
                                 </div>
 
-                                <div class="col-md-4 d-grid">
+                                <div class="col-12 col-md-4 d-grid">
                                     <button class="btn btn-primary" type="submit">
+                                        <i class="bx bx-plus-circle me-1"></i>
                                         Generate Satu
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        <div class="col-lg-5">
-                            <div class="border rounded p-3 h-100">
-                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-                                    <span>Belum memiliki kartu</span>
-                                    <strong id="eligibleCount"><?= (int) ($initial['eligible_total'] ?? 0) ?></strong>
+                        <div class="kartu-generate-box kartu-generate-box--summary">
+                            <div class="kartu-count-row">
+                                <div>
+                                    <div class="kartu-box-kicker">Antrian penerbitan</div>
+                                    <div class="text-muted small">Siswa aktif yang belum memiliki kartu</div>
                                 </div>
+                                <strong class="kartu-count-badge" id="eligibleCount">
+                                    <?= (int) ($initial['eligible_total'] ?? 0) ?>
+                                </strong>
+                            </div>
 
-                                <button
-                                    id="btnGenerateSemua"
-                                    class="btn btn-outline-primary w-100"
-                                    type="button"
-                                    <?= empty($initial['eligible_total']) ? 'disabled' : '' ?>
-                                >
-                                    Generate Semua Belum Terbit
-                                </button>
+                            <button
+                                id="btnGenerateSemua"
+                                class="btn btn-outline-primary w-100 mt-3"
+                                type="button"
+                                <?= empty($initial['eligible_total']) ? 'disabled' : '' ?>
+                            >
+                                <i class="bx bx-layer-plus me-1"></i>
+                                Generate Semua Belum Terbit
+                            </button>
 
-                                <div class="form-text mt-2">
-                                    Diproses otomatis per batch maksimal
-                                    <?= (int) ($initial['max_generate_batch'] ?? 200) ?>
-                                    siswa agar transaksi tetap aman.
-                                </div>
+                            <div class="form-text mt-2">
+                                Diproses bertahap maksimal
+                                <?= (int) ($initial['max_generate_batch'] ?? 200) ?>
+                                siswa per request agar transaksi tetap aman.
                             </div>
                         </div>
                     </div>
@@ -96,13 +114,23 @@
         <?php endif; ?>
 
         <?php if (!empty($initial['can_manage'])): ?>
-            <div class="card sisfour-filter-card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Filter &amp; Cetak Massal</h5>
+            <div class="card sisfour-filter-card mb-4 kartu-panel">
+                <div class="card-header kartu-panel-header">
+                    <div class="kartu-panel-title">
+                        <span class="kartu-panel-icon kartu-panel-icon--print" aria-hidden="true">
+                            <i class="bx bx-printer"></i>
+                        </span>
+                        <div>
+                            <h5 class="mb-1">Filter &amp; Cetak Massal</h5>
+                            <p class="mb-0 text-muted">
+                                Pilih data yang ingin ditampilkan, lalu gunakan jenis output sesuai kebutuhan.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
+                <div class="card-body pt-2">
+                    <div class="row g-3 align-items-end kartu-filter-row">
                         <div class="col-12 col-lg-4">
                             <label class="form-label" for="kartuSearch">Cari</label>
                             <input
@@ -139,33 +167,87 @@
                         </div>
                     </div>
 
-                    <hr>
+                    <div class="kartu-action-divider"></div>
 
-                    <div class="d-flex flex-wrap gap-2">
-                        <button id="btnCetakDepanSelected" class="btn btn-primary" type="button">
-                            Cetak Depan Terpilih A4
-                        </button>
-                        <button id="btnCetakBelakangSelected" class="btn btn-outline-primary" type="button">
-                            Cetak Belakang Terpilih A4
-                        </button>
-                        <button id="btnCetakDepanKelas" class="btn btn-success" type="button">
-                            Cetak Depan Per Kelas
-                        </button>
-                        <button id="btnCetakBelakangKelas" class="btn btn-outline-success" type="button">
-                            Cetak Belakang Per Kelas
-                        </button>
+                    <div class="kartu-action-grid">
+                        <section class="kartu-action-card">
+                            <div class="kartu-action-card__head">
+                                <span class="kartu-action-icon">
+                                    <i class="bx bx-check-square"></i>
+                                </span>
+                                <div>
+                                    <h6 class="mb-1">Kartu Terpilih</h6>
+                                    <p class="mb-0">Gunakan centang pada tabel untuk memilih kartu tertentu.</p>
+                                </div>
+                            </div>
+
+                            <div class="kartu-action-buttons kartu-action-buttons--pair">
+                                <button id="btnCetakDepanSelected" class="btn btn-primary" type="button">
+                                    <i class="bx bx-id-card me-1"></i>
+                                    Depan A4
+                                </button>
+                                <button id="btnCetakBelakangSelected" class="btn btn-outline-primary" type="button">
+                                    <i class="bx bx-id-card me-1"></i>
+                                    Belakang A4
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="kartu-action-card kartu-action-card--class">
+                            <div class="kartu-action-card__head">
+                                <span class="kartu-action-icon">
+                                    <i class="bx bx-group"></i>
+                                </span>
+                                <div>
+                                    <h6 class="mb-1">PDF Per Kelas</h6>
+                                    <p class="mb-0">Cetak seluruh kartu aktif pada kelas yang dipilih.</p>
+                                </div>
+                            </div>
+
+                            <div class="kartu-action-buttons kartu-action-buttons--pair">
+                                <button id="btnCetakDepanKelas" class="btn btn-success" type="button">
+                                    <i class="bx bx-file me-1"></i>
+                                    Depan PDF
+                                </button>
+                                <button id="btnCetakBelakangKelas" class="btn btn-outline-success" type="button">
+                                    <i class="bx bx-file me-1"></i>
+                                    Belakang PDF
+                                </button>
+                            </div>
+                        </section>
 
                         <?php if (!empty($initial['can_export_jpg_zip'])): ?>
-                            <button id="btnExportJpgKelas" class="btn btn-dark" type="button">
-                                Unduh JPG Depan Per Kelas (.ZIP)
-                            </button>
+                            <section class="kartu-action-card kartu-action-card--digital">
+                                <div class="kartu-action-card__head">
+                                    <span class="kartu-action-icon">
+                                        <i class="bx bx-image"></i>
+                                    </span>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center justify-content-between gap-2">
+                                            <h6 class="mb-1">JPG Per Kelas</h6>
+                                            <span class="badge bg-label-dark">Admin</span>
+                                        </div>
+                                        <p class="mb-0">Satu JPG sisi depan per siswa, otomatis dikemas dalam ZIP.</p>
+                                    </div>
+                                </div>
+
+                                <div class="kartu-action-buttons">
+                                    <button id="btnExportJpgKelas" class="btn btn-dark" type="button">
+                                        <i class="bx bx-download me-1"></i>
+                                        Unduh JPG Depan (.ZIP)
+                                    </button>
+                                </div>
+                            </section>
                         <?php endif; ?>
                     </div>
 
-                    <div class="form-text mt-2">
-                        Layout PDF A4: 2 kolom × 5 baris = 10 kartu per lembar.
-                        Maksimum <?= (int) ($initial['max_print'] ?? 200) ?> kartu per proses.
-                        Export JPG ZIP hanya tersedia untuk Admin dan mengikuti data Cetak Depan Per Kelas.
+                    <div class="kartu-print-note">
+                        <i class="bx bx-info-circle" aria-hidden="true"></i>
+                        <span>
+                            PDF A4 memakai layout 2 kolom × 5 baris.
+                            Maksimum <?= (int) ($initial['max_print'] ?? 200) ?> kartu per proses.
+                            JPG ZIP mengikuti data <strong>Cetak Depan Per Kelas</strong>.
+                        </span>
                     </div>
                 </div>
             </div>
