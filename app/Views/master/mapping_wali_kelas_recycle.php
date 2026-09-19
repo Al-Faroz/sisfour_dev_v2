@@ -18,7 +18,7 @@
 
         <a
             href="<?= base_url('master/wali-kelas') ?>"
-            class="btn btn-outline-primary"
+            class="btn btn-outline-primary sisfour-touch-target--compact"
         >
             <i class="bx bx-arrow-back me-1"></i>
             Kembali
@@ -32,7 +32,8 @@
     </div>
 
     <div class="card">
-        <div class="card-datatable table-responsive">
+        <div id="mappingWaliRecycleMobileList" class="d-md-none list-group list-group-flush"><div class="list-group-item sisfour-mobile-state text-muted">Memuat histori wali...</div></div>
+        <div class="d-none d-md-block card-datatable table-responsive">
             <table
                 class="table table-hover align-middle"
                 id="tableMappingWaliRecycle"
