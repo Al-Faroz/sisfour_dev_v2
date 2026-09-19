@@ -99,7 +99,7 @@ class StatistikService
             return $this->fail('VALIDATION', 'Filter rentang waktu tidak valid.');
         }
 
-        $now = new DateTimeImmutable('now', new DateTimeZone(self::TZ));
+        $now = $this->now();
         $start = null;
         $end = null;
 
@@ -248,7 +248,7 @@ class StatistikService
 
         return [
             'nama_sekolah' => $map['nama_sekolah'] ?? 'MTsN 4 Jombang',
-            'generated_at' => date('Y-m-d H:i:s'),
+            'generated_at' => $this->now()->format('Y-m-d H:i:s'),
             'tahun_label' => trim(
                 (string) ($f['tahun']['nama_tahun'] ?? '-')
                 . ' - '
@@ -434,7 +434,7 @@ class StatistikService
         $anchorRow = $anchorBuilder->get()->getRowArray();
         $anchor = $f['tanggal_selesai']
             ?? ($anchorRow['max_tanggal'] ?? null)
-            ?? date('Y-m-d');
+            ?? $this->now()->format('Y-m-d');
 
         $start = date(
             'Y-m-d',
@@ -511,23 +511,27 @@ class StatistikService
 
     private function teaching(array $f): array
     {
-        $today = date('Y-m-d');
-        $hari = $this->hariIndonesia();
+        $now = $this->now();
+        $today = $now->format('Y-m-d');
+        $isActiveYear = ! empty($f['tahun']['status_aktif']);
+        $scheduleIds = [];
 
-        $scheduleBuilder = $this->db
-            ->table('jadwal_guru jg')
-            ->select('jg.id')
-            ->where('jg.id_tahun', $f['id_tahun'])
-            ->where('jg.hari', $hari)
-            ->where('jg.status_jadwal', 'Aktif');
-        $this->applyClassFilter($scheduleBuilder, 'jg.id_kelas', $f);
-        $scheduleIds = array_map(
-            'intval',
-            array_column($scheduleBuilder->get()->getResultArray(), 'id')
-        );
+        if ($isActiveYear) {
+            $scheduleBuilder = $this->db
+                ->table('jadwal_guru jg')
+                ->select('jg.id')
+                ->where('jg.id_tahun', $f['id_tahun'])
+                ->where('jg.hari', $this->hariIndonesia($now))
+                ->where('jg.status_jadwal', 'Aktif');
+            $this->applyClassFilter($scheduleBuilder, 'jg.id_kelas', $f);
+            $scheduleIds = array_map(
+                'intval',
+                array_column($scheduleBuilder->get()->getResultArray(), 'id')
+            );
+        }
 
         $submitted = 0;
-        if ($scheduleIds !== []) {
+        if ($isActiveYear && $scheduleIds !== []) {
             $row = $this->db
                 ->table('presensi_mengajar')
                 ->select('COUNT(DISTINCT id_jadwal) AS total', false)
@@ -566,6 +570,7 @@ class StatistikService
         return [
             'today' => [
                 'tanggal' => $today,
+                'applicable' => $isActiveYear,
                 'wajib' => count($scheduleIds),
                 'sudah' => $submitted,
                 'belum' => max(0, count($scheduleIds) - $submitted),
@@ -974,9 +979,9 @@ class StatistikService
             : 'Semua Kelas';
     }
 
-    private function hariIndonesia(): string
+    private function hariIndonesia(DateTimeImmutable $time): string
     {
-        return match ((int) date('N')) {
+        return match ((int) $time->format('N')) {
             1 => 'Senin',
             2 => 'Selasa',
             3 => 'Rabu',
@@ -985,6 +990,11 @@ class StatistikService
             6 => 'Sabtu',
             default => 'Minggu',
         };
+    }
+
+    private function now(): DateTimeImmutable
+    {
+        return new DateTimeImmutable('now', new DateTimeZone(self::TZ));
     }
 
     private function fail(string $code, string $message): array
