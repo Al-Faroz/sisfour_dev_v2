@@ -8,6 +8,7 @@
   const canManage = app.dataset.canManage === '1';
   const table = document.getElementById('tableGuru');
   const tbody = table?.querySelector('tbody');
+  const mobileList = document.getElementById('guruMobileList');
   const filterForm = document.getElementById('formFilterGuru');
   const form = document.getElementById('formGuru');
   const modalEl = document.getElementById('modalGuru');
