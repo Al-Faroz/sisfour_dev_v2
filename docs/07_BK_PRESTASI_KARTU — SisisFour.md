@@ -1,9 +1,9 @@
 # BK, Konseling, Prestasi & Kartu Pelajar — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
-**Baseline Aplikasi:** `main` @ `6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce`
-**Development aktif:** `feat/g3-6-siswa-dashboard-20260918` — **G3.6 Dashboard Siswa**
+**Tanggal Acuan:** 19 September 2026
+**Baseline Aplikasi:** `main` @ `f6f30ceaf070f342d609c322905ee77dc33f3e6f` + G3.6C feature branch
+**Development aktif:** `feat/g3-6c-exec-viz-signage-20260919` — **G3.6C + Kartu Pelajar JPG ZIP add-on**
 
 > Dokumen ini menyatakan kontrak BK canonical. Authorization final tetap Route/Filter + Service; View/JavaScript/menu bukan security boundary.
 
