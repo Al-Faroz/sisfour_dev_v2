@@ -365,3 +365,27 @@ Behavior:
 - bila kedua key ON, Auto Print mempunyai prioritas dan PDF tidak auto-download;
 - PDF dibuat dari receipt submit yang sudah tervalidasi, tanpa public record lookup;
 - setting ini tidak membuat silent/background print dan tidak menambah nomor tiket/antrean/tracking.
+
+
+## 11. PTSP — Public API Cards
+
+Settings Sistem menampilkan dokumentasi operasional tiga endpoint public PTSP dalam bentuk card:
+
+```text
+Layanan PTSP
+Pengaduan
+Polling Kepuasan
+```
+
+Tiap card menampilkan:
+
+- endpoint aktual mengikuti `base_url`;
+- method GET;
+- status PUBLIC;
+- CORS `*`;
+- Aggregate Only;
+- contoh script `fetch()`;
+- tombol Copy URL;
+- tombol Copy Script API.
+
+Clipboard memakai `navigator.clipboard` pada secure context dan fallback `document.execCommand('copy')` untuk compatibility. Card ini tidak menambah permission/API baru dan tidak mengubah response contract.
