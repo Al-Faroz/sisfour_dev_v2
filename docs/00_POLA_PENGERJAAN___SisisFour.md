@@ -823,7 +823,7 @@ Current gate:
 SSOT lock                        PASS / user approval
 branch                           feat/g3-7-global-mobile-sweep-20260919
 baseline main                    f82a0299c8989da6c1026d84861f3e95d786f7dd
-source implementation            IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 implemented
+source implementation            IN PROGRESS / Wave 1 + Wave 2 + Wave 3 + Wave 4 + Wave 5 implemented
 Wave 1 GitHub diff audit         PASS / GitHub read evidence
 Wave 1 static gate               PASS / user terminal evidence
 Wave 1 runtime UAT               PARTIAL / overflow @720px PASS
@@ -836,6 +836,9 @@ Wave 3 runtime UAT               PENDING
 Wave 4 GitHub diff audit         PASS / GitHub read evidence
 Wave 4 static gate               PENDING
 Wave 4 runtime UAT               PENDING
+Wave 5 GitHub diff audit         PASS / GitHub read evidence
+Wave 5 static gate               PENDING
+Wave 5 runtime UAT               PENDING
 Matrix Presensi mobile           CANDIDATE EXCEPTION / UAT REQUIRED
 local viewport/runtime UAT       PARTIAL
 cross-role regression            PENDING
