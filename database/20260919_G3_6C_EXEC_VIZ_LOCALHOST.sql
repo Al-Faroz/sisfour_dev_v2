@@ -6,24 +6,25 @@
 --   2) Tidak ada tabel baru dan tidak ada perubahan enum role.
 --   3) Hosting SQL dibuat terpisah setelah local SQL/UAT/post-SQL dump PASS + fresh hosting dump audit.
 
--- 0) Lock explicit localhost database context.
-USE `sisfour_dev_v2`;
-SELECT DATABASE() AS active_database;
+-- 0) phpMyAdmin may keep another database selected (e.g. information_schema).
+-- Every application-table reference below is schema-qualified, so active DB does not matter.
+SELECT DATABASE() AS phpmyadmin_active_database;
+SELECT 'sisfour_dev_v2' AS target_database;
 
 -- 1) Capability Statistik terpisah. Read-only untuk Admin / Operator / Pimpinan.
-INSERT INTO `permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
+INSERT INTO `sisfour_dev_v2`.`permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 SELECT 'statistik.view', 'Lihat Statistik', 'Statistik', 'SEMUA'
 WHERE NOT EXISTS (
-  SELECT 1 FROM `permissions` WHERE `permission_key`='statistik.view'
+  SELECT 1 FROM `sisfour_dev_v2`.`permissions` WHERE `permission_key`='statistik.view'
 );
 
-INSERT INTO `permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
+INSERT INTO `sisfour_dev_v2`.`permissions` (`permission_key`, `nama`, `modul`, `scope_didukung`)
 SELECT 'statistik.export_pdf', 'Export PDF Statistik', 'Statistik', 'SEMUA'
 WHERE NOT EXISTS (
-  SELECT 1 FROM `permissions` WHERE `permission_key`='statistik.export_pdf'
+  SELECT 1 FROM `sisfour_dev_v2`.`permissions` WHERE `permission_key`='statistik.export_pdf'
 );
 
-INSERT INTO `role_permissions` (`role`, `id_permission`, `scope`)
+INSERT INTO `sisfour_dev_v2`.`role_permissions` (`role`, `id_permission`, `scope`)
 SELECT map.role, p.id, 'SEMUA'
 FROM (
   SELECT 'admin' role, 'statistik.view' permission_key
@@ -33,10 +34,10 @@ FROM (
   UNION ALL SELECT 'operator','statistik.export_pdf'
   UNION ALL SELECT 'pimpinan','statistik.export_pdf'
 ) map
-JOIN `permissions` p ON p.permission_key=map.permission_key
+JOIN `sisfour_dev_v2`.`permissions` p ON p.permission_key=map.permission_key
 WHERE NOT EXISTS (
   SELECT 1
-  FROM `role_permissions` rp
+  FROM `sisfour_dev_v2`.`role_permissions` rp
   WHERE rp.role=map.role
     AND rp.id_permission=p.id
     AND rp.scope='SEMUA'
@@ -44,42 +45,42 @@ WHERE NOT EXISTS (
 
 -- 2) Top-level menu Statistik. Urutan=5 agar muncul setelah Laporan tanpa menggeser menu existing.
 SET @statistik_repair_id := (
-  SELECT COALESCE(MAX(`id`),0)+1 FROM `menus` WHERE `id`<>0
+  SELECT COALESCE(MAX(`id`),0)+1 FROM `sisfour_dev_v2`.`menus` WHERE `id`<>0
 );
-UPDATE `menus`
+UPDATE `sisfour_dev_v2`.`menus`
 SET `id`=@statistik_repair_id
 WHERE `id`=0
   AND `nama_menu`='Statistik'
   AND `parent_id` IS NULL
   AND `link`='statistik';
 
-SET @statistik_new_id := (SELECT COALESCE(MAX(`id`),0)+1 FROM `menus`);
-INSERT INTO `menus`
+SET @statistik_new_id := (SELECT COALESCE(MAX(`id`),0)+1 FROM `sisfour_dev_v2`.`menus`);
+INSERT INTO `sisfour_dev_v2`.`menus`
   (`id`,`nama_menu`,`parent_id`,`urutan`,`icon`,`link`,`created_at`,`updated_at`)
 SELECT
   @statistik_new_id,'Statistik',NULL,5,'bx bx-line-chart','statistik',NOW(),NOW()
 WHERE NOT EXISTS (
-  SELECT 1 FROM `menus` WHERE `link`='statistik'
+  SELECT 1 FROM `sisfour_dev_v2`.`menus` WHERE `link`='statistik'
 );
 
-INSERT INTO `role_menus` (`role`,`id_menu`,`tampil`)
+INSERT INTO `sisfour_dev_v2`.`role_menus` (`role`,`id_menu`,`tampil`)
 SELECT map.role,m.id,1
 FROM (
   SELECT 'admin' role
   UNION ALL SELECT 'operator'
   UNION ALL SELECT 'pimpinan'
 ) map
-JOIN `menus` m ON m.link='statistik'
+JOIN `sisfour_dev_v2`.`menus` m ON m.link='statistik'
 WHERE NOT EXISTS (
   SELECT 1
-  FROM `role_menus` rm
+  FROM `sisfour_dev_v2`.`role_menus` rm
   WHERE rm.role=map.role AND rm.id_menu=m.id
 );
 
 -- Verification read-only.
 SELECT COUNT(*) AS total_tables
 FROM information_schema.tables
-WHERE table_schema=DATABASE() AND table_type='BASE TABLE';
+WHERE table_schema='sisfour_dev_v2' AND table_type='BASE TABLE';
 
 SELECT COUNT(*) AS total_permissions FROM permissions;
 SELECT COUNT(*) AS total_role_permissions FROM role_permissions;
