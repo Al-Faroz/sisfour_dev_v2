@@ -75,8 +75,8 @@
                 <?php endif; ?>
 
                 <div class="col-12 sisfour-filter-actions">
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetRekap">Reset</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetRekap">Reset</button>
+                    <button type="submit" class="btn btn-primary sisfour-primary-action">
                         <i class="bx bx-filter-alt me-1"></i> Tampilkan
                     </button>
                 </div>
@@ -85,11 +85,14 @@
     </div>
 
     <div class="card sisfour-table-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0">Histori Presensi</h5>
             <span class="badge bg-label-secondary" id="rekapTotal">0 data</span>
         </div>
-        <div class="table-responsive">
+        <div id="rekapMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Gunakan filter untuk menampilkan data.</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableRekapPresensi">
                 <thead>
                     <tr>

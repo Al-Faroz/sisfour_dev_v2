@@ -31,7 +31,7 @@
                     <input type="date" class="form-control" id="ewsTanggalSelesai" value="<?= esc($tanggalSelesai ?? '') ?>">
                 </div>
                 <div class="col-12 col-md-3 d-grid">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary sisfour-primary-action">
                         <i class="bx bx-radar me-1"></i> Muat EWS
                     </button>
                 </div>
@@ -43,7 +43,10 @@
         <div class="card-header">
             <h5 class="mb-0">Daftar Siswa EWS</h5>
         </div>
-        <div class="table-responsive">
+        <div id="ewsMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat data...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableEwsPresensi">
                 <thead>
                     <tr>

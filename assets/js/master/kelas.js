@@ -8,6 +8,7 @@
     const activeYearId = String(app.dataset.activeYearId || '');
     const table = document.getElementById('tableKelas');
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('kelasMobileList');
     const filterForm = document.getElementById('formFilterKelas');
     const form = document.getElementById('formKelas');
     const filterTahun = document.getElementById('filterTahun');
@@ -108,6 +109,23 @@
                 </td>
             </tr>
         `).join('') || '<tr class="sisfour-empty-row"><td colspan="7" class="text-muted">Tidak ada data Kelas.</td></tr>';
+
+        if (mobileList) {
+            mobileList.innerHTML = pageRows.map((row, index) => `<div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="fw-semibold sisfour-wrap-anywhere">${esc(row.nama_kelas)}</div>
+                        <div class="small text-muted">${esc(row.tingkat)} · Rombel ${esc(row.rombel)}</div>
+                    </div>
+                    ${Number(row.tahun_aktif) === 1 ? '<span class="badge bg-label-success flex-shrink-0">Aktif</span>' : ''}
+                </div>
+                <div class="small mt-2 sisfour-wrap-anywhere">${esc(row.nama_tahun)} - ${esc(row.semester)} · ${Number(row.jumlah_siswa || 0)} siswa</div>
+                <div class="sisfour-mobile-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-mobile-proxy" data-action="edit" data-id="${row.id}">Edit</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-action="delete" data-id="${row.id}">Hapus</button>
+                </div>
+            </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data Kelas.</div>';
+        }
 
         pager?.render(state);
     };
@@ -236,6 +254,13 @@
                 error(err);
             }
         }
+    });
+
+    mobileList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-mobile-proxy');
+        if (!button) return;
+        const selector = button.dataset.action === 'edit' ? '.btn-edit' : '.btn-delete';
+        tbody.querySelector(`${selector}[data-id="${button.dataset.id}"]`)?.click();
     });
 
     filterForm.addEventListener('submit', (event) => {

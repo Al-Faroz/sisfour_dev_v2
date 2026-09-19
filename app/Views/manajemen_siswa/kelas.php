@@ -38,8 +38,8 @@
                     </select>
                 </div>
                 <div class="col-12 sisfour-filter-actions">
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button>
+                    <button type="submit" class="btn btn-primary sisfour-primary-action">
                         <i class="bx bx-filter-alt me-1"></i> Terapkan
                     </button>
                 </div>
@@ -49,7 +49,10 @@
 
     <div class="card sisfour-table-card">
         <div class="card-header"><h5 class="mb-0">Daftar Siswa Aktif</h5></div>
-        <div class="table-responsive">
+        <div id="kelasSiswaMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat data siswa...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableKelasSiswa">
                 <thead>
                     <tr>
@@ -68,7 +71,7 @@
     </div>
 
     <div class="modal fade" id="modalAturKelas" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formAturKelas" class="modal-content">
                 <?= csrf_field() ?>
                 <input type="hidden" id="idSiswaKelas">

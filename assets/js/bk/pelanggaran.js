@@ -10,8 +10,9 @@
   const modalTitle = document.getElementById('modalPelanggaranTitle');
   const tbody = document.getElementById('pelanggaranBody');
   const table = document.getElementById('tablePelanggaran');
+  const mobileList = document.getElementById('pelanggaranMobileList');
 
-  if (!form || !modalEl || !tbody || !table) return;
+  if (!form || !modalEl || !tbody || !table || !mobileList) return;
 
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
   const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
@@ -27,6 +28,19 @@
     },
   });
 
+  const escapeHtml = (value) => String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+  const kategoriClass = (value) => ({
+    Berat: 'danger',
+    Sedang: 'warning',
+    Ringan: 'secondary',
+  }[String(value || '')] || 'secondary');
+
   function renderPage() {
     state.total = rows.length;
     const maxOffset = state.total > 0
@@ -34,12 +48,37 @@
       : 0;
     state.offset = Math.min(state.offset, maxOffset);
 
+    const pageRows = rows.filter(
+      (_, index) => index >= state.offset && index < state.offset + state.limit
+    );
+
     rows.forEach((row, index) => {
       row.classList.toggle(
         'd-none',
         index < state.offset || index >= state.offset + state.limit
       );
     });
+
+    mobileList.innerHTML = pageRows.length
+      ? pageRows.map((row) => `
+          <div class="list-group-item py-3" data-id="${escapeHtml(row.dataset.id || '')}">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+              <strong class="min-w-0 text-wrap flex-grow-1">${escapeHtml(row.dataset.nama || '-')}</strong>
+              <span class="badge bg-label-${kategoriClass(row.dataset.kategori)} flex-shrink-0">
+                ${escapeHtml(row.dataset.kategori || '-')}
+              </span>
+            </div>
+            <div class="sisfour-mobile-actions">
+              <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit">
+                <i class="bx bx-edit me-1"></i>Edit
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete">
+                <i class="bx bx-trash me-1"></i>Hapus
+              </button>
+            </div>
+          </div>
+        `).join('')
+      : '<div class="list-group-item sisfour-mobile-state text-muted">Belum ada Master Pelanggaran.</div>';
 
     pager?.render(state);
   }
@@ -108,24 +147,33 @@
 
   document.getElementById('btnPelanggaranBaru')?.addEventListener('click', () => open());
 
-  tbody.addEventListener('click', async (event) => {
+  const sourceRowForButton = (button) => {
+    const directRow = button.closest('tr[data-id]');
+    if (directRow) return directRow;
+
+    const id = button.closest('[data-id]')?.dataset.id;
+    return id ? rows.find((row) => row.dataset.id === id) || null : null;
+  };
+
+  const handleListAction = async (event) => {
     const editButton = event.target.closest('.btn-edit');
     if (editButton) {
-      open(editButton.closest('tr'));
+      const row = sourceRowForButton(editButton);
+      if (row) open(row);
       return;
     }
 
     const deleteButton = event.target.closest('.btn-delete');
     if (!deleteButton || deleteButton.dataset.busy === '1') return;
 
-    const row = deleteButton.closest('tr');
+    const row = sourceRowForButton(deleteButton);
     const id = row?.dataset.id;
     if (!id) return;
 
     const confirmation = await Swal.fire({
       icon: 'warning',
       title: 'Hapus pelanggaran?',
-      html: `<strong>${row.dataset.nama || ''}</strong><br><br>Data yang sudah digunakan pada Catatan Pelanggaran tidak dapat dihapus.`,
+      html: `<strong>${escapeHtml(row.dataset.nama || '')}</strong><br><br>Data yang sudah digunakan pada Catatan Pelanggaran tidak dapat dihapus.`,
       showCancelButton: true,
       confirmButtonText: 'Ya, hapus',
       cancelButtonText: 'Batal',
@@ -157,7 +205,10 @@
       });
       setButtonBusy(deleteButton, false);
     }
-  });
+  };
+
+  tbody.addEventListener('click', handleListAction);
+  mobileList.addEventListener('click', handleListAction);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();

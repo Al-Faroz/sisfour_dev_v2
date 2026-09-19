@@ -10,6 +10,7 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableTahunAjaran');
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('tahunMobileList');
 
     let rows = [];
     let dataTable = null;
@@ -304,6 +305,28 @@
             `;
         }).join('');
 
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((tahun) => {
+                const aktif = Number(tahun.status_aktif) === 1;
+                const canPrepareGenap = aktif && String(tahun.semester) === 'Ganjil';
+                return `<div class="list-group-item py-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(tahun.nama_tahun)} - ${escapeHtml(tahun.semester)}</div>
+                            <div class="small text-muted mt-1">${Number(tahun.jumlah_kelas || 0)} kelas · ${Number(tahun.jumlah_anggota || 0)} anggota · ${Number(tahun.jumlah_jadwal || 0)} jadwal</div>
+                        </div>
+                        ${aktif ? '<span class="badge bg-label-success flex-shrink-0">Aktif</span>' : '<span class="badge bg-label-secondary flex-shrink-0">Nonaktif</span>'}
+                    </div>
+                    <div class="sisfour-mobile-actions mt-3">
+                        ${canPrepareGenap ? `<button type="button" class="btn btn-sm btn-outline-info sisfour-touch-target--compact btn-mobile-proxy" data-action="prepare" data-id="${tahun.id}">Siapkan Genap</button>` : ''}
+                        ${!aktif ? `<button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-mobile-proxy" data-action="activate" data-id="${tahun.id}">Aktifkan</button>` : ''}
+                        <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-mobile-proxy" data-action="edit" data-id="${tahun.id}">Edit</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-action="delete" data-id="${tahun.id}" ${aktif ? 'disabled' : ''}>Hapus</button>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada tahun ajaran.</div>';
+        }
+
         initDataTable();
     };
 
@@ -579,6 +602,14 @@
                 showError(error);
             }
         }
+    });
+
+    mobileList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-mobile-proxy');
+        if (!button || button.disabled) return;
+        const selectors = { prepare: '.btn-prepare-semester', activate: '.btn-aktifkan', edit: '.btn-edit', delete: '.btn-delete' };
+        const selector = selectors[button.dataset.action];
+        if (selector) tbody.querySelector(`${selector}[data-id="${button.dataset.id}"]`)?.click();
     });
 
     form.addEventListener('submit', async (event) => {

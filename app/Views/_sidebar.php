@@ -108,6 +108,7 @@ $logoUrl = $hasLogo
       href="javascript:void(0);"
       class="layout-menu-toggle menu-link text-large ms-auto d-none d-xl-block"
       aria-label="Minimalkan sidebar"
+      aria-controls="layout-menu"
       aria-expanded="true"
       title="Minimalkan / perluas sidebar"
     >

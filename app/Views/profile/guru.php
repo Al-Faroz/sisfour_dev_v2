@@ -15,14 +15,14 @@
 
     <nav class="sisfour-secondary-nav mb-4" aria-label="Navigasi Profile Guru">
         <div class="nav nav-pills flex-nowrap gap-2">
-            <a class="nav-link active" href="<?= esc(base_url('profile/guru'), 'attr') ?>" aria-current="page">
+            <a class="nav-link active sisfour-touch-target--compact" href="<?= esc(base_url('profile/guru'), 'attr') ?>" aria-current="page">
                 <i class="bx bx-user me-1"></i>Biodata
             </a>
-            <a class="nav-link" href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>">
+            <a class="nav-link sisfour-touch-target--compact" href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>">
                 <i class="bx bx-history me-1"></i>Riwayat Personalia
             </a>
             <a
-                class="nav-link"
+                class="nav-link sisfour-touch-target--compact"
                 href="<?= esc(base_url('profile/guru/portofolio'), 'attr') ?>"
                 target="_blank"
                 rel="noopener"
@@ -90,22 +90,22 @@
                         <h3 class="sisfour-profile-name"><?= esc($profile['nama'] ?? '-') ?></h3>
 
                         <div class="sisfour-meta-list">
-                            <span class="sisfour-meta-list__item">
+                            <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                 <i class="bx bx-id-card"></i>
                                 Login: <?= esc($profile['login_identifier'] ?: '-') ?>
                             </span>
-                            <span class="sisfour-meta-list__item">
+                            <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                 <i class="bx bx-user-pin"></i><?= esc($genderLabel) ?>
                             </span>
                             <?php if (! empty($profile['email'])): ?>
-                                <span class="sisfour-meta-list__item">
+                                <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                     <i class="bx bx-envelope"></i><?= esc($profile['email']) ?>
                                 </span>
                             <?php endif; ?>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mt-3 sisfour-profile-hero__actions">
-                            <a href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>" class="btn btn-primary">
+                            <a href="<?= esc(base_url('profile/guru/personalia'), 'attr') ?>" class="btn btn-primary sisfour-touch-target">
                                 <i class="bx bx-folder-open me-1"></i>Buka Personalia
                             </a>
                         </div>
@@ -136,7 +136,7 @@
                             <div class="form-text">
                                 PNG maksimal 2 MB. Sistem melakukan crop otomatis rasio 3:4.
                             </div>
-                            <button type="submit" class="btn btn-outline-primary w-100 mt-3">
+                            <button type="submit" class="btn btn-outline-primary w-100 mt-3 sisfour-touch-target">
                                 <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                 Upload Foto
                             </button>
@@ -252,7 +252,7 @@
                             </section>
 
                             <div class="d-flex justify-content-end mt-4">
-                                <button type="submit" class="btn btn-primary" id="btnSimpanProfileGuru">
+                                <button type="submit" class="btn btn-primary sisfour-primary-action" id="btnSimpanProfileGuru">
                                     <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                     Simpan Perubahan
                                 </button>

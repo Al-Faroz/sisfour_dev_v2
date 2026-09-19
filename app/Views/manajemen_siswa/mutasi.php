@@ -9,7 +9,7 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-4" id="mutasiSiswaTabs" role="tablist">
+    <ul class="nav nav-tabs flex-nowrap overflow-x-auto mb-4" id="mutasiSiswaTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button
                 class="nav-link active"
@@ -68,8 +68,8 @@
                             </select>
                         </div>
                         <div class="col-12 sisfour-filter-actions">
-                            <button type="button" class="btn btn-outline-secondary" id="btnResetMutasi">Reset</button>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetMutasi">Reset</button>
+                            <button type="submit" class="btn btn-primary sisfour-primary-action">
                                 <i class="bx bx-filter-alt me-1"></i> Terapkan
                             </button>
                         </div>
@@ -79,7 +79,10 @@
 
             <div class="card sisfour-table-card">
                 <div class="card-header"><h5 class="mb-0">Daftar Siswa Aktif</h5></div>
-                <div class="table-responsive">
+                <div id="mutasiMobileList" class="d-md-none list-group list-group-flush">
+                    <div class="list-group-item sisfour-mobile-state text-muted">Memuat siswa aktif...</div>
+                </div>
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-hover align-middle mb-0" id="tableMutasiSiswa">
                         <thead>
                             <tr><th style="width:56px;">No.</th><th>Nama</th><th>NISN</th><th>Kelas</th><th>JK</th><th style="width:140px;">Aksi</th></tr>
@@ -110,7 +113,33 @@
                     </div>
                     <span class="badge bg-label-secondary"><?= count($mutasiHistory ?? []) ?> data</span>
                 </div>
-                <div class="table-responsive">
+                <div id="mutasiHistoryMobileList" class="d-md-none list-group list-group-flush">
+                    <?php foreach (($mutasiHistory ?? []) as $row): ?>
+                        <?php $canRestore = !empty($row['can_restore']); ?>
+                        <div class="list-group-item py-3">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div class="min-w-0 flex-grow-1">
+                                    <div class="fw-semibold sisfour-wrap-anywhere"><?= esc($row['nama'] ?? '-') ?></div>
+                                    <div class="small text-muted font-monospace sisfour-wrap-anywhere"><?= esc($row['nisn'] ?? '-') ?></div>
+                                </div>
+                                <span class="badge <?= ($row['status'] ?? '') === 'Pindah' ? 'bg-label-warning' : 'bg-label-secondary' ?> flex-shrink-0"><?= esc($row['status'] ?? '-') ?></span>
+                            </div>
+                            <div class="small mt-2 sisfour-wrap-anywhere"><?= esc($row['nama_kelas'] ?? '-') ?> · <?= esc($row['nama_tahun'] ?? '-') ?><?= !empty($row['semester']) ? ' - ' . esc($row['semester']) : '' ?></div>
+                            <div class="small text-muted mt-1 sisfour-wrap-anywhere"><?= esc($row['tanggal_selesai'] ?? $row['tanggal_mutasi'] ?? '-') ?> · <?= esc($row['keterangan'] ?? $row['keterangan_mutasi'] ?? '-') ?></div>
+                            <div class="sisfour-mobile-actions mt-3">
+                                <?php if ($canRestore): ?>
+                                    <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-restore-mutasi" data-history-id="<?= (int) $row['id'] ?>" data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>" data-status="<?= esc($row['status'] ?? '', 'attr') ?>"><i class="bx bx-undo me-1"></i>Restore</button>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact" disabled>Restore</button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (($mutasiHistory ?? []) === []): ?>
+                        <div class="list-group-item sisfour-mobile-state text-muted">Belum ada riwayat siswa Pindah/Keluar.</div>
+                    <?php endif; ?>
+                </div>
+                <div class="d-none d-md-block table-responsive">
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
@@ -156,7 +185,7 @@
                                         <?php if ($canRestore): ?>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-outline-primary btn-restore-mutasi"
+                                                class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-restore-mutasi"
                                                 data-history-id="<?= (int) $row['id'] ?>"
                                                 data-nama="<?= esc($row['nama'] ?? '', 'attr') ?>"
                                                 data-status="<?= esc($row['status'] ?? '', 'attr') ?>"
@@ -189,7 +218,7 @@
     </div>
 
     <div class="modal fade" id="modalMutasi" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formMutasi" class="modal-content">
                 <?= csrf_field() ?>
                 <input type="hidden" id="idSiswaMutasi">

@@ -10,7 +10,9 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableMutasiSiswa');
     const tbody = table?.querySelector('tbody');
+    const mobileList = document.getElementById('mutasiMobileList');
     const historyBody = document.getElementById('tbodyRiwayatMutasi');
+    const historyMobileList = document.getElementById('mutasiHistoryMobileList');
     const filter = document.getElementById('formFilterMutasi');
     const form = document.getElementById('formMutasi');
     const modalElement = document.getElementById('modalMutasi');
@@ -117,7 +119,7 @@
                 <td>
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-danger btn-mutasi"
+                        class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mutasi"
                         data-id="${row.id}"
                     >
                         Mutasi
@@ -134,6 +136,17 @@
                     </td>
                 </tr>
             `;
+        }
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((row) => `<div class="list-group-item py-3">
+                <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama)}</div>
+                <div class="small text-muted font-monospace sisfour-wrap-anywhere">NISN ${escapeHtml(row.nisn)}</div>
+                <div class="small mt-2 sisfour-wrap-anywhere">${escapeHtml(row.nama_kelas_aktif || 'Belum Ada Kelas')} · ${row.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
+                <div class="sisfour-mobile-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mutasi" data-id="${row.id}">Mutasi</button>
+                </div>
+            </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data siswa.</div>';
         }
     };
 
@@ -165,6 +178,9 @@
                 </td>
             </tr>
         `;
+        if (mobileList) {
+            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
+        }
 
         try {
             const response = await fetch(
@@ -206,7 +222,9 @@
         }
     }
 
-    tbody.addEventListener('click', (event) => {
+    [tbody, mobileList]
+        .filter(Boolean)
+        .forEach((container) => container.addEventListener('click', (event) => {
         const button = event.target.closest('.btn-mutasi');
 
         if (!button) {
@@ -228,9 +246,11 @@
             `${row.nama} (${row.nisn})`;
 
         modal.show();
-    });
+    }));
 
-    historyBody?.addEventListener('click', async (event) => {
+    [historyBody, historyMobileList]
+        .filter(Boolean)
+        .forEach((container) => container.addEventListener('click', async (event) => {
         const button = event.target.closest('.btn-restore-mutasi');
 
         if (!button) {
@@ -280,7 +300,7 @@
                 error.message || 'Restore siswa gagal.'
             );
         }
-    });
+    }));
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

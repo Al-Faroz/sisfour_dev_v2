@@ -8,6 +8,7 @@
   const canManage = app.dataset.canManage === '1';
   const table = document.getElementById('tablePegawai');
   const tbody = table?.querySelector('tbody');
+  const mobileList = document.getElementById('pegawaiMobileList');
   const filterForm = document.getElementById('formFilterPegawai');
   const form = document.getElementById('formPegawai');
   const modalEl = document.getElementById('modalPegawai');
@@ -111,9 +112,9 @@
       const contact = [row.no_telepon, row.email].filter(Boolean).map(esc).join('<br>') || '-';
       const data = encodeURIComponent(JSON.stringify(row));
       const manageActions = canManage
-        ? ` <button type="button" class="btn btn-sm btn-outline-primary btn-edit" title="Edit"><i class="bx bx-edit"></i></button>
-            <button type="button" class="btn btn-sm btn-outline-secondary btn-foto" title="Ganti Foto"><i class="bx bx-image"></i></button>
-            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" title="Hapus"><i class="bx bx-trash"></i></button>`
+        ? ` <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit" title="Edit"><i class="bx bx-edit"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact btn-foto" title="Ganti Foto"><i class="bx bx-image"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete" title="Hapus"><i class="bx bx-trash"></i></button>`
         : '';
 
       return `<tr data-row="${data}">
@@ -125,11 +126,45 @@
         <td>${account}</td>
         <td>${contact}</td>
         <td class="text-nowrap">
-          <button type="button" class="btn btn-sm btn-outline-info btn-detail" title="Detail"><i class="bx bx-show"></i></button>
+          <button type="button" class="btn btn-sm btn-outline-info sisfour-touch-target--compact btn-detail" title="Detail"><i class="bx bx-show"></i></button>
           <a href="${base}/master/pegawai/personalia/${row.id}" class="btn btn-sm btn-outline-dark" title="Riwayat & Portofolio Pegawai"><i class="bx bx-folder-open"></i></a>${manageActions}
         </td>
       </tr>`;
     }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada data Pegawai.</td></tr>';
+
+    if (mobileList) {
+      mobileList.innerHTML = rows.map((row) => {
+        const complete = Boolean(row.identity_complete);
+        const data = encodeURIComponent(JSON.stringify(row));
+        const account = row.username
+          ? `${esc(row.username)} · ${Number(row.status_user) === 1 ? 'Aktif' : 'Nonaktif'}`
+          : 'Akun belum terhubung';
+        const contact = [row.no_telepon, row.email].filter(Boolean).map(esc).join(' · ') || '-';
+        const manageActions = canManage
+          ? `<button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit">Edit</button>
+             <button type="button" class="btn btn-sm btn-outline-secondary sisfour-touch-target--compact btn-foto">Foto</button>
+             <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete">Hapus</button>`
+          : '';
+
+        return `<div class="list-group-item py-3" data-row="${data}">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="min-w-0 flex-grow-1">
+              <div class="fw-semibold sisfour-wrap-anywhere">${esc(row.nama)}</div>
+              <div class="small text-muted">${row.jenis_kelamin === 'P' ? 'Perempuan' : 'Laki-laki'} · ${esc(row.status_kepegawaian || '-')}</div>
+            </div>
+            ${complete ? '' : '<span class="badge bg-label-warning flex-shrink-0">NIK belum lengkap</span>'}
+          </div>
+          <div class="small mt-2 sisfour-wrap-anywhere"><strong>NIK:</strong> ${esc(row.nik || '-')} · <strong>NIP:</strong> ${esc(row.nip || '-')}</div>
+          <div class="small mt-1 sisfour-wrap-anywhere"><strong>Akun:</strong> ${account}</div>
+          <div class="small text-muted mt-1 sisfour-wrap-anywhere">${contact}</div>
+          <div class="sisfour-mobile-actions mt-3">
+            <button type="button" class="btn btn-sm btn-outline-info sisfour-touch-target--compact btn-detail">Detail</button>
+            <a href="${base}/master/pegawai/personalia/${row.id}" class="btn btn-sm btn-outline-dark sisfour-touch-target--compact">Personalia</a>
+            ${manageActions}
+          </div>
+        </div>`;
+      }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data Pegawai.</div>';
+    }
 
     bindRows();
   }
@@ -137,6 +172,9 @@
   async function load() {
     pager?.setDisabled(true);
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</td></tr>';
+    if (mobileList) {
+      mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat data...</div>';
+    }
 
     try {
       const response = await fetch(`${base}/master/pegawai?${params(true)}`, {
@@ -165,7 +203,7 @@
   }
 
   function rowData(button) {
-    const raw = button.closest('tr')?.dataset.row;
+    const raw = button.closest('[data-row]')?.dataset.row;
     return raw ? JSON.parse(decodeURIComponent(raw)) : null;
   }
 

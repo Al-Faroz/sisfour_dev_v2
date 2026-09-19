@@ -14,10 +14,11 @@
     const status = document.getElementById('rekapStatus');
     const table = document.getElementById('tableRekapPresensi');
     const tbody = document.getElementById('rekapTableBody');
+    const mobileList = document.getElementById('rekapMobileList');
     const totalEl = document.getElementById('rekapTotal');
     const btnReset = document.getElementById('btnResetRekap');
 
-    if (!form || !tanggalMulai || !tanggalSelesai || !table || !tbody || !totalEl) {
+    if (!form || !tanggalMulai || !tanggalSelesai || !table || !tbody || !mobileList || !totalEl) {
         return;
     }
 
@@ -105,9 +106,14 @@
         if (kelas) window.SisfourSearchableSelect?.sync(kelas);
     };
 
+    const setListState = (message, type = 'muted') => {
+        mobileList.innerHTML = `<div class="list-group-item sisfour-mobile-state text-${type}">${escapeHtml(message)}</div>`;
+    };
+
     const renderRows = (rows) => {
         if (!rows.length) {
             tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Tidak ada data pada filter ini.</td></tr>';
+            setListState('Tidak ada data pada filter ini.');
             return;
         }
 
@@ -119,6 +125,18 @@
                 <td><span class="badge ${badgeClass(row.status)}">${escapeHtml(row.status)}</span></td>
             </tr>
         `).join('');
+
+        mobileList.innerHTML = rows.map((row) => `
+            <div class="list-group-item py-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+                    <div class="min-w-0 flex-grow-1">
+                        <strong class="sisfour-cell-title">${escapeHtml(row.nama_siswa_snapshot || '-')}</strong>
+                        <span class="sisfour-cell-meta">${escapeHtml(row.tanggal)} · ${escapeHtml(row.sesi)}</span>
+                    </div>
+                    <span class="badge ${badgeClass(row.status)} flex-shrink-0">${escapeHtml(row.status)}</span>
+                </div>
+            </div>
+        `).join('');
     };
 
     const load = async () => {
@@ -126,6 +144,7 @@
 
         if (!selfView && !kelas?.value) {
             tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Pilih kelas terlebih dahulu.</td></tr>';
+            setListState('Pilih kelas terlebih dahulu.');
             state.total = 0;
             totalEl.textContent = '0 data';
             pager?.render(state);
@@ -138,6 +157,7 @@
 
         pager?.setDisabled(true);
         tbody.innerHTML = '<tr class="sisfour-loading-row"><td colspan="4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</td></tr>';
+        mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat...</div>';
 
         try {
             const response = await fetch(url.toString(), {
@@ -172,6 +192,7 @@
             syncUrl();
         } catch (error) {
             tbody.innerHTML = `<tr class="sisfour-error-row"><td colspan="4" class="text-danger">${escapeHtml(error.message)}</td></tr>`;
+            setListState(error.message || 'Data gagal dimuat.', 'danger');
         } finally {
             pager?.setDisabled(false);
         }
@@ -198,6 +219,7 @@
         }
 
         tbody.innerHTML = '<tr class="sisfour-empty-row"><td colspan="4" class="text-muted">Pilih kelas dan gunakan filter untuk menampilkan data.</td></tr>';
+        setListState('Pilih kelas dan gunakan filter untuk menampilkan data.');
         state.total = 0;
         totalEl.textContent = '0 data';
         pager?.render(state);

@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** G3.6C — **Executive Visualization & EWS Signage + Kartu JPG ZIP add-on / production gate PASS ALL; PR #15 tetap Draft**
+**Phase aktif:** G3.7 — **Global Mobile Sweep / local gate PASS; pre-deploy**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -31,6 +31,7 @@ G3.5   CLOSED / MERGED — PR #11
 G3.6   CLOSED / MERGED — PR #12
 G3.6A  CLOSED / MERGED — PR #13
 G3.6B  CLOSED / MERGED — PR #14
+G3.6C  CLOSED / MERGED — PR #15
 ```
 
 ## 3. Global UI/UX Regression
@@ -421,9 +422,48 @@ G3.5                                CLOSED / MERGED — PR #11
 G3.6                                CLOSED / MERGED — PR #12
 G3.6A                               CLOSED / MERGED — PR #13
 G3.6B                               CLOSED / MERGED — PR #14
-G3.6C production gate               PASS ALL
-Kartu JPG ZIP add-on                PASS ALL
-PR #15                              OPEN / DRAFT
+G3.6C                               CLOSED / MERGED — PR #15
+G3.6C merge commit                  f82a0299c8989da6c1026d84861f3e95d786f7dd
+Kartu JPG ZIP add-on                CLOSED / MERGED — PR #15
+
+G3.7 contract                       LOCKED / user approval
+G3.7 branch                         feat/g3-7-global-mobile-sweep-20260919
+G3.7 runtime source head            00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+G3.7 source                         IMPLEMENTED / Wave 1–7B complete
+G3.7 Wave 1 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 1 static gate             PASS / user terminal evidence
+G3.7 Wave 1 runtime UAT             PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 2 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 2 static gate             PASS / user terminal evidence
+G3.7 Wave 2 dashboard runtime UAT   PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 3 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 3 static gate             PASS / user terminal evidence
+G3.7 Wave 3 runtime UAT             PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 4 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 4 static gate             PASS / user terminal evidence
+G3.7 Wave 4 runtime UAT             PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 5 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 5 static gate             PASS / user terminal evidence
+G3.7 Wave 5 runtime UAT             PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 6 GitHub diff audit       PASS / GitHub read evidence
+G3.7 Wave 6 static gate             PASS / user terminal evidence
+G3.7 Wave 6 runtime UAT             PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 7A GitHub diff audit      PASS / GitHub read evidence
+G3.7 Wave 7A static gate            PASS / user terminal evidence
+G3.7 Wave 7A runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 7B GitHub diff audit      PASS / GitHub read evidence
+G3.7 Wave 7B static gate            PASS / user terminal evidence
+G3.7 Wave 7B runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+G3.7 Wave 8 full viewport regression PASS / user runtime evidence
+G3.7 Settings Menu mobile           PASS / user runtime evidence — documented matrix exception
+G3.7 Kenaikan bulk mobile           PASS / user runtime evidence — documented local-scroll exception
+G3.7 Kelulusan bulk mobile          PASS / user runtime evidence — documented local-scroll exception
+G3.7 Matrix mobile                  PASS / user runtime evidence — local-scroll exception
+G3.7 local viewport/runtime UAT     PASS / user runtime evidence
+G3.7 cross-role regression          PASS / user runtime evidence
+G3.7 local gate                     PASS ALL
+G3.7 hosting deployment             NOT AUTHORIZED
+G3.7 hosting runtime smoke          PENDING
 PR Ready                            NOT AUTHORIZED
 Merge                               NOT AUTHORIZED
 ```
@@ -433,8 +473,8 @@ Merge                               NOT AUTHORIZED
 ```text
 G3.6A  UKS / Kesehatan       CLOSED / MERGED — PR #13
 G3.6B  PTSP                  CLOSED / MERGED — PR #14
-G3.6C  Executive Viz/Signage PRODUCTION GATE PASS / PR #15 DRAFT
-G3.7   Global Mobile Sweep   NEXT AFTER G3.6C CLOSE
+G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
+G3.7   Global Mobile Sweep   LOCAL GATE PASS / PRE-DEPLOY
 G3.8   WebView Readiness
 G4     Cordova APK
 ```
@@ -615,9 +655,10 @@ G3.6C post-SQL hosting dump      PASS / read-only dump audit
 G3.6C hosting source deployment  PASS / user evidence
 G3.6C hosting runtime smoke      PASS / user runtime evidence
 G3.6C production gate            PASS ALL
-PR #15                           OPEN / DRAFT
-PR Ready                         NOT AUTHORIZED
-Merge                            NOT AUTHORIZED
+PR #15                           CLOSED / MERGED
+PR Ready                         PASS / user approval
+Merge                            PASS / user approval
+merge commit                     f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
 
 
@@ -683,6 +724,723 @@ UI visual/mobile re-smoke         PASS / user runtime evidence
 Hosting redeploy add-on           PASS / user evidence
 Hosting runtime smoke             PASS / user runtime evidence
 Add-on gate                       PASS ALL
-PR Ready                          NOT AUTHORIZED
-Merge                             NOT AUTHORIZED
+PR #15                            CLOSED / MERGED
+PR Ready                          PASS / user approval
+Merge                             PASS / user approval
+merge commit                      f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
+
+
+## 22. G3.7 — Global Mobile Sweep Gate
+
+G3.7 tidak mempunyai SQL/schema/RBAC delta.
+
+Static minimum:
+
+```text
+php -l seluruh PHP changed G3.7
+node --check seluruh JS changed G3.7
+php spark routes
+git diff --check origin/main...HEAD
+git status
+```
+
+Viewport minimum:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Role/runtime matrix minimum:
+
+```text
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
+Siswa
+Kesehatan
+PTSP
+Public PTSP
+```
+
+Acceptance:
+
+```text
+no body/document horizontal overflow
+no table horizontal scroll role operasional
+mobile primary information tetap lengkap secara fungsional
+action tidak clipped
+touch target utama nyaman
+filter mobile stack/compact
+modal/form keyboard-safe
+pager usable
+chart/card/list tidak keluar viewport
+desktop/tablet regression PASS
+RBAC/scope/period/privacy unchanged
+expected DENY tetap DENY
+no uncaught browser error
+```
+
+Heavy administrative matrix Admin/Operator dapat menjadi exception hanya jika dua dimensi tidak dapat direduksi tanpa kehilangan fungsi; setiap exception wajib dicatat eksplisit pada UAT.
+
+Current gate:
+
+```text
+SSOT lock                     PASS / user approval
+runtime source head           00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+source implementation         IMPLEMENTED / Wave 1–7B complete
+Wave 1 GitHub diff audit      PASS / GitHub read evidence
+Wave 1 static gate            PASS / user terminal evidence
+Wave 1 runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+Wave 2 GitHub diff audit      PASS / GitHub read evidence
+Wave 2 static gate            PASS / user terminal evidence
+Wave 2 dashboard runtime UAT  PASS / user runtime evidence via Wave 8 full regression
+Wave 3 GitHub diff audit      PASS / GitHub read evidence
+Wave 3 static gate            PASS / user terminal evidence
+Wave 3 runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+Wave 4 GitHub diff audit      PASS / GitHub read evidence
+Wave 4 static gate            PASS / user terminal evidence
+Wave 4 runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+Wave 5 GitHub diff audit      PASS / GitHub read evidence
+Wave 5 static gate            PASS / user terminal evidence
+Wave 5 runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+Wave 6 GitHub diff audit      PASS / GitHub read evidence
+Wave 6 static gate            PASS / user terminal evidence
+Wave 6 runtime UAT            PASS / user runtime evidence via Wave 8 full regression
+Wave 7A GitHub diff audit     PASS / GitHub read evidence
+Wave 7A static gate           PASS / user terminal evidence
+Wave 7A runtime UAT           PASS / user runtime evidence via Wave 8 full regression
+Wave 7B GitHub diff audit     PASS / GitHub read evidence
+Wave 7B static gate           PASS / user terminal evidence
+Wave 7B runtime UAT           PASS / user runtime evidence via Wave 8 full regression
+Wave 8 full viewport UAT     PASS / user runtime evidence
+Settings Menu mobile          PASS / user runtime evidence — documented matrix exception
+Kenaikan bulk mobile          PASS / user runtime evidence — documented local-scroll exception
+Kelulusan bulk mobile         PASS / user runtime evidence — documented local-scroll exception
+Matrix mobile                 PASS / user runtime evidence — local-scroll exception
+local viewport/runtime UAT    PASS / user runtime evidence
+cross-role regression         PASS / user runtime evidence
+local G3.7 gate               PASS ALL
+hosting source deployment     NOT AUTHORIZED
+hosting runtime smoke         PENDING
+PR Ready                      NOT AUTHORIZED
+Merge                         NOT AUTHORIZED
+```
+
+
+### Wave 1 — Global Foundation
+
+Implemented scope:
+
+```text
+navbar/sidebar accessibility + role fallback
+visualViewport height sync for keyboard-safe modal sizing
+horizontal overflow diagnostic helper (manual/UAT only)
+global min-width/max-width responsive guards
+reusable mobile card/wrap primitives
+compact mobile pagination without horizontal pager strip
+searchable-select mobile size/viewport guards
+modal footer touch targets + responsive width guard
+```
+
+Changed runtime files:
+
+```text
+app/Views/_navbar.php
+app/Views/_sidebar.php
+assets/js/main.js
+assets/js/components/pagination.js
+assets/css/searchable-select.css
+assets/css/sisfour-mobile.css
+assets/css/sisfour-modal.css
+```
+
+Evidence:
+
+```text
+implementation            IMPLEMENTED
+GitHub diff audit          PASS / GitHub read evidence
+automated GitHub CI        NONE / no workflow runs on exact head
+terminal syntax gate       PASS / user terminal evidence
+local viewport re-smoke    PASS / user runtime evidence via Wave 8 full regression
+```
+
+Manual overflow diagnostic untuk UAT dapat dipanggil di browser console:
+
+```js
+SisfourLayoutDiagnostics.horizontalOverflowReport()
+```
+
+Helper tersebut read-only dan tidak mengubah layout/business state.
+
+
+### Wave 2 — Dashboard Seluruh Role
+
+Audit seluruh dashboard dilakukan sebelum mutation.
+
+```text
+Pimpinan   = existing mobile-adaptive / regression-only
+Guru       = existing mobile-adaptive / regression-only
+Guru+Wali  = existing mobile-adaptive / regression-only
+Siswa      = existing mobile-adaptive / regression-only
+
+Admin      = mobile Tren + Aktivitas list; desktop table preserved
+Operator   = canonical page header + mobile Tren/Aktivitas list; desktop table preserved
+BK         = KPI 2×2 canonical + header/list wrap safety
+Kesehatan  = KPI 2×2 + primary/quick action + recent-list mobile safety
+PTSP       = KPI 2×2 + quick action + recent-list mobile safety
+```
+
+Changed runtime files:
+
+```text
+app/Views/dashboard_admin.php
+app/Views/dashboard_operator.php
+app/Views/dashboard_bk.php
+app/Views/dashboard_kesehatan.php
+app/Views/dashboard_ptsp.php
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / RBAC / scope         = unchanged
+dashboard payload            = unchanged
+KPI/query/business meaning   = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 2 implementation       IMPLEMENTED
+Wave 2 GitHub diff audit    PASS / GitHub read evidence
+Wave 2 static terminal gate PASS / user terminal evidence
+Wave 2 dashboard runtime    PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 3 — BK + Presensi + Laporan Guru/Wali
+
+Audit sebelum mutation:
+
+```text
+BK Kasus                  = existing mobile list / regression-only
+BK Konseling              = existing mobile list / regression-only
+BK Prestasi               = existing mobile list / regression-only
+Presensi Siswa Input      = existing mobile table/status grid / regression-only
+Presensi Mengajar         = existing mobile form/status grid / regression-only
+Presensi Mengajar Laporan = existing mobile list / regression-only
+Laporan Jurnal            = existing mobile list + fullscreen detail / regression-only
+```
+
+Implemented gap:
+
+```text
+BK Master Pelanggaran
+- desktop table preserved
+- mobile list mirrors same server rows
+- Edit/Hapus operate against same row identity
+- pagination state shared
+
+EWS Presensi Siswa
+- desktop table preserved
+- mobile list shows siswa + total Alpha
+- same in-memory rows + same pagination
+
+Rekap Presensi Siswa
+- desktop table preserved
+- mobile list shows siswa + tanggal/sesi + status
+- self-view and scoped-view use same server result
+- same server-side pagination/filter state
+```
+
+Changed runtime files:
+
+```text
+app/Views/bk/pelanggaran.php
+assets/js/bk/pelanggaran.js
+app/Views/presensi/siswa_ews.php
+assets/js/presensi/siswa-ews.js
+app/Views/presensi/siswa_rekap.php
+assets/js/presensi/siswa-rekap.js
+```
+
+Matrix Presensi:
+
+```text
+status = ACCEPTED / user runtime evidence via Wave 8 full regression
+reason = intrinsically 2D (siswa × tanggal)
+rule   = horizontal scroll boleh hanya di matrix container
+UAT    = document/body tidak overflow
+final exception = documented local-scroll exception
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / RBAC / scope         = unchanged
+filter/pagination semantics  = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 3 implementation       IMPLEMENTED
+Wave 3 GitHub diff audit    PASS / GitHub read evidence
+Wave 3 static terminal gate PASS / user terminal evidence
+Wave 3 runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 4 — UKS + PTSP
+
+Audit sebelum mutation:
+
+```text
+UKS CKG          = existing mobile list + desktop table
+UKS Harian       = existing mobile list + desktop table
+PTSP Layanan     = existing mobile list + desktop table
+PTSP Pengaduan   = existing mobile list + desktop table
+PTSP Polling     = existing mobile list + desktop table
+PTSP Public      = existing responsive public CSS / regression-only
+```
+
+Implemented polish:
+
+```text
+UKS CKG
+- page/filter/export actions mendapat touch target
+- modal data + import fullscreen-sm-down / scrollable
+- mobile identity/status row wrap-safe
+- Edit/Hapus mobile compact touch target
+
+UKS Harian
+- page/filter/export actions mendapat touch target
+- modal catatan fullscreen-sm-down
+- mobile identity/keluhan/tindakan/hasil/petugas wrap-safe
+- Edit/Hapus mobile compact touch target
+
+PTSP Layanan
+- page/filter/export actions mendapat touch target
+- card header wrap-safe
+- modal Tambah Internal scrollable + fullscreen-sm-down
+- mobile pemohon/layanan/status/petugas wrap-safe
+- mutation actions + pager compact touch target
+
+PTSP Pengaduan
+- filter/export/header mobile polish
+- judul/klasifikasi/isi/status/lampiran wrap-safe
+- status/delete/lampiran action touch target
+- pager wrap-safe
+
+PTSP Polling
+- filter/export/header mobile polish
+- responden/kategori/score/kepuasan/masukan wrap-safe
+- delete + pager compact touch target
+```
+
+Changed runtime files:
+
+```text
+app/Views/uks/ckg.php
+app/Views/uks/harian.php
+assets/js/uks/ckg.js
+assets/js/uks/harian.js
+app/Views/ptsp/layanan.php
+app/Views/ptsp/pengaduan.php
+app/Views/ptsp/polling.php
+assets/js/ptsp/layanan.js
+assets/js/ptsp/pengaduan.js
+assets/js/ptsp/polling.js
+```
+
+Invariant:
+
+```text
+Controller / Service / Model = unchanged
+route / permission / scope   = unchanged
+UKS / PTSP workflow          = unchanged
+filter/pagination semantics  = unchanged
+Public PTSP contract         = unchanged
+DB/schema/SQL                = NONE
+```
+
+Evidence:
+
+```text
+Wave 4 implementation       IMPLEMENTED
+Wave 4 GitHub diff audit    PASS / GitHub read evidence
+Wave 4 static terminal gate PASS / user terminal evidence
+Wave 4 runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 5 — Siswa + Kartu + Profile
+
+Audit sebelum mutation:
+
+```text
+Dashboard Siswa       = existing mobile-adaptive / regression-only
+Kartu Daftar          = table-only gap
+Kartu Preview         = fixed physical canvas with local horizontal scroll
+Profile Siswa         = biodata adaptive; class history table-only gap
+Profile Guru          = existing responsive profile primitive
+Profile Pegawai       = existing responsive profile primitive
+Personalia Detail     = existing mobile record-card; edit modals need mobile polish
+Kartu PDF/JPG output  = physical renderer / regression-only
+Portfolio PDF         = output renderer / regression-only
+```
+
+Implemented polish:
+
+```text
+Kartu Daftar
+- desktop table preserved
+- mobile card list mirrors same server rows
+- mobile/desktop checkbox controls synchronized by card ID
+- selectedIds deduplicated before print request
+- Preview/PDF/Reissue touch-friendly
+- pagination/filter/generate/reissue/cetak endpoints unchanged
+
+Kartu Preview
+- page header/action mobile-safe
+- physical 1011×638 canvas preserved
+- horizontal scroll remains local to .kartu-scroll
+
+Profile Siswa
+- readonly contract preserved
+- biodata long values wrap-safe
+- Riwayat Kelas gets mobile record-card renderer
+- desktop table preserved
+
+Profile Guru / Pegawai
+- existing responsive layout preserved
+- navigation/hero/upload/save actions touch-friendly
+- long metadata wrap-safe
+- Pegawai page header aligned to canonical primitive
+
+Personalia Detail
+- existing desktop tables + mobile record-cards preserved
+- 4 edit modals become scrollable fullscreen-sm-down
+- mobile document/edit/delete/add actions get touch target
+- record title/meta wrap-safe
+```
+
+Changed runtime files:
+
+```text
+app/Views/kartu/daftar.php
+assets/js/kartu/daftar.js
+assets/css/kartu-daftar.css
+app/Views/kartu/preview.php
+app/Views/profile/siswa.php
+app/Views/profile/guru.php
+app/Views/profile/pegawai.php
+app/Views/personalia/detail.php
+```
+
+Invariant:
+
+```text
+Kartu generate/reissue          = unchanged
+PDF/JPG ZIP output              = unchanged
+selected-card print semantics   = unchanged
+Profile persistence             = unchanged
+Personalia persistence          = unchanged
+Controller / Service / Model    = unchanged
+route / RBAC / scope            = unchanged
+DB/schema/SQL                   = NONE
+```
+
+Evidence:
+
+```text
+Wave 5 implementation       IMPLEMENTED
+Wave 5 GitHub diff audit    PASS / GitHub read evidence
+Wave 5 static terminal gate PASS / user terminal evidence
+Wave 5 runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 6 — Statistik + Remaining Operational Surfaces
+
+Audit sebelum mutation:
+
+```text
+Statistik                = responsive grid existing; chart breakpoint/containment gap
+UKS Master               = card/list existing; action/modal mobile polish gap
+Signage                  = special public display surface / regression-only
+Log Activity             = Admin/Operator administrative surface -> Wave 7
+Master/Settings/Backup   = Admin/Operator administrative surface -> Wave 7
+BK TOP                   = legacy view; no active route found
+BK Konseling Settings    = view/controller exist; explicit route registration not found
+```
+
+G3.7 tidak menambah atau memperbaiki route orphan/ambiguity. Route/RBAC tetap unchanged.
+
+Implemented polish:
+
+```text
+Statistik
+- filter/context/card headers wrap-safe
+- chart/card containers min-width:0 and max-width containment
+- ApexCharts width 100% + parent/window resize
+- responsive breakpoints at 576px and 768px
+- mobile legend/axis font/label overlap guards
+- chart heights compact on narrow screens
+- data payload, section order, and PDF export contract unchanged
+
+UKS Master
+- card headers and list rows wrap-safe
+- nama/status/action do not force document overflow
+- Tambah/Edit/Nonaktifkan compact touch targets
+- modal becomes scrollable fullscreen-sm-down
+- create/update/delete semantics unchanged
+```
+
+Changed runtime files:
+
+```text
+app/Views/statistik/index.php
+assets/css/statistik.css
+assets/js/statistik.js
+app/Views/uks/master.php
+```
+
+Invariant:
+
+```text
+Statistik payload/agregasi       = unchanged
+Statistik PDF output             = unchanged
+UKS Master persistence           = unchanged
+Controller / Service / Model     = unchanged
+route / RBAC / scope             = unchanged
+DB/schema/SQL                    = NONE
+```
+
+Evidence:
+
+```text
+Wave 6 implementation       IMPLEMENTED
+Wave 6 GitHub diff audit    PASS / GitHub read evidence
+Wave 6 static terminal gate PASS / user terminal evidence
+Wave 6 runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 7A — Adaptive Admin Surfaces
+
+Scope:
+
+```text
+Backup Database
+Log Activity
+Settings User
+Master Kelas
+Master Mata Pelajaran
+Master Tahun Ajaran
+Mapping Wali Kelas
+Recycle Bin Guru
+Recycle Bin Pegawai
+Recycle Bin Siswa
+Recycle Bin Kelas
+Histori / Recycle Bin Wali Kelas
+Recycle Bin Tahun Ajaran
+```
+
+Implemented pattern:
+
+```text
+desktop table              = preserved
+mobile list/card           = added from same runtime dataset
+pagination/filter state    = shared with existing renderer where present
+mobile action              = existing handler or proxy to existing desktop handler
+touch target               = compact/primary mobile primitive
+modal                      = fullscreen-sm-down where relevant
+business endpoint          = unchanged
+```
+
+Wave 7A intentionally excludes:
+
+```text
+Master Guru / Pegawai / Siswa
+Jadwal Guru
+Manajemen Siswa Kelas/Kenaikan/Kelulusan/Mutasi
+Settings Menu matrix
+Settings Sistem
+```
+
+Those remain Wave 7B / documented-exception work.
+
+Changed runtime files: 26 files = 13 View/JS pairs.
+
+Invariant:
+
+```text
+CRUD semantics                  = unchanged
+restore/force-delete semantics  = unchanged
+role/user semantics             = unchanged
+pagination/filter authority     = unchanged
+Controller / Service / Model    = unchanged
+route / RBAC / scope            = unchanged
+DB/schema/SQL                   = NONE
+```
+
+Evidence:
+
+```text
+Wave 7A implementation       IMPLEMENTED
+Wave 7A GitHub diff audit    PASS / GitHub read evidence
+Wave 7A static terminal gate PASS / user terminal evidence
+Wave 7A runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+
+### Wave 7B — Heavy CRUD + Documented Exceptions
+
+Implemented adaptive surfaces:
+
+```text
+Master Guru
+Master Pegawai
+Master Siswa
+Jadwal Guru
+Manajemen Siswa — Atur Kelas
+Manajemen Siswa — Mutasi
+```
+
+Hybrid surfaces:
+
+```text
+Manajemen Siswa — Kenaikan
+- outer class/progress surface gets mobile companion view
+- bulk student checkbox table remains local horizontal-scroll
+- selection/process semantics unchanged
+
+Manajemen Siswa — Kelulusan
+- source classes + alumni history get mobile companion views
+- bulk student checkbox table remains local horizontal-scroll
+- restore/process semantics unchanged
+```
+
+Documented matrix exception:
+
+```text
+Settings Menu
+- true 2D menu × role matrix
+- no card conversion
+- horizontal scroll restricted to table-responsive container
+- matrix container has region label + keyboard focus
+- document/body overflow remains forbidden
+```
+
+Settings Sistem remains regression-only because it is form/card based and did not require a presentation rewrite.
+
+Changed runtime files:
+
+```text
+app/Views/master/guru.php
+assets/js/master/guru.js
+app/Views/master/pegawai.php
+assets/js/master/pegawai.js
+app/Views/master/siswa.php
+assets/js/master/siswa.js
+app/Views/master/jadwal_guru.php
+assets/js/master/jadwal-guru.js
+app/Views/manajemen_siswa/kelas.php
+assets/js/manajemen_siswa/kelas.js
+app/Views/manajemen_siswa/kenaikan.php
+assets/js/manajemen_siswa/kenaikan.js
+app/Views/manajemen_siswa/kelulusan.php
+assets/js/manajemen_siswa/kelulusan.js
+app/Views/manajemen_siswa/mutasi.php
+assets/js/manajemen_siswa/mutasi.js
+app/Views/settings/menu.php
+```
+
+Invariant:
+
+```text
+Guru/Pegawai/Siswa CRUD            = unchanged
+Jadwal CRUD/import                 = unchanged
+Atur Kelas semantics               = unchanged
+Kenaikan/Kelulusan bulk semantics  = unchanged
+Mutasi/restore semantics           = unchanged
+Menu-role mapping semantics        = unchanged
+Controller / Service / Model       = unchanged
+route / RBAC / scope               = unchanged
+DB/schema/SQL                      = NONE
+```
+
+Evidence:
+
+```text
+Wave 7B implementation       IMPLEMENTED
+Wave 7B GitHub diff audit    PASS / GitHub read evidence
+Wave 7B JS parse-only check  PASS / GitHub read evidence
+Wave 7B static terminal gate PASS / user terminal evidence
+Wave 7B runtime UAT          PASS / user runtime evidence via Wave 8 full regression
+```
+
+Exception acceptance telah dipenuhi melalui Wave 8 full viewport regression: body/document horizontal overflow tetap false; scroll hanya lokal pada surface exception.
+
+
+### Wave 8 — Full Viewport Regression Closure
+
+Viewport wajib:
+
+```text
+360×800
+375×812
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Role/runtime matrix minimum:
+
+```text
+Admin
+Operator
+Pimpinan
+BK
+Guru
+Guru + Wali
+Siswa
+Kesehatan
+PTSP
+Public PTSP
+```
+
+Evidence closure:
+
+```text
+runtime source head                 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+Wave 8 full viewport regression     PASS / user runtime evidence
+local viewport/runtime UAT          PASS / user runtime evidence
+cross-role regression               PASS / user runtime evidence
+Settings Menu matrix exception      PASS / user runtime evidence
+Kenaikan bulk local-scroll          PASS / user runtime evidence
+Kelulusan bulk local-scroll         PASS / user runtime evidence
+Matrix Presensi local-scroll        PASS / user runtime evidence
+desktop/tablet regression           PASS / user runtime evidence
+body/document horizontal overflow   PASS / user runtime evidence
+local G3.7 gate                     PASS ALL
+```
+
+G3.7 tetap PRE-DEPLOY. Hosting source deployment, hosting runtime smoke, PR Ready, dan Merge memerlukan approval/evidence terpisah dan belum dilakukan.

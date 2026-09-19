@@ -12,6 +12,7 @@ const base = String(
 ).replace(/\/+$/, '');
 
 const body = document.getElementById('backupBody');
+const mobileList = document.getElementById('backupMobileList');
 const alertBox = document.getElementById('backupAlert');
 const createButton = document.getElementById('btnCreateBackup');
 const reloadButton = document.getElementById('btnReloadBackup');
@@ -78,26 +79,25 @@ async function load() {
           <td>${esc(formatBytes(row.size))}</td>
           <td>${esc(row.created_at || '-')}</td>
           <td class="text-end">
-            <a
-              class="btn btn-sm btn-outline-primary"
-              href="${base}/backup/download/${encodeURIComponent(row.filename)}"
-            >Download</a>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-danger btn-delete-backup"
-              data-filename="${esc(row.filename)}"
-            >Hapus</button>
+            <a class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" href="${base}/backup/download/${encodeURIComponent(row.filename)}">Download</a>
+            <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-backup" data-filename="${esc(row.filename)}">Hapus</button>
           </td>
         </tr>`
       ).join('')
-      : `<tr>
-          <td
-            colspan="4"
-            class="text-center text-muted py-4"
-          >
-            Belum ada file backup.
-          </td>
-        </tr>`;
+      : `<tr><td colspan="4" class="text-center text-muted py-4">Belum ada file backup.</td></tr>`;
+
+    if (mobileList) {
+      mobileList.innerHTML = rows.length
+        ? rows.map(row => `<div class="list-group-item py-3">
+            <div class="fw-semibold font-monospace sisfour-wrap-anywhere">${esc(row.filename)}</div>
+            <div class="small text-muted mt-1">${esc(formatBytes(row.size))} · ${esc(row.created_at || '-')}</div>
+            <div class="sisfour-mobile-actions mt-3">
+              <a class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" href="${base}/backup/download/${encodeURIComponent(row.filename)}">Download</a>
+              <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-backup" data-filename="${esc(row.filename)}">Hapus</button>
+            </div>
+          </div>`).join('')
+        : '<div class="list-group-item sisfour-mobile-state text-muted">Belum ada file backup.</div>';
+    }
 
     bindDeleteButtons();
   } catch (error) {

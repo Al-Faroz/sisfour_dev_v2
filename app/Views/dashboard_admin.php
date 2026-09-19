@@ -119,7 +119,17 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   <div class="col-lg-5">
     <div class="card sisfour-table-card h-100">
       <div class="card-header"><h5 class="mb-0">Tren Presensi 7 Hari</h5></div>
-      <div class="table-responsive">
+      <div class="d-md-none list-group list-group-flush">
+        <?php if (empty($widgets['tren_presensi'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada data tren.</div>
+        <?php else: foreach (($widgets['tren_presensi'] ?? []) as $row): ?>
+          <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
+            <span class="min-w-0 text-wrap"><?= esc($row['tanggal']) ?></span>
+            <strong class="flex-shrink-0"><?= esc((string) $row['persen_hadir']) ?>%</strong>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+      <div class="d-none d-md-block table-responsive">
         <table class="table table-sm mb-0">
           <thead><tr><th>Tanggal</th><th>% Hadir</th></tr></thead>
           <tbody>
@@ -136,7 +146,21 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   <div class="col-lg-7">
     <div class="card sisfour-table-card h-100">
       <div class="card-header"><h5 class="mb-0">Aktivitas Terakhir</h5></div>
-      <div class="table-responsive">
+      <div class="d-md-none list-group list-group-flush">
+        <?php if (empty($widgets['aktivitas_terakhir'])): ?>
+          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada aktivitas.</div>
+        <?php else: foreach ($widgets['aktivitas_terakhir'] as $log): ?>
+          <div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+              <strong class="min-w-0 text-wrap"><?= esc($log['modul']) ?></strong>
+              <small class="text-muted flex-shrink-0"><?= esc($log['waktu']) ?></small>
+            </div>
+            <div class="small fw-semibold text-wrap"><?= esc($log['aksi']) ?></div>
+            <div class="small text-muted text-wrap mt-1"><?= esc($log['keterangan'] ?? '-') ?></div>
+          </div>
+        <?php endforeach; endif; ?>
+      </div>
+      <div class="d-none d-md-block table-responsive">
         <table class="table table-sm mb-0">
           <thead><tr><th>Waktu</th><th>Modul</th><th>Aksi</th><th>Keterangan</th></tr></thead>
           <tbody>

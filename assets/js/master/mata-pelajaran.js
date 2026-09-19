@@ -7,6 +7,7 @@
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const table = document.getElementById('tableMapel');
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('mapelMobileList');
     const filterForm = document.getElementById('formFilterMapel');
     const form = document.getElementById('formMapel');
     const modal = new bootstrap.Modal(document.getElementById('modalMapel'));
@@ -91,6 +92,25 @@
                 </tr>
             `;
         }).join('') || '<tr class="sisfour-empty-row"><td colspan="5" class="text-muted">Tidak ada data Mata Pelajaran.</td></tr>';
+
+        if (mobileList) {
+            mobileList.innerHTML = pageRows.map((mapel) => {
+                const jumlahJadwal = Number(mapel.jumlah_jadwal || 0);
+                return `<div class="list-group-item py-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(mapel.nama_mapel)}</div>
+                            <span class="badge bg-label-primary font-monospace mt-1">${escapeHtml(mapel.kode_mapel)}</span>
+                        </div>
+                        <span class="badge ${jumlahJadwal > 0 ? 'bg-label-warning' : 'bg-label-secondary'} flex-shrink-0">${jumlahJadwal > 0 ? jumlahJadwal + ' jadwal' : 'Belum digunakan'}</span>
+                    </div>
+                    <div class="sisfour-mobile-actions mt-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-mobile-proxy" data-action="edit" data-id="${mapel.id}">Edit</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-action="delete" data-id="${mapel.id}" ${jumlahJadwal > 0 ? 'disabled' : ''}>Hapus</button>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data Mata Pelajaran.</div>';
+        }
 
         pager?.render(state);
     };
@@ -185,6 +205,13 @@
                 showError(error);
             }
         }
+    });
+
+    mobileList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-mobile-proxy');
+        if (!button || button.disabled) return;
+        const selector = button.dataset.action === 'edit' ? '.btn-edit' : '.btn-delete';
+        tbody.querySelector(`${selector}[data-id="${button.dataset.id}"]`)?.click();
     });
 
     form.addEventListener('submit', async (event) => {

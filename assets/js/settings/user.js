@@ -9,6 +9,7 @@ if (!app) {
 
 const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
 const body = document.getElementById('userBody');
+const mobileList = document.getElementById('userMobileList');
 const alertBox = document.getElementById('userAlert');
 const form = document.getElementById('formUser');
 const resetForm = document.getElementById('formResetPassword');
@@ -164,6 +165,9 @@ async function load() {
       </td>
     </tr>
   `;
+  if (mobileList) {
+    mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat user...</div>';
+  }
 
   try {
     const response = await fetch(
@@ -192,7 +196,9 @@ async function load() {
 
     managedById.clear();
 
-    body.innerHTML = (data.rows || []).map((item) => {
+    const rows = data.rows || [];
+
+    body.innerHTML = rows.map((item) => {
       managedById.set(
         String(item.id),
         Boolean(item.credential_managed)
@@ -228,18 +234,18 @@ async function load() {
           <td>${Number(item.auth_version || 0)}</td>
           <td class="text-end">
             <button
-              class="btn btn-sm btn-outline-primary btn-edit-user"
+              class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-user"
               data-id="${item.id}"
             >Edit</button>
             <button
-              class="btn btn-sm btn-outline-warning btn-reset-user"
+              class="btn btn-sm btn-outline-warning sisfour-touch-target--compact btn-reset-user"
               data-id="${item.id}"
             >Reset</button>
             ${
               item.credential_managed
                 ? ''
                 : ` <button
-                    class="btn btn-sm btn-outline-danger btn-delete-user"
+                    class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-user"
                     data-id="${item.id}"
                   >Hapus</button>`
             }
@@ -253,6 +259,29 @@ async function load() {
         </td>
       </tr>
     `;
+
+    if (mobileList) {
+      mobileList.innerHTML = rows.map((item) => {
+        const secondary = (item.secondary_roles || []).map((role) => `<span class="badge bg-label-secondary me-1 mb-1">${esc(role)}</span>`).join('') || '<span class="text-muted">-</span>';
+        return `<div class="list-group-item py-3">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div class="min-w-0 flex-grow-1">
+              <div class="fw-semibold sisfour-wrap-anywhere">${esc(item.username)}</div>
+              <div class="small text-muted sisfour-wrap-anywhere">${esc(item.identity_label || 'Tanpa relasi')}</div>
+            </div>
+            ${Number(item.status_aktif) === 1 ? '<span class="badge bg-success flex-shrink-0">Aktif</span>' : '<span class="badge bg-secondary flex-shrink-0">Nonaktif</span>'}
+          </div>
+          <div class="small mt-2"><strong>Primary:</strong> ${esc(item.role || 'NULL')}</div>
+          <div class="small mt-1"><strong>Secondary:</strong> ${secondary}</div>
+          <div class="small text-muted mt-1">Auth ver. ${Number(item.auth_version || 0)}${item.credential_managed ? ' · dikelola Master' : ''}</div>
+          <div class="sisfour-mobile-actions mt-3">
+            <button class="btn btn-sm btn-outline-primary sisfour-touch-target--compact btn-edit-user" data-id="${item.id}">Edit</button>
+            <button class="btn btn-sm btn-outline-warning sisfour-touch-target--compact btn-reset-user" data-id="${item.id}">Reset</button>
+            ${item.credential_managed ? '' : `<button class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-user" data-id="${item.id}">Hapus</button>`}
+          </div>
+        </div>`;
+      }).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data.</div>';
+    }
 
     bindRows();
     pager?.render(state);

@@ -1,7 +1,7 @@
 # SisisFour Mobile & Cordova UI/UX Standard
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 17 September 2026
+**Tanggal Acuan:** 19 September 2026
 **Baseline UI:** Sneat Free v3 + Bootstrap 5.3.x + CodeIgniter 4
 **Target utama:** Android portrait melalui browser mobile dan Cordova WebView
 **Role prioritas:** Pimpinan, BK, Guru, Guru+Wali Kelas, Siswa
@@ -379,7 +379,77 @@ Untuk G3.3.1 rework, baseline hosting smoke lama tidak menutup perubahan 17 Sept
 ## 27. Phase
 
 ```text
-G2 = stabilization
-G3 = Mobile Role UI + WebView readiness
-G4 = Cordova APK packaging/integration
+G2   = stabilization
+G3.1–G3.6C = role/domain mobile foundations + feature delivery
+G3.7 = Global Mobile Sweep — LOCAL GATE PASS / PRE-DEPLOY
+G3.8 = Viewport/WebView Readiness
+G4   = Cordova APK packaging/integration
 ```
+
+
+## 28. G3.7 — Global Mobile Sweep Contract
+
+Baseline:
+
+```text
+main   = f82a0299c8989da6c1026d84861f3e95d786f7dd
+branch = feat/g3-7-global-mobile-sweep-20260919
+```
+
+Scope G3.7 adalah presentation/responsive regression terhadap seluruh surface aktif. Business/security/data contract tidak berubah.
+
+```text
+DB/schema/SQL     = NONE
+RBAC/permission   = NONE
+scope/period      = unchanged
+business rule     = unchanged
+WebView/native    = deferred to G3.8/G4
+```
+
+Sweep order:
+
+```text
+1. shell / global primitives / modal / navbar / pager
+2. dashboard seluruh role
+3. BK + Presensi + Laporan Guru/Wali
+4. UKS + PTSP
+5. Siswa + Kartu + Profile
+6. Statistik + remaining operational surfaces
+7. Admin/Operator heavy CRUD + documented exceptions
+8. full viewport regression
+```
+
+Acceptance G3.7:
+
+```text
+360px usable
+document/body tidak melebar melebihi viewport
+role operasional tidak bergantung table horizontal scroll
+action tidak clipped
+primary action 44–48px bila relevan
+long text dapat wrap
+filter tidak menghabiskan layar
+modal/form usable dengan keyboard
+safe-area tetap aman
+loading/error/success/busy guard tidak regression
+desktop/tablet tidak regression
+```
+
+Catatan: `overflow-x:hidden` pada body bukan bukti masalah selesai. UAT harus mengecek elemen penyebab overflow dan lebar dokumen aktual.
+
+Closure local G3.7:
+
+```text
+runtime source head              = 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+static Wave 1–7B                = PASS / user terminal evidence
+full viewport regression         = PASS / user runtime evidence
+360/375/390/412 mobile sweep     = PASS / user runtime evidence
+768×1024 / 1024×768 tablet       = PASS / user runtime evidence
+1366×768 desktop regression      = PASS / user runtime evidence
+document/body overflow           = PASS / user runtime evidence
+documented local-scroll surfaces = PASS / user runtime evidence
+hosting                          = NOT AUTHORIZED
+PR Ready / Merge                 = NOT AUTHORIZED
+```
+
+Exception yang diterima pada UAT tetap exception terlokalisasi: Settings Menu matrix, bulk selection Kenaikan/Kelulusan, Matrix Presensi, dan fixed physical Kartu preview. Exception tidak mengizinkan body/document overflow.

@@ -17,11 +17,11 @@ $options = $initial['fixed_options'] ?? [];
         </div>
         <div class="sisfour-page-actions d-flex flex-wrap gap-2">
             <?php if ($canImport): ?>
-                <a class="btn btn-outline-primary" href="<?= esc(base_url('uks/ckg/template')) ?>"><i class="bx bx-download me-1"></i> Template</a>
-                <button class="btn btn-outline-primary" id="btnCkgImport" type="button"><i class="bx bx-import me-1"></i> Import</button>
+                <a class="btn btn-outline-primary sisfour-touch-target--compact" href="<?= esc(base_url('uks/ckg/template')) ?>"><i class="bx bx-download me-1"></i> Template</a>
+                <button class="btn btn-outline-primary sisfour-touch-target--compact" id="btnCkgImport" type="button"><i class="bx bx-import me-1"></i> Import</button>
             <?php endif; ?>
             <?php if ($canManage): ?>
-                <button class="btn btn-primary" id="btnCkgBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah CKG</button>
+                <button class="btn btn-primary sisfour-touch-target" id="btnCkgBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah CKG</button>
             <?php endif; ?>
         </div>
     </div>
@@ -66,8 +66,8 @@ $options = $initial['fixed_options'] ?? [];
                         </div>
                         <div class="col-12 col-md-6">
                             <div class="sisfour-filter-actions justify-content-md-end">
-                                <button class="btn btn-outline-secondary" id="btnCkgReset" type="button"><i class="bx bx-reset me-1"></i> Reset</button>
-                                <button class="btn btn-primary" id="btnCkgCari" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
+                                <button class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnCkgReset" type="button"><i class="bx bx-reset me-1"></i> Reset</button>
+                                <button class="btn btn-primary sisfour-primary-action" id="btnCkgCari" type="button"><i class="bx bx-filter-alt me-1"></i> Tampilkan</button>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -80,7 +80,7 @@ $options = $initial['fixed_options'] ?? [];
         <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Riwayat CKG</h5>
-                <?php if ($canExport): ?><a href="#" id="btnCkgExport" class="btn btn-sm btn-outline-primary"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?>
+                <?php if ($canExport): ?><a href="#" id="btnCkgExport" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?>
             </div>
             <div id="ckgMobileList" class="d-md-none list-group list-group-flush"></div>
             <div class="d-none d-md-block table-responsive">
@@ -94,7 +94,7 @@ $options = $initial['fixed_options'] ?? [];
 
         <?php if ($canManage): ?>
         <div class="modal fade" id="modalCkg" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form class="modal-content" id="formCkg">
                     <div class="modal-header"><h5 class="modal-title" id="judulModalCkg">Data CKG</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                     <div class="modal-body">
@@ -153,7 +153,7 @@ $options = $initial['fixed_options'] ?? [];
 
         <?php if ($canImport): ?>
         <div class="modal fade" id="modalCkgImport" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form class="modal-content" id="formCkgImport" enctype="multipart/form-data">
                     <div class="modal-header"><h5 class="modal-title">Import CKG</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                     <div class="modal-body">
@@ -161,7 +161,7 @@ $options = $initial['fixed_options'] ?? [];
                         <label class="form-label" for="ckgImportFile">File XLSX/XLS</label>
                         <input id="ckgImportFile" name="file" type="file" accept=".xlsx,.xls" class="form-control" required>
                     </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Import</button></div>
+                    <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Import</button></div>
                 </form>
             </div>
         </div>

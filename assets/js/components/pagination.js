@@ -135,7 +135,7 @@
         .map((token) => {
           if (typeof token !== 'number') {
             return `
-              <li class="page-item disabled" aria-hidden="true">
+              <li class="page-item disabled sisfour-pager__ellipsis" aria-hidden="true">
                 <span class="page-link">…</span>
               </li>
             `;
@@ -145,7 +145,7 @@
           const offset = (token - 1) * this.state.limit;
 
           return `
-            <li class="page-item ${active ? 'active' : ''}">
+            <li class="page-item sisfour-pager__page ${active ? 'active' : ''}">
               <button
                 type="button"
                 class="page-link"
@@ -163,9 +163,12 @@
         <div class="sisfour-pager">
           <div class="sisfour-pager__summary">
             ${limitControl}
-            <span class="small text-muted">
+            <span class="small text-muted sisfour-pager__range" aria-live="polite">
               Menampilkan <strong>${this.state.start}-${this.state.end}</strong>
               dari <strong>${this.state.total}</strong> ${escapeHtml(this.options.label)}
+            </span>
+            <span class="small text-muted sisfour-pager__mobile-page" aria-live="polite">
+              Halaman <strong>${this.state.page}</strong> dari <strong>${this.state.totalPages}</strong>
             </span>
           </div>
 

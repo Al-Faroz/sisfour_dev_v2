@@ -29,7 +29,7 @@ $guruIdentifier = static function (array $guru): string {
                 <button type="button" class="btn btn-outline-primary" id="btnImportJadwal">
                     <i class="bx bx-import me-1"></i> Import Jadwal
                 </button>
-                <a href="#" class="btn btn-outline-success" id="btnExportJadwal">
+                <a href="#" class="btn btn-outline-success sisfour-touch-target--compact" id="btnExportJadwal">
                     <i class="bx bx-export me-1"></i> Export
                 </a>
             </div>
@@ -102,8 +102,8 @@ $guruIdentifier = static function (array $guru): string {
                 </div>
 
                 <div class="col-12 sisfour-filter-actions">
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button>
+                    <button type="submit" class="btn btn-primary sisfour-touch-target">
                         <i class="bx bx-filter-alt me-1"></i> Terapkan
                     </button>
                 </div>
@@ -112,12 +112,15 @@ $guruIdentifier = static function (array $guru): string {
     </div>
 
     <div class="card sisfour-table-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
             <h5 class="mb-0">Daftar Jadwal Guru</h5>
             <?php if (empty($canManage)): ?><span class="badge bg-label-info">Readonly</span><?php endif; ?>
         </div>
 
-        <div class="table-responsive">
+        <div id="jadwalMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat jadwal...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableJadwal">
                 <thead>
                     <tr>
@@ -140,7 +143,7 @@ $guruIdentifier = static function (array $guru): string {
 
     <?php if (!empty($canManage)): ?>
         <div class="modal fade" id="modalImportJadwal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form id="formImportJadwal" class="modal-content">
                     <?= csrf_field() ?>
                     <div class="modal-header py-2">
@@ -177,8 +180,8 @@ $guruIdentifier = static function (array $guru): string {
                     </div>
 
                     <div class="modal-footer py-2 sisfour-modal-actions">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary" id="btnProsesImportJadwal">
+                        <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary sisfour-touch-target" id="btnProsesImportJadwal">
                             <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                             Import
                         </button>

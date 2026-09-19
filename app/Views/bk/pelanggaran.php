@@ -11,10 +11,10 @@
         </div>
 
         <div class="sisfour-page-actions">
-            <button type="button" class="btn btn-outline-success" id="btnExportPelanggaran">
+            <button type="button" class="btn btn-outline-success sisfour-touch-target--compact" id="btnExportPelanggaran">
                 <i class="bx bx-export me-1"></i> Export
             </button>
-            <button type="button" class="btn btn-primary" id="btnPelanggaranBaru">
+            <button type="button" class="btn btn-primary sisfour-touch-target" id="btnPelanggaranBaru">
                 <i class="bx bx-plus me-1"></i> Tambah Pelanggaran
             </button>
         </div>
@@ -26,7 +26,8 @@
         <div class="card-header">
             <h5 class="mb-0">Daftar Pelanggaran</h5>
         </div>
-        <div class="table-responsive">
+        <div id="pelanggaranMobileList" class="d-md-none list-group list-group-flush"></div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tablePelanggaran">
                 <thead>
                     <tr>
@@ -68,7 +69,7 @@
     </div>
 
     <div class="modal fade" id="modalPelanggaran" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form class="modal-content" id="formPelanggaran">
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalPelanggaranTitle">Tambah Pelanggaran</h5>

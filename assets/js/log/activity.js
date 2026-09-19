@@ -12,6 +12,7 @@ const base = String(
 ).replace(/\/+$/, '');
 
 const body = document.getElementById('logBody');
+const mobileList = document.getElementById('logMobileList');
 const alertBox = document.getElementById('logAlert');
 
 if (!body || !alertBox) {
@@ -187,6 +188,9 @@ async function load() {
       </td>
     </tr>
   `;
+  if (mobileList) {
+    mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat log...</div>';
+  }
 
   try {
     const response = await fetch(
@@ -237,14 +241,12 @@ async function load() {
       return;
     }
 
+    const userLabel = (row) => row.username
+      || (row.id_user !== null ? `User #${row.id_user}` : 'System');
+
     body.innerHTML = rows.length
       ? rows.map((row) => {
-        const user = row.username
-          || (
-            row.id_user !== null
-              ? `User #${row.id_user}`
-              : 'System'
-          );
+        const user = userLabel(row);
 
         return `
           <tr>
@@ -272,6 +274,21 @@ async function load() {
           </td>
         </tr>
       `;
+
+    if (mobileList) {
+      mobileList.innerHTML = rows.length
+        ? rows.map((row) => `<div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div class="min-w-0 flex-grow-1">
+                <div class="fw-semibold sisfour-wrap-anywhere">${esc(userLabel(row))}</div>
+                <div class="small text-muted sisfour-wrap-anywhere">${esc(row.modul || '-')} · ${esc(row.waktu || '-')}</div>
+              </div>
+              <span class="badge bg-label-${actionBadge(row.aksi)} flex-shrink-0">${esc(row.aksi || '-')}</span>
+            </div>
+            <div class="small mt-2 sisfour-wrap-anywhere">${esc(row.keterangan || '-')}</div>
+          </div>`).join('')
+        : '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada data.</div>';
+    }
 
     pager?.render(state);
     syncUrl();

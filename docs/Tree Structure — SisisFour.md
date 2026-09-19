@@ -1,7 +1,7 @@
 # Tree Structure — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 18 September 2026
+**Tanggal Acuan:** 19 September 2026
 
 ## 1. Root
 
@@ -429,8 +429,9 @@ G3.4    CLOSED / MERGED — PR #10
 G3.5    CLOSED / MERGED — PR #11
 G3.6    CLOSED / MERGED — PR #12
 G3.6A   CLOSED / MERGED — PR #13
-G3.6B   ACTIVE — PTSP source implemented, local SQL pending
-G3.7    Global Mobile Sweep
+G3.6B   CLOSED / MERGED — PR #14
+G3.6C   CLOSED / MERGED — PR #15
+G3.7    ACTIVE — Global Mobile Sweep
 G3.8    Viewport/WebView Readiness
 G4      Cordova APK
 ```
@@ -490,3 +491,36 @@ app/Views/signage/index.php
 assets/js/signage.js
 assets/css/signage.css
 ```
+
+
+## G3.7 Sweep Boundary
+
+G3.7 bekerja terutama pada source presentation existing, bukan membuat domain baru.
+
+Target struktur utama:
+
+```text
+app/Views/main.php
+app/Views/_navbar.php
+app/Views/_sidebar.php
+app/Views/dashboard_*.php
+app/Views/bk/*
+app/Views/presensi/*
+app/Views/laporan/*
+app/Views/uks/*
+app/Views/ptsp/*
+app/Views/kartu/*
+app/Views/statistik/*
+app/Views/profile/*
+app/Views/personalia/*
+app/Views/manajemen_siswa/*
+app/Views/master/*
+
+assets/css/sisfour-ui.css
+assets/css/sisfour-mobile.css
+assets/css/sisfour-modal.css
+module CSS existing bila perlu
+assets/js/* page-specific existing
+```
+
+Tidak ada folder domain, migration, SQL, permission, atau menu baru yang diwajibkan oleh contract G3.7. Perubahan reusable masuk foundation global; adaptation unik tetap page/module-specific.

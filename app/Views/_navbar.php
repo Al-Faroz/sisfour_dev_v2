@@ -7,6 +7,8 @@ if ($roleLabel === '') {
         'operator' => 'Operator',
         'pimpinan' => 'Pimpinan',
         'bk' => 'BK',
+        'kesehatan' => 'Kesehatan',
+        'ptsp' => 'PTSP',
         'guru' => ($authUser['is_wali'] ?? false) ? 'Wali Kelas' : 'Guru',
         'siswa' => 'Siswa',
     ][$authUser['role'] ?? ''] ?? '-';
@@ -32,6 +34,7 @@ if ($displayInitial === '') {
             class="nav-item nav-link px-0 me-xl-4 sisfour-navbar-toggle"
             href="javascript:void(0)"
             aria-label="Buka menu navigasi"
+            aria-controls="layout-menu"
             title="Buka menu navigasi"
         >
             <i class="icon-base bx bx-menu icon-md" aria-hidden="true"></i>

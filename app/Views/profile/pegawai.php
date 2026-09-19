@@ -3,17 +3,19 @@
 <?= $this->section('content') ?>
 
 <div id="profilePegawaiApp" data-base-url="<?= esc(base_url(), 'attr') ?>">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
-        <div>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
             <div class="text-muted small mb-1">Profile Saya</div>
             <h4 class="fw-bold mb-1">Profile Pegawai</h4>
             <p class="text-muted mb-0">
                 Kelola biodata pribadi, foto, kontak, serta akses Riwayat &amp; Portofolio.
             </p>
         </div>
-        <a href="<?= esc(base_url('profile/pegawai/personalia'), 'attr') ?>" class="btn btn-outline-primary">
-            <i class="bx bx-folder-open me-1"></i>Riwayat &amp; Portofolio
-        </a>
+        <div class="sisfour-page-actions">
+            <a href="<?= esc(base_url('profile/pegawai/personalia'), 'attr') ?>" class="btn btn-outline-primary sisfour-touch-target--compact">
+                <i class="bx bx-folder-open me-1"></i>Riwayat &amp; Portofolio
+            </a>
+        </div>
     </div>
 
     <?php if (! empty($profileError)): ?>
@@ -88,22 +90,22 @@
                         <h3 class="sisfour-profile-name"><?= esc($profile['nama'] ?? '-') ?></h3>
 
                         <div class="sisfour-meta-list">
-                            <span class="sisfour-meta-list__item">
+                            <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                 <i class="bx bx-id-card"></i>
                                 Login: <?= esc($profile['login_identifier'] ?: '-') ?>
                             </span>
-                            <span class="sisfour-meta-list__item">
+                            <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                 <i class="bx bx-user-pin"></i><?= esc($genderLabel) ?>
                             </span>
                             <?php if (! empty($profile['email'])): ?>
-                                <span class="sisfour-meta-list__item">
+                                <span class="sisfour-meta-list__item sisfour-wrap-anywhere">
                                     <i class="bx bx-envelope"></i><?= esc($profile['email']) ?>
                                 </span>
                             <?php endif; ?>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mt-3 sisfour-profile-hero__actions">
-                            <a href="<?= esc(base_url('profile/pegawai/personalia'), 'attr') ?>" class="btn btn-primary">
+                            <a href="<?= esc(base_url('profile/pegawai/personalia'), 'attr') ?>" class="btn btn-primary sisfour-touch-target">
                                 <i class="bx bx-folder-open me-1"></i>Buka Personalia
                             </a>
                         </div>
@@ -134,7 +136,7 @@
                             <div class="form-text">
                                 PNG maksimal 2 MB. Sistem melakukan crop otomatis rasio 3:4.
                             </div>
-                            <button type="submit" class="btn btn-outline-primary w-100 mt-3">
+                            <button type="submit" class="btn btn-outline-primary w-100 mt-3 sisfour-touch-target">
                                 <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                 Upload Foto
                             </button>
@@ -250,7 +252,7 @@
                             </section>
 
                             <div class="d-flex justify-content-end mt-4">
-                                <button type="submit" class="btn btn-primary" id="btnSimpanProfilePegawai">
+                                <button type="submit" class="btn btn-primary sisfour-primary-action" id="btnSimpanProfilePegawai">
                                     <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                                     Simpan Perubahan
                                 </button>

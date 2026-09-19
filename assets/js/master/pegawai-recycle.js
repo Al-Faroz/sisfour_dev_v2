@@ -6,6 +6,7 @@
 
   const base = String(app.dataset.baseUrl || '').replace(/\/+$/, '');
   const body = document.getElementById('pegawaiRecycleBody');
+  const mobileList = document.getElementById('pegawaiRecycleMobileList');
 
   const esc = (value) => {
     const node = document.createElement('div');
@@ -41,16 +42,35 @@
         <td>${esc(row.status_kepegawaian || '-')}</td>
         <td>${esc(row.deleted_at || '-')}</td>
         <td class="text-nowrap">
-          <button type="button" class="btn btn-sm btn-outline-success btn-restore"><i class="bx bx-undo me-1"></i>Restore</button>
-          <button type="button" class="btn btn-sm btn-outline-danger btn-force"><i class="bx bx-trash me-1"></i>Hapus Permanen</button>
+          <button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-restore"><i class="bx bx-undo me-1"></i>Restore</button>
+          <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-force"><i class="bx bx-trash me-1"></i>Hapus Permanen</button>
         </td>
       </tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Recycle Bin Pegawai kosong.</td></tr>';
+
+      if (mobileList) {
+        mobileList.innerHTML = rows.map((row) => `<div class="list-group-item py-3">
+          <div class="fw-semibold sisfour-wrap-anywhere">${esc(row.nama)}</div>
+          <div class="small text-muted mt-1 sisfour-wrap-anywhere">NIK ${esc(row.nik || '-')} · NIP ${esc(row.nip || '-')}</div>
+          <div class="small mt-1 sisfour-wrap-anywhere">${esc(row.status_kepegawaian || '-')} · dihapus ${esc(row.deleted_at || '-')}</div>
+          <div class="sisfour-mobile-actions mt-3">
+            <button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-mobile-proxy" data-action="restore" data-id="${Number(row.id)}">Restore</button>
+            <button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-mobile-proxy" data-action="force" data-id="${Number(row.id)}">Hapus Permanen</button>
+          </div>
+        </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Recycle Bin Pegawai kosong.</div>';
+      }
 
       bind();
     } catch (error) {
       await show('Terjadi kesalahan jaringan.', true);
     }
   }
+
+  mobileList?.addEventListener('click', (event) => {
+    const button = event.target.closest('.btn-mobile-proxy');
+    if (!button) return;
+    const row = body.querySelector(`tr[data-id="${button.dataset.id}"]`);
+    row?.querySelector(button.dataset.action === 'restore' ? '.btn-restore' : '.btn-force')?.click();
+  });
 
   function bind() {
     document.querySelectorAll('.btn-restore').forEach((button) => {

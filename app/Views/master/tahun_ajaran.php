@@ -12,10 +12,10 @@
         </div>
 
         <div class="sisfour-page-actions">
-            <a href="<?= base_url('master/tahun/recycle') ?>" class="btn btn-outline-secondary">
+            <a href="<?= base_url('master/tahun/recycle') ?>" class="btn btn-outline-secondary sisfour-touch-target--compact">
                 <i class="bx bx-trash me-1"></i> Recycle Bin
             </a>
-            <button type="button" class="btn btn-primary" id="btnTambahTahun">
+            <button type="button" class="btn btn-primary sisfour-touch-target" id="btnTambahTahun">
                 <i class="bx bx-plus me-1"></i> Tambah Tahun Ajaran
             </button>
         </div>
@@ -32,7 +32,8 @@
             <h5 class="mb-0">Daftar Tahun Ajaran</h5>
         </div>
 
-        <div class="table-responsive">
+        <div id="tahunMobileList" class="d-md-none list-group list-group-flush"><div class="list-group-item sisfour-mobile-state text-muted">Memuat tahun ajaran...</div></div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableTahunAjaran">
                 <thead>
                     <tr>
@@ -52,7 +53,7 @@
     </div>
 
     <div class="modal fade" id="modalTahunAjaran" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formTahunAjaran" class="modal-content">
                 <?= csrf_field() ?>
 
@@ -89,7 +90,7 @@
                 </div>
 
                 <div class="modal-footer py-2 sisfour-modal-actions">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary" id="btnSimpanTahun">
                         <span class="spinner-border spinner-border-sm d-none me-1" aria-hidden="true"></span>
                         Simpan

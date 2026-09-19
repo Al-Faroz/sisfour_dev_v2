@@ -8,7 +8,7 @@
             <p class="text-muted mb-0">Kelola primary role, secondary role, status akun, dan relasi identitas. Wali Kelas bukan role.</p>
         </div>
         <div class="sisfour-page-actions">
-            <button type="button" class="btn btn-primary" id="btnUserBaru">
+            <button type="button" class="btn btn-primary sisfour-touch-target" id="btnUserBaru">
                 <i class="bx bx-plus me-1"></i> Tambah User
             </button>
         </div>
@@ -44,7 +44,7 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-2 d-grid">
-                    <button type="button" class="btn btn-primary" id="btnUserCari">
+                    <button type="button" class="btn btn-primary sisfour-primary-action" id="btnUserCari">
                         <i class="bx bx-filter-alt me-1"></i> Tampilkan
                     </button>
                 </div>
@@ -58,7 +58,10 @@
         <div class="card-header">
             <h5 class="mb-0">Daftar User</h5>
         </div>
-        <div class="table-responsive">
+        <div id="userMobileList" class="d-md-none list-group list-group-flush">
+            <div class="list-group-item sisfour-mobile-state text-muted">Memuat user...</div>
+        </div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableUser">
                 <thead>
                     <tr>
@@ -80,7 +83,7 @@
     </div>
 
     <div class="modal fade" id="modalUser" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
             <form class="modal-content" id="formUser">
                 <div class="modal-header">
                     <h5 class="modal-title">User</h5>
@@ -142,7 +145,7 @@
                             <label class="form-label" for="identitySearch">Cari Identitas</label>
                             <div class="input-group">
                                 <input id="identitySearch" class="form-control" placeholder="Nama / NIP / NIK / NISN">
-                                <button type="button" class="btn btn-outline-secondary" id="btnIdentitySearch">Cari</button>
+                                <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnIdentitySearch">Cari</button>
                             </div>
                             <select id="identityResult" class="form-select mt-2"><option value="">Pilih identitas</option></select>
                             <input type="hidden" name="id_guru">
@@ -161,7 +164,7 @@
     </div>
 
     <div class="modal fade" id="modalResetPassword" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form class="modal-content" id="formResetPassword">
                 <div class="modal-header">
                     <h5 class="modal-title">Reset Password</h5>

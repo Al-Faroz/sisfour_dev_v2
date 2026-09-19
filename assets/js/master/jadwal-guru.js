@@ -9,6 +9,7 @@
 
     const table = document.getElementById('tableJadwal');
     const tbody = table?.querySelector('tbody');
+    const mobileList = document.getElementById('jadwalMobileList');
     const filterForm = document.getElementById('formFilterJadwal');
     const filterGuru = document.getElementById('filterGuru');
     const filterKelas = document.getElementById('filterKelas');
@@ -149,6 +150,9 @@
                     </td>
                 </tr>
             `;
+            if (mobileList) {
+                mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada jadwal pada filter ini.</div>';
+            }
             return;
         }
 
@@ -165,7 +169,7 @@
                     <td>
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-danger btn-delete-jadwal"
+                            class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-jadwal"
                             data-id="${row.id}"
                             title="Hapus jadwal"
                         >
@@ -219,6 +223,33 @@
                 </tr>
             `;
         }).join('');
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((row) => {
+                const statusClass = row.status_jadwal === 'Aktif' ? 'success' : 'secondary';
+                const identifier = String(row.nip || row.nik || '').trim();
+
+                return `<div class="list-group-item py-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama_guru)}</div>
+                            <div class="small text-muted font-monospace sisfour-wrap-anywhere">${escapeHtml(identifier || '-')}</div>
+                        </div>
+                        <span class="badge bg-label-${statusClass} flex-shrink-0">${escapeHtml(row.status_jadwal)}</span>
+                    </div>
+                    <div class="small mt-2 sisfour-wrap-anywhere">
+                        ${escapeHtml(row.nama_kelas)} · ${escapeHtml(row.nama_mapel)} (${escapeHtml(row.kode_mapel)})
+                    </div>
+                    <div class="small text-muted mt-1 sisfour-wrap-anywhere">
+                        ${escapeHtml(row.hari)} · ${escapeHtml(String(row.jam_mulai).slice(0,5))}-${escapeHtml(String(row.jam_selesai).slice(0,5))} · ${escapeHtml(row.sesi)}
+                    </div>
+                    <div class="small text-muted mt-1 sisfour-wrap-anywhere">
+                        ${escapeHtml(row.nama_tahun)} - ${escapeHtml(row.semester)}${Number(row.tahun_aktif)===1 ? ' · periode aktif' : ''}
+                    </div>
+                    ${canManage ? `<div class="sisfour-mobile-actions mt-3"><button type="button" class="btn btn-sm btn-outline-danger sisfour-touch-target--compact btn-delete-jadwal" data-id="${row.id}">Hapus</button></div>` : ''}
+                </div>`;
+            }).join('');
+        }
     };
 
     const loadData = async () => {
@@ -232,6 +263,9 @@
                 </td>
             </tr>
         `;
+        if (mobileList) {
+            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Memuat jadwal...</div>';
+        }
 
         try {
             const params = filterParams(true);
@@ -407,7 +441,9 @@
                     endpoint(`master/jadwal/export${suffix}`);
             });
 
-        tbody.addEventListener('click', async (event) => {
+        [tbody, mobileList]
+            .filter(Boolean)
+            .forEach((container) => container.addEventListener('click', async (event) => {
             const button =
                 event.target.closest('.btn-delete-jadwal');
 
@@ -459,7 +495,7 @@
             } catch (error) {
                 showError(error);
             }
-        });
+        }));
     }
 
     restoreState();

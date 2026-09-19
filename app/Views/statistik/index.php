@@ -53,7 +53,7 @@ $initialJson = json_encode(
         </div>
     <?php else: ?>
         <div class="card mb-4">
-            <div class="card-header"><h5 class="mb-0">Filter Global</h5></div>
+            <div class="card-header sisfour-section-heading"><h5 class="mb-0">Filter Global</h5></div>
             <div class="card-body">
                 <form id="statistikFilter" class="row g-3 align-items-end">
                     <div class="col-md-4 col-xl-3">
@@ -114,7 +114,7 @@ $initialJson = json_encode(
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-12 d-flex flex-wrap gap-2">
+                    <div class="col-12 d-flex flex-wrap align-items-center gap-2 statistik-filter-actions">
                         <button id="statistikApply" class="btn btn-primary sisfour-touch-target" type="submit">
                             <i class="bx bx-filter-alt me-1"></i>Terapkan
                         </button>
@@ -128,14 +128,14 @@ $initialJson = json_encode(
         </div>
 
         <div class="statistik-context mb-4">
-            <span class="badge bg-label-primary" id="statistikTahunLabel"><?= esc((string) ($data['meta']['tahun_label'] ?? '-')) ?></span>
-            <span class="badge bg-label-secondary" id="statistikPeriodeLabel"><?= esc((string) ($data['meta']['periode_label'] ?? '-')) ?></span>
-            <span class="badge bg-label-info" id="statistikKelasLabel"><?= esc((string) ($data['meta']['kelas_label'] ?? '-')) ?></span>
+            <span class="badge bg-label-primary sisfour-wrap-anywhere" id="statistikTahunLabel"><?= esc((string) ($data['meta']['tahun_label'] ?? '-')) ?></span>
+            <span class="badge bg-label-secondary sisfour-wrap-anywhere" id="statistikPeriodeLabel"><?= esc((string) ($data['meta']['periode_label'] ?? '-')) ?></span>
+            <span class="badge bg-label-info sisfour-wrap-anywhere" id="statistikKelasLabel"><?= esc((string) ($data['meta']['kelas_label'] ?? '-')) ?></span>
         </div>
 
         <section class="mb-4">
             <div class="statistik-section-title"><h5>Executive Summary</h5></div>
-            <div class="row g-3" id="executiveKpis">
+            <div class="row g-3 statistik-kpi-grid" id="executiveKpis">
                 <?php foreach ([
                     ['siswa','Siswa','bx-group'],
                     ['guru','Guru','bx-chalkboard'],
@@ -174,7 +174,7 @@ $initialJson = json_encode(
                 <div class="col-12"><div class="card"><div class="card-header"><h6 class="mb-0">Persentase Hadir per Kelas</h6></div><div class="card-body"><div id="chartAttendanceClass" class="statistik-chart statistik-chart--wide"></div></div></div></div>
                 <div class="col-md-4"><div class="card h-100"><div class="card-header"><h6 class="mb-0">Top Sakit 14 Hari</h6></div><div class="card-body"><div id="chartEwsSakit" class="statistik-chart"></div></div></div></div>
                 <div class="col-md-4"><div class="card h-100"><div class="card-header"><h6 class="mb-0">Top Izin 14 Hari</h6></div><div class="card-body"><div id="chartEwsIzin" class="statistik-chart"></div></div></div></div>
-                <div class="col-md-4"><div class="card h-100"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Top Alpha 14 Hari</h6><span class="badge bg-label-danger" id="ewsAlphaCount">0 EWS</span></div><div class="card-body"><div id="chartEwsAlpha" class="statistik-chart"></div></div></div></div>
+                <div class="col-md-4"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h6 class="mb-0">Top Alpha 14 Hari</h6><span class="badge bg-label-danger" id="ewsAlphaCount">0 EWS</span></div><div class="card-body"><div id="chartEwsAlpha" class="statistik-chart"></div></div></div></div>
             </div>
         </section>
 
@@ -182,7 +182,7 @@ $initialJson = json_encode(
             <div class="statistik-section-title"><h5>Pembelajaran</h5></div>
             <div class="row g-3">
                 <div class="col-lg-4">
-                    <div class="card h-100"><div class="card-header d-flex justify-content-between align-items-center gap-2"><h6 class="mb-0">Jadwal / Jurnal Hari Ini</h6><small id="teachingTodayContext" class="text-muted"></small></div>
+                    <div class="card h-100"><div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h6 class="mb-0">Jadwal / Jurnal Hari Ini</h6><small id="teachingTodayContext" class="text-muted"></small></div>
                         <div class="card-body"><div class="row text-center g-2">
                             <?php foreach ([['wajib','Wajib'],['sudah','Sudah'],['belum','Belum']] as $item): ?>
                                 <div class="col-4"><small class="text-muted d-block"><?= $item[1] ?></small><strong class="fs-4" data-teaching="<?= $item[0] ?>">0</strong></div>
@@ -197,12 +197,12 @@ $initialJson = json_encode(
         <section class="mb-4">
             <div class="statistik-section-title"><h5>Pembinaan</h5></div>
             <div class="row g-3">
-                <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Pelanggaran</h6><span class="badge bg-label-warning"><span id="disciplineTotal">0</span> catatan</span></div><div class="card-body"><div id="chartDiscipline" class="statistik-chart"></div><div id="chartDisciplineTrend" class="statistik-chart statistik-chart--compact"></div><small class="text-muted">Berdasarkan jumlah catatan/kategori, tanpa poin.</small></div></div></div>
-                <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Prestasi</h6><span class="badge bg-label-success"><span id="achievementTotal">0</span> data</span></div><div class="card-body"><div id="chartAchievement" class="statistik-chart"></div><div id="chartAchievementTrend" class="statistik-chart statistik-chart--compact"></div></div></div></div>
+                <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h6 class="mb-0">Pelanggaran</h6><span class="badge bg-label-warning"><span id="disciplineTotal">0</span> catatan</span></div><div class="card-body"><div id="chartDiscipline" class="statistik-chart"></div><div id="chartDisciplineTrend" class="statistik-chart statistik-chart--compact"></div><small class="text-muted">Berdasarkan jumlah catatan/kategori, tanpa poin.</small></div></div></div>
+                <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h6 class="mb-0">Prestasi</h6><span class="badge bg-label-success"><span id="achievementTotal">0</span> data</span></div><div class="card-body"><div id="chartAchievement" class="statistik-chart"></div><div id="chartAchievementTrend" class="statistik-chart statistik-chart--compact"></div></div></div></div>
 
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
                             <div>
                                 <h6 class="mb-0">Konseling BK — Aggregate Confidential</h6>
                                 <small class="text-muted">Statistik sekolah; filter Tingkat/Kelas tidak diterapkan untuk mencegah drill-down individual.</small>
@@ -240,7 +240,7 @@ $initialJson = json_encode(
                 <div class="col-lg-4"><div class="card h-100"><div class="card-header"><h6 class="mb-0">Layanan</h6></div><div class="card-body"><div id="chartPtspLayanan" class="statistik-chart"></div></div></div></div>
                 <div class="col-lg-4"><div class="card h-100"><div class="card-header"><h6 class="mb-0">Pengaduan per Status</h6></div><div class="card-body"><div id="chartPtspPengaduan" class="statistik-chart"></div></div></div></div>
                 <div class="col-lg-4"><div class="card h-100"><div class="card-header"><h6 class="mb-0">Klasifikasi Pengaduan</h6></div><div class="card-body"><div id="chartPtspKlasifikasi" class="statistik-chart"></div></div></div></div>
-                <div class="col-12"><div class="card"><div class="card-header d-flex justify-content-between"><h6 class="mb-0">Polling Kepuasan</h6><span class="badge bg-label-primary">Rata-rata <span id="ptspAvgScore">—</span> / 5 · <span id="ptspPollingTotal">0</span> responden</span></div><div class="card-body"><div id="chartPtspPolling" class="statistik-chart statistik-chart--wide"></div></div></div></div>
+                <div class="col-12"><div class="card"><div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2"><h6 class="mb-0">Polling Kepuasan</h6><span class="badge bg-label-primary">Rata-rata <span id="ptspAvgScore">—</span> / 5 · <span id="ptspPollingTotal">0</span> responden</span></div><div class="card-body"><div id="chartPtspPolling" class="statistik-chart statistik-chart--wide"></div></div></div></div>
             </div>
         </section>
 

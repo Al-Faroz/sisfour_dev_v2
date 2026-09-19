@@ -19,6 +19,7 @@
         );
 
     const tbody = table.querySelector('tbody');
+    const mobileList = document.getElementById('mappingWaliRecycleMobileList');
 
     let rows = [];
     let dataTable = null;
@@ -85,7 +86,7 @@
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-success btn-restore"
+                            class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-restore"
                             data-id="${row.id}"
                         >
                             <i class="bx bx-revision me-1"></i>
@@ -103,6 +104,19 @@
                 </td>
             </tr>
         `).join('');
+
+        if (mobileList) {
+            mobileList.innerHTML = rows.map((row) => `<div class="list-group-item py-3">
+                <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama_guru)}</div>
+                <div class="small text-muted font-monospace sisfour-wrap-anywhere">${escapeHtml(row.nip)}</div>
+                <div class="small mt-2 sisfour-wrap-anywhere">${escapeHtml(row.nama_kelas)} · ${escapeHtml(row.nama_tahun)} - ${escapeHtml(row.semester)}</div>
+                <div class="small text-muted mt-1">Dinonaktifkan ${escapeHtml(row.deleted_at || '-')}</div>
+                <div class="sisfour-mobile-actions mt-3">
+                    <button type="button" class="btn btn-sm btn-outline-success sisfour-touch-target--compact btn-mobile-proxy" data-id="${row.id}">Restore</button>
+                    <span class="badge text-bg-light border">Histori dilindungi</span>
+                </div>
+            </div>`).join('') || '<div class="list-group-item sisfour-mobile-state text-muted">Histori wali kosong.</div>';
+        }
 
         if (typeof window.DataTable === 'function') {
             dataTable = new window.DataTable(
@@ -142,6 +156,12 @@
             showError(error);
         }
     };
+
+    mobileList?.addEventListener('click', (event) => {
+        const button = event.target.closest('.btn-mobile-proxy');
+        if (!button) return;
+        tbody.querySelector(`.btn-restore[data-id="${button.dataset.id}"]`)?.click();
+    });
 
     tbody.addEventListener(
         'click',

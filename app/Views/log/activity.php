@@ -15,7 +15,7 @@ $actions = $initial['actions'] ?? [];
     </div>
 
     <div class="sisfour-page-actions">
-      <button type="button" id="btnExportLog" class="btn btn-outline-success">
+      <button type="button" id="btnExportLog" class="btn btn-outline-success sisfour-touch-target">
         <i class="bx bx-export me-1"></i> Export CSV
       </button>
     </div>
@@ -68,8 +68,8 @@ $actions = $initial['actions'] ?? [];
         </div>
 
         <div class="col-12 sisfour-filter-actions">
-          <button type="button" id="btnResetLog" class="btn btn-outline-secondary">Reset</button>
-          <button type="button" id="btnFilterLog" class="btn btn-primary">
+          <button type="button" id="btnResetLog" class="btn btn-outline-secondary sisfour-touch-target--compact">Reset</button>
+          <button type="button" id="btnFilterLog" class="btn btn-primary sisfour-primary-action">
             <i class="bx bx-filter-alt me-1"></i> Terapkan
           </button>
         </div>
@@ -81,7 +81,25 @@ $actions = $initial['actions'] ?? [];
     <div class="card-header">
       <h5 class="mb-0">Riwayat Aktivitas</h5>
     </div>
-    <div class="table-responsive">
+    <div id="logMobileList" class="d-md-none list-group list-group-flush">
+      <?php if ($initialRows === []): ?>
+        <div class="list-group-item sisfour-mobile-state text-muted">Belum ada log activity.</div>
+      <?php else: ?>
+        <?php foreach ($initialRows as $row): ?>
+          <div class="list-group-item py-3">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div class="min-w-0 flex-grow-1">
+                <div class="fw-semibold sisfour-wrap-anywhere"><?= esc($row['username'] ?? ($row['id_user'] !== null ? 'User #' . $row['id_user'] : 'System')) ?></div>
+                <div class="small text-muted sisfour-wrap-anywhere"><?= esc($row['modul']) ?> · <?= esc($row['waktu']) ?></div>
+              </div>
+              <span class="badge bg-label-primary flex-shrink-0"><?= esc($row['aksi']) ?></span>
+            </div>
+            <div class="small mt-2 sisfour-wrap-anywhere"><?= esc($row['keterangan'] ?? '-') ?></div>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
+    <div class="d-none d-md-block table-responsive">
       <table class="table table-hover align-middle mb-0" id="tableLogActivity">
         <thead>
           <tr>

@@ -17,13 +17,13 @@
         </div>
 
         <div class="sisfour-page-actions">
-            <a href="<?= base_url('master/kelas/recycle') ?>" class="btn btn-outline-secondary">
+            <a href="<?= base_url('master/kelas/recycle') ?>" class="btn btn-outline-secondary sisfour-touch-target--compact">
                 <i class="bx bx-trash me-1"></i> Recycle Bin
             </a>
-            <button type="button" class="btn btn-outline-success" id="btnExportKelas">
+            <button type="button" class="btn btn-outline-success sisfour-touch-target--compact" id="btnExportKelas">
                 <i class="bx bx-export me-1"></i> Export
             </button>
-            <button type="button" class="btn btn-primary" id="btnTambahKelas">
+            <button type="button" class="btn btn-primary sisfour-touch-target" id="btnTambahKelas">
                 <i class="bx bx-plus me-1"></i> Tambah Kelas
             </button>
         </div>
@@ -62,7 +62,7 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-3 sisfour-filter-actions">
-                    <button type="button" class="btn btn-outline-secondary" id="btnResetFilter">Reset</button>
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bx bx-filter-alt me-1"></i> Terapkan
                     </button>
@@ -73,7 +73,8 @@
 
     <div class="card sisfour-table-card">
         <div class="card-header"><h5 class="mb-0">Daftar Kelas</h5></div>
-        <div class="table-responsive">
+        <div id="kelasMobileList" class="d-md-none list-group list-group-flush"><div class="list-group-item sisfour-mobile-state text-muted">Memuat kelas...</div></div>
+        <div class="d-none d-md-block table-responsive">
             <table class="table table-hover align-middle mb-0" id="tableKelas">
                 <thead>
                     <tr>
@@ -92,7 +93,7 @@
     </div>
 
     <div class="modal fade" id="modalKelas" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
             <form id="formKelas" class="modal-content">
                 <?= csrf_field() ?>
                 <div class="modal-header py-2">
@@ -130,7 +131,7 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2 sisfour-modal-actions">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary" id="btnSimpanKelas">
                         <span class="spinner-border spinner-border-sm d-none me-1"></span>
                         Simpan

@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.6C — Executive Visualization & EWS Signage
+**Development aktif:** G3.7 — Global Mobile Sweep / local gate PASS
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -254,8 +254,8 @@ G3.5  Pimpinan                         CLOSED / MERGED — PR #11
 G3.6  Siswa                            CLOSED / MERGED — PR #12
 G3.6A UKS / Kesehatan                  CLOSED / MERGED — PR #13
 G3.6B PTSP                             CLOSED / MERGED — PR #14
-G3.6C Executive Visualization & EWS Signage ACTIVE / PRODUCTION GATE
-G3.7  Global Mobile Sweep
+G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
+G3.7  Global Mobile Sweep                  LOCAL GATE PASS / PRE-DEPLOY
 G3.8  Viewport/WebView Readiness
 G4    Cordova APK
 ```
@@ -572,3 +572,50 @@ G3.7  Global Mobile Sweep
 G3.8  WebView Readiness
 G4    Cordova APK
 ```
+
+
+### G3.7 — Global Mobile Sweep
+
+Baseline:
+
+```text
+main   = f82a0299c8989da6c1026d84861f3e95d786f7dd
+branch = feat/g3-7-global-mobile-sweep-20260919
+G3.6C = CLOSED / MERGED — PR #15
+```
+
+G3.7 tidak menambah domain bisnis. Targetnya adalah menyapu seluruh surface aktif agar satu UI CI4/Sneat tetap usable pada desktop dan mobile.
+
+```text
+DB/schema/SQL       = NONE
+RBAC/permission     = NONE
+menu                = NONE
+business rule       = unchanged
+period/scope        = unchanged
+mobile-first roles  = Pimpinan, BK, Guru, Guru+Wali, Siswa
+operational roles   = Kesehatan, PTSP
+Admin/Operator      = responsive; heavy matrix exception harus terdokumentasi
+```
+
+Acceptance mengikuti `docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md` dan `docs/15_TESTING_POLISH — SisisFour.md`. WebView/native behavior khusus masuk G3.8/G4.
+
+Closure local G3.7:
+
+```text
+runtime source head              = 00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
+source implementation            = IMPLEMENTED
+static Wave 1–7B                = PASS / user terminal evidence
+Wave 8 full viewport regression  = PASS / user runtime evidence
+cross-role regression            = PASS / user runtime evidence
+Settings Menu exception          = PASS / user runtime evidence
+Kenaikan bulk exception          = PASS / user runtime evidence
+Kelulusan bulk exception         = PASS / user runtime evidence
+Matrix Presensi exception        = PASS / user runtime evidence
+DB/schema/SQL                    = NONE
+RBAC/permission/menu             = UNCHANGED
+hosting deployment               = NOT AUTHORIZED
+PR Ready                         = NOT AUTHORIZED
+Merge                            = NOT AUTHORIZED
+```
+
+G3.7 belum berstatus CLOSED/MERGED sampai deployment/PR/merge mendapat approval dan evidence terpisah.
