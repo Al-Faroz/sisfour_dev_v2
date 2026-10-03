@@ -23,7 +23,7 @@ $kpi = [
     [
         'label' => 'Kelas Belum Presensi',
         'value' => $periodAvailable ? (int) ($presensi['belum_kelas'] ?? 0) : null,
-        'color' => 'warning',
+        'tone' => 'amber',
         'icon' => 'bx-list-check',
         'meta' => $periodAvailable
             ? 'dari ' . (int) ($presensi['wajib_kelas'] ?? 0) . ' kelas wajib'
@@ -32,7 +32,7 @@ $kpi = [
     [
         'label' => 'Jadwal Belum Jurnal',
         'value' => $periodAvailable ? (int) ($jurnal['belum'] ?? 0) : null,
-        'color' => 'warning',
+        'tone' => 'amber',
         'icon' => 'bx-book-content',
         'meta' => $periodAvailable
             ? 'dari ' . (int) ($jurnal['wajib'] ?? 0) . ' jadwal'
@@ -43,7 +43,7 @@ $kpi = [
         'value' => $canEws && $periodAvailable
             ? (int) ($widgets['ews_count'] ?? 0)
             : null,
-        'color' => 'danger',
+        'tone' => 'amber',
         'icon' => 'bx-radar',
         'meta' => ! $canEws
             ? 'tidak tersedia'
@@ -54,13 +54,32 @@ $kpi = [
         'value' => $canPelanggaran && $periodAvailable
             ? (int) ($widgets['kasus_bulan_ini'] ?? 0)
             : null,
-        'color' => 'primary',
+        'tone' => 'rose',
         'icon' => 'bx-note',
         'meta' => ! $canPelanggaran
             ? 'tidak tersedia'
             : ($periodAvailable ? 'catatan · Tahun Ajaran aktif' : 'Tahun Ajaran aktif belum tersedia'),
     ],
 ];
+
+$actionTone = static function (string $label): string {
+    $label = strtolower(trim($label));
+
+    return match (true) {
+        str_contains($label, 'jurnal') => 'sisfour-action--violet',
+        str_contains($label, 'ews') => 'sisfour-action--amber',
+        str_contains($label, 'presensi') => 'sisfour-action--blue',
+        str_contains($label, 'rekap') => 'sisfour-action--indigo',
+        str_contains($label, 'laporan') => 'sisfour-action--indigo',
+        str_contains($label, 'matrix') => 'sisfour-action--cyan',
+        default => 'sisfour-action--indigo',
+    };
+};
+
+$ewsCount = $canEws && $periodAvailable
+    ? (int) ($widgets['ews_count'] ?? 0)
+    : null;
+$ewsBadgeColor = $ewsCount !== null && $ewsCount > 0 ? 'warning' : 'secondary';
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -69,7 +88,7 @@ $kpi = [
     <p class="text-muted mb-0">Ringkasan supervisi readonly berdasarkan data operasional yang diizinkan.</p>
   </div>
   <div class="d-flex flex-wrap gap-2 justify-content-end">
-    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
       <i class="bx bx-tv me-1"></i>EWS Signage
     </a>
     <?php if ($tahun !== null): ?>
@@ -83,46 +102,41 @@ $kpi = [
   </div>
 </div>
 
-<div class="sisfour-mobile-kpi-grid mb-4">
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Kondisi Hari Ini</h5>
+  <small class="text-muted">Supervisi operasional</small>
+</div>
+<div class="sisfour-metric-grid mb-4">
   <?php foreach ($kpi as $item): ?>
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <span class="avatar flex-shrink-0 bg-label-<?= esc($item['color']) ?> rounded">
-          <i class="bx <?= esc($item['icon']) ?>"></i>
-        </span>
-        <div class="min-w-0">
-          <small class="text-muted d-block"><?= esc($item['label']) ?></small>
-          <h4 class="text-<?= esc($item['color']) ?> mb-0"><?= $item['value'] === null ? '—' : (int) $item['value'] ?></h4>
-          <small class="text-muted"><?= esc((string) $item['meta']) ?></small>
-        </div>
-      </div>
+    <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--<?= esc($item['tone']) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item['icon']) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= $item['value'] === null ? '—' : (int) $item['value'] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item['label']) ?></span>
+      <span class="sisfour-metric-tile__meta"><?= esc((string) $item['meta']) ?></span>
     </div>
   <?php endforeach; ?>
 </div>
 
 <?php if ($quickActions !== []): ?>
-<div class="card mb-4">
-  <div class="card-header sisfour-section-heading">
-    <h5 class="mb-0">Aksi Cepat</h5>
-  </div>
-  <div class="card-body">
-    <div class="row g-2">
-      <?php foreach ($quickActions as $action): ?>
-        <div class="col-6 col-md-3">
-          <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
-             class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
-            <span class="d-flex align-items-center gap-2 min-w-0">
-              <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
-              <span class="min-w-0">
-                <strong class="d-block text-wrap"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
-                <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
-              </span>
-            </span>
-          </a>
-        </div>
-      <?php endforeach; ?>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Monitoring</h5>
+  <small class="text-muted">Akses supervisi dan laporan</small>
+</div>
+<div class="row g-2 mb-4">
+  <?php foreach ($quickActions as $action): ?>
+    <div class="col-6 col-md-3">
+      <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
+         class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?> w-100 h-100 sisfour-touch-target">
+        <span class="d-flex align-items-center gap-2 min-w-0">
+          <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
+          <span class="min-w-0">
+            <strong class="d-block text-wrap"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
+            <small class="d-block opacity-75 text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+          </span>
+        </span>
+      </a>
     </div>
-  </div>
+  <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
@@ -170,10 +184,10 @@ $kpi = [
         <h5 class="mb-0">EWS Alpha 14 Hari</h5>
         <div class="d-flex align-items-center gap-2">
           <?php if ($canEws && $periodAvailable): ?>
-            <span class="badge bg-label-danger"><?= (int) ($widgets['ews_count'] ?? 0) ?> siswa</span>
+            <span class="badge bg-label-<?= esc($ewsBadgeColor, 'attr') ?>"><?= (int) $ewsCount ?> siswa</span>
           <?php endif; ?>
           <?php if ($canEws): ?>
-            <a href="<?= base_url('presensi/siswa/ews') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target">Lihat Semua</a>
+            <a href="<?= base_url('presensi/siswa/ews') ?>" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">Lihat Semua</a>
           <?php endif; ?>
         </div>
       </div>
@@ -183,7 +197,7 @@ $kpi = [
         <?php elseif (! $periodAvailable): ?>
           <div class="list-group-item sisfour-mobile-state text-muted">Tahun Ajaran aktif belum tersedia.</div>
         <?php elseif ($ewsTop === []): ?>
-          <div class="list-group-item sisfour-mobile-state text-muted">Tidak ada siswa EWS.</div>
+          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa EWS.</div>
         <?php else: foreach ($ewsTop as $row): ?>
           <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
             <div class="sisfour-cell-primary">
@@ -202,7 +216,7 @@ $kpi = [
   <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
     <h5 class="mb-0">Prestasi Terbaru</h5>
     <?php if ($canPrestasi): ?>
-      <a href="<?= base_url('bk/prestasi') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target">Lihat Semua</a>
+      <a href="<?= base_url('bk/prestasi') ?>" class="btn sisfour-action sisfour-action--green sisfour-action--compact sisfour-touch-target">Lihat Semua</a>
     <?php else: ?>
       <span class="badge bg-label-secondary">Tidak tersedia</span>
     <?php endif; ?>
@@ -226,25 +240,27 @@ $kpi = [
   </div>
 </div>
 
-<div class="mb-2 d-flex justify-content-between align-items-center gap-2">
+<div class="sisfour-dashboard-heading">
   <h5 class="mb-0">Ringkasan Master</h5>
   <small class="text-muted">Informasi pendukung</small>
 </div>
-<div class="row g-3">
+<div class="sisfour-metric-grid">
   <?php
   $masterItems = [
-      ['Siswa Aktif', $master['siswa'] ?? 0],
-      ['Guru', $master['guru'] ?? 0],
-      ['Pegawai', $master['pegawai'] ?? 0],
-      ['Kelas', $master['kelas'] ?? 0],
+      ['Siswa Aktif', $master['siswa'] ?? 0, 'indigo', 'bx-group'],
+      ['Guru', $master['guru'] ?? 0, 'blue', 'bx-chalkboard'],
+      ['Pegawai', $master['pegawai'] ?? 0, 'cyan', 'bx-id-card'],
+      ['Kelas', $master['kelas'] ?? 0, 'violet', 'bx-door-open'],
   ];
   if ($canKartu) {
-      $masterItems[] = ['Kartu Aktif', $kartu['aktif'] ?? 0];
+      $masterItems[] = ['Kartu Aktif', $kartu['aktif'] ?? 0, 'teal', 'bx-id-card'];
   }
   ?>
   <?php foreach ($masterItems as $item): ?>
-    <div class="col-6 col-md">
-      <div class="card h-100"><div class="card-body"><small class="text-muted"><?= esc($item[0]) ?></small><h5 class="mb-0"><?= (int) $item[1] ?></h5></div></div>
+    <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--<?= esc($item[2]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item[3]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= (int) $item[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item[0]) ?></span>
     </div>
   <?php endforeach; ?>
 </div>
