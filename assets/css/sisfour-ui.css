@@ -460,6 +460,10 @@
   gap: .75rem;
 }
 
+.sisfour-metric-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .sisfour-metric-tile {
   --sf-metric-bg: var(--sisfour-tone-slate-bg);
   --sf-metric-border: var(--sisfour-tone-slate-border);
@@ -576,6 +580,15 @@ button.sisfour-action:active {
 .sisfour-action--compact {
   min-height: 2.5rem;
   padding: .4rem .7rem;
+}
+
+.sisfour-action--hero {
+  width: 100%;
+  min-height: 5rem;
+  justify-content: space-between !important;
+  padding: 1rem 1.1rem;
+  white-space: normal;
+  text-align: left;
 }
 
 .sisfour-action--indigo { --sf-action-bg: #e7e9ff; --sf-action-border: #c9cdff; --sf-action-fg: #4649bd; }
@@ -706,7 +719,8 @@ button.sisfour-action:active {
 }
 
 @media (max-width: 767.98px) {
-  .sisfour-metric-grid {
+  .sisfour-metric-grid,
+  .sisfour-metric-grid--3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .5rem;
   }
