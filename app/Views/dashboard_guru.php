@@ -8,19 +8,36 @@ $quickActions = $widgets['quick_actions'] ?? [];
 $nextSchedule = $widgets['next_schedule'] ?? null;
 
 $presensiLabels = [
-    'not_applicable' => ['Tidak berlaku', 'secondary'],
-    'submitted' => ['Presensi selesai', 'success'],
-    'not_started' => ['Belum waktunya', 'secondary'],
-    'available' => ['Isi Presensi', 'primary'],
-    'wali_available' => ['Isi sebagai Wali', 'info'],
-    'ended' => ['Waktu habis', 'danger'],
+    'not_applicable' => ['Tidak berlaku', 'secondary', 'is-disabled'],
+    'submitted' => ['Presensi selesai', 'success', 'is-completed'],
+    'not_started' => ['Belum waktunya', 'secondary', 'is-disabled'],
+    'available' => ['Isi Presensi', 'primary', 'sisfour-action--blue'],
+    'wali_available' => ['Isi sebagai Wali', 'warning', 'sisfour-action--blue is-late'],
+    'ended' => ['Waktu habis', 'secondary', 'is-disabled'],
 ];
 $jurnalLabels = [
-    'submitted' => ['Jurnal selesai', 'success'],
-    'not_started' => ['Belum waktunya', 'secondary'],
-    'available' => ['Isi Jurnal', 'primary'],
-    'ended' => ['Terlewat', 'danger'],
+    'submitted' => ['Jurnal selesai', 'success', 'is-completed'],
+    'not_started' => ['Belum waktunya', 'secondary', 'is-disabled'],
+    'available' => ['Isi Jurnal', 'primary', 'sisfour-action--violet'],
+    'ended' => ['Terlewat', 'secondary', 'is-disabled'],
 ];
+
+$secondaryGuruActions = array_values(array_filter(
+    $quickActions,
+    static fn (array $action): bool => ! in_array(
+        (string) ($action['label'] ?? ''),
+        ['Presensi', 'Jurnal'],
+        true
+    )
+));
+
+$actionTone = static function (string $label): string {
+    return match (strtolower(trim($label))) {
+        'jadwal' => 'sisfour-action--indigo',
+        'profil' => 'sisfour-action--slate',
+        default => 'sisfour-action--indigo',
+    };
+};
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -30,58 +47,14 @@ $jurnalLabels = [
   </div>
 </div>
 
-<div class="sisfour-mobile-kpi-grid mb-4">
-  <?php foreach ([
-      ['Jadwal Hari Ini', $task['jadwal'] ?? 0, 'primary', 'bx-calendar'],
-      ['Belum Presensi', $task['belum_presensi'] ?? ($task['presensi_perlu'] ?? 0), 'warning', 'bx-list-check'],
-      ['Belum Jurnal', $task['belum_jurnal'] ?? ($task['jurnal_perlu'] ?? 0), 'danger', 'bx-book-content'],
-      ['Selesai', $task['selesai'] ?? ($task['jurnal_selesai'] ?? 0), 'success', 'bx-check-circle'],
-  ] as $item): ?>
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <span class="avatar flex-shrink-0 bg-label-<?= esc($item[2]) ?> rounded">
-          <i class="bx <?= esc($item[3]) ?>"></i>
-        </span>
-        <div class="min-w-0">
-          <small class="text-muted d-block"><?= esc($item[0]) ?></small>
-          <h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4>
-        </div>
-      </div>
-    </div>
-  <?php endforeach; ?>
-</div>
-
-<?php if ($quickActions !== []): ?>
-<div class="card mb-4">
-  <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
-    <h5 class="mb-0">Aksi Cepat</h5>
-    <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
-      <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
-    <?php endif; ?>
-  </div>
-  <div class="card-body">
-    <div class="row g-2">
-      <?php foreach ($quickActions as $action): ?>
-        <div class="col-6 col-md-3">
-          <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
-             class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
-            <span class="d-flex align-items-center gap-2 min-w-0">
-              <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
-              <span class="min-w-0">
-                <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
-                <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
-              </span>
-            </span>
-          </a>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-</div>
-<?php endif; ?>
-
 <?php if (is_array($nextSchedule)): ?>
-<div class="card mb-4 border border-primary">
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Hari Ini</h5>
+  <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
+    <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
+  <?php endif; ?>
+</div>
+<div class="card sisfour-work-surface mb-4">
   <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
     <div class="min-w-0">
       <div class="d-flex align-items-center gap-2 mb-1">
@@ -95,13 +68,54 @@ $jurnalLabels = [
     </div>
     <div class="sisfour-mobile-actions flex-shrink-0">
       <?php if (! empty($nextSchedule['presensi_url'])): ?>
-        <a class="btn btn-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>">Isi Presensi</a>
+        <a class="btn sisfour-action sisfour-action--blue is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>"><i class="bx bx-list-check"></i>Isi Presensi</a>
       <?php endif; ?>
       <?php if (! empty($nextSchedule['jurnal_url'])): ?>
-        <a class="btn btn-outline-primary sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>">Isi Jurnal</a>
+        <a class="btn sisfour-action sisfour-action--violet is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>"><i class="bx bx-book-content"></i>Isi Jurnal</a>
       <?php endif; ?>
     </div>
   </div>
+</div>
+<?php endif; ?>
+
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Ringkasan Hari Ini</h5>
+  <small class="text-muted">Status tugas mengajar</small>
+</div>
+<div class="sisfour-metric-grid mb-4">
+  <?php foreach ([
+      ['Jadwal Hari Ini', $task['jadwal'] ?? 0, 'indigo', 'bx-calendar'],
+      ['Belum Presensi', $task['belum_presensi'] ?? ($task['presensi_perlu'] ?? 0), 'amber', 'bx-list-check'],
+      ['Belum Jurnal', $task['belum_jurnal'] ?? ($task['jurnal_perlu'] ?? 0), 'violet', 'bx-book-content'],
+      ['Selesai', $task['selesai'] ?? ($task['jurnal_selesai'] ?? 0), 'green', 'bx-check-circle'],
+  ] as $item): ?>
+    <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--<?= esc($item[2]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item[3]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= (int) $item[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item[0]) ?></span>
+    </div>
+  <?php endforeach; ?>
+</div>
+
+<?php if ($secondaryGuruActions !== []): ?>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Akses Guru</h5>
+</div>
+<div class="row g-2 mb-4">
+  <?php foreach ($secondaryGuruActions as $action): ?>
+    <div class="col-6 col-md-3">
+      <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
+         class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? ''))) ?> w-100 h-100 sisfour-touch-target">
+        <span class="d-flex align-items-center gap-2 min-w-0">
+          <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
+          <span class="min-w-0">
+            <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
+            <small class="d-block opacity-75 text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+          </span>
+        </span>
+      </a>
+    </div>
+  <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
@@ -118,8 +132,8 @@ $jurnalLabels = [
       <div class="list-group list-group-flush">
         <?php foreach ($jadwal as $j): ?>
           <?php
-          [$presensiLabel, $presensiColor] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
-          [$jurnalLabel, $jurnalColor] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          [$presensiLabel, $presensiColor, $presensiActionClass] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
+          [$jurnalLabel, $jurnalColor, $jurnalActionClass] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
           ?>
           <div class="list-group-item py-3">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -136,10 +150,10 @@ $jurnalLabels = [
             <?php if (! empty($j['presensi_url']) || ! empty($j['jurnal_url'])): ?>
               <div class="sisfour-mobile-actions">
                 <?php if (! empty($j['presensi_url'])): ?>
-                  <a class="btn btn-sm btn-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['presensi_url']) ?>">Presensi</a>
+                  <a class="btn sisfour-action sisfour-action--blue sisfour-action--compact sisfour-touch-target--compact" href="<?= base_url((string) $j['presensi_url']) ?>">Presensi</a>
                 <?php endif; ?>
                 <?php if (! empty($j['jurnal_url'])): ?>
-                  <a class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['jurnal_url']) ?>">Jurnal</a>
+                  <a class="btn sisfour-action sisfour-action--violet sisfour-action--compact sisfour-touch-target--compact" href="<?= base_url((string) $j['jurnal_url']) ?>">Jurnal</a>
                 <?php endif; ?>
               </div>
             <?php endif; ?>
@@ -168,14 +182,14 @@ $jurnalLabels = [
           <td><span class="badge bg-label-secondary"><?= esc((string) ($j['sesi'] ?? '-')) ?></span></td>
           <td>
             <?php if (! empty($j['presensi_url'])): ?>
-              <a class="btn btn-sm btn-outline-<?= esc($presensiColor) ?>" href="<?= base_url((string) $j['presensi_url']) ?>"><?= esc($presensiLabel) ?></a>
+              <a class="btn sisfour-action sisfour-action--compact <?= esc($presensiActionClass, 'attr') ?>" href="<?= base_url((string) $j['presensi_url']) ?>"><?= esc($presensiLabel) ?></a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
             <?php endif; ?>
           </td>
           <td>
             <?php if (! empty($j['jurnal_url'])): ?>
-              <a class="btn btn-sm btn-outline-<?= esc($jurnalColor) ?>" href="<?= base_url((string) $j['jurnal_url']) ?>"><?= esc($jurnalLabel) ?></a>
+              <a class="btn sisfour-action sisfour-action--compact <?= esc($jurnalActionClass, 'attr') ?>" href="<?= base_url((string) $j['jurnal_url']) ?>"><?= esc($jurnalLabel) ?></a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
             <?php endif; ?>

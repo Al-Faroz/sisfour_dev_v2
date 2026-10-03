@@ -14,19 +14,37 @@ $rekapTotal = (int) ($rekap['hadir'] ?? 0)
     + (int) ($rekap['alpha'] ?? 0);
 
 $presensiLabels = [
-    'not_applicable' => ['Tidak berlaku', 'secondary'],
-    'submitted' => ['Presensi selesai', 'success'],
-    'not_started' => ['Belum waktunya', 'secondary'],
-    'available' => ['Isi Presensi', 'primary'],
-    'wali_available' => ['Isi sebagai Wali', 'info'],
-    'ended' => ['Waktu habis', 'danger'],
+    'not_applicable' => ['Tidak berlaku', 'secondary', 'is-disabled'],
+    'submitted' => ['Presensi selesai', 'success', 'is-completed'],
+    'not_started' => ['Belum waktunya', 'secondary', 'is-disabled'],
+    'available' => ['Isi Presensi', 'primary', 'sisfour-action--blue'],
+    'wali_available' => ['Isi sebagai Wali', 'warning', 'sisfour-action--blue is-late'],
+    'ended' => ['Waktu habis', 'secondary', 'is-disabled'],
 ];
 $jurnalLabels = [
-    'submitted' => ['Jurnal selesai', 'success'],
-    'not_started' => ['Belum waktunya', 'secondary'],
-    'available' => ['Isi Jurnal', 'primary'],
-    'ended' => ['Terlewat', 'danger'],
+    'submitted' => ['Jurnal selesai', 'success', 'is-completed'],
+    'not_started' => ['Belum waktunya', 'secondary', 'is-disabled'],
+    'available' => ['Isi Jurnal', 'primary', 'sisfour-action--violet'],
+    'ended' => ['Terlewat', 'secondary', 'is-disabled'],
 ];
+
+$actionTone = static function (string $label): string {
+    $label = strtolower(trim($label));
+
+    return match (true) {
+        str_contains($label, 'jadwal') => 'sisfour-action--indigo',
+        str_contains($label, 'profil') => 'sisfour-action--slate',
+        str_contains($label, 'ews') => 'sisfour-action--amber',
+        str_contains($label, 'pelanggaran') => 'sisfour-action--rose',
+        str_contains($label, 'prestasi') => 'sisfour-action--green',
+        str_contains($label, 'kartu') => 'sisfour-action--teal',
+        str_contains($label, 'data siswa') => 'sisfour-action--cyan',
+        str_contains($label, 'matrix') => 'sisfour-action--violet',
+        str_contains($label, 'rekap') => 'sisfour-action--indigo',
+        str_contains($label, 'presensi') => 'sisfour-action--blue',
+        default => 'sisfour-action--indigo',
+    };
+};
 
 $secondaryGuruActions = array_values(array_filter(
     $quickActions,
@@ -64,36 +82,15 @@ $focusStateLabel = match ($focusState) {
   <?php endif; ?>
 </div>
 
-<div class="sisfour-mobile-kpi-grid mb-4">
-  <?php foreach ([
-      ['Jadwal Hari Ini', $task['jadwal'] ?? 0, 'primary', 'bx-calendar'],
-      ['Belum Presensi', $task['belum_presensi'] ?? ($task['presensi_perlu'] ?? 0), 'warning', 'bx-list-check'],
-      ['Belum Jurnal', $task['belum_jurnal'] ?? ($task['jurnal_perlu'] ?? 0), 'danger', 'bx-book-content'],
-      ['Selesai', $task['selesai'] ?? ($task['jurnal_selesai'] ?? 0), 'success', 'bx-check-circle'],
-  ] as $item): ?>
-    <div class="card h-100">
-      <div class="card-body d-flex align-items-center gap-3">
-        <span class="avatar flex-shrink-0 bg-label-<?= esc($item[2]) ?> rounded">
-          <i class="bx <?= esc($item[3]) ?>"></i>
-        </span>
-        <div class="min-w-0">
-          <small class="text-muted d-block"><?= esc($item[0]) ?></small>
-          <h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4>
-        </div>
-      </div>
-    </div>
-  <?php endforeach; ?>
-</div>
-
 <div class="card mb-4">
   <div class="card-header sisfour-section-heading d-flex align-items-center justify-content-between gap-2">
-    <h5 class="mb-0">Aksi Cepat Guru</h5>
+    <h5 class="mb-0">Hari Ini</h5>
     <?php if ((int) ($task['actionable_now'] ?? 0) > 0): ?>
       <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
     <?php endif; ?>
   </div>
   <div class="card-body">
-    <div class="border rounded p-3 mb-3">
+    <div class="sisfour-work-surface p-3 mb-3">
       <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div class="min-w-0">
           <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
@@ -123,14 +120,14 @@ $focusStateLabel = match ($focusState) {
 
         <?php if (is_array($focusSchedule)): ?>
           <?php
-          [$focusPresensiLabel, $focusPresensiColor] = $presensiLabels[$focusSchedule['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
-          [$focusJurnalLabel, $focusJurnalColor] = $jurnalLabels[$focusSchedule['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          [$focusPresensiLabel, $focusPresensiColor, $focusPresensiActionClass] = $presensiLabels[$focusSchedule['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
+          [$focusJurnalLabel, $focusJurnalColor, $focusJurnalActionClass] = $jurnalLabels[$focusSchedule['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
           ?>
           <div class="sisfour-mobile-actions flex-shrink-0">
             <?php if (! empty($focusSchedule['presensi_url'])): ?>
-              <a class="btn btn-primary sisfour-touch-target"
+              <a class="btn sisfour-action sisfour-action--blue is-current sisfour-touch-target"
                  href="<?= base_url((string) $focusSchedule['presensi_url']) ?>">
-                <i class="bx bx-list-check me-1"></i>Isi Presensi Siswa
+                <i class="bx bx-list-check"></i>Isi Presensi Siswa
               </a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($focusPresensiColor) ?> py-2 px-3">
@@ -139,9 +136,9 @@ $focusStateLabel = match ($focusState) {
             <?php endif; ?>
 
             <?php if (! empty($focusSchedule['jurnal_url'])): ?>
-              <a class="btn btn-success sisfour-touch-target"
+              <a class="btn sisfour-action sisfour-action--violet is-current sisfour-touch-target"
                  href="<?= base_url((string) $focusSchedule['jurnal_url']) ?>">
-                <i class="bx bx-book-content me-1"></i>Isi Jurnal Mengajar
+                <i class="bx bx-book-content"></i>Isi Jurnal Mengajar
               </a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($focusJurnalColor) ?> py-2 px-3">
@@ -158,7 +155,7 @@ $focusStateLabel = match ($focusState) {
         <?php foreach ($secondaryGuruActions as $action): ?>
           <div class="col-6 col-md-3">
             <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
-               class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
+               class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?> w-100 h-100 sisfour-touch-target">
               <span class="d-flex align-items-center gap-2 min-w-0">
                 <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
                 <span class="min-w-0">
@@ -174,15 +171,34 @@ $focusStateLabel = match ($focusState) {
   </div>
 </div>
 
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Ringkasan Hari Ini</h5>
+  <small class="text-muted">Status tugas mengajar</small>
+</div>
+<div class="sisfour-metric-grid mb-4">
+  <?php foreach ([
+      ['Jadwal Hari Ini', $task['jadwal'] ?? 0, 'indigo', 'bx-calendar'],
+      ['Belum Presensi', $task['belum_presensi'] ?? ($task['presensi_perlu'] ?? 0), 'amber', 'bx-list-check'],
+      ['Belum Jurnal', $task['belum_jurnal'] ?? ($task['jurnal_perlu'] ?? 0), 'violet', 'bx-book-content'],
+      ['Selesai', $task['selesai'] ?? ($task['jurnal_selesai'] ?? 0), 'green', 'bx-check-circle'],
+  ] as $item): ?>
+    <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--<?= esc($item[2]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item[3]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= (int) $item[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item[0]) ?></span>
+    </div>
+  <?php endforeach; ?>
+</div>
+
 <?php if (! empty($wali)): ?>
-<div class="card mb-4 border border-primary">
+<div class="card mb-4 sisfour-work-surface">
   <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
     <div>
       <h5 class="mb-1">Kelas Wali · <?= esc((string) ($wali['nama_kelas'] ?? '-')) ?></h5>
       <small class="text-muted"><?= (int) ($wali['jumlah_siswa'] ?? 0) ?> siswa aktif</small>
     </div>
     <?php if ($wali['ews_count'] !== null): ?>
-      <span class="badge bg-label-danger">EWS <?= (int) $wali['ews_count'] ?> siswa</span>
+      <span class="badge bg-label-warning">EWS <?= (int) $wali['ews_count'] ?> siswa</span>
     <?php endif; ?>
   </div>
   <div class="card-body">
@@ -190,16 +206,16 @@ $focusStateLabel = match ($focusState) {
       <div class="alert alert-secondary py-2 mb-3" role="status">Presensi Sesi Awal hari ini belum tersedia.</div>
     <?php endif; ?>
 
-    <div class="sisfour-mobile-kpi-grid mb-3">
+    <div class="sisfour-context-stat-grid mb-3">
       <?php foreach ([
           ['Hadir', $rekap['hadir'] ?? 0, 'success'],
           ['Sakit', $rekap['sakit'] ?? 0, 'warning'],
           ['Izin', $rekap['izin'] ?? 0, 'info'],
           ['Alpha', $rekap['alpha'] ?? 0, 'danger'],
       ] as $item): ?>
-        <div class="border rounded p-3 text-center min-w-0">
+        <div class="sisfour-context-stat">
           <small class="text-muted d-block"><?= esc($item[0]) ?></small>
-          <h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4>
+          <strong class="text-<?= esc($item[2]) ?>"><?= (int) $item[1] ?></strong>
         </div>
       <?php endforeach; ?>
     </div>
@@ -210,7 +226,7 @@ $focusStateLabel = match ($focusState) {
         <?php foreach ($wali['quick_links'] as $link): ?>
           <div class="col-6 col-md-auto">
             <a href="<?= base_url((string) ($link['url'] ?? '')) ?>"
-               class="btn btn-sm btn-outline-primary w-100 sisfour-touch-target--compact text-wrap">
+               class="btn sisfour-action sisfour-action--compact <?= esc($actionTone((string) ($link['label'] ?? '')), 'attr') ?> w-100 sisfour-touch-target--compact text-wrap">
               <?= esc((string) ($link['label'] ?? '-')) ?>
             </a>
           </div>
@@ -234,8 +250,8 @@ $focusStateLabel = match ($focusState) {
       <div class="list-group list-group-flush">
         <?php foreach ($jadwal as $j): ?>
           <?php
-          [$presensiLabel, $presensiColor] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
-          [$jurnalLabel, $jurnalColor] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+          [$presensiLabel, $presensiColor, $presensiActionClass] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
+          [$jurnalLabel, $jurnalColor, $jurnalActionClass] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
           ?>
           <div class="list-group-item py-3">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
