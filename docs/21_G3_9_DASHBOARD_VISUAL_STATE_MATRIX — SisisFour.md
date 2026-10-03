@@ -1,8 +1,8 @@
 # G3.9 — Dashboard Visual State Matrix — SisisFour
 
-**Status:** Draft SSOT / Visual contract  
-**Tanggal Acuan:** 3 Oktober 2026  
-**Depends On:** `20_G3_9_DASHBOARD_EXPERIENCE_V2 — SisisFour.md`  
+**Status:** Draft SSOT / Visual contract
+**Tanggal Acuan:** 3 Oktober 2026
+**Depends On:** `20_G3_9_DASHBOARD_EXPERIENCE_V2 — SisisFour.md`
 **Baseline Source:** `main @ 95bedb09200ed954c60ea34fa0d8665d471528da`
 
 > Dokumen ini menerjemahkan contract Dashboard Experience V2 menjadi matrix

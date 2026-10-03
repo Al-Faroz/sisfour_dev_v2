@@ -1,8 +1,8 @@
 # G3.9 — Dashboard Experience V2 — SisisFour
 
-**Status:** Draft SSOT / Audit-backed specification  
-**Tanggal Acuan:** 3 Oktober 2026  
-**Baseline Source:** `main @ 95bedb09200ed954c60ea34fa0d8665d471528da`  
+**Status:** Draft SSOT / Audit-backed specification
+**Tanggal Acuan:** 3 Oktober 2026
+**Baseline Source:** `main @ 95bedb09200ed954c60ea34fa0d8665d471528da`
 **Phase:** G3.9 — Role-Aware Dashboard Composition & Visual Action System
 
 > Dokumen ini mendefinisikan perubahan experience Dashboard SisisFour setelah G3.8.
