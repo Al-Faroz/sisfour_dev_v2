@@ -545,15 +545,16 @@ button.sisfour-action {
 a.sisfour-action:hover,
 button.sisfour-action:hover {
   border-color: var(--sf-action-border);
-  background: color-mix(in srgb, var(--sf-action-bg) 88%, var(--sf-action-fg) 12%);
+  background: var(--sf-action-bg);
   color: var(--sf-action-fg);
+  filter: brightness(.97);
   box-shadow: var(--sisfour-action-shadow-current);
 }
 
 .btn.sisfour-action:focus-visible,
 a.sisfour-action:focus-visible,
 button.sisfour-action:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sf-action-fg) 26%, transparent);
+  outline: 3px solid rgba(105, 108, 255, .22);
   outline-offset: 2px;
 }
 
@@ -588,7 +589,8 @@ button.sisfour-action:active {
 .sisfour-action--slate { --sf-action-bg: var(--sisfour-tone-slate-bg); --sf-action-border: var(--sisfour-tone-slate-border); --sf-action-fg: var(--sisfour-tone-slate-fg); }
 
 .sisfour-action.is-current {
-  background: linear-gradient(135deg, var(--sf-action-bg), color-mix(in srgb, var(--sf-action-bg) 82%, var(--sf-action-fg) 18%));
+  background: var(--sf-action-bg);
+  border-color: var(--sf-action-fg);
   box-shadow: var(--sisfour-action-shadow-current);
 }
 

@@ -268,10 +268,10 @@ $focusStateLabel = match ($focusState) {
             <?php if (! empty($j['presensi_url']) || ! empty($j['jurnal_url'])): ?>
               <div class="sisfour-mobile-actions">
                 <?php if (! empty($j['presensi_url'])): ?>
-                  <a class="btn btn-sm btn-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['presensi_url']) ?>">Presensi</a>
+                  <a class="btn sisfour-action sisfour-action--blue sisfour-action--compact sisfour-touch-target--compact" href="<?= base_url((string) $j['presensi_url']) ?>">Presensi</a>
                 <?php endif; ?>
                 <?php if (! empty($j['jurnal_url'])): ?>
-                  <a class="btn btn-sm btn-outline-primary sisfour-touch-target--compact" href="<?= base_url((string) $j['jurnal_url']) ?>">Jurnal</a>
+                  <a class="btn sisfour-action sisfour-action--violet sisfour-action--compact sisfour-touch-target--compact" href="<?= base_url((string) $j['jurnal_url']) ?>">Jurnal</a>
                 <?php endif; ?>
               </div>
             <?php endif; ?>
@@ -289,8 +289,8 @@ $focusStateLabel = match ($focusState) {
         <tr><td colspan="5" class="text-center text-muted py-4">Tidak ada jadwal mengajar hari ini.</td></tr>
       <?php else: foreach ($jadwal as $j): ?>
         <?php
-        [$presensiLabel, $presensiColor] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
-        [$jurnalLabel, $jurnalColor] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary'];
+        [$presensiLabel, $presensiColor, $presensiActionClass] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
+        [$jurnalLabel, $jurnalColor, $jurnalActionClass] = $jurnalLabels[$j['jurnal_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
         ?>
         <tr>
           <td class="text-nowrap"><?= esc((string) ($j['jam_mulai'] ?? '')) ?> - <?= esc((string) ($j['jam_selesai'] ?? '')) ?></td>
@@ -298,14 +298,14 @@ $focusStateLabel = match ($focusState) {
           <td><span class="badge bg-label-secondary"><?= esc((string) ($j['sesi'] ?? '-')) ?></span></td>
           <td>
             <?php if (! empty($j['presensi_url'])): ?>
-              <a class="btn btn-sm btn-outline-<?= esc($presensiColor) ?>" href="<?= base_url((string) $j['presensi_url']) ?>"><?= esc($presensiLabel) ?></a>
+              <a class="btn sisfour-action sisfour-action--compact <?= esc($presensiActionClass, 'attr') ?>" href="<?= base_url((string) $j['presensi_url']) ?>"><?= esc($presensiLabel) ?></a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($presensiColor) ?>"><?= esc($presensiLabel) ?></span>
             <?php endif; ?>
           </td>
           <td>
             <?php if (! empty($j['jurnal_url'])): ?>
-              <a class="btn btn-sm btn-outline-<?= esc($jurnalColor) ?>" href="<?= base_url((string) $j['jurnal_url']) ?>"><?= esc($jurnalLabel) ?></a>
+              <a class="btn sisfour-action sisfour-action--compact <?= esc($jurnalActionClass, 'attr') ?>" href="<?= base_url((string) $j['jurnal_url']) ?>"><?= esc($jurnalLabel) ?></a>
             <?php else: ?>
               <span class="badge bg-label-<?= esc($jurnalColor) ?>"><?= esc($jurnalLabel) ?></span>
             <?php endif; ?>
@@ -323,7 +323,7 @@ $focusStateLabel = match ($focusState) {
     <div class="card h-100">
       <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
         <h5 class="mb-0">EWS Kelas</h5>
-        <?php if ($wali['ews_count'] !== null): ?><span class="badge bg-label-danger"><?= (int) $wali['ews_count'] ?></span><?php endif; ?>
+        <?php if ($wali['ews_count'] !== null): ?><span class="badge bg-label-warning"><?= (int) $wali['ews_count'] ?></span><?php endif; ?>
       </div>
       <div class="list-group list-group-flush">
         <?php if (empty($wali['ews_top'])): ?>
