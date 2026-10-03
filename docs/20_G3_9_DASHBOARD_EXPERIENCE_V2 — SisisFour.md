@@ -950,120 +950,272 @@ Isi sebagai Wali
 
 ---
 
-## 18. Multi-Role Identity — AUDIT BLOCKER
+## 18. Multi-Role Identity — RESOLVED CONTRACT
 
-### 18.1 Baseline identity contract
+### 18.1 Audit finding
 
-Source/SSOT baseline:
+Master Guru dan Master Pegawai baseline memang sengaja **mutual-exclusive untuk
+satu manusia** pada identifier login/personalia.
 
-```text
-Guru       → users.id_guru
-Siswa      → users.id_siswa
-BK         → users.id_pegawai
-Kesehatan  → users.id_pegawai
-PTSP       → users.id_pegawai
-```
+GuruService menolak NIK/NIP yang sudah dipakai Pegawai, dan PegawaiService menolak
+NIK/NIP yang sudah dipakai Guru.
 
-SettingsUserService baseline membatasi:
+SettingsUserService juga menjaga satu account hanya terhubung ke satu identity:
 
 ```text
-satu user hanya boleh terhubung ke satu:
 id_guru OR id_pegawai OR id_siswa
 ```
 
-### 18.2 Dampak
+Karena itu G3.9 **tidak** memperkenalkan duplicate person record dan tidak
+mengizinkan satu `users` row mempunyai `id_guru + id_pegawai`.
 
-Kombinasi cross-identity seperti:
+### 18.2 Canonical identity model G3.9
+
+Identity master dan operational role dipisahkan:
 
 ```text
-Guru + Kesehatan
-Guru + PTSP
+PERSON MASTER IDENTITY
+Guru    → users.id_guru
+Pegawai → users.id_pegawai
+Siswa   → users.id_siswa
+
+OPERATIONAL ROLE
+admin / operator / pimpinan / bk / kesehatan / ptsp / guru / siswa
+→ authorization melalui effective role + permission + scope
+```
+
+BK/Kesehatan/PTSP adalah operational role. Role tersebut **tidak otomatis berarti
+actor harus berasal dari Master Pegawai**.
+
+Untuk actor personel:
+
+```text
+staff identity available
+= users.id_guru > 0
+  OR users.id_pegawai > 0
+```
+
+Siswa tetap identity terpisah dan tidak boleh menerima role operasional personel.
+
+### 18.3 Cross-role Guru
+
+Contoh valid secara konsep G3.9:
+
+```text
+Primary Guru + Secondary Kesehatan
+→ users.id_guru tetap menjadi person identity
+→ tidak membuat record Pegawai kedua
+→ permission UKS berasal dari effective role Kesehatan
+→ audit mutation menggunakan users.id
+```
+
+Hal yang sama berlaku pada role PTSP/BK bila kombinasi tersebut diizinkan oleh
+whitelist.
+
+### 18.4 Domain ownership
+
+Audit source menunjukkan mutation utama UKS/PTSP/BK menggunakan `users.id`
+untuk created_by/updated_by/audit dan authorization menggunakan permission/scope.
+
+Karena itu requirement `id_pegawai` pada dashboard Kesehatan/PTSP baseline
+diklasifikasikan sebagai **experience gate yang perlu dinormalisasi**, bukan
+ownership data domain.
+
+G3.9 implementation harus:
+
+```text
+Kesehatan/PTSP/BK operational gate
+→ effective role + permission + valid staff identity
+
+valid staff identity
+→ id_guru OR id_pegawai
+```
+
+Service tetap boleh membutuhkan identity Guru/Siswa pada fitur yang memang
+scope-nya secara business bergantung pada identity tersebut.
+
+### 18.5 Profile
+
+Profile tetap mengikuti master identity yang benar-benar terhubung:
+
+```text
+id_guru    → Profile Guru
+id_pegawai → Profile Pegawai
+id_siswa   → Profile Siswa
+```
+
+Operational role tidak boleh mengubah person master secara implisit.
+
+**OD-01 = RESOLVED.**
+
+---
+
+## 19. Role 2 / Role 3 Ordering — RESOLVED CONTRACT
+
+### 19.1 Baseline finding
+
+`user_roles` tidak mempunyai ordering field dan baseline membaca secondary role
+secara alfabetis.
+
+G3.9 tidak menjadikan urutan row database sebagai business meaning.
+
+### 19.2 Canonical ordering
+
+Role 2 / Role 3 adalah **composition position**, bukan priority yang perlu disimpan
+ke schema.
+
+Urutan role tambahan dihitung deterministik dari whitelist G3.9.
+
+Canonical candidate order untuk role tambahan:
+
+```text
+operator
+pimpinan
+kesehatan
+ptsp
+```
+
+Role yang tidak diizinkan oleh primary/context dibuang sebelum ordering.
+
+Contoh:
+
+```text
+Primary BK
+assigned = {ptsp, operator}
+
+Role 2 = Operator
+Role 3 = PTSP
+```
+
+Karena Operator/Pimpinan tidak menghasilkan Primary Action Surface, urutan visible
+action tetap sederhana:
+
+```text
+Primary Action BK
+Primary Action PTSP
+```
+
+Tidak diperlukan kolom `sort_order` pada `user_roles` untuk G3.9.
+
+Jika suatu fase masa depan membutuhkan user-defined role priority, itu menjadi
+schema/UX change tersendiri.
+
+**OD-02 = RESOLVED.**
+
+---
+
+## 20. Role Combination Whitelist — RESOLVED CONTRACT
+
+G3.9 tidak menganggap semua kombinasi role valid hanya karena `user_roles`
+mendukung banyak row.
+
+### 20.1 Exclusive
+
+```text
+Admin
+Siswa
+```
+
+tidak mempunyai secondary role.
+
+### 20.2 Primary BK
+
+Primary BK boleh mempunyai role tambahan:
+
+```text
+Operator
+Pimpinan
+Kesehatan
+PTSP
+```
+
+Maksimum **2 secondary role**.
+
+Artinya formal triple-role yang paling realistis berada pada Primary BK:
+
+```text
+BK + Role 2 + Role 3
+```
+
+Role 2/3 harus berasal dari set yang diizinkan di atas.
+
+### 20.3 Primary Guru
+
+Primary Guru boleh mempunyai maksimum **1 secondary role** dari:
+
+```text
+Operator
+Pimpinan
+Kesehatan
+PTSP
+```
+
+### 20.4 Guru + Wali context
+
+Wali bukan role formal.
+
+Jika Guru mempunyai context Wali aktif, secondary role yang diizinkan dipersempit:
+
+```text
+Operator
+Kesehatan
+```
+
+Maksimum 1 secondary role.
+
+Secara experience dapat terlihat seperti:
+
+```text
+Guru + Wali + Operator
+Guru + Wali + Kesehatan
+```
+
+tetapi secara formal tetap:
+
+```text
+Guru + 1 secondary role
++ context Wali
+```
+
+Ini menjelaskan mengapa "triple" Guru+Wali relatif jarang tanpa menjadikan Wali
+sebagai role database.
+
+### 20.5 Primary lain
+
+Primary:
+
+```text
+Operator
+Pimpinan
+Kesehatan
+PTSP
+```
+
+dapat berdiri sebagai single-role experience, tetapi tidak menjadi primary
+multi-role pada contract G3.9.
+
+Jika seseorang mempunyai fungsi gabungan dengan role tersebut, Role 1 harus
+mengikuti whitelist Primary BK atau Primary Guru.
+
+### 20.6 Invalid combinations
+
+Termasuk invalid:
+
+```text
+Admin + X
+Siswa + X
 Guru + BK
+BK + Guru
+Guru+Wali + Pimpinan
+Guru+Wali + PTSP
+secondary lebih dari batas primary
+kombinasi lain yang tidak tercantum
 ```
 
-tidak otomatis dapat berfungsi hanya dengan menambah secondary role.
+Settings User pada implementation G3.9 harus menegakkan whitelist server-side.
+UI checkbox/filter hanya presentation aid, bukan enforcement final.
 
-KesehatanDashboardService dan PtspDashboardService baseline membutuhkan
-`users.id_pegawai`.
-
-Jika akun Guru hanya memiliki `id_guru`, permission union saja tidak menciptakan
-identity Pegawai.
-
-### 18.3 OPEN DECISION
-
-Harus diputuskan sebelum multi-role cross-identity diimplementasikan:
-
-**Opsi A — multi-identity user**
-
-```text
-satu users row boleh:
-id_guru + id_pegawai
-```
-
-Konsekuensi: Settings User, Profile, credential sync, master Guru/Pegawai, delete/
-restore, identity resolution, dan testing perlu diperbarui.
-
-**Opsi B — role domain memakai identity Guru bila relevan**
-
-Konsekuensi: UKS/PTSP/BK service identity contract perlu dirancang ulang dan dapat
-bertabrakan dengan SSOT Pegawai existing.
-
-Tidak boleh memilih salah satu opsi secara diam-diam hanya untuk membuat Dashboard
-tampil.
-
----
-
-## 19. Role 2 / Role 3 Ordering — AUDIT BLOCKER
-
-### 19.1 Baseline
-
-`user_roles` baseline menyimpan role tambahan tetapi tidak mempunyai explicit
-ordering field.
-
-SettingsUserModel membaca secondary role dengan ordering alfabetis.
-
-Jadi baseline tidak mempunyai contract stabil:
-
-```text
-Role 2
-Role 3
-```
-
-### 19.2 OPEN DECISION
-
-Pilihan yang perlu diputuskan:
-
-**Opsi A — persisted ordering**
-
-Tambahkan ordering/position pada role assignment.
-
-**Opsi B — canonical business ordering**
-
-Urutan tambahan dihitung deterministik dari whitelist tanpa schema baru.
-
-Keputusan ini harus dibuat sebelum triple-role composition dianggap final.
-
----
-
-## 20. Role Combination Whitelist — OPEN CONTRACT
-
-G3.9 tidak boleh menganggap semua kombinasi role valid hanya karena
-`user_roles` mendukung banyak row.
-
-Known business direction:
-
-```text
-Admin  → exclusive
-Siswa  → exclusive
-Wali   → context Guru
-Double → whitelist
-Triple → terbatas / rare
-```
-
-Exact whitelist final harus disahkan sebelum enforcement Settings User diubah.
-
-Dashboard composition wajib memakai assignment yang valid, bukan menjadi tempat
-untuk menormalisasi assignment invalid.
+**OD-03 = RESOLVED.**
 
 ---
 
@@ -1313,26 +1465,42 @@ eksplisit:
 
 ---
 
-## 28. Open Decisions Sebelum Implementation Multi-Role
-
-Wajib ditutup:
+## 28. Resolved Decisions Sebelum Implementation Multi-Role
 
 ```text
-OD-01 Cross-identity strategy
-      Guru + Pegawai identity pada satu account atau strategi lain?
+OD-01 RESOLVED
+      Person master tetap exclusive.
+      Staff operational role dapat memakai identity Guru atau Pegawai.
 
-OD-02 Role 2 / Role 3 ordering
-      persisted ordering atau canonical business ordering?
+OD-02 RESOLVED
+      Role 2/3 memakai canonical business ordering.
+      Tidak menambah sort_order schema pada G3.9.
 
-OD-03 Exact double/triple whitelist
-      kombinasi mana yang valid dan bagaimana enforcement?
+OD-03 RESOLVED
+      Whitelist + batas secondary mengikuti §20.
 
-OD-04 BK identity normalization
-      sinkronkan code + SSOT mengenai kebutuhan id_pegawai.
+OD-04 RESOLVED
+      BK dinormalisasi sebagai operational role.
+      BK tidak wajib id_pegawai bila actor mempunyai valid staff identity.
 ```
 
-Tidak ada implementation multi-role production-ready sebelum OD-01 s.d. OD-04
-mempunyai keputusan eksplisit.
+### 28.1 BK identity normalization
+
+BK dapat dijalankan oleh person identity:
+
+```text
+Guru
+atau
+Pegawai
+```
+
+selama effective role, permission, dan scope BK sah.
+
+Field legacy/metadata seperti `id_guru_bk` tetap optional dan tidak boleh dipakai
+sebagai authorization identity.
+
+SSOT lama yang menyatakan BK selalu `users.id_pegawai` harus disinkronkan saat
+G3.9 docs synchronization.
 
 ---
 
@@ -1369,10 +1537,10 @@ Metric Summary concept  = DRAFT LOCKED CANDIDATE
 Action visual system    = DRAFT LOCKED CANDIDATE
 Guru/Wali state mapping = DRAFT LOCKED CANDIDATE
 
-Cross-identity          = OPEN / BLOCKER
-Role 2/3 ordering       = OPEN / BLOCKER
-Exact role whitelist    = OPEN
-BK identity alignment   = OPEN
+Cross-identity          = RESOLVED / SPEC
+Role 2/3 ordering       = RESOLVED / SPEC
+Exact role whitelist    = RESOLVED / SPEC
+BK identity alignment   = RESOLVED / SPEC
 
 Application mutation    = NOT STARTED
 Dashboard code rewrite  = NOT STARTED
@@ -1382,8 +1550,8 @@ PR G3.9                 = NOT CREATED
 Next gate:
 
 ```text
-Review dokumen G3.9
-→ tutup OD-01 / OD-02 / OD-03 / OD-04
+Review resolved contract G3.9
 → susun Dashboard Visual State Matrix
+→ sinkronkan SSOT terdampak
 → baru implementasi source
 ```
