@@ -32,27 +32,12 @@ $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions
     <div class="alert alert-warning">Tidak ada Tahun Ajaran aktif. Ringkasan UKS tidak dibentuk sebagai angka nol palsu.</div>
 <?php endif; ?>
 
-<?php
-$actionTone = static function (string $label): string {
-    $label = strtolower(trim($label));
-
-    return match (true) {
-        str_contains($label, 'kunjungan') => 'sisfour-action--teal',
-        str_contains($label, 'ckg') => 'sisfour-action--cyan',
-        str_contains($label, 'import') => 'sisfour-action--indigo',
-        str_contains($label, 'master') => 'sisfour-action--slate',
-        str_contains($label, 'uks') => 'sisfour-action--teal',
-        default => 'sisfour-action--cyan',
-    };
-};
-?>
-
 <div class="sisfour-dashboard-heading">
     <h5 class="mb-0">Layanan UKS</h5>
     <small class="text-muted">Pekerjaan utama dan akses layanan</small>
 </div>
 <?php if ($primaryAction !== null): ?>
-<a class="btn sisfour-action sisfour-action--hero sisfour-action--teal is-current mb-2"
+<a class="btn sisfour-action sisfour-action--hero sisfour-action--<?= esc((string) ($primaryAction['tone'] ?? 'teal'), 'attr') ?> is-current mb-2"
    href="<?= esc(base_url($primaryAction['url'])) ?>">
     <span class="d-flex align-items-center gap-3 min-w-0">
         <i class="bx <?= esc($primaryAction['icon']) ?> fs-2 flex-shrink-0"></i>
@@ -69,7 +54,7 @@ $actionTone = static function (string $label): string {
 <div class="row g-2 mb-4">
     <?php foreach ($actions as $action): ?>
         <div class="col-6 col-md-3">
-            <a class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?> w-100 h-100 sisfour-touch-target"
+            <a class="btn sisfour-action sisfour-action--tile sisfour-action--<?= esc((string) ($action['tone'] ?? 'cyan'), 'attr') ?> w-100 h-100 sisfour-touch-target"
                href="<?= esc(base_url($action['url'])) ?>">
                 <span class="min-w-0">
                     <i class="bx <?= esc($action['icon']) ?> fs-4 d-block mb-1"></i>

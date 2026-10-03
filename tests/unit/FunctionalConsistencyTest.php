@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Services\DashboardActionCatalogService;
 use App\Services\DashboardCompositionService;
 use App\Services\JadwalGuruService;
 use App\Services\RoleAssignmentPolicyService;
@@ -106,6 +107,51 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
                 'invalid',
                 ['siswa']
             )
+        );
+    }
+
+    public function testSecondaryActionCatalogSkipsNonActionRoles(): void
+    {
+        $sections = DashboardActionCatalogService::secondarySections(
+            ['operator', 'kesehatan', 'pimpinan', 'ptsp'],
+            static fn (string $permission): bool => true
+        );
+
+        $this->assertSame(
+            ['kesehatan', 'ptsp'],
+            array_column($sections, 'role')
+        );
+        $this->assertSame(
+            'Tambah Data Kunjungan',
+            $sections[0]['actions'][0]['label']
+        );
+        $this->assertSame(
+            'Layanan PTSP',
+            $sections[1]['actions'][0]['label']
+        );
+    }
+
+    public function testSecondaryActionCatalogFiltersByPermission(): void
+    {
+        $allowed = [
+            'uks_harian.view',
+            'ptsp_pengaduan.view',
+        ];
+
+        $sections = DashboardActionCatalogService::secondarySections(
+            ['kesehatan', 'ptsp'],
+            static fn (string $permission): bool =>
+                in_array($permission, $allowed, true)
+        );
+
+        $this->assertCount(2, $sections);
+        $this->assertSame(
+            ['Data UKS'],
+            array_column($sections[0]['actions'], 'label')
+        );
+        $this->assertSame(
+            ['Pengaduan'],
+            array_column($sections[1]['actions'], 'label')
         );
     }
 

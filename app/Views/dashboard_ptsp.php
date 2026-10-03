@@ -28,20 +28,6 @@ $actions = is_array($widgets['quick_actions'] ?? null) ? $widgets['quick_actions
 <div class="alert alert-warning">Tidak ada Tahun Ajaran aktif. Ringkasan PTSP tidak dibentuk sebagai angka nol palsu.</div>
 <?php endif; ?>
 
-<?php
-$actionTone = static function (string $label): string {
-    $label = strtolower(trim($label));
-
-    return match (true) {
-        str_contains($label, 'layanan') => 'sisfour-action--blue',
-        str_contains($label, 'kepuasan') => 'sisfour-action--green',
-        str_contains($label, 'pengaduan') => 'sisfour-action--rose',
-        str_contains($label, 'public') => 'sisfour-action--cyan',
-        default => 'sisfour-action--indigo',
-    };
-};
-?>
-
 <?php if ($actions !== []): ?>
 <div class="sisfour-dashboard-heading">
     <h5 class="mb-0">Layanan PTSP</h5>
@@ -49,10 +35,10 @@ $actionTone = static function (string $label): string {
 </div>
 <div class="row g-2 mb-4">
     <?php foreach ($actions as $action): ?>
-    <?php $isPrimaryService = strtolower(trim((string) ($action['label'] ?? ''))) === 'layanan ptsp'; ?>
+    <?php $isPrimaryService = ($action['surface'] ?? '') === 'primary'; ?>
     <div class="col-6 col-md-3">
-        <a class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?><?= $isPrimaryService ? ' is-current' : '' ?> w-100 h-100 sisfour-touch-target"
-           href="<?= esc(base_url($action['url'])) ?>" <?= ($action['url'] ?? '') === 'ptsp' ? 'target="_blank" rel="noopener"' : '' ?>>
+        <a class="btn sisfour-action sisfour-action--tile sisfour-action--<?= esc((string) ($action['tone'] ?? 'indigo'), 'attr') ?><?= $isPrimaryService ? ' is-current' : '' ?> w-100 h-100 sisfour-touch-target"
+           href="<?= esc(base_url($action['url'])) ?>" <?= ! empty($action['external']) ? 'target="_blank" rel="noopener"' : '' ?>>
             <span class="min-w-0">
                 <i class="bx <?= esc($action['icon']) ?> fs-4 d-block mb-1"></i>
                 <strong class="d-block text-wrap"><?= esc($action['label']) ?></strong>

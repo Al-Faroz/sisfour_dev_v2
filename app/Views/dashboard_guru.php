@@ -92,6 +92,8 @@ $actionTone = static function (string $label): string {
 </div>
 <?php endif; ?>
 
+<?= $this->include('_dashboard_secondary_actions') ?>
+
 <div class="sisfour-dashboard-heading">
   <h5 class="mb-0">Ringkasan Hari Ini</h5>
   <small class="text-muted">Status tugas mengajar</small>
