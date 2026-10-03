@@ -95,6 +95,13 @@ final class RoleAssignmentPolicyService
                 );
             }
 
+            if ($isWali && (int) $idGuru > 0) {
+                return self::fail(
+                    'WALI_PRIMARY_ROLE',
+                    'Guru yang aktif sebagai Wali harus menggunakan Primary Role Guru.'
+                );
+            }
+
             if ((int) $idSiswa > 0) {
                 return self::fail(
                     'STUDENT_IDENTITY_ROLE',

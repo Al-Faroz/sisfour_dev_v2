@@ -80,6 +80,8 @@ class SettingsUserService
         $row['identity_label'] = $this->identityLabel($row);
         $row['credential_managed'] = $this->isManagedPersonalia($row);
         $row['credential_identifier'] = $this->managedIdentifier($row);
+        $row['is_wali'] = ! empty($row['id_guru'])
+            && $this->authService->isWaliKelas((int) $row['id_guru']);
 
         return ['success' => true, 'user' => $row, 'roles' => self::ROLES];
     }

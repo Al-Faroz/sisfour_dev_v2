@@ -28,6 +28,52 @@ const state = {
 
 const managedById = new Map();
 
+const ROLE_POLICY = {
+  bk: {
+    allowed: ['operator', 'pimpinan', 'kesehatan', 'ptsp'],
+    max: 2,
+  },
+  guru: {
+    allowed: ['operator', 'pimpinan', 'kesehatan', 'ptsp'],
+    waliAllowed: ['operator', 'kesehatan'],
+    max: 1,
+  },
+};
+
+function syncSecondaryRolePolicy() {
+  const primary = String(form.elements.primary_role.value || '');
+  const isWali = form.dataset.isWali === '1';
+  const policy = ROLE_POLICY[primary] || { allowed: [], max: 0 };
+  const allowed = primary === 'guru' && isWali
+    ? policy.waliAllowed
+    : policy.allowed;
+  const max = Number(policy.max || 0);
+  const checkboxes = Array.from(
+    document.querySelectorAll('.secondary-role')
+  );
+
+  const checkedAllowed = checkboxes.filter(
+    (checkbox) =>
+      checkbox.checked
+      && allowed.includes(checkbox.value)
+      && checkbox.value !== primary
+  );
+
+  checkboxes.forEach((checkbox) => {
+    const permitted = allowed.includes(checkbox.value)
+      && checkbox.value !== primary;
+    const limitReached = max > 0
+      && checkedAllowed.length >= max
+      && !checkbox.checked;
+
+    if (!permitted && checkbox.checked) {
+      checkbox.checked = false;
+    }
+
+    checkbox.disabled = !permitted || limitReached;
+  });
+}
+
 const footer = body?.closest('.card')?.querySelector('.card-footer');
 let pagerContainer = document.getElementById('userPager');
 
@@ -325,9 +371,11 @@ function setManagedUI(managed) {
 function openCreate() {
   form.reset();
   form.dataset.busy = '0';
+  form.dataset.isWali = '0';
   setButtonBusy(formSubmitButton(form), false);
   form.elements.id.value = '';
   resetIdentity();
+  syncSecondaryRolePolicy();
 
   document.getElementById('identityType').disabled = false;
   document.getElementById('identitySearch').disabled = false;
@@ -367,6 +415,7 @@ async function openEdit(id) {
   form.elements.username.value = user.username || '';
   form.elements.primary_role.value = user.role || '';
   form.elements.status_aktif.value = String(user.status_aktif ?? 1);
+  form.dataset.isWali = user.is_wali ? '1' : '0';
 
   document.getElementById('passwordCreateWrap').classList.add('d-none');
   form.elements.password.required = false;
@@ -376,6 +425,7 @@ async function openEdit(id) {
       checkbox.value
     );
   });
+  syncSecondaryRolePolicy();
 
   resetIdentity();
 
@@ -571,6 +621,15 @@ document.getElementById('userSearch').addEventListener(
     }
   }
 );
+
+document.getElementById('userPrimaryRole').addEventListener(
+  'change',
+  syncSecondaryRolePolicy
+);
+
+document.querySelectorAll('.secondary-role').forEach((checkbox) => {
+  checkbox.addEventListener('change', syncSecondaryRolePolicy);
+});
 
 document.getElementById('btnIdentitySearch').addEventListener(
   'click',

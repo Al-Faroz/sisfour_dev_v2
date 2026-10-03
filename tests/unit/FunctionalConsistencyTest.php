@@ -142,6 +142,21 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
     }
 
+    public function testRoleAssignmentRejectsRolelessWaliGuru(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            null,
+            [],
+            10,
+            null,
+            null,
+            true
+        );
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('WALI_PRIMARY_ROLE', $result['code']);
+    }
+
     public function testRoleAssignmentRejectsInvalidGuruWaliSecondary(): void
     {
         $result = RoleAssignmentPolicyService::validate(
