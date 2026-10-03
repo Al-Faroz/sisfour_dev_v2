@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\SettingSistemModel;
 use App\Services\AuthService;
+use App\Services\DashboardCompositionService;
 use App\Services\MenuService;
 use App\Support\RequestContext;
 use CodeIgniter\Controller;
@@ -98,7 +99,10 @@ abstract class BaseController extends Controller
 
         $displayIdentity = $this->resolveDisplayIdentity($userId, $username);
         $effectiveRoles = $this->authService->getUserRoles($userId);
-        $experienceRole = $this->resolveExperienceRole($effectiveRoles);
+        $experienceRole = $this->resolveExperienceRole(
+            $effectiveRoles,
+            is_string($role) ? $role : null
+        );
         $isWali = $idGuru
             ? $this->authService->isWaliKelas((int) $idGuru)
             : false;
@@ -171,24 +175,16 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * Priority experience role.
-     *
-     * BK ditempatkan di atas Guru karena akun BK yang juga beridentitas Guru
-     * otomatis mempertahankan effective role Guru. Tanpa prioritas ini,
-     * dashboard/navbar BK akan salah jatuh ke experience Guru.
+     * G3.9 shell experience mengikuti Primary Role yang sama dengan Dashboard.
      */
-    protected function resolveExperienceRole(array $roles): string
-    {
-        foreach (
-            ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa']
-            as $role
-        ) {
-            if (in_array($role, $roles, true)) {
-                return $role;
-            }
-        }
-
-        return 'guru';
+    protected function resolveExperienceRole(
+        array $roles,
+        ?string $primaryRole = null
+    ): string {
+        return DashboardCompositionService::resolvePrimaryRole(
+            $primaryRole,
+            $roles
+        );
     }
 
     /**

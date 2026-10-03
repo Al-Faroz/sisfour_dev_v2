@@ -26,17 +26,34 @@ class DashboardService
     }
 
     /**
-     * @return array{dashboard_role:string,is_wali:bool,roles:array,widgets:array}
+     * @return array{
+     *   dashboard_role:string,
+     *   primary_role:string,
+     *   secondary_roles:array,
+     *   action_roles:array,
+     *   composition:array,
+     *   is_wali:bool,
+     *   roles:array,
+     *   widgets:array
+     * }
      */
     public function build(int $userId): array
     {
-        $roles = $this->authService->getUserRoles($userId);
-        $effectiveRole = $this->resolveDashboardRole($roles);
         $user = $this->getUser($userId);
+        $roles = $this->authService->getUserRoles($userId);
         $idGuru = (int) ($user['id_guru'] ?? 0);
-        $isWali = $idGuru > 0 && $this->authService->isWaliKelas($idGuru);
+        $hasWaliContext = $idGuru > 0
+            && $this->authService->isWaliKelas($idGuru);
 
-        $widgets = match ($effectiveRole) {
+        $composition = DashboardCompositionService::compose(
+            isset($user['role']) ? (string) $user['role'] : null,
+            $roles,
+            $hasWaliContext
+        );
+        $primaryRole = (string) $composition['primary_role'];
+        $isWali = $primaryRole === 'guru' && $hasWaliContext;
+
+        $widgets = match ($primaryRole) {
             'admin' => $this->widgetsAdmin($userId),
             'operator' => $this->widgetsOperator($userId),
             'pimpinan' => $this->widgetsPimpinan($userId),
@@ -49,26 +66,32 @@ class DashboardService
         };
 
         return [
-            'dashboard_role' => $effectiveRole,
-            'is_wali' => $effectiveRole === 'guru' && $isWali,
+            // Alias dipertahankan selama migrasi View G3.9.
+            'dashboard_role' => $primaryRole,
+            'primary_role' => $primaryRole,
+            'secondary_roles' => $composition['secondary_roles'],
+            'action_roles' => $composition['action_roles'],
+            'composition' => $composition,
+            'is_wali' => $isWali,
             'roles' => $roles,
             'widgets' => $widgets,
         ];
     }
 
     /**
-     * Priority business dashboard:
-     * Admin > Operator > Pimpinan > BK > Kesehatan > PTSP > Guru/Wali > Siswa.
+     * G3.9: Primary Role (users.role) owns the Dashboard.
+     *
+     * Parameter kedua optional dipertahankan agar helper lama/tests yang hanya
+     * mempunyai effective role masih mendapat deterministic legacy fallback.
      */
-    public function resolveDashboardRole(array $roles): string
-    {
-        foreach (['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa'] as $role) {
-            if (in_array($role, $roles, true)) {
-                return $role;
-            }
-        }
-
-        return 'guru';
+    public function resolveDashboardRole(
+        array $roles,
+        ?string $primaryRole = null
+    ): string {
+        return DashboardCompositionService::resolvePrimaryRole(
+            $primaryRole,
+            $roles
+        );
     }
 
     protected function widgetsAdmin(int $userId): array

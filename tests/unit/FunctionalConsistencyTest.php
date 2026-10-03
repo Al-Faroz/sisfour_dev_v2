@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Services\DashboardCompositionService;
 use App\Services\JadwalGuruService;
 use App\Services\RoleAwareDashboardService;
 use CodeIgniter\Test\CIUnitTestCase;
@@ -17,45 +18,93 @@ use ReflectionClass;
  */
 final class FunctionalConsistencyTest extends CIUnitTestCase
 {
-    public function testDashboardBkTakesPriorityOverManagedGuruRole(): void
-    {
-        $service = (new ReflectionClass(RoleAwareDashboardService::class))
-            ->newInstanceWithoutConstructor();
-
-        $this->assertSame(
-            'bk',
-            $service->resolveDashboardRole(['guru', 'bk'])
-        );
-
-        $this->assertSame(
-            'pimpinan',
-            $service->resolveDashboardRole(['guru', 'bk', 'pimpinan'])
-        );
-
-        $this->assertSame(
-            'operator',
-            $service->resolveDashboardRole(['guru', 'bk', 'operator'])
-        );
-
-        $this->assertSame(
-            'admin',
-            $service->resolveDashboardRole(['guru', 'bk', 'admin'])
-        );
-    }
-
-    public function testDashboardGuruRemainsGuruWithoutHigherExperienceRole(): void
+    public function testDashboardPrimaryRoleOwnsHome(): void
     {
         $service = (new ReflectionClass(RoleAwareDashboardService::class))
             ->newInstanceWithoutConstructor();
 
         $this->assertSame(
             'guru',
-            $service->resolveDashboardRole(['guru'])
+            $service->resolveDashboardRole(
+                ['guru', 'operator'],
+                'guru'
+            )
+        );
+
+        $this->assertSame(
+            'bk',
+            $service->resolveDashboardRole(
+                ['bk', 'operator', 'kesehatan'],
+                'bk'
+            )
+        );
+    }
+
+    public function testDashboardCompositionSkipsNonActionSecondaryRole(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'guru',
+            ['guru', 'operator'],
+            false
+        );
+
+        $this->assertSame('guru', $composition['primary_role']);
+        $this->assertSame(['operator'], $composition['secondary_roles']);
+        $this->assertSame(['guru'], $composition['action_roles']);
+    }
+
+    public function testDashboardCompositionBkTripleIsDeterministic(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'bk',
+            ['ptsp', 'bk', 'kesehatan', 'operator'],
+            false
+        );
+
+        $this->assertSame('bk', $composition['primary_role']);
+        $this->assertSame(
+            ['operator', 'kesehatan'],
+            $composition['secondary_roles']
+        );
+        $this->assertSame(
+            ['bk', 'kesehatan'],
+            $composition['action_roles']
+        );
+        $this->assertContains('ptsp', $composition['ignored_roles']);
+    }
+
+    public function testDashboardCompositionWaliUsesRestrictedSecondarySet(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'guru',
+            ['guru', 'pimpinan', 'kesehatan'],
+            true
+        );
+
+        $this->assertSame(['kesehatan'], $composition['secondary_roles']);
+        $this->assertSame(
+            ['guru', 'kesehatan'],
+            $composition['action_roles']
+        );
+        $this->assertContains('pimpinan', $composition['ignored_roles']);
+    }
+
+    public function testDashboardPrimaryRoleHasLegacyFallbackOnlyWhenMissing(): void
+    {
+        $this->assertSame(
+            'operator',
+            DashboardCompositionService::resolvePrimaryRole(
+                null,
+                ['guru', 'operator']
+            )
         );
 
         $this->assertSame(
             'siswa',
-            $service->resolveDashboardRole(['siswa'])
+            DashboardCompositionService::resolvePrimaryRole(
+                'invalid',
+                ['siswa']
+            )
         );
     }
 
