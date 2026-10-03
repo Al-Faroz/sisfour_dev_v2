@@ -16,7 +16,7 @@
 
     <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
-        Akun Guru/Pegawai dikelola dari Master Guru/Pegawai. Username dan password selalu mengikuti NIP jika tersedia, selain itu NIK. Dari halaman ini Admin hanya mengatur role dan status akun tersebut.
+        Akun Guru/Pegawai dikelola dari Master Guru/Pegawai. Username dan password selalu mengikuti NIP jika tersedia, selain itu NIK. Role operasional tidak mengubah master identity: BK/Kesehatan/PTSP dapat memakai identity Guru atau Pegawai sesuai whitelist G3.9.
     </div>
 
     <div class="card sisfour-filter-card mb-4">
@@ -122,6 +122,7 @@
 
                         <div class="col-12">
                             <label class="form-label d-block">Secondary Roles</label>
+                            <div class="form-text mb-2">Admin dan Siswa eksklusif. Multi-role hanya mengikuti whitelist Primary BK/Guru; Wali aktif membatasi secondary Guru ke Operator/Kesehatan.</div>
                             <div class="d-flex flex-wrap gap-3">
                                 <?php foreach (($initial['roles'] ?? []) as $role): ?>
                                     <div class="form-check">

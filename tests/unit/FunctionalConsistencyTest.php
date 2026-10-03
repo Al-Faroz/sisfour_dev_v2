@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\DashboardCompositionService;
 use App\Services\JadwalGuruService;
+use App\Services\RoleAssignmentPolicyService;
 use App\Services\RoleAwareDashboardService;
 use CodeIgniter\Test\CIUnitTestCase;
 use ReflectionClass;
@@ -106,6 +107,84 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
                 ['siswa']
             )
         );
+    }
+
+    public function testRoleAssignmentAllowsGuruWithOperationalSecondary(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'guru',
+            ['ptsp'],
+            10,
+            null,
+            null,
+            false
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(['ptsp'], $result['secondary_roles']);
+    }
+
+    public function testRoleAssignmentAllowsBkOnGuruIdentityWithoutGuruRole(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'bk',
+            ['kesehatan', 'operator'],
+            10,
+            null,
+            null,
+            false
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(
+            ['operator', 'kesehatan'],
+            $result['secondary_roles']
+        );
+    }
+
+    public function testRoleAssignmentRejectsInvalidGuruWaliSecondary(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'guru',
+            ['pimpinan'],
+            10,
+            null,
+            null,
+            true
+        );
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('ROLE_COMBINATION', $result['code']);
+    }
+
+    public function testRoleAssignmentRejectsOperationalStaffRoleWithoutStaffIdentity(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'kesehatan',
+            [],
+            null,
+            null,
+            null,
+            false
+        );
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('STAFF_IDENTITY_REQUIRED', $result['code']);
+    }
+
+    public function testRoleAssignmentRejectsStudentWithPersonnelRole(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'operator',
+            [],
+            null,
+            null,
+            99,
+            false
+        );
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('STUDENT_IDENTITY_ROLE', $result['code']);
     }
 
     public function testScheduleOverlapUsesHalfOpenIntervals(): void

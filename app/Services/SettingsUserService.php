@@ -359,10 +359,6 @@ class SettingsUserService
         $idPegawai = (int) ($input['id_pegawai'] ?? 0) ?: null;
         $idSiswa = (int) ($input['id_siswa'] ?? 0) ?: null;
 
-        if ($idGuru && $primary !== 'guru' && ! in_array('guru', $secondary, true)) {
-            $secondary[] = 'guru';
-        }
-
         if ($existing !== null && $this->isManagedPersonalia($existing)) {
             $existingGuru = (int) ($existing['id_guru'] ?? 0) ?: null;
             $existingPegawai = (int) ($existing['id_pegawai'] ?? 0) ?: null;
@@ -376,18 +372,27 @@ class SettingsUserService
             return $this->fail('VALIDATION', 'Satu user hanya boleh terhubung ke satu identitas Guru, Pegawai, atau Siswa.');
         }
 
-        if (($primary === 'guru' || in_array('guru', $secondary, true)) && ! $idGuru) {
-            return $this->fail('VALIDATION', 'Role Guru memerlukan relasi Guru.');
+        $isWali = $idGuru
+            ? $this->authService->isWaliKelas($idGuru)
+            : false;
+
+        $rolePolicy = RoleAssignmentPolicyService::validate(
+            $primary !== '' ? $primary : null,
+            $secondary,
+            $idGuru,
+            $idPegawai,
+            $idSiswa,
+            $isWali
+        );
+
+        if (! $rolePolicy['success']) {
+            return $this->fail(
+                'ROLE_COMBINATION',
+                (string) $rolePolicy['message']
+            );
         }
-        if (($primary === 'siswa' || in_array('siswa', $secondary, true)) && ! $idSiswa) {
-            return $this->fail('VALIDATION', 'Role Siswa memerlukan relasi Siswa.');
-        }
-        if (($primary === 'kesehatan' || in_array('kesehatan', $secondary, true)) && ! $idPegawai) {
-            return $this->fail('VALIDATION', 'Role Kesehatan memerlukan relasi Pegawai.');
-        }
-        if (($primary === 'ptsp' || in_array('ptsp', $secondary, true)) && ! $idPegawai) {
-            return $this->fail('VALIDATION', 'Role PTSP memerlukan relasi Pegawai.');
-        }
+
+        $secondary = $rolePolicy['secondary_roles'];
 
         foreach (['id_guru' => $idGuru, 'id_pegawai' => $idPegawai, 'id_siswa' => $idSiswa] as $column => $identityId) {
             if ($identityId && $this->model->identityInUse($column, $identityId, $exceptUserId)) {
