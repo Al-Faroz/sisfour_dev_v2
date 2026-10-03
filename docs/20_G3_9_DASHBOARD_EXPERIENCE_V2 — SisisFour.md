@@ -1542,9 +1542,11 @@ Role 2/3 ordering       = RESOLVED / SPEC
 Exact role whitelist    = RESOLVED / SPEC
 BK identity alignment   = RESOLVED / SPEC
 
-Application mutation    = NOT STARTED
-Dashboard code rewrite  = NOT STARTED
-PR G3.9                 = NOT CREATED
+Application mutation    = IN PROGRESS / G3.9A
+Dashboard composition   = IMPLEMENTED / LOCAL GATE PENDING
+Role assignment policy  = IMPLEMENTED / LOCAL GATE PENDING
+Dashboard visual rewrite= NOT STARTED / G3.9B
+PR G3.9                 = #18 / DRAFT
 ```
 
 Next gate:

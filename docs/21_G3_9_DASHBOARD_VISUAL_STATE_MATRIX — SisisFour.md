@@ -1120,7 +1120,7 @@ Visual hierarchy       = DRAFT READY
 Action state matrix    = DRAFT READY
 Metric design          = DRAFT READY
 
-Application source     = NOT MODIFIED
+Application source     = G3.9A IN PROGRESS — composition + role policy implemented; local gate pending
 ```
 
 Next:

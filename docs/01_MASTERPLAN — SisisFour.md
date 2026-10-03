@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.8 — CLOSED / MERGED — PR #17; G4 NOT STARTED
+**Development aktif:** G3.9 — ACTIVE — Draft PR #18; G4 NOT STARTED
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -754,7 +754,7 @@ identity contract             = RESOLVED / SPEC
 role ordering                 = RESOLVED / SPEC
 role whitelist                = RESOLVED / SPEC
 visual state matrix           = DRAFT READY
-application source mutation   = NOT STARTED
+application source mutation   = IN PROGRESS — G3.9A composition + role policy
 DB/schema/SQL                 = NONE pada spec checkpoint
 G4/Cordova                    = NOT STARTED
 ```
