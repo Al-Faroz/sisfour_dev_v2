@@ -423,3 +423,69 @@ UI dinyatakan konsisten bila:
 ## 30. Phase Rule
 
 Aturan di dokumen ini bersifat global. Sub-phase baru wajib mengikutinya, dan ketika ditemukan feature existing yang sedang disentuh tetapi menyimpang, penyimpangan tersebut harus diperbaiki atau dicatat eksplisit sebagai exception.
+
+
+## 31. G3.9 — Dashboard Action & Metric Visual Contract
+
+Section Dashboard §19 tetap berlaku pada prinsip ringkas, tetapi hierarchy visual
+G3.9 mengikuti dokumen 20/21.
+
+### Action
+
+Semua control Dashboard yang benar-benar actionable wajib mempunyai affordance:
+
+```text
+filled / tonal background
+soft border
+subtle shared shadow
+visible focus
+pressed state
+adequate touch target
+```
+
+Outline-only tidak menjadi pola utama Dashboard G3.9.
+
+Rule ini scoped ke Dashboard/action component. Jangan mengubah semua `.btn`
+global sehingga form/modal/module lain ikut berubah tanpa audit.
+
+### Metric
+
+Metric Summary adalah informasi:
+
+```text
+soft tonal background
+icon
+value sebagai hierarchy utama
+label
+optional metadata
+```
+
+Metric tidak memakai button-like shadow, pressed state, chevron action, atau
+pointer cue palsu.
+
+### State Override
+
+```text
+available           → functional family
+current/priority    → stronger tone / soft gradient
+completed           → success/green
+not started         → neutral/light
+late actionable     → amber
+expired/disabled    → neutral grey + no shadow
+error/destructive   → danger/red
+not applicable      → muted neutral
+```
+
+Expired tidak menjadi danger hanya karena time-window berakhir.
+
+Status chip tetap berbeda dari button.
+
+### Heading
+
+Generic heading `Aksi Cepat` bukan canonical. Gunakan heading context-aware atau
+hilangkan heading bila konteks komponen sudah jelas.
+
+### Shared CSS
+
+Radius/shadow/color family harus memakai shared token/class dan tetap mengikuti
+Sneat global standard.

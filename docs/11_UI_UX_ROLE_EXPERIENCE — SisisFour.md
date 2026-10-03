@@ -499,3 +499,80 @@ Aturan:
 - modal/form panjang harus usable pada portrait + keyboard;
 - desktop/laptop tidak boleh regression;
 - heavy administrative matrix Admin/Operator boleh exception hanya bila reduksi menghilangkan fungsi dan exception dicatat pada UAT.
+
+
+## 23. G3.9 — Role-Aware Dashboard Composition
+
+G3.9 mempertahankan tujuan dan source data per role pada section terdahulu, tetapi
+mengganti cara Dashboard digabung pada multi-role.
+
+### Role 1
+
+```text
+users.role = Role 1 / pemilik Dashboard
+```
+
+Role 1 menentukan:
+
+```text
+Metric Summary
+EWS / Access
+Data / Activity
+```
+
+### Role tambahan
+
+Additional role tidak membawa seluruh dashboardnya.
+
+Action-surface eligible:
+
+```text
+BK
+Kesehatan
+PTSP
+Guru
+```
+
+Non-action-surface:
+
+```text
+Admin
+Operator
+Pimpinan
+```
+
+Admin/Siswa exclusive.
+
+Secondary Operator/Pimpinan tetap memberi capability/menu sesuai permission,
+tetapi tidak membuat section Primary Action.
+
+### Wali
+
+Wali tetap context Guru. Guru+Wali memakai Metric Summary Guru dan menambahkan
+context kelas wali/access sesuai mapping + permission.
+
+### Identity normalization
+
+Pernyataan G3.6A lama bahwa role Kesehatan selalu memakai identity Pegawai
+**disupersede untuk multi-role G3.9**.
+
+Canonical:
+
+```text
+valid staff person identity
+= id_guru OR id_pegawai
+```
+
+Operational role BK/Kesehatan/PTSP ditentukan oleh role + permission + scope,
+bukan dengan menggandakan record Guru menjadi Pegawai.
+
+Profile tetap mengikuti master identity aktual.
+
+### Visual
+
+Role matrix lengkap, warna, state Guru/Wali, Metric Summary, dan action hierarchy
+mengikuti:
+
+```text
+docs/21_G3_9_DASHBOARD_VISUAL_STATE_MATRIX — SisisFour.md
+```

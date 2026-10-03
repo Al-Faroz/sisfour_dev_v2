@@ -1551,3 +1551,100 @@ merge commit                  2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 main after merge              2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 G4/Cordova                    NOT STARTED
 ```
+
+
+## G3.9 — Dashboard Experience V2 Test Gate
+
+G3.9 menambah regression untuk composition tanpa mengurangi gate G3.7/G3.8.
+
+### Static / Unit
+
+Minimal:
+
+```text
+Primary Role berasal dari users.role
+effective permission tetap users.role UNION user_roles.role
+secondary role tidak mengganti Metric/EWS/Data owner
+Operator/Pimpinan secondary tidak menghasilkan action section
+eligible operational secondary menghasilkan action catalog permission-aware
+Wali tetap context Guru
+Admin/Siswa exclusive
+whitelist double/triple ditegakkan service-side
+Role 2/3 ordering deterministik
+valid staff identity = id_guru OR id_pegawai
+tidak ada dual Guru+Pegawai person identity
+```
+
+Unit test lama yang mengunci:
+
+```text
+admin > operator > pimpinan > bk > ...
+```
+
+sebagai pemilih Dashboard harus diganti dengan test Primary Role G3.9. Static
+experience priority lama tidak boleh tetap diam-diam menentukan Home.
+
+### Guru/Wali State
+
+Wajib test:
+
+```text
+not_applicable
+not_started
+available
+submitted
+wali_available
+ended
+```
+
+Expected presentation:
+
+```text
+submitted      → completed/green
+ended          → grey disabled
+wali_available → tetap actionable
+```
+
+Wali tidak mendapat Jurnal privilege.
+
+### Visual / Responsive
+
+Minimal viewport:
+
+```text
+360×800
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Check:
+
+```text
+action vs metric terbaca jelas
+semua dashboard action mempunyai background
+shadow konsisten
+metric tidak tampak clickable
+focus visible
+touch target aman
+no body/document horizontal overflow
+no horizontal operational table scroll
+desktop/tablet tidak regression
+WebView readiness G3.8 tidak regression
+```
+
+### Security
+
+```text
+no new permission leak
+scope/period tetap
+Konseling privacy tetap
+Siswa self-scope tetap
+UKS/PTSP/BK authorization tetap server-side
+invalid role combination ditolak server
+```
+
+G3.9 belum boleh dinyatakan PASS hanya dari screenshot; composition, permission,
+identity, viewport, dan negative-path test wajib ikut lulus.

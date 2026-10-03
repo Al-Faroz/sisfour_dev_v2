@@ -683,3 +683,78 @@ main after merge       = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 hosting deployment     = NOT AUTHORIZED / NOT EXECUTED
 G4/Cordova             = NOT STARTED
 ```
+
+
+### G3.9 — Dashboard Experience V2
+
+Baseline:
+
+```text
+main   = 95bedb09200ed954c60ea34fa0d8665d471528da
+branch = feat/g3-9-dashboard-experience-v2-20261003
+G3.8   = CLOSED / MERGED — PR #17
+```
+
+G3.9 ditempatkan setelah G3.8 dan sebelum G4. Phase ini merapikan Dashboard
+experience/composition tanpa membuat project Cordova.
+
+Canonical references:
+
+```text
+docs/20_G3_9_DASHBOARD_EXPERIENCE_V2 — SisisFour.md
+docs/21_G3_9_DASHBOARD_VISUAL_STATE_MATRIX — SisisFour.md
+```
+
+Contract utama:
+
+```text
+users.role     = Role 1 / Primary Role / pemilik Dashboard
+user_roles     = additional roles
+Wali           = context Guru, bukan role
+
+Metric Summary = Role 1
+EWS / Access   = Role 1
+Data / Activity= Role 1
+
+Admin / Operator / Pimpinan
+→ tidak mempunyai Primary Action Surface
+
+BK / Kesehatan / PTSP / Guru
+→ dapat mempunyai Primary Action Surface
+
+secondary Operator/Pimpinan
+→ capability/menu tetap union
+→ tidak menambah action section Dashboard
+```
+
+G3.9 juga menormalkan perbedaan antara **person master identity** dan
+**operational role**:
+
+```text
+person identity:
+Guru    → id_guru
+Pegawai → id_pegawai
+Siswa   → id_siswa
+
+staff operational role:
+BK / Kesehatan / PTSP
+→ authorization berdasarkan effective role + permission + scope
+→ tidak mewajibkan duplicate Guru/Pegawai master
+```
+
+Guru dan Pegawai tetap mutual-exclusive pada master person. Satu user tidak dibuat
+mempunyai duplicate person record hanya untuk memenuhi secondary role.
+
+G3.9 status pada spec checkpoint:
+
+```text
+audit/spec                    = ACTIVE
+composition contract          = RESOLVED / SPEC
+identity contract             = RESOLVED / SPEC
+role ordering                 = RESOLVED / SPEC
+role whitelist                = RESOLVED / SPEC
+visual state matrix           = DRAFT READY
+application source mutation   = NOT STARTED
+DB/schema/SQL                 = NONE pada spec checkpoint
+G4/Cordova                    = NOT STARTED
+```

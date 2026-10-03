@@ -387,3 +387,95 @@ period rule change  = NONE
 ```
 
 Semua responsive/mobile adaptation tetap presentation-only. Route/Filter + Service existing tetap authoritative. Expected DENY pada cross-role regression tetap wajib dipertahankan.
+
+
+## 19. G3.9 — Primary Role, Multi-Role & Dashboard Composition
+
+Section ini **supersede Experience Priority §15 untuk pemilihan Dashboard/Home**.
+Effective role dan permission union tidak berubah.
+
+### 19.1 Primary Role
+
+```text
+users.role = Role 1 / Primary Role
+```
+
+Role 1 menentukan identity Dashboard:
+
+```text
+Metric Summary
+EWS / Access
+Data / Activity
+dashboard heading/context utama
+```
+
+`user_roles.role` menambah effective role/capability, tetapi tidak mengambil alih
+Dashboard hanya karena berada lebih tinggi pada priority list lama.
+
+### 19.2 Additional Role
+
+Role tambahan adalah set permission/capability yang divalidasi whitelist G3.9.
+
+```text
+Admin      = exclusive
+Siswa      = exclusive
+
+Primary BK
+→ additional: Operator / Pimpinan / Kesehatan / PTSP
+→ max 2
+
+Primary Guru
+→ additional: Operator / Pimpinan / Kesehatan / PTSP
+→ max 1
+
+Guru + Wali context
+→ additional: Operator / Kesehatan
+→ max 1
+```
+
+Primary Operator/Pimpinan/Kesehatan/PTSP tetap valid untuk single-role account,
+tetapi bukan primary multi-role pada contract G3.9.
+
+### 19.3 Wali
+
+Wali tetap context Guru dan tidak menghabiskan slot `user_roles`.
+
+### 19.4 Person Identity vs Operational Role
+
+G3.9 menormalkan:
+
+```text
+person master identity:
+Guru    → id_guru
+Pegawai → id_pegawai
+Siswa   → id_siswa
+```
+
+Satu account person tetap mempunyai satu master identity.
+
+BK/Kesehatan/PTSP adalah operational role. Role tersebut dapat dijalankan oleh
+valid staff identity:
+
+```text
+id_guru OR id_pegawai
+```
+
+selama effective role, permission, scope, period, dan business invariant sah.
+
+Role tidak boleh dipakai untuk membuat duplicate Master Guru/Pegawai.
+
+### 19.5 Dashboard Action Composition
+
+```text
+Admin / Operator / Pimpinan
+→ tidak menghasilkan Primary Action Surface
+
+BK / Kesehatan / PTSP / Guru
+→ dapat menghasilkan Primary Action Surface
+
+secondary Operator/Pimpinan
+→ tetap menambah capability/menu
+→ tidak menambah action section Home
+```
+
+UI composition bukan authorization boundary.
