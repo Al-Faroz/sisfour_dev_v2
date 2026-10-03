@@ -51,6 +51,8 @@ class Dashboard extends BaseController
                 'dashboardRole' => $result['dashboard_role'],
                 'primaryRole' => $result['primary_role'],
                 'secondaryRoles' => $result['secondary_roles'],
+                'secondaryActionSections' =>
+                    $result['secondary_action_sections'],
                 'dashboardComposition' => $result['composition'],
                 'isWali' => $result['is_wali'],
             ])

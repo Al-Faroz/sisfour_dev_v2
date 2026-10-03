@@ -31,6 +31,7 @@ class DashboardService
      *   primary_role:string,
      *   secondary_roles:array,
      *   action_roles:array,
+     *   secondary_action_sections:array,
      *   composition:array,
      *   is_wali:bool,
      *   roles:array,
@@ -52,6 +53,12 @@ class DashboardService
         );
         $primaryRole = (string) $composition['primary_role'];
         $isWali = $primaryRole === 'guru' && $hasWaliContext;
+        $secondaryActionSections =
+            DashboardActionCatalogService::secondarySections(
+                $composition['secondary_roles'],
+                fn (string $permission): bool =>
+                    $this->can($userId, $permission)
+            );
 
         $widgets = match ($primaryRole) {
             'admin' => $this->widgetsAdmin($userId),
@@ -71,6 +78,7 @@ class DashboardService
             'primary_role' => $primaryRole,
             'secondary_roles' => $composition['secondary_roles'],
             'action_roles' => $composition['action_roles'],
+            'secondary_action_sections' => $secondaryActionSections,
             'composition' => $composition,
             'is_wali' => $isWali,
             'roles' => $roles,
