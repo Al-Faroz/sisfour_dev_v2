@@ -7,6 +7,20 @@ $jadwal = $widgets['jadwal_hari_ini'] ?? [];
 $quickActions = $widgets['quick_actions'] ?? [];
 $nextSchedule = $widgets['next_schedule'] ?? null;
 
+$focusState = is_array($nextSchedule)
+    ? (string) ($nextSchedule['dashboard_state'] ?? '')
+    : '';
+$focusSurfaceClass = match ($focusState) {
+    'berlangsung' => 'sisfour-work-surface--active',
+    'berikutnya' => 'sisfour-work-surface--upcoming',
+    default => 'sisfour-work-surface--inactive',
+};
+$focusBadgeColor = match ($focusState) {
+    'berlangsung' => 'primary',
+    'berikutnya' => 'info',
+    default => 'secondary',
+};
+
 $presensiLabels = [
     'not_applicable' => ['Tidak berlaku', 'secondary', 'is-disabled'],
     'submitted' => ['Presensi selesai', 'success', 'is-completed'],
@@ -54,11 +68,11 @@ $actionTone = static function (string $label): string {
     <span class="badge bg-label-primary"><?= (int) $task['actionable_now'] ?> bisa dikerjakan sekarang</span>
   <?php endif; ?>
 </div>
-<div class="card sisfour-work-surface mb-4">
+<div class="card sisfour-work-surface <?= esc($focusSurfaceClass, 'attr') ?> mb-4">
   <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
     <div class="min-w-0">
       <div class="d-flex align-items-center gap-2 mb-1">
-        <span class="badge bg-label-primary">
+        <span class="badge bg-label-<?= esc($focusBadgeColor, 'attr') ?>">
           <?= ($nextSchedule['dashboard_state'] ?? '') === 'berlangsung' ? 'Sedang Berlangsung' : 'Jadwal Berikutnya' ?>
         </span>
         <small class="text-muted"><?= esc((string) ($nextSchedule['jam_mulai'] ?? '')) ?> - <?= esc((string) ($nextSchedule['jam_selesai'] ?? '')) ?></small>
@@ -129,7 +143,7 @@ $actionTone = static function (string $label): string {
     <?php if ($jadwal === []): ?>
       <div class="sisfour-mobile-state text-muted">Tidak ada jadwal mengajar hari ini.</div>
     <?php else: ?>
-      <div class="list-group list-group-flush">
+      <div class="list-group list-group-flush sisfour-schedule-list">
         <?php foreach ($jadwal as $j): ?>
           <?php
           [$presensiLabel, $presensiColor, $presensiActionClass] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];

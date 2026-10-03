@@ -70,6 +70,32 @@ $focusStateLabel = match ($focusState) {
     'selesai' => 'Jadwal Terakhir Hari Ini',
     default => 'Jadwal Mengajar',
 };
+$focusSurfaceClass = match ($focusState) {
+    'berlangsung' => 'sisfour-work-surface--active',
+    'berikutnya' => 'sisfour-work-surface--upcoming',
+    default => 'sisfour-work-surface--inactive',
+};
+$focusBadgeColor = match ($focusState) {
+    'berlangsung' => 'primary',
+    'berikutnya' => 'info',
+    default => 'secondary',
+};
+$focusMessage = match ($focusState) {
+    'selesai' => 'Tidak ada tugas mengajar yang aktif saat ini.',
+    'berikutnya' => 'Belum ada tugas aktif. Jadwal berikutnya ditampilkan sebagai konteks.',
+    default => '',
+};
+
+$waliEwsCount = array_key_exists('ews_count', $wali)
+    && $wali['ews_count'] !== null
+        ? (int) $wali['ews_count']
+        : null;
+$waliEwsColor = $waliEwsCount !== null && $waliEwsCount > 0
+    ? 'warning'
+    : 'secondary';
+$waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
+    ? 'EWS ' . $waliEwsCount . ' siswa'
+    : 'Tidak ada EWS';
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -90,7 +116,7 @@ $focusStateLabel = match ($focusState) {
     <?php endif; ?>
   </div>
   <div class="card-body">
-    <div class="sisfour-work-surface p-3 mb-3">
+    <div class="sisfour-work-surface <?= esc($focusSurfaceClass, 'attr') ?> p-3 mb-3">
       <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div class="min-w-0">
           <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
@@ -99,13 +125,16 @@ $focusStateLabel = match ($focusState) {
             </span>
             <strong>Jadwal Mengajar</strong>
             <?php if (is_array($focusSchedule)): ?>
-              <span class="badge bg-label-primary"><?= esc($focusStateLabel) ?></span>
+              <span class="badge bg-label-<?= esc($focusBadgeColor, 'attr') ?>"><?= esc($focusStateLabel) ?></span>
             <?php endif; ?>
           </div>
 
           <?php if (! is_array($focusSchedule)): ?>
             <div class="text-muted small">Tidak ada jadwal mengajar hari ini.</div>
           <?php else: ?>
+            <?php if ($focusMessage !== ''): ?>
+              <div class="sisfour-work-surface__message"><?= esc($focusMessage) ?></div>
+            <?php endif; ?>
             <h5 class="mb-1">
               <?= esc((string) ($focusSchedule['nama_kelas'] ?? '-')) ?> ·
               <?= esc((string) ($focusSchedule['nama_mapel'] ?? '-')) ?>
@@ -160,7 +189,7 @@ $focusStateLabel = match ($focusState) {
                 <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
                 <span class="min-w-0">
                   <strong class="d-block"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
-                  <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+                  <small class="d-block opacity-75 text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
                 </span>
               </span>
             </a>
@@ -197,8 +226,8 @@ $focusStateLabel = match ($focusState) {
       <h5 class="mb-1">Kelas Wali · <?= esc((string) ($wali['nama_kelas'] ?? '-')) ?></h5>
       <small class="text-muted"><?= (int) ($wali['jumlah_siswa'] ?? 0) ?> siswa aktif</small>
     </div>
-    <?php if ($wali['ews_count'] !== null): ?>
-      <span class="badge bg-label-warning">EWS <?= (int) $wali['ews_count'] ?> siswa</span>
+    <?php if ($waliEwsCount !== null): ?>
+      <span class="badge bg-label-<?= esc($waliEwsColor, 'attr') ?>"><?= esc($waliEwsLabel) ?></span>
     <?php endif; ?>
   </div>
   <div class="card-body">
@@ -247,7 +276,7 @@ $focusStateLabel = match ($focusState) {
     <?php if ($jadwal === []): ?>
       <div class="sisfour-mobile-state text-muted">Tidak ada jadwal mengajar hari ini.</div>
     <?php else: ?>
-      <div class="list-group list-group-flush">
+      <div class="list-group list-group-flush sisfour-schedule-list">
         <?php foreach ($jadwal as $j): ?>
           <?php
           [$presensiLabel, $presensiColor, $presensiActionClass] = $presensiLabels[$j['presensi_state'] ?? ''] ?? ['Tidak tersedia', 'secondary', 'is-disabled'];
@@ -323,11 +352,11 @@ $focusStateLabel = match ($focusState) {
     <div class="card h-100">
       <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
         <h5 class="mb-0">EWS Kelas</h5>
-        <?php if ($wali['ews_count'] !== null): ?><span class="badge bg-label-warning"><?= (int) $wali['ews_count'] ?></span><?php endif; ?>
+        <?php if ($waliEwsCount !== null): ?><span class="badge bg-label-<?= esc($waliEwsColor, 'attr') ?>"><?= (int) $waliEwsCount ?></span><?php endif; ?>
       </div>
       <div class="list-group list-group-flush">
         <?php if (empty($wali['ews_top'])): ?>
-          <div class="list-group-item sisfour-mobile-state text-muted">Tidak ada siswa EWS.</div>
+          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa EWS.</div>
         <?php else: foreach ($wali['ews_top'] as $row): ?>
           <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
             <div class="sisfour-cell-primary">
@@ -346,7 +375,7 @@ $focusStateLabel = match ($focusState) {
       <div class="card-header sisfour-section-heading"><h5 class="mb-0">Ketidakhadiran Terbaru</h5></div>
       <div class="list-group list-group-flush">
         <?php if (empty($wali['recent_absence'])): ?>
-          <div class="list-group-item sisfour-mobile-state text-muted">Belum ada catatan Sakit/Izin/Alpha.</div>
+          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Belum ada catatan Sakit/Izin/Alpha.</div>
         <?php else: foreach ($wali['recent_absence'] as $row): ?>
           <?php $status = (string) ($row['status'] ?? ''); $statusColor = $status === 'Alpha' ? 'danger' : ($status === 'Sakit' ? 'warning' : 'info'); ?>
           <div class="list-group-item d-flex justify-content-between align-items-start gap-3 py-3">

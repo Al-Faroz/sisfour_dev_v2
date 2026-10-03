@@ -578,15 +578,15 @@ button.sisfour-action:active {
   padding: .4rem .7rem;
 }
 
-.sisfour-action--indigo { --sf-action-bg: var(--sisfour-tone-indigo-bg); --sf-action-border: var(--sisfour-tone-indigo-border); --sf-action-fg: var(--sisfour-tone-indigo-fg); }
-.sisfour-action--blue { --sf-action-bg: var(--sisfour-tone-blue-bg); --sf-action-border: var(--sisfour-tone-blue-border); --sf-action-fg: var(--sisfour-tone-blue-fg); }
-.sisfour-action--violet { --sf-action-bg: var(--sisfour-tone-violet-bg); --sf-action-border: var(--sisfour-tone-violet-border); --sf-action-fg: var(--sisfour-tone-violet-fg); }
-.sisfour-action--cyan { --sf-action-bg: var(--sisfour-tone-cyan-bg); --sf-action-border: var(--sisfour-tone-cyan-border); --sf-action-fg: var(--sisfour-tone-cyan-fg); }
-.sisfour-action--teal { --sf-action-bg: var(--sisfour-tone-teal-bg); --sf-action-border: var(--sisfour-tone-teal-border); --sf-action-fg: var(--sisfour-tone-teal-fg); }
-.sisfour-action--green { --sf-action-bg: var(--sisfour-tone-green-bg); --sf-action-border: var(--sisfour-tone-green-border); --sf-action-fg: var(--sisfour-tone-green-fg); }
-.sisfour-action--amber { --sf-action-bg: var(--sisfour-tone-amber-bg); --sf-action-border: var(--sisfour-tone-amber-border); --sf-action-fg: var(--sisfour-tone-amber-fg); }
-.sisfour-action--rose { --sf-action-bg: var(--sisfour-tone-rose-bg); --sf-action-border: var(--sisfour-tone-rose-border); --sf-action-fg: var(--sisfour-tone-rose-fg); }
-.sisfour-action--slate { --sf-action-bg: var(--sisfour-tone-slate-bg); --sf-action-border: var(--sisfour-tone-slate-border); --sf-action-fg: var(--sisfour-tone-slate-fg); }
+.sisfour-action--indigo { --sf-action-bg: #e7e9ff; --sf-action-border: #c9cdff; --sf-action-fg: #4649bd; }
+.sisfour-action--blue { --sf-action-bg: #e2f0ff; --sf-action-border: #bddcff; --sf-action-fg: #245f9b; }
+.sisfour-action--violet { --sf-action-bg: #eee8ff; --sf-action-border: #d4c8ff; --sf-action-fg: #6041ad; }
+.sisfour-action--cyan { --sf-action-bg: #e1f5f9; --sf-action-border: #bfe5ec; --sf-action-fg: #176f80; }
+.sisfour-action--teal { --sf-action-bg: #e2f4ef; --sf-action-border: #bfe2da; --sf-action-fg: #1f6c5e; }
+.sisfour-action--green { --sf-action-bg: #e5f5e9; --sf-action-border: #c4e5cc; --sf-action-fg: #307143; }
+.sisfour-action--amber { --sf-action-bg: #fff1cc; --sf-action-border: #eccf85; --sf-action-fg: #875b12; }
+.sisfour-action--rose { --sf-action-bg: #fde8ed; --sf-action-border: #edc2cc; --sf-action-fg: #994356; }
+.sisfour-action--slate { --sf-action-bg: #edf0f4; --sf-action-border: #d7dde5; --sf-action-fg: #536074; }
 
 .sisfour-action.is-current {
   background: var(--sf-action-bg);
@@ -622,6 +622,38 @@ button.sisfour-action:active {
   border: 1px solid var(--sisfour-tone-indigo-border);
   border-radius: .85rem;
   background: linear-gradient(135deg, #fff 0%, var(--sisfour-tone-indigo-bg) 100%);
+}
+
+.sisfour-work-surface--active {
+  border-color: var(--sisfour-tone-indigo-fg);
+  box-shadow: var(--sisfour-action-shadow-current);
+}
+
+.sisfour-work-surface--upcoming {
+  border-color: var(--sisfour-tone-indigo-border);
+  background: linear-gradient(135deg, #fff 0%, #f5f6ff 100%);
+}
+
+.sisfour-work-surface--inactive {
+  border-color: var(--sisfour-tone-slate-border);
+  background: linear-gradient(135deg, #fff 0%, var(--sisfour-tone-slate-bg) 100%);
+  box-shadow: none;
+}
+
+.sisfour-work-surface--inactive .bg-label-primary {
+  background-color: var(--sisfour-tone-slate-bg) !important;
+  color: var(--sisfour-tone-slate-fg) !important;
+}
+
+.sisfour-work-surface__message {
+  margin-bottom: .65rem;
+  color: var(--bs-secondary-color, #697a8d);
+  font-size: .75rem;
+  line-height: 1.35;
+}
+
+.sisfour-dashboard-empty {
+  padding: .7rem .75rem;
 }
 
 .sisfour-work-surface__eyebrow {
@@ -690,6 +722,16 @@ button.sisfour-action:active {
 
   .sisfour-action--tile {
     min-height: 4.25rem;
+  }
+
+  .sisfour-schedule-list .list-group-item {
+    padding-top: .7rem !important;
+    padding-bottom: .7rem !important;
+  }
+
+  .sisfour-dashboard-empty {
+    padding-top: .6rem;
+    padding-bottom: .6rem;
   }
 }
 
