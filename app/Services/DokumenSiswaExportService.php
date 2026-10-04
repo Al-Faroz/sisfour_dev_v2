@@ -10,7 +10,10 @@ use Throwable;
 
 class DokumenSiswaExportService
 {
-    public function metadata(array $rows): array
+    public function metadata(
+        array $rows,
+        array $accessLogs = []
+    ): array
     {
         $headers = [
             'No','ID','Judul','Target','Tahun Ajaran','Semester','Tingkat',
@@ -39,7 +42,35 @@ class DokumenSiswaExportService
             ];
         }
 
-        return $this->write('Dokumen Siswa', $headers, $data, 'dokumen_siswa_' . date('Ymd_His') . '.xlsx');
+        $accessHeaders = [
+            'No', 'ID Dokumen', 'Judul', 'NISN', 'Nama Siswa',
+            'Aksi', 'Waktu', 'Username'
+        ];
+        $accessData = [];
+        foreach ($accessLogs as $i => $row) {
+            $accessData[] = [
+                $i + 1,
+                (int) ($row['id_dokumen'] ?? 0),
+                $row['judul'] ?? '',
+                $row['nisn'] ?? '',
+                $row['nama_siswa'] ?? '',
+                $row['aksi'] ?? '',
+                $row['waktu'] ?? '',
+                $row['username'] ?? '',
+            ];
+        }
+
+        return $this->write(
+            'Dokumen Siswa',
+            $headers,
+            $data,
+            'dokumen_siswa_' . date('Ymd_His') . '.xlsx',
+            [[
+                'title' => 'Riwayat Akses',
+                'headers' => $accessHeaders,
+                'rows' => $accessData,
+            ]]
+        );
     }
 
     public function template(array $rows, array $period): array
@@ -65,7 +96,13 @@ class DokumenSiswaExportService
         );
     }
 
-    private function write(string $title, array $headers, array $rows, string $filename): array
+    private function write(
+        string $title,
+        array $headers,
+        array $rows,
+        string $filename,
+        array $extraSheets = []
+    ): array
     {
         try {
             $spreadsheet = new Spreadsheet();
@@ -98,6 +135,66 @@ class DokumenSiswaExportService
             $sheet->getStyle("A1:{$last}" . max(1, $rowNo - 1))->getAlignment()->setVertical('top')->setWrapText(true);
             $sheet->freezePane('A2');
             $sheet->setAutoFilter("A1:{$last}1");
+
+            foreach ($extraSheets as $extra) {
+                $extraSheet = $spreadsheet->createSheet();
+                $extraTitle = substr(
+                    (string) ($extra['title'] ?? 'Sheet'),
+                    0,
+                    31
+                );
+                $extraSheet->setTitle($extraTitle);
+
+                $extraHeaders = is_array($extra['headers'] ?? null)
+                    ? $extra['headers']
+                    : [];
+                $extraRows = is_array($extra['rows'] ?? null)
+                    ? $extra['rows']
+                    : [];
+
+                foreach ($extraHeaders as $i => $header) {
+                    $extraSheet->setCellValueExplicit(
+                        Coordinate::stringFromColumnIndex($i + 1) . '1',
+                        (string) $header,
+                        DataType::TYPE_STRING
+                    );
+                }
+
+                $extraRowNo = 2;
+                foreach ($extraRows as $row) {
+                    foreach ($row as $i => $value) {
+                        $cell = Coordinate::stringFromColumnIndex(
+                            $i + 1
+                        ) . $extraRowNo;
+                        if (is_int($value) || is_float($value)) {
+                            $extraSheet->setCellValue($cell, $value);
+                        } else {
+                            $extraSheet->setCellValueExplicit(
+                                $cell,
+                                (string) ($value ?? ''),
+                                DataType::TYPE_STRING
+                            );
+                        }
+                    }
+                    $extraRowNo++;
+                }
+
+                if ($extraHeaders !== []) {
+                    $extraLast = Coordinate::stringFromColumnIndex(
+                        count($extraHeaders)
+                    );
+                    $extraSheet
+                        ->getStyle("A1:{$extraLast}1")
+                        ->getFont()
+                        ->setBold(true);
+                    $extraSheet->freezePane('A2');
+                    $extraSheet->setAutoFilter(
+                        "A1:{$extraLast}1"
+                    );
+                }
+            }
+
+            $spreadsheet->setActiveSheetIndex(0);
 
             $dir = WRITEPATH . 'cache/exports';
             if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {

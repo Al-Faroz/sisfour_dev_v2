@@ -8,6 +8,7 @@ use App\Services\JadwalGuruService;
 use App\Services\RoleAssignmentPolicyService;
 use App\Services\RoleAwareDashboardService;
 use App\Services\SidebarMenuCompositionService;
+use App\Services\StudentDocumentPolicyService;
 use CodeIgniter\Test\CIUnitTestCase;
 use ReflectionClass;
 
@@ -543,6 +544,61 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
         $this->assertTrue(
             $resolved['role_sections'][1]['items'][0]['active']
+        );
+    }
+
+    public function testStudentDocumentPolicyAllowsOnlyLockedFormats(): void
+    {
+        $this->assertSame(
+            'PDF',
+            StudentDocumentPolicyService::normalizeFormat('pdf')
+        );
+        $this->assertSame(
+            'IMAGE',
+            StudentDocumentPolicyService::normalizeFormat(' image ')
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeFormat('docx')
+        );
+        $this->assertTrue(
+            StudentDocumentPolicyService::validLevel('7')
+        );
+        $this->assertFalse(
+            StudentDocumentPolicyService::validLevel('10')
+        );
+    }
+
+    public function testStudentDocumentPolicyAcceptsOnlyHttpsGoogleDriveHosts(): void
+    {
+        $drive = 'https://drive.google.com/file/d/example/view';
+        $docs = 'https://docs.google.com/document/d/example/edit';
+
+        $this->assertSame(
+            $drive,
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                $drive
+            )
+        );
+        $this->assertSame(
+            $docs,
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                $docs
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'http://drive.google.com/file/d/example/view'
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'https://drive.google.com.evil.example/file'
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'https://example.com/file.pdf'
+            )
         );
     }
 

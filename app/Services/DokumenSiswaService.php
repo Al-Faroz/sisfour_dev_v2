@@ -268,11 +268,66 @@ class DokumenSiswaService
             return $this->fail('EXPORT_TOO_LARGE', 'Dokumen melebihi 50.000 baris. Persempit filter.');
         }
 
+        $rows = $builder
+            ->orderBy('ds.id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $ids = array_values(array_filter(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $rows
+        )));
+        $accessLogs = [];
+
+        if ($ids !== []) {
+            $logBuilder = db_connect()
+                ->table('dokumen_siswa_access_log al')
+                ->whereIn('al.id_dokumen', $ids);
+
+            if ((clone $logBuilder)->countAllResults() > self::MAX_EXPORT_ROWS) {
+                return $this->fail(
+                    'EXPORT_TOO_LARGE',
+                    'Riwayat akses Dokumen melebihi 50.000 baris. Persempit filter.'
+                );
+            }
+
+            $accessLogs = $logBuilder
+                ->select([
+                    'al.id',
+                    'al.id_dokumen',
+                    'al.id_user',
+                    'al.id_siswa',
+                    'al.aksi',
+                    'al.waktu',
+                    'ds.judul',
+                    's.nisn',
+                    's.nama AS nama_siswa',
+                    'u.username',
+                ])
+                ->join('dokumen_siswa ds', 'ds.id = al.id_dokumen')
+                ->join('siswa s', 's.id = al.id_siswa', 'left')
+                ->join('users u', 'u.id = al.id_user', 'left')
+                ->orderBy('al.waktu', 'ASC')
+                ->orderBy('al.id', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
         return [
             'success' => true,
-            'rows' => $builder->orderBy('ds.id', 'ASC')->get()->getResultArray(),
+            'rows' => $rows,
+            'access_logs' => $accessLogs,
             'tahun_dipilih' => $period['selected'],
         ];
+    }
+
+    public function recordExport(int $userId, int $documentCount): void
+    {
+        $this->log(
+            $userId,
+            'EXPORT',
+            "Export metadata {$documentCount} Dokumen Siswa beserta riwayat akses."
+        );
     }
 
     public function classesForPeriod(int $idTahun): array

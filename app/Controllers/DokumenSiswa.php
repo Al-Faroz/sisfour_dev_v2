@@ -161,10 +161,18 @@ class DokumenSiswa extends BaseController
             return $this->respond($data);
         }
 
-        $file = $this->exportService->metadata($data['rows'] ?? []);
+        $file = $this->exportService->metadata(
+            $data['rows'] ?? [],
+            $data['access_logs'] ?? []
+        );
         if (! ($file['success'] ?? false)) {
             return $this->respond($file);
         }
+
+        $this->service->recordExport(
+            $userId,
+            count($data['rows'] ?? [])
+        );
 
         return $this->downloadAndCleanup(
             (string) $file['path'],
