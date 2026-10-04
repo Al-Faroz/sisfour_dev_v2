@@ -659,6 +659,21 @@ Shadow/radius tidak dibuat berbeda per halaman.
 
 Gunakan shared design token/class agar tetap sesuai Sneat global layout standard.
 
+Hard affordance rule:
+
+```text
+enabled Dashboard action → subtle action shadow
+current/primary action   → stronger shared action shadow
+disabled action          → no action shadow
+
+Metric / Status / Badge / Context / Work Surface
+→ no action shadow
+```
+
+Background dapat dipakai oleh action maupun information surface. Karena itu
+background **bukan** penanda interactivity; action shadow + interaction state yang
+menjadi pembeda utama. Outer Sneat card ambient elevation tetap diperbolehkan.
+
 ### 10.3 Functional Color Family
 
 Warna dasar dapat mengikuti fungsi:
@@ -687,7 +702,7 @@ State selalu mempunyai prioritas dibanding warna domain.
 |---|---|
 | Available | functional color + subtle shadow |
 | Current / Priority | stronger tone / soft gradient |
-| Completed | green / success |
+| Completed | green / success; action shadow hanya bila masih clickable |
 | Not Started | neutral/light, non-actionable |
 | Late but Actionable | amber |
 | Expired / Disabled | grey, shadow removed |

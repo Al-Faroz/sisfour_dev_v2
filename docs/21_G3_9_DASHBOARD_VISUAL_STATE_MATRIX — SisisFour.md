@@ -30,6 +30,49 @@ DATA
 
 Keempat jenis elemen tidak boleh memiliki affordance yang sama.
 
+### 1.1 Hard Affordance Contract
+
+**Background bukan penanda tombol.**
+
+Canonical grammar Dashboard G3.9:
+
+```text
+BACKGROUND
+→ menjelaskan function family / state / grouping
+
+ACTION SHADOW
+→ menandakan enabled interactive surface
+
+BORDER / STATE
+→ menandakan current / priority / disabled
+
+SHAPE
+→ membantu membedakan button, status chip, metric, dan container
+```
+
+Hard rules:
+
+1. Setiap **enabled clickable Dashboard action** wajib memakai shared subtle
+   action shadow.
+2. Primary/current action memakai action shadow level yang lebih kuat, tetap
+   subtle.
+3. Disabled/non-actionable control tidak memakai action shadow.
+4. Metric Tile tidak memakai action shadow.
+5. Status Chip/Badge tidak memakai action shadow.
+6. Context stat/information surface tidak memakai action shadow.
+7. Work Surface, termasuk state `active/current`, **bukan tombol** dan tidak
+   memakai action shadow. Current work surface cukup memakai tonal background,
+   emphasized border, dan explicit status.
+8. Outer Sneat card boleh mempertahankan ambient/theme elevation. Ambient card
+   elevation bukan action affordance.
+9. Jika completed control masih clickable untuk detail/review, ia tetap memakai
+   action shadow. Jika completed control non-clickable, gunakan disabled/non-
+   interactive treatment.
+
+Ringkasnya:
+
+> **Background = function/state. Shadow = interactivity.**
+
 ---
 
 ## 2. Canonical Dashboard Layers
@@ -235,7 +278,7 @@ State selalu menang atas functional family.
 |---|---|---:|---:|
 | Available | functional family | tipis | Ya |
 | Current / Priority | stronger tonal family / emphasized border | tipis+ | Ya |
-| Completed | Green Soft / success | sangat tipis | Tidak atau detail-only sesuai rule |
+| Completed | Green Soft / success | action shadow bila clickable; none bila non-interactive | sesuai business rule |
 | Not Started | Slate Soft | tidak | Tidak |
 | Late but Actionable | Amber Soft | tipis | Ya |
 | Expired / Disabled | neutral grey | tidak | Tidak |
@@ -916,25 +959,32 @@ Tidak memakai transform yang membuat layout bergeser signifikan.
 
 # 11. Shadow Contract
 
-Candidate:
+Shadow level adalah **affordance contract**, bukan dekorasi per-page.
+
+Canonical:
 
 ```text
-Action default
+LEVEL 0 — NON INTERACTIVE
+Metric / Status / Badge / Context / Work Surface
+→ no action shadow
+
+LEVEL 1 — ENABLED ACTION
+Access / compact / navigation action
 → 0 2px 6px rgba(67, 89, 113, 0.10)
 
-Action primary/current
+LEVEL 2 — CURRENT / PRIMARY ACTION
+Current operational action
 → 0 3px 8px rgba(67, 89, 113, 0.12)
 
-Pressed
+PRESSED
 → 0 1px 2px rgba(67, 89, 113, 0.08)
 
-Disabled
+DISABLED
 → none
-
-Metric
-→ none atau existing card ambient shadow dari theme saja
-  tetapi tidak memakai action shadow
 ```
+
+Outer Sneat card boleh tetap memakai theme ambient elevation. Jangan menggunakan
+ambient card shadow sebagai pengganti action affordance.
 
 Nilai final harus diwujudkan sebagai shared CSS custom property/class.
 

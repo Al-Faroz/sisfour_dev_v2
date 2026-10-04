@@ -448,6 +448,40 @@ Outline-only tidak menjadi pola utama Dashboard G3.9.
 Rule ini scoped ke Dashboard/action component. Jangan mengubah semua `.btn`
 global sehingga form/modal/module lain ikut berubah tanpa audit.
 
+### Hard Affordance Contract
+
+Pada Dashboard G3.9, background **tidak otomatis berarti tombol**.
+
+```text
+enabled clickable action
+→ tonal/filled background
+→ soft border
+→ shared subtle action shadow
+→ hover/focus/pressed state
+
+metric / badge / status / context / work surface
+→ background boleh ada
+→ tidak memakai action shadow
+→ tidak mempunyai pressed state
+
+disabled action
+→ neutral grey
+→ no action shadow
+→ no pointer action
+```
+
+Dengan demikian:
+
+```text
+Background = function/state
+Shadow     = interactivity
+```
+
+Work Surface `Hari Ini` dapat memakai emphasized border ketika current, tetapi
+tidak memakai action shadow karena keseluruhan surface bukan tombol.
+
+Outer Sneat card boleh memakai ambient theme elevation; itu bukan action shadow.
+
 ### Metric
 
 Metric Summary adalah informasi:

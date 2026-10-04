@@ -612,7 +612,6 @@ button.sisfour-action:active {
   --sf-action-bg: var(--sisfour-tone-green-bg);
   --sf-action-border: var(--sisfour-tone-green-border);
   --sf-action-fg: var(--sisfour-tone-green-fg);
-  box-shadow: none;
 }
 
 .sisfour-action.is-late {
@@ -640,7 +639,7 @@ button.sisfour-action:active {
 
 .sisfour-work-surface--active {
   border-color: var(--sisfour-tone-indigo-fg);
-  box-shadow: var(--sisfour-action-shadow-current);
+  box-shadow: none;
 }
 
 .sisfour-work-surface--upcoming {
