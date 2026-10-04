@@ -429,7 +429,8 @@ Primary Guru
 → max 1
 
 Guru + Wali context
-→ additional: Operator / Kesehatan
+→ additional: Operator / Kesehatan / PTSP
+→ Pimpinan tetap tidak diizinkan
 → max 1
 ```
 

@@ -1154,20 +1154,23 @@ PTSP
 
 Wali bukan role formal.
 
-Jika Guru mempunyai context Wali aktif, secondary role yang diizinkan dipersempit:
+Jika Guru mempunyai context Wali aktif, Wali **tidak menghabiskan slot role**
+dan tidak menonaktifkan operational role PTSP. Secondary yang diizinkan:
 
 ```text
 Operator
 Kesehatan
+PTSP
 ```
 
-Maksimum 1 secondary role.
+Pimpinan tetap tidak diizinkan pada context Guru+Wali. Maksimum 1 secondary role.
 
 Secara experience dapat terlihat seperti:
 
 ```text
 Guru + Wali + Operator
 Guru + Wali + Kesehatan
+Guru + Wali + PTSP
 ```
 
 tetapi secara formal tetap:
@@ -1207,7 +1210,6 @@ Siswa + X
 Guru + BK
 BK + Guru
 Guru+Wali + Pimpinan
-Guru+Wali + PTSP
 secondary lebih dari batas primary
 kombinasi lain yang tidak tercantum
 ```

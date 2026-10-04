@@ -193,7 +193,7 @@ final class DashboardCompositionService
 
         if ($primaryRole === 'guru') {
             return $isWali
-                ? ['operator', 'kesehatan']
+                ? ['operator', 'kesehatan', 'ptsp']
                 : ['operator', 'pimpinan', 'kesehatan', 'ptsp'];
         }
 

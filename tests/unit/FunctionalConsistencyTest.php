@@ -203,6 +203,36 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         $this->assertSame('WALI_PRIMARY_ROLE', $result['code']);
     }
 
+    public function testDashboardCompositionWaliAllowsPtspSecondary(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'guru',
+            ['guru', 'ptsp'],
+            true
+        );
+
+        $this->assertSame(['ptsp'], $composition['secondary_roles']);
+        $this->assertSame(
+            ['guru', 'ptsp'],
+            $composition['action_roles']
+        );
+    }
+
+    public function testRoleAssignmentAllowsGuruWaliWithPtsp(): void
+    {
+        $result = RoleAssignmentPolicyService::validate(
+            'guru',
+            ['ptsp'],
+            10,
+            null,
+            null,
+            true
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(['ptsp'], $result['secondary_roles']);
+    }
+
     public function testRoleAssignmentRejectsInvalidGuruWaliSecondary(): void
     {
         $result = RoleAssignmentPolicyService::validate(

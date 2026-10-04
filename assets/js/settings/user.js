@@ -35,7 +35,7 @@ const ROLE_POLICY = {
   },
   guru: {
     allowed: ['operator', 'pimpinan', 'kesehatan', 'ptsp'],
-    waliAllowed: ['operator', 'kesehatan'],
+    waliAllowed: ['operator', 'kesehatan', 'ptsp'],
     max: 1,
   },
 };
@@ -56,7 +56,7 @@ function syncSecondaryRolePolicy() {
   if (help) {
     if (primary === 'guru' && isWali) {
       help.textContent =
-        'Guru ini aktif sebagai Wali Kelas. Secondary yang tersedia hanya Operator/Kesehatan; Pimpinan dan PTSP dinonaktifkan sesuai whitelist G3.9.';
+        'Guru ini aktif sebagai Wali Kelas. Secondary yang tersedia: Operator, Kesehatan, atau PTSP; Pimpinan tetap dinonaktifkan sesuai whitelist G3.9.';
     } else if (primary === 'guru') {
       help.textContent =
         'Guru non-Wali dapat memilih maksimal 1 secondary: Operator, Pimpinan, Kesehatan, atau PTSP.';

@@ -551,6 +551,17 @@ tetapi tidak membuat section Primary Action.
 Wali tetap context Guru. Guru+Wali memakai Metric Summary Guru dan menambahkan
 context kelas wali/access sesuai mapping + permission.
 
+Wali tidak menghabiskan slot secondary role. Untuk Primary Guru yang aktif sebagai
+Wali, secondary yang valid adalah:
+
+```text
+Operator
+Kesehatan
+PTSP
+```
+
+maksimum satu secondary. Pimpinan tetap tidak diizinkan pada context Guru+Wali.
+
 ### Identity normalization
 
 Pernyataan G3.6A lama bahwa role Kesehatan selalu memakai identity Pegawai
