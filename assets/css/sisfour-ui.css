@@ -528,13 +528,16 @@
 .sisfour-metric-tile--rose { --sf-metric-bg: var(--sisfour-tone-rose-bg); --sf-metric-border: var(--sisfour-tone-rose-border); --sf-metric-fg: var(--sisfour-tone-rose-fg); }
 .sisfour-metric-tile--slate { --sf-metric-bg: var(--sisfour-tone-slate-bg); --sf-metric-border: var(--sisfour-tone-slate-border); --sf-metric-fg: var(--sisfour-tone-slate-fg); }
 
-.btn.sisfour-action,
-a.sisfour-action,
-button.sisfour-action {
+:where(.sisfour-action) {
   --sf-action-start: #8390a3;
   --sf-action-end: #647185;
   --sf-action-border: #586579;
   --sf-action-fg: #ffffff;
+}
+
+.btn.sisfour-action,
+a.sisfour-action,
+button.sisfour-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
