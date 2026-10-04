@@ -480,3 +480,57 @@ secondary Operator/Pimpinan
 ```
 
 UI composition bukan authorization boundary.
+
+### 19.6 Multi-Role Sidebar Composition
+
+G3.9 membedakan **authorization union** dari **navigation composition**.
+
+Authorization tetap:
+
+```text
+effective_roles = Primary Role UNION Secondary Roles
+permission      = union seluruh effective role yang valid
+```
+
+Sidebar tidak boleh lagi melebur seluruh menu effective role menjadi satu tree
+tanpa provenance role.
+
+Untuk account multi-role:
+
+```text
+Dashboard
+↓
+Primary Role section
+↓
+Secondary Role 1 section
+↓
+Secondary Role 2 section
+↓
+Account / Profile
+```
+
+Rules:
+
+1. Primary/secondary ordering mengikuti `DashboardCompositionService`.
+2. Wali tetap context Guru dan tidak membuat section role baru.
+3. Secondary Operator/Pimpinan tetap dapat menghasilkan menu sesuai permission,
+   walaupun tidak menghasilkan Primary Action Surface Dashboard.
+4. Leaf menu yang sudah tampil pada Primary tidak diulang pada Secondary.
+5. Parent/container boleh muncul pada lebih dari satu section untuk menjaga
+   struktur/provenance role.
+6. Dashboard hanya tampil satu kali sebagai global navigation.
+7. Profile berasal dari person identity, bukan operational secondary role.
+8. Permission/scope/context filtering tetap dijalankan setelah role ownership.
+9. Single-role mempertahankan presentation existing; heading role tambahan hanya
+   diperlukan pada multi-role.
+10. `role_menus` tetap navigation assignment dan bukan security boundary.
+
+Target source flow:
+
+```text
+Primary Role + Secondary Roles + Wali + Identity
+→ role-owned menu candidates
+→ permission/context filter
+→ incremental leaf dedupe
+→ role-aware Sidebar sections
+```

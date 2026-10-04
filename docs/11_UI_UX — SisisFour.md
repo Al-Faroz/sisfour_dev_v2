@@ -353,6 +353,50 @@ Tab utama ditulis di View. Mobile boleh scroll horizontal untuk tabs/navigation;
 
 Data-driven dari menu/role/context. Menu bukan security boundary.
 
+### 21.1 Single Role
+
+Single-role mempertahankan tree existing tanpa heading role tambahan yang
+membebani visual.
+
+### 21.2 Multi-Role
+
+Sidebar multi-role wajib menjaga hierarchy role:
+
+```text
+Dashboard
+
+UTAMA · <Primary Role / Context Wali bila ada>
+  menu milik Primary Role
+
+TAMBAHAN · <Secondary Role 1>
+  menu incremental role tersebut
+
+TAMBAHAN · <Secondary Role 2>
+  menu incremental role tersebut
+
+AKUN
+  profile sesuai person identity
+```
+
+Section label bersifat informational:
+
+```text
+small / muted
+non-clickable
+flat
+no gradient
+no action shadow
+```
+
+Leaf navigation tidak boleh diduplikasi antar section. Parent/container boleh
+diulang bila diperlukan untuk menjaga struktur menu per role.
+
+Dashboard hanya satu. Wali tidak menjadi section role. Profile tidak mengikuti
+secondary operational role; Profile mengikuti identity Guru/Pegawai/Siswa.
+
+Role grouping adalah presentation/navigation saja. Authorization tetap memakai
+PermissionFilter + Service + scope/period/target/business invariant.
+
 ## 22. Branding
 
 `nama_sekolah`, `logo_sekolah`, `icon_sekolah` berasal dari setting sistem. Login dan authenticated shell memakai source branding yang sama.

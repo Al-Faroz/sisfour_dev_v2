@@ -546,6 +546,47 @@ Admin/Siswa exclusive.
 Secondary Operator/Pimpinan tetap memberi capability/menu sesuai permission,
 tetapi tidak membuat section Primary Action.
 
+### Sidebar multi-role
+
+G3.9 shell mengikuti composition yang sama dengan Dashboard:
+
+```text
+Primary Role
+→ pemilik section menu utama
+
+Secondary Role
+→ section menu tambahan/incremental
+→ tidak dilebur ke section Primary
+
+Wali
+→ context label pada Primary Guru
+→ bukan section role baru
+```
+
+Contoh Guru + Wali + PTSP:
+
+```text
+Dashboard
+
+UTAMA · GURU / WALI KELAS
+  Presensi
+  Master Data
+  Laporan
+  ...
+
+TAMBAHAN · PTSP
+  PTSP
+    Layanan PTSP
+    Polling Kepuasan
+    Pengaduan
+
+AKUN
+  Profile Guru
+```
+
+Menu leaf yang sudah dimiliki Primary tidak diulang pada section Secondary.
+Profile mengikuti person identity, bukan operational role.
+
 ### Wali
 
 Wali tetap context Guru. Guru+Wali memakai Metric Summary Guru dan menambahkan

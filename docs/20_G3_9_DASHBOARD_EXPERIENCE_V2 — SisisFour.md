@@ -1501,6 +1501,11 @@ eksplisit:
 15. Completed memakai success/green.
 16. Permission/scope/business invariant tetap authoritative server-side.
 17. Dashboard tetap current-state, bukan laporan lengkap.
+18. Sidebar multi-role mengikuti Primary/Secondary composition yang sama dengan Dashboard.
+19. Permission tetap union; navigation tidak boleh melebur provenance role.
+20. Single-role Sidebar tidak mendapat heading role tambahan.
+21. Dashboard global hanya satu; Profile mengikuti person identity.
+22. Leaf menu dideduplikasi incremental Primary → Secondary; parent/container boleh diulang.
 
 ---
 
@@ -1521,6 +1526,53 @@ OD-03 RESOLVED
 OD-04 RESOLVED
       BK dinormalisasi sebagai operational role.
       BK tidak wajib id_pegawai bila actor mempunyai valid staff identity.
+```
+
+### 28.2 G3.9D — Multi-Role Sidebar Composition
+
+Sidebar current baseline masih melakukan:
+
+```text
+effective roles
+→ UNION role_menus
+→ DISTINCT id_menu
+→ one flat/global tree
+```
+
+Pola tersebut menghilangkan provenance Primary/Secondary role dan **disupersede**
+untuk account multi-role G3.9.
+
+Target:
+
+```text
+DashboardComposition
+├─ primary_role
+├─ secondary_roles
+└─ wali_context
+        ↓
+Role-aware Menu Composition
+├─ Global: Dashboard
+├─ Primary section
+├─ Secondary section(s), incremental
+└─ Account/Profile by identity
+```
+
+Tidak menambah schema baru. `role_menus.role` sudah menjadi ownership source untuk
+navigation. Existing `Menu & Role` settings tetap dipakai.
+
+Regression rules:
+
+```text
+single role                  → existing tree presentation
+Guru + Wali                  → no fake Wali role section
+Guru + PTSP                  → Guru primary + PTSP secondary
+Guru + Wali + PTSP           → Guru/Wali primary + PTSP secondary
+BK + Kesehatan + PTSP        → three role sections
+secondary Operator/Pimpinan  → menu section tetap boleh ada
+duplicate leaf               → tampil pada earliest owner saja
+empty parent                 → prune
+Profile                      → identity based
+Dashboard                    → one global item
 ```
 
 ### 28.1 BK identity normalization
