@@ -266,6 +266,27 @@ wajib diverifikasi pada visual regression.
 | Rose Soft | `#FFF0F3` | `#F2D1D8` | `#A34A5E` |
 | Slate Soft | `#F2F4F7` | `#DFE3E8` | `#586579` |
 
+### 5.1 Locked Enabled-Action Gradient Palette
+
+Flat tonal palette di atas hanya untuk metric/status/context. Enabled button/action
+memakai gradient warna nyata berikut agar jelas berbeda dari background aplikasi:
+
+| Family | Gradient Start | Gradient End | Border | Text/Icon |
+|---|---|---|---|---|
+| Indigo | `#7376FF` | `#5A5DE6` | `#5053C7` | White |
+| Blue | `#4EA5FF` | `#2F7FD8` | `#2866A5` | White |
+| Violet | `#9575E8` | `#7357C8` | `#6849B8` | White |
+| Cyan | `#36BDD0` | `#1B95AA` | `#19778A` | White |
+| Teal | `#42B7A2` | `#268B79` | `#217565` | White |
+| Green | `#64B875` | `#438F55` | `#347A49` | White |
+| Amber | `#E9A23B` | `#C97A14` | `#926415` | White |
+| Rose | `#E77C94` | `#C95D75` | `#A34A5E` | White |
+| Slate | `#8390A3` | `#647185` | `#586579` | White |
+
+**Dilarang** membentuk enabled button gradient dari `Soft Background → Soft Border`
+karena hasilnya terlalu dekat dengan putih/background aplikasi dan gagal memberi
+affordance tombol.
+
 Strong/current CTA tetap berada di family warna fungsinya. Penguatan dilakukan
 dengan border/emphasis + shadow tipis; jangan mengganti menjadi solid color ad-hoc,
 dan jangan membuat glossy/high-contrast gradient.
