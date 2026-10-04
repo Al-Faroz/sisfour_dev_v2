@@ -383,15 +383,17 @@ Angka/value menjadi hierarchy utama, bukan label panjang.
 
 ### 7.3 Visual Metric
 
-Metric Tile dapat memakai:
+Metric Tile memakai:
 
 ```text
-soft tonal background
-atau sangat subtle gradient
+flat soft tonal background
 soft border
 icon kecil / icon bubble
 consistent radius
 ```
+
+Metric/non-interactive surface **tidak memakai gradient**. Gradient Dashboard G3.9
+dicadangkan untuk enabled actionable control.
 
 Metric Tile tidak memakai:
 
@@ -625,16 +627,19 @@ Action tetap permission-aware dan tidak menambah capability.
 
 ### 10.1 Affordance
 
-Semua control yang benar-benar actionable mendapat:
+Semua control Dashboard yang benar-benar enabled/clickable wajib mendapat:
 
 ```text
-filled / tonal background
-soft border
-subtle shared shadow
+functional gradient background
+soft functional border
+subtle shared action shadow
 visible focus state
 pressed state
 adequate touch target
 ```
+
+Gradient adalah affordance utama enabled button dan harus terlihat berbeda dari
+background aplikasi/card di belakangnya.
 
 Ini berlaku tidak hanya pada Primary Action, tetapi juga:
 
@@ -662,17 +667,34 @@ Gunakan shared design token/class agar tetap sesuai Sneat global layout standard
 Hard affordance rule:
 
 ```text
-enabled Dashboard action → subtle action shadow
-current/primary action   → stronger shared action shadow
-disabled action          → no action shadow
+enabled Dashboard action
+→ functional GRADIENT background
+→ subtle action shadow
+
+current/primary enabled action
+→ stronger functional gradient emphasis
+→ stronger shared action shadow
+
+disabled/expired action
+→ flat neutral grey
+→ no gradient
+→ no action shadow
 
 Metric / Status / Badge / Context / Work Surface
+→ FLAT background
+→ no gradient
 → no action shadow
 ```
 
-Background dapat dipakai oleh action maupun information surface. Karena itu
-background **bukan** penanda interactivity; action shadow + interaction state yang
-menjadi pembeda utama. Outer Sneat card ambient elevation tetap diperbolehkan.
+Untuk Dashboard G3.9:
+
+```text
+GRADIENT = enabled interactive action
+FLAT     = information / status / context
+SHADOW   = confirms enabled interactivity
+```
+
+Outer Sneat card ambient elevation tetap diperbolehkan dan bukan action shadow.
 
 ### 10.3 Functional Color Family
 
@@ -700,8 +722,8 @@ State selalu mempunyai prioritas dibanding warna domain.
 
 | State | Visual intent |
 |---|---|
-| Available | functional color + subtle shadow |
-| Current / Priority | stronger tone / soft gradient |
+| Available | functional gradient + subtle shadow |
+| Current / Priority | stronger functional gradient + stronger shared shadow |
 | Completed | green / success; action shadow hanya bila masih clickable |
 | Not Started | neutral/light, non-actionable |
 | Late but Actionable | amber |

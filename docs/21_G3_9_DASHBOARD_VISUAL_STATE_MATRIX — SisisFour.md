@@ -32,46 +32,49 @@ Keempat jenis elemen tidak boleh memiliki affordance yang sama.
 
 ### 1.1 Hard Affordance Contract
 
-**Background bukan penanda tombol.**
+**Gradient dicadangkan untuk enabled button/action.**
 
 Canonical grammar Dashboard G3.9:
 
 ```text
-BACKGROUND
-→ menjelaskan function family / state / grouping
+FUNCTIONAL GRADIENT
+→ enabled clickable action
+
+FLAT TONAL BACKGROUND
+→ metric / status / context / information surface
 
 ACTION SHADOW
-→ menandakan enabled interactive surface
+→ menguatkan affordance enabled interaction
 
-BORDER / STATE
-→ menandakan current / priority / disabled
-
-SHAPE
-→ membantu membedakan button, status chip, metric, dan container
+GREY FLAT + NO SHADOW
+→ disabled / expired action
 ```
 
 Hard rules:
 
-1. Setiap **enabled clickable Dashboard action** wajib memakai shared subtle
-   action shadow.
-2. Primary/current action memakai action shadow level yang lebih kuat, tetap
-   subtle.
-3. Disabled/non-actionable control tidak memakai action shadow.
-4. Metric Tile tidak memakai action shadow.
-5. Status Chip/Badge tidak memakai action shadow.
-6. Context stat/information surface tidak memakai action shadow.
-7. Work Surface, termasuk state `active/current`, **bukan tombol** dan tidak
-   memakai action shadow. Current work surface cukup memakai tonal background,
-   emphasized border, dan explicit status.
-8. Outer Sneat card boleh mempertahankan ambient/theme elevation. Ambient card
+1. Setiap **enabled clickable Dashboard action** wajib memakai functional
+   gradient background yang terlihat berbeda dari background aplikasi/card.
+2. Setiap enabled action wajib memakai shared subtle action shadow.
+3. Primary/current action memakai gradient family yang sama dengan emphasis
+   lebih kuat + action shadow level lebih kuat.
+4. Disabled/non-actionable control memakai flat neutral grey, tanpa gradient,
+   tanpa action shadow.
+5. Metric Tile selalu flat/tonal, tanpa gradient dan tanpa action shadow.
+6. Status Chip/Badge selalu flat, tanpa gradient dan tanpa action shadow.
+7. Context stat/information surface selalu flat, tanpa gradient dan tanpa action
+   shadow.
+8. Work Surface, termasuk state `active/current`, **bukan tombol**: tetap flat,
+   tanpa gradient dan tanpa action shadow. Current work surface cukup memakai
+   emphasized border + explicit status.
+9. Outer Sneat card boleh mempertahankan ambient/theme elevation. Ambient card
    elevation bukan action affordance.
-9. Jika completed control masih clickable untuk detail/review, ia tetap memakai
-   action shadow. Jika completed control non-clickable, gunakan disabled/non-
-   interactive treatment.
+10. Jika completed control masih clickable untuk detail/review, ia tetap memakai
+    gradient success + action shadow. Jika non-clickable, gunakan flat
+    informational/disabled treatment.
 
 Ringkasnya:
 
-> **Background = function/state. Shadow = interactivity.**
+> **GRADIENT = enabled action. FLAT = information. SHADOW = interactivity.**
 
 ---
 
@@ -146,8 +149,7 @@ Digunakan untuk pekerjaan paling relevan pada role action-first.
 Visual:
 
 ```text
-filled / stronger tonal
-atau soft gradient
+functional soft gradient
 icon + label
 subtle shadow
 44–48px minimum touch target
@@ -164,7 +166,7 @@ Digunakan untuk navigation/action sekunder.
 Visual:
 
 ```text
-tonal filled background
+functional soft gradient
 soft border
 subtle shadow
 icon + label
@@ -185,8 +187,8 @@ Lihat Rekap
 secondary navigation kecil
 ```
 
-Visual tetap mempunyai background, tetapi strength lebih ringan daripada Access
-Action.
+Visual tetap memakai functional gradient + action shadow, tetapi ukuran/hierarchy
+lebih compact daripada Access Action.
 
 ### 3.4 Status Chip
 
@@ -276,8 +278,8 @@ State selalu menang atas functional family.
 
 | State | Background intent | Shadow | Interaktif |
 |---|---|---:|---:|
-| Available | functional family | tipis | Ya |
-| Current / Priority | stronger tonal family / emphasized border | tipis+ | Ya |
+| Available | functional gradient | tipis | Ya |
+| Current / Priority | stronger functional gradient / emphasized border | tipis+ | Ya |
 | Completed | Green Soft / success | action shadow bila clickable; none bila non-interactive | sesuai business rule |
 | Not Started | Slate Soft | tidak | Tidak |
 | Late but Actionable | Amber Soft | tipis | Ya |

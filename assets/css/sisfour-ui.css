@@ -539,7 +539,12 @@ button.sisfour-action {
   justify-content: center;
   gap: .45rem;
   border-color: var(--sf-action-border);
-  background: var(--sf-action-bg);
+  background-color: var(--sf-action-bg);
+  background-image: linear-gradient(
+    135deg,
+    var(--sf-action-bg) 0%,
+    var(--sf-action-border) 100%
+  );
   color: var(--sf-action-fg);
   box-shadow: var(--sisfour-action-shadow);
   text-decoration: none;
@@ -548,10 +553,15 @@ button.sisfour-action {
 .btn.sisfour-action:hover,
 a.sisfour-action:hover,
 button.sisfour-action:hover {
-  border-color: var(--sf-action-border);
-  background: var(--sf-action-bg);
+  border-color: var(--sf-action-fg);
+  background-color: var(--sf-action-bg);
+  background-image: linear-gradient(
+    135deg,
+    var(--sf-action-bg) 0%,
+    var(--sf-action-border) 100%
+  );
   color: var(--sf-action-fg);
-  filter: brightness(.97);
+  filter: brightness(.97) saturate(1.04);
   box-shadow: var(--sisfour-action-shadow-current);
 }
 
@@ -602,8 +612,13 @@ button.sisfour-action:active {
 .sisfour-action--slate { --sf-action-bg: var(--sisfour-tone-slate-bg); --sf-action-border: var(--sisfour-tone-slate-border); --sf-action-fg: var(--sisfour-tone-slate-fg); }
 
 .sisfour-action.is-current {
-  background: var(--sf-action-bg);
   border-color: var(--sf-action-fg);
+  background-color: var(--sf-action-bg);
+  background-image: linear-gradient(
+    135deg,
+    var(--sf-action-border) 0%,
+    var(--sf-action-bg) 100%
+  );
   box-shadow: var(--sisfour-action-shadow-current);
 }
 
@@ -621,11 +636,17 @@ button.sisfour-action:active {
 }
 
 .sisfour-action.is-disabled,
-.sisfour-action[aria-disabled="true"] {
+.sisfour-action[aria-disabled="true"],
+.sisfour-action:disabled {
   --sf-action-bg: var(--sisfour-tone-slate-bg);
   --sf-action-border: var(--sisfour-tone-slate-border);
   --sf-action-fg: var(--sisfour-tone-slate-fg);
+  background-color: var(--sisfour-tone-slate-bg);
+  background-image: none;
+  border-color: var(--sisfour-tone-slate-border);
+  color: var(--sisfour-tone-slate-fg);
   box-shadow: none;
+  filter: none;
   cursor: default;
   pointer-events: none;
 }
@@ -634,7 +655,7 @@ button.sisfour-action:active {
   overflow: hidden;
   border: 1px solid var(--sisfour-tone-indigo-border);
   border-radius: .85rem;
-  background: linear-gradient(135deg, #fff 0%, var(--sisfour-tone-indigo-bg) 100%);
+  background: var(--sisfour-tone-indigo-bg);
 }
 
 .sisfour-work-surface--active {
@@ -644,12 +665,12 @@ button.sisfour-action:active {
 
 .sisfour-work-surface--upcoming {
   border-color: var(--sisfour-tone-indigo-border);
-  background: linear-gradient(135deg, #fff 0%, #f5f6ff 100%);
+  background: #f5f6ff;
 }
 
 .sisfour-work-surface--inactive {
   border-color: var(--sisfour-tone-slate-border);
-  background: linear-gradient(135deg, #fff 0%, var(--sisfour-tone-slate-bg) 100%);
+  background: var(--sisfour-tone-slate-bg);
   box-shadow: none;
 }
 

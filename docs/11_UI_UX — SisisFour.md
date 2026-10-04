@@ -432,16 +432,19 @@ G3.9 mengikuti dokumen 20/21.
 
 ### Action
 
-Semua control Dashboard yang benar-benar actionable wajib mempunyai affordance:
+Semua control Dashboard yang enabled/clickable wajib mempunyai affordance:
 
 ```text
-filled / tonal background
-soft border
-subtle shared shadow
+functional gradient background
+soft functional border
+subtle shared action shadow
 visible focus
 pressed state
 adequate touch target
 ```
+
+Gradient enabled action harus terlihat berbeda dari background aplikasi/card.
+Flat tonal background dicadangkan untuk information/status/context.
 
 Outline-only tidak menjadi pola utama Dashboard G3.9.
 
@@ -454,18 +457,20 @@ Pada Dashboard G3.9, background **tidak otomatis berarti tombol**.
 
 ```text
 enabled clickable action
-→ tonal/filled background
-→ soft border
+→ functional GRADIENT background
+→ soft functional border
 → shared subtle action shadow
 → hover/focus/pressed state
 
 metric / badge / status / context / work surface
-→ background boleh ada
-→ tidak memakai action shadow
-→ tidak mempunyai pressed state
+→ FLAT tonal background
+→ no gradient
+→ no action shadow
+→ no pressed state
 
-disabled action
-→ neutral grey
+disabled / expired action
+→ flat neutral grey
+→ no gradient
 → no action shadow
 → no pointer action
 ```
@@ -473,8 +478,9 @@ disabled action
 Dengan demikian:
 
 ```text
-Background = function/state
-Shadow     = interactivity
+GRADIENT = enabled action
+FLAT     = information/status/context
+SHADOW   = interactivity
 ```
 
 Work Surface `Hari Ini` dapat memakai emphasized border ketika current, tetapi
@@ -500,8 +506,8 @@ pointer cue palsu.
 ### State Override
 
 ```text
-available           → functional family
-current/priority    → stronger tone / soft gradient
+available           → functional gradient
+current/priority    → stronger functional gradient
 completed           → success/green
 not started         → neutral/light
 late actionable     → amber
