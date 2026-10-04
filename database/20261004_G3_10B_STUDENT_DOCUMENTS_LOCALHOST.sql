@@ -2,7 +2,7 @@
 -- FINAL LOCALHOST schema after period-ownership removal.
 -- Target: LOCALHOST / sisfour_dev_v2
 -- Tanggal: 2026-10-04
--- IMPORTANT: replace the earlier unexecuted G3.10B draft. Run this file once.
+-- IMPORTANT: canonical G3.10B localhost provisioning. Safe to re-run after a partial prior import.
 
 CREATE TABLE IF NOT EXISTS `sisfour_dev_v2`.`dokumen_siswa_import_batch` (
   `id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -188,44 +188,139 @@ WHERE p.permission_key='dokumen_siswa.view_self'
       AND rp.id_permission=p.id
   );
 
+-- Legacy SisisFour `menus.id` is intentionally NOT AUTO_INCREMENT.
+-- Allocate explicit positive IDs and repair the accidental id=0 state produced
+-- by the earlier G3.10B draft before child-menu provisioning.
+SET @g310_menu_parent_existing := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `nama_menu`='Dokumen Siswa'
+    AND `parent_id` IS NULL
+  ORDER BY `id` DESC
+  LIMIT 1
+);
+
+SET @g310_menu_parent_id := CASE
+  WHEN @g310_menu_parent_existing IS NULL
+       OR @g310_menu_parent_existing = 0
+    THEN (
+      SELECT COALESCE(MAX(`id`), 0) + 1
+      FROM `sisfour_dev_v2`.`menus`
+    )
+  ELSE @g310_menu_parent_existing
+END;
+
+UPDATE `sisfour_dev_v2`.`menus`
+SET `id`=@g310_menu_parent_id,
+    `updated_at`=NOW()
+WHERE `id`=0
+  AND `nama_menu`='Dokumen Siswa'
+  AND `parent_id` IS NULL;
+
 INSERT INTO `sisfour_dev_v2`.`menus`
-  (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Dokumen Siswa', NULL, 8, 'bx bx-folder', '#', NOW(), NOW()
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT
+  @g310_menu_parent_id,
+  'Dokumen Siswa',
+  NULL,
+  8,
+  'bx bx-folder',
+  '#',
+  NOW(),
+  NOW()
 WHERE NOT EXISTS (
-  SELECT 1 FROM `sisfour_dev_v2`.`menus`
+  SELECT 1
+  FROM `sisfour_dev_v2`.`menus`
   WHERE `nama_menu`='Dokumen Siswa'
     AND `parent_id` IS NULL
 );
 
-INSERT INTO `sisfour_dev_v2`.`menus`
-  (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Data Dokumen', p.id, 1, 'bx bx-file', 'dokumen-siswa', NOW(), NOW()
-FROM `sisfour_dev_v2`.`menus` p
-WHERE p.nama_menu='Dokumen Siswa'
-  AND p.parent_id IS NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM `sisfour_dev_v2`.`menus`
-    WHERE `link`='dokumen-siswa'
-  );
-
-INSERT INTO `sisfour_dev_v2`.`menus`
-  (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Bulk Import', p.id, 2, 'bx bx-import', 'dokumen-siswa/import', NOW(), NOW()
-FROM `sisfour_dev_v2`.`menus` p
-WHERE p.nama_menu='Dokumen Siswa'
-  AND p.parent_id IS NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM `sisfour_dev_v2`.`menus`
-    WHERE `link`='dokumen-siswa/import'
-  );
-
-INSERT INTO `sisfour_dev_v2`.`menus`
-  (`nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
-SELECT 'Dokumen Saya', NULL, 8, 'bx bx-file-find', 'dokumen-saya', NOW(), NOW()
-WHERE NOT EXISTS (
-  SELECT 1 FROM `sisfour_dev_v2`.`menus`
-  WHERE `link`='dokumen-saya'
+SET @g310_menu_data_existing := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `link`='dokumen-siswa'
+  ORDER BY `id` DESC
+  LIMIT 1
 );
+
+SET @g310_menu_data_id := COALESCE(
+  @g310_menu_data_existing,
+  (
+    SELECT COALESCE(MAX(`id`), 0) + 1
+    FROM `sisfour_dev_v2`.`menus`
+  )
+);
+
+INSERT INTO `sisfour_dev_v2`.`menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT
+  @g310_menu_data_id,
+  'Data Dokumen',
+  @g310_menu_parent_id,
+  1,
+  'bx bx-file',
+  'dokumen-siswa',
+  NOW(),
+  NOW()
+WHERE @g310_menu_data_existing IS NULL;
+
+SET @g310_menu_bulk_existing := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `link`='dokumen-siswa/import'
+  ORDER BY `id` DESC
+  LIMIT 1
+);
+
+SET @g310_menu_bulk_id := COALESCE(
+  @g310_menu_bulk_existing,
+  (
+    SELECT COALESCE(MAX(`id`), 0) + 1
+    FROM `sisfour_dev_v2`.`menus`
+  )
+);
+
+INSERT INTO `sisfour_dev_v2`.`menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT
+  @g310_menu_bulk_id,
+  'Bulk Import',
+  @g310_menu_parent_id,
+  2,
+  'bx bx-import',
+  'dokumen-siswa/import',
+  NOW(),
+  NOW()
+WHERE @g310_menu_bulk_existing IS NULL;
+
+SET @g310_menu_self_existing := (
+  SELECT `id`
+  FROM `sisfour_dev_v2`.`menus`
+  WHERE `link`='dokumen-saya'
+  ORDER BY `id` DESC
+  LIMIT 1
+);
+
+SET @g310_menu_self_id := COALESCE(
+  @g310_menu_self_existing,
+  (
+    SELECT COALESCE(MAX(`id`), 0) + 1
+    FROM `sisfour_dev_v2`.`menus`
+  )
+);
+
+INSERT INTO `sisfour_dev_v2`.`menus`
+  (`id`, `nama_menu`, `parent_id`, `urutan`, `icon`, `link`, `created_at`, `updated_at`)
+SELECT
+  @g310_menu_self_id,
+  'Dokumen Saya',
+  NULL,
+  8,
+  'bx bx-file-find',
+  'dokumen-saya',
+  NOW(),
+  NOW()
+WHERE @g310_menu_self_existing IS NULL;
 
 INSERT INTO `sisfour_dev_v2`.`role_menus`
   (`role`, `id_menu`, `tampil`)
