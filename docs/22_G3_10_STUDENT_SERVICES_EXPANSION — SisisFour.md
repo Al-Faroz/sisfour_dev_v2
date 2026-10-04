@@ -586,6 +586,15 @@ Urutan:
 
 Jangan membuat/mengeksekusi hosting SQL dari asumsi baseline.
 
+Status 2026-10-04 setelah localhost DB verification:
+- G3.10A localhost schema = PASS.
+- G3.10B localhost schema/RBAC/menu = PASS.
+- fresh hosting dump `u473908839_sisfour2026` tanggal 2026-10-04 09:05 telah diaudit.
+- hosting baseline belum memiliki schema G3.10A/G3.10B.
+- `menus.id` hosting tetap legacy non-AUTO_INCREMENT; MAX(id) pada dump = 125.
+- hosting SQL A/B telah disusun dari dump aktual dan berstatus **PREPARED / NOT EXECUTED**.
+- hosting execution tetap memerlukan approval eksplisit setelah gate yang disepakati.
+
 ## 19. Acceptance
 
 G3.10A:
