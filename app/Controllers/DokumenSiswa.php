@@ -31,6 +31,17 @@ class DokumenSiswa extends BaseController
         return $this->renderManager(true);
     }
 
+    public function searchStudents()
+    {
+        return $this->respond(
+            $this->service->searchStudentsForPeriod(
+                $this->currentActorUserId(),
+                (int) ($this->request->getGet('id_tahun') ?? 0),
+                (string) ($this->request->getGet('q') ?? '')
+            )
+        );
+    }
+
     public function create()
     {
         return $this->respond(

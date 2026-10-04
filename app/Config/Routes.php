@@ -317,6 +317,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('/', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
         $routes->get('json', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
         $routes->get('import', 'DokumenSiswa::importPage', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->get('cari-siswa', 'DokumenSiswa::searchStudents', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->post('create', 'DokumenSiswa::create', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->put('update/(:num)', 'DokumenSiswa::update/$1', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->put('archive/(:num)', 'DokumenSiswa::archive/$1', ['filter' => 'permission:dokumen_siswa.manage']);

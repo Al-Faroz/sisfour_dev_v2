@@ -308,7 +308,12 @@ class DokumenSiswaImportService
             ->where('id_tahun', $idTahun)
             ->where('target_type', 'INDIVIDU')
             ->where('status', 'PUBLISHED')
-            ->where('LOWER(TRIM(judul))', mb_strtolower($judul), false)
+            ->where(
+                'LOWER(TRIM(judul)) = ' .
+                db_connect()->escape(mb_strtolower($judul)),
+                null,
+                false
+            )
             ->countAllResults() > 0;
     }
 

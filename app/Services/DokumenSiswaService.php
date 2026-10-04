@@ -42,6 +42,7 @@ class DokumenSiswaService
             'tahun_dipilih' => $period['selected'],
             'tahun_options' => $period['options'],
             'classes' => $this->classesForPeriod($idTahun),
+            'classes_by_period' => $this->classesByPeriod($period['options']),
             'rows' => $builder
                 ->orderBy('ds.created_at', 'DESC')
                 ->orderBy('ds.id', 'DESC')
@@ -52,6 +53,66 @@ class DokumenSiswaService
             'limit' => $limit,
             'offset' => $offset,
             'filter' => $filter,
+        ];
+    }
+
+    public function searchStudentsForPeriod(
+        int $userId,
+        int $idTahun,
+        string $query
+    ): array {
+        $auth = $this->requireManager($userId, 'dokumen_siswa.manage');
+        if (! $auth['success']) return $auth;
+
+        $query = trim($query);
+        if (! $this->periodExists($idTahun)) {
+            return $this->fail('INVALID_PERIOD', 'Tahun Ajaran/Semester tidak valid.');
+        }
+        if (mb_strlen($query) < 2) {
+            return [
+                'success' => true,
+                'rows' => [],
+                'message' => 'Ketik minimal 2 karakter.',
+            ];
+        }
+
+        $rows = db_connect()->table('anggota_kelas ak')
+            ->select(
+                's.id, s.nisn, s.nama, k.nama_kelas, k.tingkat'
+            )
+            ->join('siswa s', 's.id = ak.id_siswa')
+            ->join(
+                'kelas k',
+                'k.id = ak.id_kelas AND k.id_tahun = ak.id_tahun'
+            )
+            ->where('ak.id_tahun', $idTahun)
+            ->where('s.deleted_at', null)
+            ->where('k.deleted_at', null)
+            ->groupStart()
+                ->like('s.nama', $query)
+                ->orLike('s.nisn', $query)
+                ->orLike('s.nik', $query)
+            ->groupEnd()
+            ->orderBy('s.nama', 'ASC')
+            ->limit(30)
+            ->get()
+            ->getResultArray();
+
+        return [
+            'success' => true,
+            'rows' => array_map(
+                static fn (array $row): array => [
+                    'id' => (int) $row['id'],
+                    'nisn' => (string) $row['nisn'],
+                    'nama' => (string) $row['nama'],
+                    'kelas' => (string) $row['nama_kelas'],
+                    'tingkat' => (string) $row['tingkat'],
+                    'text' => trim((string) $row['nisn'])
+                        . ' — ' . trim((string) $row['nama'])
+                        . ' · ' . trim((string) $row['nama_kelas']),
+                ],
+                $rows
+            ),
         ];
     }
 
@@ -214,6 +275,18 @@ class DokumenSiswaService
             ->get()->getResultArray();
     }
 
+    private function classesByPeriod(array $periods): array
+    {
+        $result = [];
+        foreach ($periods as $period) {
+            $id = (int) ($period['id'] ?? 0);
+            if ($id > 0) {
+                $result[(string) $id] = $this->classesForPeriod($id);
+            }
+        }
+        return $result;
+    }
+
     private function validateDocument(array $input, ?array $existing): array
     {
         $idTahun = (int) ($input['id_tahun'] ?? 0);
@@ -373,7 +446,12 @@ class DokumenSiswaService
             ->where('id_tahun', $idTahun)
             ->where('target_type', $target)
             ->where('status', 'PUBLISHED')
-            ->where('LOWER(TRIM(judul))', mb_strtolower($judul), false);
+            ->where(
+                'LOWER(TRIM(judul)) = ' .
+                db_connect()->escape(mb_strtolower($judul)),
+                null,
+                false
+            );
 
         if ($target === 'INDIVIDU') $builder->where('id_siswa', $idSiswa);
         else $builder->where('tingkat', $tingkat);
