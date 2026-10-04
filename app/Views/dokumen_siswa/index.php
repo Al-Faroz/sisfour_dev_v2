@@ -665,7 +665,7 @@ $classes = $initial['classes'] ?? [];
                                         required
                                     >
                                     <div class="form-text">
-                                        Hanya HTTPS drive.google.com atau docs.google.com.
+                                        Hanya HTTPS drive.google.com.
                                     </div>
                                 </div>
                             </div>

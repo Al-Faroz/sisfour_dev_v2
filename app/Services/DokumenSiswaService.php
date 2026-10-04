@@ -770,7 +770,7 @@ class DokumenSiswaService
         if ($link === null) {
             return $this->fail(
                 'VALIDATION',
-                'Link wajib HTTPS Google Drive/Google Docs yang valid.'
+                'Link wajib HTTPS drive.google.com yang valid.'
             );
         }
 
