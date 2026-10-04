@@ -1,9 +1,9 @@
 # G3.10 — Student Services Expansion — SisisFour
 
-**Status:** LOCKED / IMPLEMENTATION ACTIVE  
-**Branch:** `feat/g3-10-student-services-expansion-20261004`  
-**Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`  
-**Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.  
+**Status:** LOCKED / IMPLEMENTATION ACTIVE
+**Branch:** `feat/g3-10-student-services-expansion-20261004`
+**Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`
+**Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.
 **G4/Cordova:** NOT STARTED.
 
 ## 1. Scope
