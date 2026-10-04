@@ -17,27 +17,40 @@ class DokumenSaya extends BaseController
     {
         $userId = $this->currentActorUserId();
         $data = $this->service->selfPage(
-            $userId,
-            $this->request->getGet()
+            $userId
         );
 
         if ($this->requestWantsJson()) {
-            $success = (bool) ($data['success'] ?? false);
+            $success = (bool) (
+                $data['success'] ?? false
+            );
+
             return $this->response
-                ->setStatusCode($success ? 200 : 422)
+                ->setStatusCode(
+                    $success ? 200 : 422
+                )
                 ->setJSON([
-                    'status' => $success ? 'success' : 'error',
+                    'status' => $success
+                        ? 'success'
+                        : 'error',
                     'message' => $data['message']
-                        ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                        ?? (
+                            $success
+                                ? 'Berhasil.'
+                                : 'Gagal.'
+                        ),
                     'data' => $data,
                 ]);
         }
 
         return $this->response->setBody(
-            $this->renderWithLayout('dokumen_siswa/self', [
-                'title' => 'Dokumen Saya',
-                'initial' => $data,
-            ])
+            $this->renderWithLayout(
+                'dokumen_siswa/self',
+                [
+                    'title' => 'Dokumen Saya',
+                    'initial' => $data,
+                ]
+            )
         );
     }
 
@@ -51,9 +64,15 @@ class DokumenSaya extends BaseController
         if (! ($result['success'] ?? false)) {
             return redirect()
                 ->to(base_url('dokumen-saya'))
-                ->with('error', $result['message'] ?? 'Dokumen tidak dapat dibuka.');
+                ->with(
+                    'error',
+                    $result['message']
+                        ?? 'Dokumen tidak dapat dibuka.'
+                );
         }
 
-        return redirect()->to((string) $result['link']);
+        return redirect()->to(
+            (string) $result['link']
+        );
     }
 }

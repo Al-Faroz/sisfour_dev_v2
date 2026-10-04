@@ -34,9 +34,8 @@ class DokumenSiswa extends BaseController
     public function searchStudents()
     {
         return $this->respond(
-            $this->service->searchStudentsForPeriod(
+            $this->service->searchStudents(
                 $this->currentActorUserId(),
-                (int) ($this->request->getGet('id_tahun') ?? 0),
                 (string) ($this->request->getGet('q') ?? '')
             )
         );
@@ -73,13 +72,27 @@ class DokumenSiswa extends BaseController
         );
     }
 
+    public function hardDelete()
+    {
+        $payload = $this->payload();
+        $ids = $payload['id_dokumen'] ?? [];
+
+        if (! is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        return $this->respond(
+            $this->service->hardDelete(
+                $this->currentActorUserId(),
+                $ids
+            )
+        );
+    }
+
     public function template()
     {
-        $userId = $this->currentActorUserId();
-        $idTahun = (int) ($this->request->getGet('id_tahun') ?? 0);
         $result = $this->importService->templateRows(
-            $userId,
-            $idTahun,
+            $this->currentActorUserId(),
             (string) ($this->request->getGet('tingkat') ?? ''),
             (int) ($this->request->getGet('id_kelas') ?? 0)
         );
@@ -88,15 +101,11 @@ class DokumenSiswa extends BaseController
             return $this->respond($result);
         }
 
-        $period = db_connect()->table('tahun_ajaran')
-            ->select('nama_tahun, semester')
-            ->where('id', $idTahun)
-            ->get()
-            ->getRowArray() ?? [];
-
         $file = $this->exportService->template(
             $result['rows'] ?? [],
-            $period
+            is_array($result['roster_period'] ?? null)
+                ? $result['roster_period']
+                : null
         );
 
         if (! ($file['success'] ?? false)) {
@@ -112,6 +121,7 @@ class DokumenSiswa extends BaseController
     public function previewImport()
     {
         $file = $this->request->getFile('file');
+
         if ($file === null) {
             return $this->respond([
                 'success' => false,
@@ -134,7 +144,9 @@ class DokumenSiswa extends BaseController
         return $this->respond(
             $this->importService->commit(
                 $this->currentActorUserId(),
-                trim((string) ($this->payload()['token'] ?? ''))
+                trim((string) (
+                    $this->payload()['token'] ?? ''
+                ))
             )
         );
     }
@@ -152,6 +164,7 @@ class DokumenSiswa extends BaseController
     public function export()
     {
         $userId = $this->currentActorUserId();
+
         $data = $this->service->exportData(
             $userId,
             $this->request->getGet()
@@ -165,6 +178,7 @@ class DokumenSiswa extends BaseController
             $data['rows'] ?? [],
             $data['access_logs'] ?? []
         );
+
         if (! ($file['success'] ?? false)) {
             return $this->respond($file);
         }
@@ -180,8 +194,9 @@ class DokumenSiswa extends BaseController
         );
     }
 
-    private function renderManager(bool $focusImport)
-    {
+    private function renderManager(
+        bool $focusImport
+    ) {
         $userId = $this->currentActorUserId();
 
         if ($this->requestWantsJson()) {
@@ -194,27 +209,40 @@ class DokumenSiswa extends BaseController
         }
 
         return $this->response->setBody(
-            $this->renderWithLayout('dokumen_siswa/index', [
-                'title' => 'Dokumen Siswa',
-                'initial' => $this->service->managerPage(
-                    $userId,
-                    $this->request->getGet()
-                ),
-                'focusImport' => $focusImport,
-                'extraJs' => ['assets/js/dokumen-siswa.js'],
-            ])
+            $this->renderWithLayout(
+                'dokumen_siswa/index',
+                [
+                    'title' => 'Dokumen Siswa',
+                    'initial' => $this->service
+                        ->managerPage(
+                            $userId,
+                            $this->request->getGet()
+                        ),
+                    'focusImport' => $focusImport,
+                    'extraJs' => [
+                        'assets/js/dokumen-siswa.js',
+                    ],
+                ]
+            )
         );
     }
 
     private function payload(): array
     {
         $contentType = strtolower(
-            trim($this->request->getHeaderLine('Content-Type'))
+            trim(
+                $this->request
+                    ->getHeaderLine('Content-Type')
+            )
         );
 
-        if (str_contains($contentType, 'application/json')) {
+        if (str_contains(
+            $contentType,
+            'application/json'
+        )) {
             try {
-                $json = $this->request->getJSON(true);
+                $json = $this->request
+                    ->getJSON(true);
             } catch (Throwable $e) {
                 $json = null;
             }
@@ -233,13 +261,17 @@ class DokumenSiswa extends BaseController
         );
     }
 
-    private function downloadAndCleanup(string $path, string $filename)
-    {
-        register_shutdown_function(static function () use ($path): void {
-            if (is_file($path)) {
-                @unlink($path);
+    private function downloadAndCleanup(
+        string $path,
+        string $filename
+    ) {
+        register_shutdown_function(
+            static function () use ($path): void {
+                if (is_file($path)) {
+                    @unlink($path);
+                }
             }
-        });
+        );
 
         return $this->response
             ->download($path, null)
@@ -248,13 +280,17 @@ class DokumenSiswa extends BaseController
 
     private function respond(array $result)
     {
-        $success = (bool) ($result['success'] ?? false);
+        $success = (bool) (
+            $result['success'] ?? false
+        );
 
         return $this->response
             ->setStatusCode(
                 $success
                     ? ResponseInterface::HTTP_OK
-                    : match ($result['code'] ?? '') {
+                    : match (
+                        $result['code'] ?? ''
+                    ) {
                         'FORBIDDEN',
                         'NO_STUDENT_IDENTITY'
                             => ResponseInterface::HTTP_FORBIDDEN,
@@ -265,9 +301,15 @@ class DokumenSiswa extends BaseController
                     }
             )
             ->setJSON([
-                'status' => $success ? 'success' : 'error',
+                'status' => $success
+                    ? 'success'
+                    : 'error',
                 'message' => $result['message']
-                    ?? ($success ? 'Berhasil.' : 'Gagal.'),
+                    ?? (
+                        $success
+                            ? 'Berhasil.'
+                            : 'Gagal.'
+                    ),
                 'data' => $result,
             ]);
     }

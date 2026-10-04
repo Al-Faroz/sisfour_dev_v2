@@ -321,6 +321,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('create', 'DokumenSiswa::create', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->put('update/(:num)', 'DokumenSiswa::update/$1', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->put('archive/(:num)', 'DokumenSiswa::archive/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('hard-delete', 'DokumenSiswa::hardDelete', ['filter' => 'permission:dokumen_siswa.hard_delete']);
         $routes->get('template', 'DokumenSiswa::template', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->post('import/preview', 'DokumenSiswa::previewImport', ['filter' => 'permission:dokumen_siswa.manage']);
         $routes->post('import/commit', 'DokumenSiswa::commitImport', ['filter' => 'permission:dokumen_siswa.manage']);
