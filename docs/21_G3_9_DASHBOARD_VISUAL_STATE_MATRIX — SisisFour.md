@@ -338,7 +338,7 @@ Pimpinan
 Siswa
 ```
 
-Candidate:
+Canonical:
 
 ```text
 value 28–32px desktop
@@ -358,7 +358,7 @@ Guru
 Guru + Wali
 ```
 
-Candidate:
+Canonical:
 
 ```text
 value 22–26px
@@ -403,7 +403,7 @@ NONE
 
 ### Metric Summary — Prominent
 
-Candidate Role 1 metrics:
+Canonical Role 1 metrics:
 
 | Metric | Visual family |
 |---|---|
@@ -466,7 +466,7 @@ Operator sebagai secondary role juga tidak menambah Primary Action Surface.
 
 ### Metric Summary — Prominent
 
-Candidate:
+Canonical:
 
 | Metric | Family |
 |---|---|
@@ -638,7 +638,7 @@ Primary current:
 Tambah Data Kunjungan
 ```
 
-Candidate visual:
+Canonical visual:
 
 ```text
 Teal/Blue stronger tonal
@@ -1204,25 +1204,28 @@ G3.9 visual dinyatakan pass bila:
 
 # 17. Gate
 
-Status setelah Visual State Matrix:
+Current G3.9E status:
 
 ```text
-Dashboard composition = SPEC RESOLVED
-Identity contract      = SPEC RESOLVED
-Role ordering          = SPEC RESOLVED
-Role whitelist         = SPEC RESOLVED
-Visual hierarchy       = DRAFT READY
-Action state matrix    = DRAFT READY
-Metric design          = DRAFT READY
+Dashboard composition = LOCKED / IMPLEMENTED
+Identity contract      = LOCKED / IMPLEMENTED
+Role ordering          = LOCKED / IMPLEMENTED
+Role whitelist         = LOCKED / IMPLEMENTED
+Visual hierarchy       = LOCKED / IMPLEMENTED
+Action state matrix    = LOCKED / IMPLEMENTED
+Metric design          = LOCKED / IMPLEMENTED
+Gradient palette       = LOCKED / IMPLEMENTED
+Sidebar role grouping  = LOCKED / IMPLEMENTED
 
-Application source     = G3.9A IN PROGRESS — composition + role policy implemented; local gate pending
+Focused visual smoke   = PASS / user runtime evidence
+Full viewport matrix   = PENDING final G3.9E gate
 ```
 
-Next:
+Canonical visual rule remains:
 
 ```text
-Review Visual State Matrix
-→ sync SSOT terdampak
-→ G3.9A implementation contract/composition
-→ G3.9B shared visual system
+GRADIENT = enabled action
+FLAT     = metric/status/context/work-surface
+SHADOW   = enabled interactivity
+GREY FLAT + NO SHADOW = disabled/expired
 ```

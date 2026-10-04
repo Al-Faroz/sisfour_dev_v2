@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** Tidak ada mutation phase aktif — **G3.8 CLOSED / MERGED — PR #17; G4 NOT STARTED**
+**Phase aktif:** **G3.9 — Dashboard Experience V2 / Regression & Closure — Draft PR #18; G4 NOT STARTED**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -1624,8 +1624,10 @@ Check:
 
 ```text
 action vs metric terbaca jelas
-semua dashboard action mempunyai background
-shadow konsisten
+semua enabled dashboard action memakai functional colored gradient
+enabled dashboard action memakai shared action shadow
+metric/status/context/work-surface tetap flat tanpa action shadow
+disabled/expired action flat grey tanpa gradient/shadow
 metric tidak tampak clickable
 focus visible
 touch target aman
@@ -1646,5 +1648,70 @@ UKS/PTSP/BK authorization tetap server-side
 invalid role combination ditolak server
 ```
 
-G3.9 belum boleh dinyatakan PASS hanya dari screenshot; composition, permission,
+G3.9 belum boleh dinyatakan CLOSED hanya dari screenshot; composition, permission,
 identity, viewport, dan negative-path test wajib ikut lulus.
+
+### G3.9E — Regression & Closure Current Gate
+
+Static/source audit:
+
+```text
+Primary Role owns Dashboard                    PASS / source audit
+secondary action only, no secondary payload   PASS / source audit
+Pimpinan/Guru/Wali/Siswa no Konseling payload PASS / source audit
+Dashboard legacy quick-action patterns         PASS / source audit
+enabled Dashboard action gradient contract     PASS / source audit
+multi-role Sidebar role provenance             PASS / source audit
+Sidebar incremental leaf dedupe                PASS / unit/source audit
+Profile identity routing                       PASS / source audit
+Profile Guru/Siswa role_menus visibility       PASS / source audit
+single-role Sidebar path preserved             PASS / source audit
+```
+
+Focused user runtime evidence:
+
+```text
+Guru + Kesehatan             PASS
+BK + Kesehatan + PTSP        PASS
+Guru + Wali + Kesehatan      PASS
+Guru + PTSP                  PASS
+functional gradient UI       PASS
+multi-role Sidebar grouping  PASS
+```
+
+Final gate yang masih wajib sebelum G3.9 CLOSED / PR Ready:
+
+```text
+PHP lint changed PHP files
+node --check changed JS
+FunctionalConsistencyTest
+php spark routes
+git diff --check origin/main...HEAD
+clean working tree
+
+single-role smoke:
+Admin / Operator / Pimpinan / BK / Kesehatan / PTSP / Guru / Guru+Wali / Siswa
+
+multi-role smoke:
+Guru+Kesehatan
+Guru+PTSP
+Guru+Wali+PTSP
+BK+Kesehatan+PTSP
+BK+Operator+Kesehatan
+
+negative/edge:
+no active period
+identity unavailable
+permission partially removed
+Menu & Role item disabled
+expired-session logout recovery
+active Sidebar parent/open state
+
+viewport:
+360×800
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```

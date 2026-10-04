@@ -46,7 +46,7 @@ kesehatan
 ptsp
 ```
 
-Wali Kelas adalah context Guru, bukan role baru. Kesehatan dan PTSP memakai identity Pegawai. Multi-role diperbolehkan.
+Wali Kelas adalah context Guru, bukan role baru. Pada contract G3.9, BK/Kesehatan/PTSP adalah operational role yang dapat dijalankan oleh valid staff identity Guru atau Pegawai. Multi-role diperbolehkan sesuai whitelist G3.9.
 
 ## 4. Identity UX
 
@@ -745,16 +745,32 @@ BK / Kesehatan / PTSP
 Guru dan Pegawai tetap mutual-exclusive pada master person. Satu user tidak dibuat
 mempunyai duplicate person record hanya untuk memenuhi secondary role.
 
-G3.9 status pada spec checkpoint:
+G3.9 current implementation status:
 
 ```text
-audit/spec                    = ACTIVE
-composition contract          = RESOLVED / SPEC
-identity contract             = RESOLVED / SPEC
-role ordering                 = RESOLVED / SPEC
-role whitelist                = RESOLVED / SPEC
-visual state matrix           = DRAFT READY
-application source mutation   = IN PROGRESS — G3.9A composition + role policy
-DB/schema/SQL                 = NONE pada spec checkpoint
+audit/spec                    = DONE
+composition contract          = LOCKED / IMPLEMENTED
+identity contract             = LOCKED / IMPLEMENTED
+role ordering                 = LOCKED / IMPLEMENTED
+role whitelist                = LOCKED / IMPLEMENTED
+visual state matrix           = LOCKED / IMPLEMENTED
+gradient action affordance    = LOCKED / IMPLEMENTED
+multi-role Sidebar            = LOCKED / IMPLEMENTED
+DB/schema/SQL                 = NONE
+focused visual smoke          = PASS / user runtime evidence
+full all-role regression      = PENDING G3.9E final gate
+full viewport regression      = PENDING G3.9E final gate
+PR G3.9                       = #18 / DRAFT
 G4/Cordova                    = NOT STARTED
+```
+
+Focused runtime evidence yang sudah diterima pada G3.9:
+
+```text
+Guru + Kesehatan
+BK + Kesehatan + PTSP
+Guru + Wali + Kesehatan
+Guru + PTSP
+functional gradient action UI
+multi-role Sidebar grouping
 ```

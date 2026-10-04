@@ -1103,7 +1103,7 @@ ke schema.
 
 Urutan role tambahan dihitung deterministik dari whitelist G3.9.
 
-Canonical candidate order untuk role tambahan:
+Canonical order untuk role tambahan:
 
 ```text
 operator
@@ -1481,8 +1481,7 @@ multi-role.
 
 ## 27. Locked Decisions
 
-Keputusan berikut dianggap **LOCKED candidate** sampai user mengubahnya secara
-eksplisit:
+Keputusan berikut **LOCKED** dan hanya berubah melalui approval eksplisit user:
 
 1. Role 1 adalah pemilik Dashboard.
 2. Metric Summary selalu milik Role 1.
@@ -1617,34 +1616,32 @@ G3.9 dapat dinyatakan CLOSED hanya jika:
 
 ---
 
-## 30. Current Gate
+## 30. Current Gate — G3.9E
 
-Status pada pembuatan dokumen ini:
-
-```text
-Audit source/doc        = DONE
-Dashboard formula       = DRAFT LOCKED CANDIDATE
-Metric Summary concept  = DRAFT LOCKED CANDIDATE
-Action visual system    = DRAFT LOCKED CANDIDATE
-Guru/Wali state mapping = DRAFT LOCKED CANDIDATE
-
-Cross-identity          = RESOLVED / SPEC
-Role 2/3 ordering       = RESOLVED / SPEC
-Exact role whitelist    = RESOLVED / SPEC
-BK identity alignment   = RESOLVED / SPEC
-
-Application mutation    = IN PROGRESS / G3.9A
-Dashboard composition   = IMPLEMENTED / LOCAL GATE PENDING
-Role assignment policy  = IMPLEMENTED / LOCAL GATE PENDING
-Dashboard visual rewrite= NOT STARTED / G3.9B
-PR G3.9                 = #18 / DRAFT
-```
-
-Next gate:
+Status setelah implementation + focused runtime smoke:
 
 ```text
-Review resolved contract G3.9
-→ susun Dashboard Visual State Matrix
-→ sinkronkan SSOT terdampak
-→ baru implementasi source
+Audit source/doc         = DONE
+Dashboard formula        = LOCKED / IMPLEMENTED
+Metric Summary concept   = LOCKED / IMPLEMENTED
+Action visual system     = LOCKED / IMPLEMENTED
+Guru/Wali state mapping  = LOCKED / IMPLEMENTED
+Cross-identity           = LOCKED / IMPLEMENTED
+Role 2/3 ordering        = LOCKED / IMPLEMENTED
+Exact role whitelist     = LOCKED / IMPLEMENTED
+BK identity alignment    = LOCKED / IMPLEMENTED
+Multi-role Sidebar       = LOCKED / IMPLEMENTED
+Gradient affordance      = LOCKED / IMPLEMENTED
+
+Focused visual smoke     = PASS / user runtime evidence
+Sidebar multi-role smoke = PASS / user runtime evidence
+Full all-role regression = PENDING
+Full viewport regression = PENDING
+Local technical gate     = PENDING
+PR G3.9                  = #18 / DRAFT
+G4/Cordova               = NOT STARTED
 ```
+
+G3.9 belum dinyatakan CLOSED sampai final G3.9E gate pada
+`15_TESTING_POLISH — SisisFour.md` lulus. Setelah itu PR #18 dapat diusulkan
+Ready for Review, tetapi merge/deploy tetap memerlukan approval eksplisit user.
