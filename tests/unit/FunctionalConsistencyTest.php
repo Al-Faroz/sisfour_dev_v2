@@ -433,6 +433,66 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
     }
 
+    public function testSidebarCompositionBkTripleKeepsRoleOrder(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'bk',
+            ['ptsp', 'bk', 'kesehatan'],
+            false
+        );
+
+        $layout = SidebarMenuCompositionService::compose(
+            $composition,
+            [
+                'bk' => [[
+                    'id' => 5,
+                    'nama_menu' => 'BK & Prestasi',
+                    'link' => '#',
+                    'children' => [[
+                        'id' => 51,
+                        'nama_menu' => 'Catatan Pelanggaran',
+                        'link' => 'bk/kasus',
+                        'children' => [],
+                    ]],
+                ]],
+                'kesehatan' => [[
+                    'id' => 117,
+                    'nama_menu' => 'UKS',
+                    'link' => '#',
+                    'children' => [[
+                        'id' => 119,
+                        'nama_menu' => 'Data UKS',
+                        'link' => 'uks/harian',
+                        'children' => [],
+                    ]],
+                ]],
+                'ptsp' => [[
+                    'id' => 121,
+                    'nama_menu' => 'PTSP',
+                    'link' => '#',
+                    'children' => [[
+                        'id' => 122,
+                        'nama_menu' => 'Layanan PTSP',
+                        'link' => 'ptsp/layanan',
+                        'children' => [],
+                    ]],
+                ]],
+            ],
+            [],
+            [],
+            false
+        );
+
+        $this->assertSame(
+            ['bk', 'kesehatan', 'ptsp'],
+            array_column($layout['role_sections'], 'role')
+        );
+        $this->assertSame(
+            ['primary', 'secondary', 'secondary'],
+            array_column($layout['role_sections'], 'kind')
+        );
+    }
+
     public function testSidebarActiveStateUsesOneLongestMatch(): void
     {
         $service = (new ReflectionClass(\App\Services\MenuService::class))

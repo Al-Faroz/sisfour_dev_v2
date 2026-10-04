@@ -1,6 +1,6 @@
 # G3.9 — Dashboard Experience V2 — SisisFour
 
-**Status:** Draft SSOT / Audit-backed specification
+**Status:** Canonical / Implemented Contract — G3.9E Regression & Closure
 **Tanggal Acuan:** 3 Oktober 2026
 **Baseline Source:** `main @ 95bedb09200ed954c60ea34fa0d8665d471528da`
 **Phase:** G3.9 — Role-Aware Dashboard Composition & Visual Action System
@@ -1599,19 +1599,20 @@ G3.9 docs synchronization.
 G3.9 dapat dinyatakan CLOSED hanya jika:
 
 ```text
-[ ] contract Role 1/2/3 final
-[ ] identity blocker final
-[ ] role ordering final
-[ ] whitelist final
-[ ] shared visual token final
-[ ] semua dashboard role migrated
-[ ] Guru/Wali state regression PASS
-[ ] single/double/triple regression PASS
-[ ] permission/scope/privacy regression PASS
-[ ] mobile 360px PASS
-[ ] WebView readiness tidak regress
-[ ] SSOT lama tersinkron
-[ ] no direct dependency terhadap stale PR #1
+[x] contract Role 1/2/3 final
+[x] identity blocker final
+[x] role ordering final
+[x] whitelist final
+[x] shared visual token final
+[x] semua dashboard role migrated
+[x] Guru/Wali focused visual regression PASS / user evidence
+[x] single/double/triple focused smoke PASS / user evidence
+[x] permission/scope/privacy static regression PASS
+[ ] final executable all-role regression PASS pada exact final head
+[ ] mobile 360px close-out PASS pada exact final head
+[ ] WebView readiness close-out tidak regress
+[x] SSOT implementation state tersinkron
+[x] no direct source dependency terhadap stale PR #1
 ```
 
 ---
@@ -1635,8 +1636,9 @@ Gradient affordance      = LOCKED / IMPLEMENTED
 
 Focused visual smoke     = PASS / user runtime evidence
 Sidebar multi-role smoke = PASS / user runtime evidence
-Full all-role regression = PENDING
-Full viewport regression = PENDING
+Static all-role audit     = PASS / GitHub read evidence
+Final all-role runtime      = PENDING exact final head
+Final 360px/WebView       = PENDING exact final head
 Local technical gate     = PENDING
 PR G3.9                  = #18 / DRAFT
 G4/Cordova               = NOT STARTED

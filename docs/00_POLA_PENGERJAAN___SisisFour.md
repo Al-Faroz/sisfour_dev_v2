@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.8 — CLOSED / MERGED — PR #17; G4 NOT STARTED
-**Branch aktif:** `main`
-**Baseline `main`:** setelah merge PR #17 / G3.8 (`2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9`)
+**Development aktif:** G3.9 — REGRESSION / CLOSURE — Draft PR #18; G4 NOT STARTED
+**Branch aktif:** `feat/g3-9-dashboard-experience-v2-20261003`
+**Baseline `main`:** G3.8 closed baseline `95bedb09200ed954c60ea34fa0d8665d471528da`
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -365,6 +365,7 @@ G3.6B PTSP                 CLOSED / MERGED — PR #14
 G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
 G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
 G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
+G3.9 Dashboard Experience V2 REGRESSION / CLOSURE — Draft PR #18
 G4 Cordova APK              NOT STARTED
 ```
 
@@ -950,4 +951,41 @@ feature head               52143aad25b2d273ee585bcc318ebdedcb3ccfa4
 merge commit               2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 main after merge           2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 G4/Cordova                 NOT STARTED
+```
+
+
+## 19. G3.9 — Dashboard Experience V2
+
+Current contract:
+
+```text
+Primary Role             = users.role / owner Dashboard
+Secondary Roles          = validated additional roles
+Wali                     = context Guru, bukan role baru
+Dashboard data owner     = Primary Role
+Secondary Dashboard      = action surface only bila eligible
+Sidebar multi-role       = Primary/Secondary grouped, bukan flat union
+Permission               = union effective role; server tetap authoritative
+Enabled Dashboard action = functional colored gradient + action shadow
+Information surface      = flat tonal, no action shadow
+Disabled/expired         = flat neutral grey, no gradient/shadow
+DB/schema/SQL            = NONE
+G4/Cordova               = NOT STARTED
+```
+
+G3.9E regression/closure checkpoint:
+
+```text
+source/diff static audit         = PASS / GitHub read evidence
+single-role visual migration     = PASS / user runtime evidence
+Guru/Wali visual state           = PASS / user runtime evidence
+multi-role dashboard smoke       = PASS / user runtime evidence
+Guru + PTSP                      = PASS / user runtime evidence
+multi-role Sidebar               = PASS / user runtime evidence
+privacy payload static audit     = PASS / GitHub read evidence
+GitHub Actions CI                = NONE
+final local executable gate      = PENDING exact final head
+final 360px/WebView close-out    = PENDING exact final head
+PR #18                           = DRAFT
+Ready/Merge/Deploy               = NOT AUTHORIZED
 ```

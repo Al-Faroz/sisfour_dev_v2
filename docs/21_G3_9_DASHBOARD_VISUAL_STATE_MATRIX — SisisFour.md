@@ -1,6 +1,6 @@
 # G3.9 — Dashboard Visual State Matrix — SisisFour
 
-**Status:** Draft SSOT / Visual contract
+**Status:** Canonical / Locked Visual Contract — Implemented
 **Tanggal Acuan:** 3 Oktober 2026
 **Depends On:** `20_G3_9_DASHBOARD_EXPERIENCE_V2 — SisisFour.md`
 **Baseline Source:** `main @ 95bedb09200ed954c60ea34fa0d8665d471528da`
@@ -149,7 +149,7 @@ Digunakan untuk pekerjaan paling relevan pada role action-first.
 Visual:
 
 ```text
-functional soft gradient
+functional colored gradient
 icon + label
 subtle shadow
 44–48px minimum touch target
@@ -166,7 +166,7 @@ Digunakan untuk navigation/action sekunder.
 Visual:
 
 ```text
-functional soft gradient
+functional colored gradient
 soft border
 subtle shadow
 icon + label
@@ -301,9 +301,9 @@ State selalu menang atas functional family.
 |---|---|---:|---:|
 | Available | functional gradient | tipis | Ya |
 | Current / Priority | stronger functional gradient / emphasized border | tipis+ | Ya |
-| Completed | Green Soft / success | action shadow bila clickable; none bila non-interactive | sesuai business rule |
+| Completed | Green gradient bila clickable; Green Soft bila informational | action shadow bila clickable; none bila non-interactive | sesuai business rule |
 | Not Started | Slate Soft | tidak | Tidak |
-| Late but Actionable | Amber Soft | tipis | Ya |
+| Late but Actionable | Amber gradient | tipis | Ya |
 | Expired / Disabled | neutral grey | tidak | Tidak |
 | Error | danger/red soft | tidak/low | tergantung recovery |
 | Destructive | danger/red | tipis | Ya dengan confirmation |
@@ -430,7 +430,7 @@ Kartu
 master/operational links sesuai permission
 ```
 
-Access action memakai tonal filled button/tile.
+Access action memakai functional colored gradient button/tile + shared action shadow.
 
 ### Data / Activity
 
@@ -1183,21 +1183,21 @@ Dashboard ikut berubah tanpa review.
 G3.9 visual dinyatakan pass bila:
 
 ```text
-[ ] user dapat membedakan action vs metric tanpa menebak
-[ ] semua dashboard action mempunyai background
-[ ] shadow konsisten dan tipis
-[ ] metric tidak tampak clickable
-[ ] current Guru task lebih menonjol dari metric
-[ ] disabled Guru task jelas tetapi tetap readable
-[ ] ended tidak menggunakan danger hanya karena waktu habis
-[ ] completed konsisten green
-[ ] Wali available masih tampak actionable
-[ ] Admin/Operator/Pimpinan tidak mempunyai fake Primary Action section
-[ ] secondary Operator/Pimpinan tidak menggandakan dashboard
-[ ] mobile 360px tidak overflow
-[ ] touch target tetap aman
-[ ] keyboard focus terlihat
-[ ] no permission leak karena presentation
+[x] user dapat membedakan action vs metric tanpa menebak / focused runtime evidence
+[x] enabled dashboard action memakai functional colored gradient
+[x] action shadow konsisten dan tipis
+[x] metric/status/context/work-surface tidak tampak clickable
+[x] current Guru task lebih menonjol dari metric
+[x] disabled Guru task jelas tetapi tetap readable
+[x] ended tidak menggunakan danger hanya karena waktu habis
+[x] completed konsisten green
+[x] Wali available masih tampak actionable
+[x] Admin/Operator/Pimpinan tidak mempunyai fake Primary Action section
+[x] secondary Operator/Pimpinan tidak menggandakan dashboard
+[ ] mobile 360px exact-head close-out tidak overflow
+[x] touch target contract terimplementasi
+[x] keyboard focus contract terimplementasi
+[x] no permission leak karena presentation / static source audit
 ```
 
 ---

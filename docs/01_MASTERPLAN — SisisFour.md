@@ -758,8 +758,9 @@ gradient action affordance    = LOCKED / IMPLEMENTED
 multi-role Sidebar            = LOCKED / IMPLEMENTED
 DB/schema/SQL                 = NONE
 focused visual smoke          = PASS / user runtime evidence
-full all-role regression      = PENDING G3.9E final gate
-full viewport regression      = PENDING G3.9E final gate
+static all-role regression    = PASS / GitHub read evidence
+final executable regression    = PENDING exact final head
+final 360px/WebView close-out = PENDING exact final head
 PR G3.9                       = #18 / DRAFT
 G4/Cordova                    = NOT STARTED
 ```
