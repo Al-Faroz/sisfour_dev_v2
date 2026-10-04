@@ -23,7 +23,98 @@ class KonselingKelompokService
 
     public function createFollowUp(int $u,int $id,array $input):array{$a=$this->requirePermission($u,'bk_konseling.manage');if(!$a['success'])return $a;$p=db_connect()->table('konseling_kelompok')->where('id',$id)->get()->getRowArray();if(!$p)return $this->fail('NOT_FOUND','Konseling Kelompok tidak ditemukan.');$v=$this->validateFollowUp($input,$p);if(!$v['success'])return $v;$db=db_connect();$db->transBegin();try{$now=Time::now(self::TZ)->format('Y-m-d H:i:s');$d=$v['data']+['id_konseling_kelompok'=>$id,'created_by'=>$u,'created_at'=>$now,'updated_by'=>$u,'updated_at'=>$now];$db->table('tindak_lanjut_konseling_kelompok')->insert($d);$db->table('konseling_kelompok')->where('id',$id)->update(['status'=>$d['status'],'updated_by'=>$u,'updated_at'=>$now]);if($db->transStatus()===false)throw new \RuntimeException('Transaksi gagal.');$db->transCommit();$this->log($u,'CREATE',"Tindak lanjut Konseling Kelompok #{$id}");return ['success'=>true,'message'=>'Tindak lanjut Konseling Kelompok berhasil disimpan.'];}catch(Throwable $e){$db->transRollback();return $this->fail('SAVE_FAILED','Tindak lanjut Konseling Kelompok gagal disimpan.');}}
 
-    public function exportData(int $u,array $input):array{$a=$this->requirePermission($u,'bk_konseling.export');if(!$a['success'])return $a;$p=$this->periodContext->resolve($input);if(!$p['success'])return $p;$rows=$this->baseBuilder((int)$p['selected']['id'],$input)->orderBy('kg.tanggal','ASC')->orderBy('kg.id','ASC')->limit(self::MAX_EXPORT_ROWS)->get()->getResultArray();$ids=array_map(static fn(array $r):int=>(int)$r['id'],$rows);if($ids===[])return ['success'=>true,'rows'=>[],'members'=>[],'follow_ups'=>[]];$members=db_connect()->table('konseling_kelompok_anggota a')->select('a.id_konseling_kelompok,s.nisn,s.nama AS nama_siswa,k.nama_kelas')->join('siswa s','s.id=a.id_siswa')->join('kelas k','k.id=a.id_kelas')->whereIn('a.id_konseling_kelompok',$ids)->orderBy('a.id_konseling_kelompok','ASC')->orderBy('s.nama','ASC')->limit(self::MAX_EXPORT_ROWS)->get()->getResultArray();$follow=db_connect()->table('tindak_lanjut_konseling_kelompok tl')->select('tl.*,u.username AS username_pencatat')->select('COALESCE(g.nama,p.nama,u.username) AS nama_pencatat',false)->join('users u','u.id=tl.created_by','left')->join('guru g','g.id=u.id_guru','left')->join('pegawai p','p.id=u.id_pegawai','left')->whereIn('tl.id_konseling_kelompok',$ids)->orderBy('tl.id_konseling_kelompok','ASC')->orderBy('tl.tanggal','ASC')->limit(self::MAX_EXPORT_ROWS)->get()->getResultArray();return ['success'=>true,'rows'=>$rows,'members'=>$members,'follow_ups'=>$follow];}
+    public function exportData(int $u, array $input): array
+    {
+        $auth = $this->requirePermission($u, 'bk_konseling.export');
+        if (! $auth['success']) return $auth;
+
+        $period = $this->periodContext->resolve($input);
+        if (! $period['success']) return $period;
+
+        $builder = $this->baseBuilder((int) $period['selected']['id'], $input);
+        $total = (clone $builder)->countAllResults();
+        if ($total > self::MAX_EXPORT_ROWS) {
+            return $this->fail(
+                'EXPORT_TOO_LARGE',
+                'Konseling Kelompok melebihi 50.000 baris. Persempit filter.'
+            );
+        }
+
+        $rows = $builder
+            ->orderBy('kg.tanggal', 'ASC')
+            ->orderBy('kg.id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $ids = array_map(
+            static fn (array $row): int => (int) $row['id'],
+            $rows
+        );
+
+        if ($ids === []) {
+            return [
+                'success' => true,
+                'rows' => [],
+                'members' => [],
+                'follow_ups' => [],
+            ];
+        }
+
+        $memberBuilder = db_connect()
+            ->table('konseling_kelompok_anggota a')
+            ->whereIn('a.id_konseling_kelompok', $ids);
+
+        if ((clone $memberBuilder)->countAllResults() > self::MAX_EXPORT_ROWS) {
+            return $this->fail(
+                'EXPORT_TOO_LARGE',
+                'Anggota Konseling Kelompok melebihi 50.000 baris. Persempit filter.'
+            );
+        }
+
+        $members = $memberBuilder
+            ->select(
+                'a.id_konseling_kelompok, s.nisn, ' .
+                's.nama AS nama_siswa, k.nama_kelas'
+            )
+            ->join('siswa s', 's.id = a.id_siswa')
+            ->join('kelas k', 'k.id = a.id_kelas')
+            ->orderBy('a.id_konseling_kelompok', 'ASC')
+            ->orderBy('s.nama', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $followBuilder = db_connect()
+            ->table('tindak_lanjut_konseling_kelompok tl')
+            ->whereIn('tl.id_konseling_kelompok', $ids);
+
+        if ((clone $followBuilder)->countAllResults() > self::MAX_EXPORT_ROWS) {
+            return $this->fail(
+                'EXPORT_TOO_LARGE',
+                'Tindak Lanjut Konseling Kelompok melebihi 50.000 baris. Persempit filter.'
+            );
+        }
+
+        $followUps = $followBuilder
+            ->select('tl.*, u.username AS username_pencatat')
+            ->select(
+                'COALESCE(g.nama, p.nama, u.username) AS nama_pencatat',
+                false
+            )
+            ->join('users u', 'u.id = tl.created_by', 'left')
+            ->join('guru g', 'g.id = u.id_guru', 'left')
+            ->join('pegawai p', 'p.id = u.id_pegawai', 'left')
+            ->orderBy('tl.id_konseling_kelompok', 'ASC')
+            ->orderBy('tl.tanggal', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        return [
+            'success' => true,
+            'rows' => $rows,
+            'members' => $members,
+            'follow_ups' => $followUps,
+        ];
+    }
 
     private function baseBuilder(int $idT,array $input){$b=db_connect()->table('konseling_kelompok kg')->select(['kg.*','ta.nama_tahun','ta.semester','u.username AS username_pencatat'])->select('(SELECT COUNT(*) FROM konseling_kelompok_anggota a WHERE a.id_konseling_kelompok=kg.id) AS jumlah_anggota',false)->select('COALESCE(g.nama,p.nama,u.username) AS nama_pencatat',false)->join('tahun_ajaran ta','ta.id=kg.id_tahun')->join('users u','u.id=kg.created_by','left')->join('guru g','g.id=u.id_guru','left')->join('pegawai p','p.id=u.id_pegawai','left')->where('kg.id_tahun',$idT);$s=trim((string)($input['status']??''));$bi=trim((string)($input['bidang']??''));$q=trim((string)($input['search']??''));if($s!=='')$b->where('kg.status',$s);if($bi!=='')$b->where('kg.bidang',$bi);if($q!=='')$b->groupStart()->like('kg.topik',$q)->orLike('kg.uraian_masalah',$q)->groupEnd();return $b;}
 

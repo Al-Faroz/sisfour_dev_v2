@@ -13,11 +13,26 @@ use Throwable;
 class BkExportService
 {
     private const TZ = 'Asia/Jakarta';
+    private const MAX_EXPORT_ROWS = 50000;
 
     public function kasus(array $data, int $userId): array
     {
         $caseRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
         $followUps = $this->followUpRows($caseRows);
+        if (count($followUps) > self::MAX_EXPORT_ROWS) {
+            return [
+                'success' => false,
+                'code' => 'EXPORT_TOO_LARGE',
+                'message' => 'Tindak lanjut melebihi 50.000 baris. Persempit filter Tahun Ajaran/tanggal.',
+            ];
+        }
+
+        $groupRows = $this->groupRows($caseRows);
+        $groupCount = [];
+        foreach ($groupRows as $group) {
+            $groupCount[(int) ($group['id'] ?? 0)] = (int) ($group['jumlah_anggota'] ?? 0);
+        }
+
         $followUpCount = [];
 
         foreach ($followUps as $row) {
@@ -28,7 +43,9 @@ class BkExportService
         $headers = [
             'No',
             'ID Catatan',
+            'Mode',
             'ID Kelompok',
+            'Jumlah Anggota',
             'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
@@ -55,7 +72,11 @@ class BkExportService
             $rows[] = [
                 $no++,
                 $idKasus,
+                (int) ($row['id_kelompok'] ?? 0) > 0 ? 'KELOMPOK' : 'INDIVIDU',
                 (int) ($row['id_kelompok'] ?? 0) ?: '',
+                (int) ($row['id_kelompok'] ?? 0) > 0
+                    ? ($groupCount[(int) $row['id_kelompok']] ?? 0)
+                    : 1,
                 $tahun,
                 $row['nisn'] ?? '',
                 $row['nama_siswa'] ?? '',
@@ -114,7 +135,6 @@ class BkExportService
             $sheet->setTitle('Pelanggaran');
             $this->writeSheet($sheet, $headers, $rows);
 
-            $groupRows = $this->groupRows($caseRows);
             $groupHeaders = [
                 'No', 'ID Kelompok', 'Tahun Ajaran', 'Tanggal',
                 'Pelanggaran', 'Kategori', 'Keterangan', 'Jumlah Anggota',

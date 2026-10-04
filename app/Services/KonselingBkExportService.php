@@ -23,7 +23,7 @@ class KonselingBkExportService
             $spreadsheet = new Spreadsheet();
             $this->writeSheet(
                 $spreadsheet->getActiveSheet(),
-                'Konseling BK',
+                'Konseling Individu',
                 [
                     'No', 'Tahun Ajaran', 'Tanggal', 'Pertemuan Ke', 'Kelas', 'NISN', 'Nama Siswa',
                     'Bentuk Layanan', 'Cara Hadir', 'Bidang', 'Topik', 'Uraian Masalah',
@@ -55,11 +55,11 @@ class KonselingBkExportService
                 }, $rows, array_keys($rows))
             );
 
-            $followSheet = new Worksheet($spreadsheet, 'Tindak Lanjut');
+            $followSheet = new Worksheet($spreadsheet, 'Tindak Lanjut Individu');
             $spreadsheet->addSheet($followSheet);
             $this->writeSheet(
                 $followSheet,
-                'Tindak Lanjut',
+                'Tindak Lanjut Individu',
                 [
                     'No', 'ID Konseling', 'Tahun Ajaran', 'Tanggal Konseling', 'Tanggal Tindak Lanjut',
                     'Kelas', 'NISN', 'Nama Siswa', 'Perkembangan', 'Hasil/Kesepakatan',
