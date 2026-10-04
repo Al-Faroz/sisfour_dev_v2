@@ -275,14 +275,14 @@ Tingkat (bila TINGKAT)
 Status PUBLISHED / ARCHIVED
 ```
 
-Link wajib HTTPS dan host allowlist:
+Link Dokumen wajib HTTPS dan host allowlist:
 
 ```text
 drive.google.com
-docs.google.com
 ```
 
-SisFour hanya menentukan siapa yang boleh melihat/membuka link. Sharing policy file
+URL `docs.google.com` hanya digunakan untuk Spreadsheet Helper pada template dan tidak
+diterima sebagai link Dokumen. SisFour hanya menentukan siapa yang boleh melihat/membuka link. Sharing policy file
 di Google Drive tetap tanggung jawab operator.
 
 ## 10. Bulk Import Dokumen Individu

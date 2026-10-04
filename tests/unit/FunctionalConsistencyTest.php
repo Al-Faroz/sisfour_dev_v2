@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\DashboardActionCatalogService;
 use App\Services\DashboardCompositionService;
+use App\Services\DokumenSiswaExportService;
 use App\Services\JadwalGuruService;
 use App\Services\RoleAssignmentPolicyService;
 use App\Services\RoleAwareDashboardService;
@@ -568,10 +569,9 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
     }
 
-    public function testStudentDocumentPolicyAcceptsOnlyHttpsGoogleDriveHosts(): void
+    public function testStudentDocumentPolicyAcceptsOnlyHttpsGoogleDriveFileHost(): void
     {
         $drive = 'https://drive.google.com/file/d/example/view';
-        $docs = 'https://docs.google.com/document/d/example/edit';
 
         $this->assertSame(
             $drive,
@@ -579,10 +579,9 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
                 $drive
             )
         );
-        $this->assertSame(
-            $docs,
+        $this->assertNull(
             StudentDocumentPolicyService::normalizeGoogleDriveUrl(
-                $docs
+                'https://docs.google.com/document/d/example/edit'
             )
         );
         $this->assertNull(
@@ -599,6 +598,16 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
             StudentDocumentPolicyService::normalizeGoogleDriveUrl(
                 'https://example.com/file.pdf'
             )
+        );
+    }
+
+    public function testStudentDocumentTemplateLocksCanonicalHelperUrl(): void
+    {
+        $this->assertSame(
+            'https://docs.google.com/spreadsheets/d/'
+            . '16CKvPVbkxZk6zW9dTeN35ivk3Qi_bIzIXKQWCFsnywQ/'
+            . 'edit?usp=sharing',
+            DokumenSiswaExportService::HELPER_URL
         );
     }
 

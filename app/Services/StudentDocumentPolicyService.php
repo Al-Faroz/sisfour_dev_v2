@@ -56,7 +56,7 @@ final class StudentDocumentPolicyService
             return null;
         }
 
-        if (! in_array($host, ['drive.google.com', 'docs.google.com'], true)) {
+        if ($host !== 'drive.google.com') {
             return null;
         }
 
