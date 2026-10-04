@@ -82,10 +82,10 @@ $actionTone = static function (string $label): string {
     </div>
     <div class="sisfour-mobile-actions flex-shrink-0">
       <?php if (! empty($nextSchedule['presensi_url'])): ?>
-        <a class="btn sisfour-action sisfour-action--blue sisfour-action--strong is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>"><i class="bx bx-list-check"></i>Isi Presensi</a>
+        <a class="btn sisfour-action sisfour-action--blue is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['presensi_url']) ?>"><i class="bx bx-list-check"></i>Isi Presensi</a>
       <?php endif; ?>
       <?php if (! empty($nextSchedule['jurnal_url'])): ?>
-        <a class="btn sisfour-action sisfour-action--violet sisfour-action--strong is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>"><i class="bx bx-book-content"></i>Isi Jurnal</a>
+        <a class="btn sisfour-action sisfour-action--violet is-current sisfour-touch-target" href="<?= base_url((string) $nextSchedule['jurnal_url']) ?>"><i class="bx bx-book-content"></i>Isi Jurnal</a>
       <?php endif; ?>
     </div>
   </div>

@@ -116,7 +116,7 @@ $actionTone = static function (string $label): string {
       <h5 class="mb-1">Jadwal Follow-up Terdekat</h5>
       <small class="text-muted">Berdasarkan tanggal berikutnya yang tersimpan pada workflow Konseling.</small>
     </div>
-    <a href="<?= base_url('bk/konseling') ?>" class="btn sisfour-action sisfour-action--indigo sisfour-action--compact sisfour-touch-target">Lihat Semua</a>
+    <a href="<?= base_url('bk/konseling') ?>" class="btn sisfour-action sisfour-action--violet sisfour-action--compact sisfour-touch-target">Lihat Semua</a>
   </div>
   <div class="list-group list-group-flush">
     <?php if (empty($widgets['konseling_terdekat'])): ?>

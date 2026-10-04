@@ -75,7 +75,7 @@ foreach ($kpis as $kpi):
 <div class="row g-4">
     <div class="col-12 col-xl-6">
         <div class="card h-100">
-            <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Layanan Terbaru</h5><?php if (!empty($widgets['access']['layanan'])): ?><a class="btn sisfour-action sisfour-action--indigo sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/layanan')) ?>">Lihat Semua</a><?php endif; ?></div>
+            <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Layanan Terbaru</h5><?php if (!empty($widgets['access']['layanan'])): ?><a class="btn sisfour-action sisfour-action--blue sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/layanan')) ?>">Lihat Semua</a><?php endif; ?></div>
             <div class="list-group list-group-flush">
                 <?php foreach (($widgets['layanan_terbaru'] ?? []) as $row): ?>
                 <div class="list-group-item py-3"><div class="d-flex justify-content-between align-items-start flex-wrap gap-2"><div class="min-w-0 flex-grow-1"><div class="fw-semibold text-wrap"><?= esc($row['nama_lengkap'] ?? '-') ?></div><div class="small text-muted text-wrap"><?= esc(($row['jenis_layanan'] ?? '-') . ' · ' . ($row['kategori_pemohon'] ?? '-')) ?></div></div><span class="badge bg-label-primary flex-shrink-0"><?= esc($row['status'] ?? '-') ?></span></div></div>
@@ -86,7 +86,7 @@ foreach ($kpis as $kpi):
     </div>
     <div class="col-12 col-xl-6">
         <div class="card h-100">
-            <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Pengaduan Terbaru</h5><?php if (!empty($widgets['access']['pengaduan'])): ?><a class="btn sisfour-action sisfour-action--indigo sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/pengaduan')) ?>">Lihat Semua</a><?php endif; ?></div>
+            <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Pengaduan Terbaru</h5><?php if (!empty($widgets['access']['pengaduan'])): ?><a class="btn sisfour-action sisfour-action--rose sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/pengaduan')) ?>">Lihat Semua</a><?php endif; ?></div>
             <div class="list-group list-group-flush">
                 <?php foreach (($widgets['pengaduan_terbaru'] ?? []) as $row): ?>
                 <div class="list-group-item py-3"><div class="d-flex justify-content-between align-items-start flex-wrap gap-2"><div class="min-w-0 flex-grow-1"><div class="fw-semibold text-wrap"><?= esc($row['judul_laporan'] ?? '-') ?></div><div class="small text-muted text-wrap"><?= esc($row['tanggal_kejadian'] ?: ($row['created_at'] ?? '-')) ?></div></div><span class="badge bg-label-warning flex-shrink-0"><?= esc($row['status'] ?? '-') ?></span></div></div>
@@ -98,7 +98,7 @@ foreach ($kpis as $kpi):
 </div>
 
 <div class="card mt-4">
-    <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Ringkasan Kepuasan</h5><?php if (!empty($widgets['access']['polling'])): ?><a class="btn sisfour-action sisfour-action--indigo sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/polling')) ?>">Lihat Detail</a><?php endif; ?></div>
+    <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2"><h5 class="mb-0">Ringkasan Kepuasan</h5><?php if (!empty($widgets['access']['polling'])): ?><a class="btn sisfour-action sisfour-action--green sisfour-action--compact sisfour-touch-target--compact" href="<?= esc(base_url('ptsp/polling')) ?>">Lihat Detail</a><?php endif; ?></div>
     <div class="card-body"><div class="row g-2">
         <?php foreach (($widgets['kepuasan_ringkas'] ?? []) as $row): ?>
         <div class="col-12 col-md"><div class="border rounded p-3 h-100"><div class="small text-muted"><?= esc($row['label'] ?? '-') ?></div><div class="fs-4 fw-bold"><?= number_format((int) ($row['total'] ?? 0)) ?></div></div></div>

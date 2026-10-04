@@ -154,7 +154,7 @@ $waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
           ?>
           <div class="sisfour-mobile-actions flex-shrink-0">
             <?php if (! empty($focusSchedule['presensi_url'])): ?>
-              <a class="btn sisfour-action sisfour-action--blue sisfour-action--strong is-current sisfour-touch-target"
+              <a class="btn sisfour-action sisfour-action--blue is-current sisfour-touch-target"
                  href="<?= base_url((string) $focusSchedule['presensi_url']) ?>">
                 <i class="bx bx-list-check"></i>Isi Presensi Siswa
               </a>
@@ -165,7 +165,7 @@ $waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
             <?php endif; ?>
 
             <?php if (! empty($focusSchedule['jurnal_url'])): ?>
-              <a class="btn sisfour-action sisfour-action--violet sisfour-action--strong is-current sisfour-touch-target"
+              <a class="btn sisfour-action sisfour-action--violet is-current sisfour-touch-target"
                  href="<?= base_url((string) $focusSchedule['jurnal_url']) ?>">
                 <i class="bx bx-book-content"></i>Isi Jurnal Mengajar
               </a>

@@ -181,12 +181,33 @@ Rules:
 3. Destructive/error red disimpan khusus state destructive/error.
 4. Completed selalu success/green walau fungsi asalnya Blue/Violet.
 5. Disabled selalu neutral grey walau fungsi asalnya berwarna.
+6. Warna melekat pada fungsi, bukan role atau posisi tombol.
+7. Primary, tile, compact, dan secondary-role action untuk fungsi yang sama
+   memakai family yang sama.
+
+Canonical function mapping:
+
+```text
+Jadwal / Rekap / Laporan        → Indigo
+Presensi                        → Blue
+Jurnal                          → Violet
+Data / Master                   → Cyan
+UKS / Kartu                     → Teal
+Prestasi / positive satisfaction→ Green
+EWS                             → Amber
+Pelanggaran / Pengaduan         → Rose
+Profil / utility neutral        → Slate
+```
+
+Domain-specific exception hanya boleh ditambahkan ke SSOT ini terlebih dahulu.
 
 ---
 
-## 5. Proposed Token Palette
+## 5. Locked G3.9 Token Palette
 
-Nilai berikut adalah candidate dan harus dicek contrast sebelum implementation final.
+Nilai berikut adalah canonical untuk Dashboard G3.9. Perubahan warna harus dilakukan
+di token bersama, bukan dengan nilai baru pada view/role tertentu. Contrast tetap
+wajib diverifikasi pada visual regression.
 
 | Token | Background | Border | Foreground |
 |---|---|---|---|
@@ -200,8 +221,9 @@ Nilai berikut adalah candidate dan harus dicek contrast sebelum implementation f
 | Rose Soft | `#FFF0F3` | `#F2D1D8` | `#A34A5E` |
 | Slate Soft | `#F2F4F7` | `#DFE3E8` | `#586579` |
 
-Strong/current CTA boleh memakai Sneat brand primary atau gradient yang diturunkan
-dari brand token. Jangan membuat glossy/high-contrast gradient.
+Strong/current CTA tetap berada di family warna fungsinya. Penguatan dilakukan
+dengan border/emphasis + shadow tipis; jangan mengganti menjadi solid color ad-hoc,
+dan jangan membuat glossy/high-contrast gradient.
 
 ---
 
@@ -212,7 +234,7 @@ State selalu menang atas functional family.
 | State | Background intent | Shadow | Interaktif |
 |---|---|---:|---:|
 | Available | functional family | tipis | Ya |
-| Current / Priority | stronger family / soft gradient | tipis+ | Ya |
+| Current / Priority | stronger tonal family / emphasized border | tipis+ | Ya |
 | Completed | Green Soft / success | sangat tipis | Tidak atau detail-only sesuai rule |
 | Not Started | Slate Soft | tidak | Tidak |
 | Late but Actionable | Amber Soft | tipis | Ya |
