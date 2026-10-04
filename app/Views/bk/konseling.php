@@ -6,6 +6,7 @@
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy"><h4 class="fw-bold mb-1">Konseling BK</h4><p class="text-muted mb-0">Catatan layanan Konseling bersifat rahasia dan hanya dapat diakses pengguna berwenang.</p></div>
         <div class="sisfour-page-actions">
+            <a href="<?= esc(base_url('bk/konseling-kelompok')) ?>" class="btn btn-outline-primary"><i class="bx bx-group me-1"></i> Konseling Kelompok</a>
             <?php if (! empty($initial['can_export'])): ?><a href="#" id="btnKonselingExport" class="btn btn-outline-success"><i class="bx bx-export me-1"></i> Export</a><?php endif; ?>
             <?php if (! empty($initial['can_manage'])): ?><button type="button" id="btnKonselingBaru" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Konseling Baru</button><?php endif; ?>
         </div>

@@ -10,6 +10,7 @@
         </div>
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="sisfour-page-actions">
+                <a class="btn btn-outline-primary" href="<?= esc(base_url('bk/kasus-kelompok')) ?>"><i class="bx bx-group me-1"></i> Pelanggaran Kelompok</a>
                 <button class="btn btn-primary" id="btnKasusBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Catatan</button>
             </div>
         <?php endif; ?>

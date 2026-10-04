@@ -135,6 +135,7 @@ class SearchableEntityService
     {
         return match ($context) {
             'bk_kasus' => 'bk_kasus.manage',
+            'bk_konseling' => 'bk_konseling.manage',
             'prestasi' => 'prestasi.manage',
             'kartu' => 'kartu_pelajar.manage',
             'uks_ckg' => 'uks_ckg.manage',
