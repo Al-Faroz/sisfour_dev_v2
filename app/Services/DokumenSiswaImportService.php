@@ -89,6 +89,8 @@ class DokumenSiswaImportService
         $errors = [];
         $warnings = [];
         $seen = [];
+        $processedRows = 0;
+        $errorRows = 0;
 
         foreach (array_slice($rows, 1) as $offset => $row) {
             $excelRow = $offset + 2;
@@ -105,10 +107,16 @@ class DokumenSiswaImportService
 
             if ($nisn === '' && $link === null && $nameInput === '' && $classInput === '') continue;
 
+            $processedRows++;
             $rowErrors = [];
-            if ($nisn === '') $rowErrors[] = 'NISN wajib diisi.';
+            if ($nisn === '') {
+                $rowErrors[] = 'NISN wajib diisi.';
+            } elseif (isset($seen[$nisn])) {
+                $rowErrors[] = 'NISN duplikat di file import.';
+            } else {
+                $seen[$nisn] = true;
+            }
             if ($link === null) $rowErrors[] = 'Link Google Drive tidak valid.';
-            if ($nisn !== '' && isset($seen[$nisn])) $rowErrors[] = 'NISN duplikat di file import.';
 
             $resolved = $nisn !== '' ? $this->resolveStudent($nisn, $idTahun) : null;
             if ($nisn !== '' && $resolved === null) {
@@ -127,11 +135,12 @@ class DokumenSiswaImportService
             }
 
             if ($rowErrors !== []) {
-                foreach ($rowErrors as $message) $errors[] = "Baris {$excelRow}: {$message}";
+                $errorRows++;
+                foreach ($rowErrors as $message) {
+                    $errors[] = "Baris {$excelRow}: {$message}";
+                }
                 continue;
             }
-
-            $seen[$nisn] = true;
             $prepared[] = [
                 'excel_row' => $excelRow,
                 'id_siswa' => (int) $resolved['id_siswa'],
@@ -163,9 +172,9 @@ class DokumenSiswaImportService
             'message' => $errors === [] ? 'Preview valid. Siap commit.' : 'Preview menemukan error. Perbaiki XLSX lalu upload ulang.',
             'can_commit' => $errors === [],
             'token' => $token,
-            'total_row' => count($prepared) + count($errors),
+            'total_row' => $processedRows,
             'total_valid' => count($prepared),
-            'total_error' => count($errors),
+            'total_error' => $errorRows,
             'rows' => $prepared,
             'errors' => $errors,
             'warnings' => $warnings,

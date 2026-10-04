@@ -43,6 +43,7 @@ class DokumenSiswaService
             'tahun_options' => $period['options'],
             'classes' => $this->classesForPeriod($idTahun),
             'classes_by_period' => $this->classesByPeriod($period['options']),
+            'batches' => $this->recentBatches($idTahun),
             'rows' => $builder
                 ->orderBy('ds.created_at', 'DESC')
                 ->orderBy('ds.id', 'DESC')
@@ -133,8 +134,9 @@ class DokumenSiswaService
             'updated_at' => $now,
         ];
 
-        db_connect()->table('dokumen_siswa')->insert($data);
-        $id = (int) db_connect()->insertID();
+        $db = db_connect();
+        $db->table('dokumen_siswa')->insert($data);
+        $id = (int) $db->insertID();
         $this->log($userId, 'CREATE', "Membuat Dokumen Siswa #{$id}");
 
         return ['success' => true, 'message' => 'Dokumen Siswa berhasil disimpan.', 'id' => $id];
@@ -224,6 +226,16 @@ class DokumenSiswaService
             return $this->fail('NOT_FOUND', 'Dokumen tidak ditemukan atau tidak tersedia untuk Anda.');
         }
 
+        $link = StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+            (string) ($doc['link_gdrive'] ?? '')
+        );
+        if ($link === null) {
+            return $this->fail(
+                'NOT_FOUND',
+                'Link Dokumen tidak valid.'
+            );
+        }
+
         db_connect()->table('dokumen_siswa_access_log')->insert([
             'id_dokumen' => $idDokumen,
             'id_user' => $userId,
@@ -234,7 +246,7 @@ class DokumenSiswaService
 
         return [
             'success' => true,
-            'link' => (string) $doc['link_gdrive'],
+            'link' => $link,
             'judul' => (string) $doc['judul'],
         ];
     }
@@ -285,6 +297,39 @@ class DokumenSiswaService
             }
         }
         return $result;
+    }
+
+    private function recentBatches(int $idTahun): array
+    {
+        return db_connect()
+            ->table('dokumen_siswa_import_batch b')
+            ->select([
+                'b.id',
+                'b.judul',
+                'b.id_tahun',
+                'b.format_file',
+                'b.source_filename',
+                'b.total_row',
+                'b.total_valid',
+                'b.total_error',
+                'b.status',
+                'b.created_at',
+                'b.committed_at',
+                'b.rolled_back_at',
+                'u.username AS username_pencatat',
+            ])
+            ->select(
+                'COALESCE(g.nama, p.nama, u.username) AS nama_pencatat',
+                false
+            )
+            ->join('users u', 'u.id = b.created_by', 'left')
+            ->join('guru g', 'g.id = u.id_guru', 'left')
+            ->join('pegawai p', 'p.id = u.id_pegawai', 'left')
+            ->where('b.id_tahun', $idTahun)
+            ->orderBy('b.id', 'DESC')
+            ->limit(20)
+            ->get()
+            ->getResultArray();
     }
 
     private function validateDocument(array $input, ?array $existing): array

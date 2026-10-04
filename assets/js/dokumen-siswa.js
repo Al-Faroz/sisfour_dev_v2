@@ -71,6 +71,16 @@ document.querySelectorAll('.btn-archive-dokumen').forEach(btn=>btn.addEventListe
  try{const p=await requestJson(base+'/dokumen-siswa/archive/'+encodeURIComponent(btn.dataset.id),{method:'PUT'});show(p.message||'Berhasil.','success');setTimeout(()=>location.reload(),300);}catch(err){show(err.message);}finally{busy(btn,false);}
 }));
 
+document.querySelectorAll('.btn-rollback-batch').forEach(btn=>btn.addEventListener('click',async()=>{
+ if(!confirm('Rollback seluruh metadata dari batch ini? File Google Drive tidak akan dihapus.'))return;
+ busy(btn,true,'Rollback...');
+ try{
+  const p=await requestJson(base+'/dokumen-siswa/import/rollback/'+encodeURIComponent(btn.dataset.id),{method:'POST'});
+  show(p.message||'Batch berhasil di-rollback.','success');
+  setTimeout(()=>location.reload(),350);
+ }catch(err){show(err.message);}finally{busy(btn,false);}
+}));
+
 const templatePeriod=document.getElementById('templateTahun'),templateFilter=document.getElementById('templateFilter'),templateLevelWrap=document.getElementById('templateLevelWrap'),templateClassWrap=document.getElementById('templateClassWrap'),templateLevel=document.getElementById('templateTingkat'),templateClass=document.getElementById('templateKelas');
 function renderTemplateControls(){
  const mode=templateFilter?.value||'all';templateLevelWrap?.classList.toggle('d-none',mode!=='tingkat');templateClassWrap?.classList.toggle('d-none',mode!=='kelas');

@@ -84,6 +84,27 @@ $classesByPeriod = $initial['classes_by_period'] ?? [];
     </div>
 
     <?php if (! empty($initial['can_manage'])): ?>
+      <div class="card sisfour-table-card mt-4">
+        <div class="card-header"><h5 class="mb-0">Batch Import Terakhir</h5></div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+          <thead><tr><th>ID</th><th>Judul</th><th>Format</th><th>Jumlah</th><th>Status</th><th>Pencatat</th><th class="text-end">Aksi</th></tr></thead>
+          <tbody>
+          <?php if (($initial['batches'] ?? []) === []): ?><tr><td colspan="7" class="text-center text-muted py-3">Belum ada batch import pada periode ini.</td></tr><?php endif; ?>
+          <?php foreach (($initial['batches'] ?? []) as $batch): ?><tr>
+            <td>#<?= (int) $batch['id'] ?></td>
+            <td><?= esc($batch['judul'] ?? '-') ?><div class="small text-muted"><?= esc($batch['source_filename'] ?? '-') ?></div></td>
+            <td><?= esc($batch['format_file'] ?? '-') ?></td>
+            <td><?= (int) ($batch['total_valid'] ?? 0) ?></td>
+            <td><span class="badge bg-label-<?= ($batch['status'] ?? '') === 'COMMITTED' ? 'success' : 'secondary' ?>"><?= esc($batch['status'] ?? '-') ?></span></td>
+            <td><?= esc($batch['nama_pencatat'] ?? $batch['username_pencatat'] ?? '-') ?></td>
+            <td class="text-end"><?php if (($batch['status'] ?? '') === 'COMMITTED'): ?><button class="btn btn-sm btn-outline-danger btn-rollback-batch" type="button" data-id="<?= (int) $batch['id'] ?>">Rollback Metadata</button><?php endif; ?></td>
+          </tr><?php endforeach; ?>
+          </tbody>
+        </table></div>
+      </div>
+    <?php endif; ?>
+
+    <?php if (! empty($initial['can_manage'])): ?>
     <div class="modal fade" id="modalDokumen" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><form id="formDokumen" class="modal-content">
       <div class="modal-header"><div><h5 class="modal-title" id="dokumenModalTitle">Tambah Dokumen</h5><small class="text-muted">Link Google Drive manual. File fisik tidak diupload ke SisFour.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">

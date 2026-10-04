@@ -40,7 +40,11 @@ final class StudentDocumentPolicyService
     public static function normalizeGoogleDriveUrl(string $value): ?string
     {
         $value = trim($value);
-        if ($value === '' || filter_var($value, FILTER_VALIDATE_URL) === false) {
+        if (
+            $value === ''
+            || mb_strlen($value) > 1000
+            || filter_var($value, FILTER_VALIDATE_URL) === false
+        ) {
             return null;
         }
 
