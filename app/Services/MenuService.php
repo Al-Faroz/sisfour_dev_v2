@@ -164,7 +164,11 @@ class MenuService
             $activeLink
         );
 
-        foreach ($layout['role_sections'] ?? [] as &$section) {
+        $layout['role_sections'] = array_values(
+            $layout['role_sections'] ?? []
+        );
+
+        foreach ($layout['role_sections'] as &$section) {
             $section['items'] = $this->applyActiveState(
                 $section['items'] ?? [],
                 $activeLink
