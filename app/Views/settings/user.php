@@ -122,7 +122,7 @@
 
                         <div class="col-12">
                             <label class="form-label d-block">Secondary Roles</label>
-                            <div class="form-text mb-2">Admin dan Siswa eksklusif. Multi-role hanya mengikuti whitelist Primary BK/Guru; Wali aktif membatasi secondary Guru ke Operator/Kesehatan.</div>
+                            <div class="form-text mb-2" id="secondaryRolePolicyHelp">Admin dan Siswa eksklusif. Multi-role hanya mengikuti whitelist Primary BK/Guru; Wali aktif membatasi secondary Guru ke Operator/Kesehatan.</div>
                             <div class="d-flex flex-wrap gap-3">
                                 <?php foreach (($initial['roles'] ?? []) as $role): ?>
                                     <div class="form-check">

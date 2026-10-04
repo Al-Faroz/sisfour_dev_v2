@@ -607,6 +607,19 @@ button.sisfour-action:active {
   box-shadow: var(--sisfour-action-shadow-current);
 }
 
+.sisfour-action--strong {
+  background: var(--sf-action-fg) !important;
+  border-color: var(--sf-action-fg) !important;
+  color: #fff !important;
+  box-shadow: var(--sisfour-action-shadow-current);
+}
+
+.sisfour-action--strong:hover,
+.sisfour-action--strong:focus-visible {
+  color: #fff !important;
+  filter: brightness(.94);
+}
+
 .sisfour-action.is-completed {
   --sf-action-bg: var(--sisfour-tone-green-bg);
   --sf-action-border: var(--sisfour-tone-green-border);

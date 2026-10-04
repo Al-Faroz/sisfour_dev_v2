@@ -139,6 +139,30 @@ class Auth extends Controller
     }
 
     /**
+     * Recovery GET /auth/logout.
+     *
+     * Route ini hanya menjadi fallback ketika POST logout diarahkan kembali
+     * sebagai GET, misalnya setelah session/CSRF cookie kedaluwarsa.
+     *
+     * GET tidak pernah dipakai untuk logout session yang masih aktif.
+     */
+    public function logoutFallback()
+    {
+        if (session()->get('logged_in') === true) {
+            return redirect()
+                ->to('/dashboard')
+                ->with(
+                    'warning',
+                    'Token logout telah kedaluwarsa. Silakan ulangi logout.'
+                );
+        }
+
+        session()->destroy();
+
+        return redirect()->to('/auth/login');
+    }
+
+    /**
      * POST /api/auth/login
      */
     public function apiLogin()

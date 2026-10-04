@@ -51,6 +51,26 @@ function syncSecondaryRolePolicy() {
   const checkboxes = Array.from(
     document.querySelectorAll('.secondary-role')
   );
+  const help = document.getElementById('secondaryRolePolicyHelp');
+
+  if (help) {
+    if (primary === 'guru' && isWali) {
+      help.textContent =
+        'Guru ini aktif sebagai Wali Kelas. Secondary yang tersedia hanya Operator/Kesehatan; Pimpinan dan PTSP dinonaktifkan sesuai whitelist G3.9.';
+    } else if (primary === 'guru') {
+      help.textContent =
+        'Guru non-Wali dapat memilih maksimal 1 secondary: Operator, Pimpinan, Kesehatan, atau PTSP.';
+    } else if (primary === 'bk') {
+      help.textContent =
+        'Primary BK dapat memilih maksimal 2 secondary: Operator, Pimpinan, Kesehatan, atau PTSP.';
+    } else if (primary === 'admin' || primary === 'siswa') {
+      help.textContent =
+        'Admin dan Siswa bersifat eksklusif dan tidak mempunyai secondary role.';
+    } else {
+      help.textContent =
+        'Multi-role G3.9 hanya menggunakan Primary BK atau Guru.';
+    }
+  }
 
   const checkedAllowed = checkboxes.filter(
     (checkbox) =>
