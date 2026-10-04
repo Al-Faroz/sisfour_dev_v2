@@ -1755,35 +1755,44 @@ XLSX:
 ### G3.10B Student Document Center
 
 ```text
-Admin/Operator manual INDIVIDU create
-Admin/Operator manual TINGKAT create
-Siswa self-only current period
-Siswa historical period selector
+Admin/Operator manual INDIVIDU create tanpa period ownership
+Admin/Operator manual TINGKAT create tanpa stored id_tahun
+Siswa INDIVIDU tetap visible tanpa Tahun Ajaran aktif
+TINGKAT eligibility memakai current membership pada Tahun Ajaran aktif
+No active period → TINGKAT tidak tampil
 INDIVIDU cross-student direct open DENY
-TINGKAT eligibility exact historical membership
 non Google Drive URL DENY
 format only PDF / IMAGE
-manual historical import allowed
-Lulus/Pindah historical membership remains valid
+Lulus/Pindah/Keluar tetap dapat Dokumen Individu
 
 Bulk:
-- template generated from exact id_tahun
-- optional filter semua/tingkat/kelas
+- context hanya Judul + Format
+- template DATA_DOKUMEN + PETUNJUK
+- PETUNJUK memuat clickable canonical Spreadsheet Helper URL
+- template filter semua siswa / tingkat / kelas memakai periode aktif hanya untuk roster
 - authoritative columns NISN + LINK GOOGLE DRIVE
 - duplicate NISN row in file DENY
 - unknown NISN DENY
-- no membership selected period DENY
-- duplicate DB DENY
+- duplicate DB id_siswa+normalized judul DENY
 - any blocking error => no commit
 - valid preview => one transaction commit
 - id_import_batch recorded
 - rollback metadata only, never Drive file
 
+Hard delete:
+- selected IDs only
+- permission dokumen_siswa.hard_delete
+- every target revalidated server-side
+- deletion snapshot created
+- access logs dependent deleted
+- dokumen_siswa rows hard-deleted transactionally
+- Google Drive never mutated/deleted
+
 Export:
-- metadata only
-- exact period filter
+- no Tahun Ajaran/Semester ownership columns
+- current class optional display only
 - Admin/Operator only
-- access log optional sheet
+- access log sheet included
 ```
 
 Static gate remains:

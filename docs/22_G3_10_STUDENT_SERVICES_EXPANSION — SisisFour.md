@@ -192,30 +192,31 @@ format lain
 
 Karena tidak ada Google Drive API, `format_file` adalah metadata yang dinyatakan operator. SisFour memvalidasi URL Google Drive, bukan MIME remote file.
 
-## 7. Period Context Dokumen
+## 7. Period Contract Dokumen
 
-Setiap dokumen wajib terikat ke exact `tahun_ajaran.id`.
+Dokumen Siswa **bukan transaksi akademik semester** dan tidak menyimpan `id_tahun`.
 
-Pada SisFour, satu row `tahun_ajaran` adalah:
-
-```text
-nama_tahun + semester
-```
-
-Maka:
+Canonical rule:
 
 ```text
-2026/2027 — Ganjil ≠ 2026/2027 — Genap
+Dokumen INDIVIDU
+→ melekat ke id_siswa
+→ tetap tersedia lintas semester/tahun sampai ARCHIVED/HARD DELETE
+
+Dokumen TINGKAT
+→ melekat ke tingkat 7/8/9
+→ eligibility siswa dihitung dari membership pada PERIODE AKTIF
+→ periode aktif hanya resolver tingkat current, bukan atribut dokumen
 ```
 
-Rules:
+Jika tidak ada Tahun Ajaran aktif:
 
-1. manual input default ke periode aktif tetapi Admin/Operator boleh memilih historical period;
-2. bulk import = satu batch untuk satu exact `id_tahun`;
-3. student historical membership diverifikasi memakai `anggota_kelas.id_tahun`;
-4. jangan memakai kelas/tingkat siswa saat ini untuk dokumen historical;
-5. siswa Lulus/Pindah/Keluar tetap boleh menerima historical document bila membership periode tersebut valid;
-6. listing Siswa default periode aktif, history selectable.
+```text
+INDIVIDU → tetap tersedia
+TINGKAT  → default deny / tidak ditampilkan
+```
+
+Tidak ada historical period selector pada `Dokumen Saya`.
 
 ## 8. Target Dokumen
 
@@ -231,14 +232,16 @@ id_siswa NOT NULL
 tingkat  NULL
 ```
 
-Manual/bulk resolve:
+Resolver manual/bulk:
 
 ```text
 NISN
 → siswa.id
-→ anggota_kelas WHERE id_tahun = selected
-→ kelas historical
 ```
+
+Membership akademik tidak menjadi syarat ownership Dokumen Individu. Siswa historis
+(Lulus/Pindah/Keluar) tetap dapat mempunyai Dokumen Individu selama master siswa
+masih valid/tidak terhapus.
 
 ### TINGKAT
 
@@ -247,11 +250,12 @@ id_siswa NULL
 tingkat  7 / 8 / 9
 ```
 
-Eligibility siswa:
+Eligibility pada sisi Siswa:
 
 ```text
 users.id_siswa
-→ anggota_kelas exact id_tahun
+→ Tahun Ajaran aktif
+→ anggota_kelas exact periode aktif
 → kelas.tingkat = dokumen.tingkat
 ```
 
@@ -264,7 +268,6 @@ Field minimum:
 ```text
 Judul
 Target INDIVIDU / TINGKAT
-Tahun Ajaran + Semester
 Format PDF / IMAGE
 Link Google Drive
 Siswa (bila INDIVIDU)
@@ -279,7 +282,8 @@ drive.google.com
 docs.google.com
 ```
 
-SisFour hanya menentukan siapa yang boleh melihat/membuka link. Sharing policy file di Google Drive tetap tanggung jawab operator.
+SisFour hanya menentukan siapa yang boleh melihat/membuka link. Sharing policy file
+di Google Drive tetap tanggung jawab operator.
 
 ## 10. Bulk Import Dokumen Individu
 
@@ -289,22 +293,27 @@ Import context:
 
 ```text
 Judul Dokumen
-Exact Tahun Ajaran + Semester
 Format PDF / IMAGE
 Status = PUBLISHED
-Optional template filter = Semua / Tingkat / Kelas
 ```
 
-Template canonical:
+Tidak ada Tahun Ajaran/Semester pada context import.
+
+Template canonical mempunyai dua sheet:
 
 ```text
+Sheet 1: DATA_DOKUMEN
 NISN
-NAMA SISWA     (verification/display)
-KELAS          (verification/display)
+NAMA SISWA      (verification/display)
+KELAS           (verification/display current)
 LINK GOOGLE DRIVE
+
+Sheet 2: PETUNJUK
+petunjuk operasional
+hyperlink Spreadsheet Helper
 ```
 
-Authoritative input:
+Authoritative import input:
 
 ```text
 NISN + LINK GOOGLE DRIVE
@@ -312,7 +321,34 @@ NISN + LINK GOOGLE DRIVE
 
 Nama/Kelas tidak menjadi resolver.
 
-Template dapat dibuat oleh SisFour dari membership periode terpilih agar operator hanya perlu mengisi link.
+Template dapat dibuat berdasarkan:
+
+```text
+Semua Siswa
+Tingkat 7 / 8 / 9
+Kelas tertentu
+```
+
+Filter Tingkat/Kelas memakai Tahun Ajaran aktif **hanya untuk menghasilkan daftar
+siswa current**. Period tersebut tidak pernah disimpan ke dokumen hasil import.
+
+Canonical Spreadsheet Helper:
+
+```text
+https://docs.google.com/spreadsheets/d/16CKvPVbkxZk6zW9dTeN35ivk3Qi_bIzIXKQWCFsnywQ/edit?usp=sharing
+```
+
+Helper adalah alat bantu operator untuk memasukkan Folder ID Google Drive dan
+menghasilkan:
+
+```text
+Nama File
+ID File
+URL Penampil
+```
+
+SisFour tidak memanggil helper/API tersebut dan tetap dapat beroperasi bila helper
+tidak digunakan.
 
 Import pipeline:
 
@@ -321,9 +357,8 @@ XLSX
 → validate header
 → normalize NISN/link
 → duplicate-in-file check
-→ resolve siswa
-→ resolve exact historical membership
-→ validate GDrive URL
+→ resolve siswa by NISN
+→ validate Google Drive URL
 → duplicate DB check
 → PREVIEW
 → COMMIT all-or-nothing
@@ -339,15 +374,17 @@ Default import mode:
 CREATE_ONLY
 ```
 
-Business duplicate awal:
+Business duplicate Published:
 
 ```text
-id_siswa + id_tahun + normalized judul
+INDIVIDU → id_siswa + normalized judul
+TINGKAT  → tingkat + normalized judul
 ```
 
 Duplicate diblok dan tampil pada preview.
 
-Update/replace bulk **bukan scope awal**. Manual edit link existing tetap boleh sesuai permission dan tercatat audit.
+Update/replace bulk **bukan scope awal**. Manual edit link existing tetap boleh
+sesuai permission dan tercatat audit.
 
 ## 12. Import Batch / Rollback
 
@@ -361,7 +398,6 @@ Menyimpan:
 
 ```text
 judul
-id_tahun
 format_file
 source_filename
 total_row
@@ -371,43 +407,94 @@ status
 created_by
 created_at
 committed_at
+rolled_back_at
 ```
 
 `dokumen_siswa.id_import_batch` mengikat hasil import.
 
-Rollback batch hanya membatalkan/arsip metadata hasil batch SisFour dan **tidak pernah menghapus file Google Drive**.
+Rollback batch mengarsip metadata hasil batch SisFour dan **tidak pernah menghapus
+file Google Drive**.
 
-## 13. Access Boundary Dokumen Siswa
+## 13. Bulk Hard Delete
+
+Admin/Operator dapat memilih 1..N dokumen dari Data Dokumen dan melakukan hard delete.
+
+Canonical flow:
 
 ```text
-Admin     = view_all + manage + export
-Operator  = view_all + manage + export
+selected document IDs
+→ permission dokumen_siswa.hard_delete
+→ server revalidates every ID
+→ snapshot metadata ke dokumen_siswa_delete_log
+→ hapus dokumen_siswa_access_log terkait
+→ hard DELETE dokumen_siswa
+→ commit transaction
+```
+
+Google Drive tidak disentuh.
+
+Hard delete **tidak sama dengan Archive** dan tidak dapat dibatalkan dari SisFour.
+
+Scope awal hanya:
+
+```text
+checkbox row
+Select All pada halaman/table result saat ini
+Bulk Hard Delete selected IDs
+```
+
+Tidak ada `Delete All Filtered Results` pada scope awal.
+
+Deletion audit minimum:
+
+```text
+id_dokumen_asal
+target_type
+id_siswa
+tingkat
+judul
+format_file
+link_gdrive
+id_import_batch
+deleted_by
+deleted_at
+delete_batch_key
+```
+
+## 14. Access Boundary Dokumen Siswa
+
+```text
+Admin     = view_all + manage + export + hard_delete
+Operator  = view_all + manage + export + hard_delete
 Siswa     = view_self
 role lain = DEFAULT DENY
 ```
 
-Permission baru:
+Permission:
 
 ```text
 dokumen_siswa.view_self
 dokumen_siswa.view_all
 dokumen_siswa.manage
 dokumen_siswa.export
+dokumen_siswa.hard_delete
 ```
 
-Siswa tidak boleh memilih `id_siswa` target dari request. Identity selalu berasal dari `users.id_siswa`.
+Siswa tidak boleh memilih `id_siswa` target dari request. Identity selalu berasal
+dari `users.id_siswa`.
 
-## 14. Siswa — Dokumen Saya
+## 15. Siswa — Dokumen Saya
 
 Dataset:
 
 ```text
-dokumen INDIVIDU dengan id_siswa login
+dokumen INDIVIDU Published dengan id_siswa login
 UNION
-dokumen TINGKAT yang cocok dengan membership login pada exact id_tahun
+dokumen TINGKAT Published yang cocok dengan tingkat current siswa
+pada Tahun Ajaran aktif
 ```
 
-Default = periode aktif. History = selectable.
+Tidak ada filter/history Tahun Ajaran pada Dokumen Saya.
 
 Open flow:
 
@@ -417,13 +504,14 @@ GET dokumen-saya/buka/{id}
 → permission view_self
 → resolve users.id_siswa
 → validate INDIVIDU/TINGKAT eligibility
+→ revalidate Google Drive URL
 → write access log
 → redirect ke link Google Drive
 ```
 
 Raw link tidak menjadi authorization boundary.
 
-## 15. Audit
+## 16. Audit
 
 ```text
 dokumen_siswa_access_log
@@ -432,51 +520,50 @@ id_user
 id_siswa
 aksi = OPEN
 waktu
+
+dokumen_siswa_delete_log
+snapshot metadata hard delete
+deleted_by
+deleted_at
+delete_batch_key
 ```
 
-Manage/create/import/edit/export juga dicatat ke `log_activity`.
+Manage/create/import/edit/export/hard-delete juga dicatat ke `log_activity`.
 
-## 16. Export Dokumen
+## 17. Export Dokumen
 
-Operational XLSX hanya metadata:
+Operational XLSX:
 
 ```text
+Sheet 1: Dokumen Siswa
 ID
 Judul
 Target
-Tahun Ajaran
-Semester
 Tingkat
 NISN
 Nama Siswa
-Kelas
+Kelas Saat Ini (display only)
 Format
 Status
+Link Google Drive
+Import Batch
 Created By
 Created At
+
+Sheet 2: Riwayat Akses
+ID Dokumen
+Judul
+NISN
+Nama Siswa
+Aksi
+Waktu
+Username
 ```
 
-Credential tidak ada. Link Google Drive dapat disertakan hanya pada export Admin/Operator karena memang merupakan metadata operasional domain; tidak pernah diekspor ke role lain.
+Tidak ada Tahun Ajaran/Semester sebagai atribut dokumen.
 
-Access-log export dapat menjadi sheet kedua bila `dokumen_siswa.export`.
-
-## 17. UI / Menu
-
-Admin/Operator:
-
-```text
-Dokumen Siswa
-├─ Data Dokumen
-└─ Bulk Import
-```
-
-Siswa:
-
-```text
-Dokumen Saya
-```
-
-Surface wajib mobile-safe dan mengikuti G3.7/G3.8/G3.9 UI contract.
+`Kelas Saat Ini` hanya display yang dihitung dari periode aktif pada saat export dan
+bukan ownership/period field dokumen.
 
 ## 18. SQL / Deployment
 
@@ -515,20 +602,24 @@ no-delete counseling unchanged
 G3.10B:
 
 ```text
-manual individual document
-manual grade-level document
-historical period targeting
-student self-only dataset
-bulk template generation
+manual individual document without period ownership
+manual grade-level document without stored period
+student individual self-only dataset across periods
+grade eligibility from active-period current membership
+no active period: individual stays visible; grade defaults deny
+bulk template generation with DATA_DOKUMEN + PETUNJUK
+Spreadsheet Helper clickable hyperlink
 bulk strict preview
 bulk commit
-duplicate rejection
+duplicate rejection by student+title
 invalid NISN rejection
-invalid period membership rejection
 invalid non-GDrive URL rejection
 PDF/IMAGE metadata only
+bulk hard delete selected IDs
+deletion audit snapshot retained
+Google Drive never deleted/mutated
 open/access audit
-metadata export
+metadata + access export
 mobile/WebView regression
 ```
 

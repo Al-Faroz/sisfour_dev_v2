@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.9 — ACTIVE — Draft PR #18; G4 NOT STARTED
+**Development aktif:** G3.10 — Student Services Expansion — Draft PR #19 stacked on PR #18; G4 NOT STARTED
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -805,10 +805,14 @@ BK exports            = group-aware, privacy-safe
 Dokumen Siswa storage = manual Google Drive link
 Drive API              = NONE
 target                 = INDIVIDU / TINGKAT
-period                 = exact tahun_ajaran.id (Tahun Ajaran + Semester)
+period ownership       = NONE
+INDIVIDU               = permanent ownership by id_siswa
+TINGKAT                = 7/8/9; current eligibility via active-period membership
 bulk individu          = XLSX NISN + Link GDrive
+template helper        = canonical Google Sheets folder-file helper
 format                 = PDF / IMAGE(JPG/JPEG/PNG) only
-Admin/Operator         = manage/export
+hard delete            = selected metadata only + deletion audit; Drive untouched
+Admin/Operator         = manage/export/hard-delete
 Siswa                  = self-only
 ```
 

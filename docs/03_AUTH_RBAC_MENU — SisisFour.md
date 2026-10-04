@@ -571,13 +571,14 @@ dokumen_siswa.view_self
 dokumen_siswa.view_all
 dokumen_siswa.manage
 dokumen_siswa.export
+dokumen_siswa.hard_delete
 ```
 
 Role default:
 
 ```text
-Admin     = view_all + manage + export
-Operator  = view_all + manage + export
+Admin     = view_all + manage + export + hard_delete
+Operator  = view_all + manage + export + hard_delete
 Siswa     = view_self
 role lain = DEFAULT DENY
 ```
@@ -585,3 +586,21 @@ role lain = DEFAULT DENY
 Self authorization selalu resolve `users.id_siswa`; request parameter tidak boleh memilih siswa lain.
 
 Google Drive link bukan authorization boundary. SisFour hanya mengontrol visibility/open route; actual Drive sharing tetap mengikuti policy file di Google Drive.
+
+
+### G3.10B Hard Delete Boundary
+
+`dokumen_siswa.hard_delete` adalah capability destructive terpisah dari
+`dokumen_siswa.manage`.
+
+```text
+Admin/Operator + hard_delete
+→ boleh hard delete selected document IDs
+
+Siswa/role lain
+→ DEFAULT DENY
+```
+
+Server wajib revalidate seluruh ID, snapshot ke `dokumen_siswa_delete_log`,
+hapus dependent access log, lalu hard-delete metadata dalam satu transaction.
+File Google Drive tidak pernah dihapus oleh SisFour.

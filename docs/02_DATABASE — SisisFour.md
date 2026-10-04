@@ -593,12 +593,12 @@ tindak_lanjut_konseling_kelompok
 dokumen_siswa
 dokumen_siswa_import_batch
 dokumen_siswa_access_log
+dokumen_siswa_delete_log
 ```
 
 Canonical document fields:
 
 ```text
-id_tahun NOT NULL
 target_type ENUM('INDIVIDU','TINGKAT')
 id_siswa NULL
 tingkat NULL
@@ -610,14 +610,27 @@ id_import_batch NULL
 actor/timestamps
 ```
 
+Tidak ada `id_tahun` pada `dokumen_siswa` maupun import batch.
+
 Integrity:
 
 ```text
 INDIVIDU → id_siswa wajib, tingkat NULL
 TINGKAT  → tingkat 7/8/9 wajib, id_siswa NULL
-exact period → tahun_ajaran.id
 bulk resolver → siswa.nisn
-historical target → anggota_kelas exact id_tahun
+duplicate INDIVIDU → id_siswa + normalized judul + PUBLISHED
+duplicate TINGKAT  → tingkat + normalized judul + PUBLISHED
+TINGKAT self eligibility → membership Tahun Ajaran aktif
+no active period → TINGKAT deny; INDIVIDU unaffected
+```
+
+Hard delete:
+
+```text
+snapshot → dokumen_siswa_delete_log
+delete dependent dokumen_siswa_access_log
+hard DELETE dokumen_siswa
+Google Drive untouched
 ```
 
 Hosting DDL belum boleh disusun dari asumsi; final hosting SQL menunggu fresh hosting dump setelah localhost UAT.
