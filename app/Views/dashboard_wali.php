@@ -365,7 +365,7 @@ $waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
               <span class="sisfour-cell-title"><?= esc((string) ($row['nama'] ?? '-')) ?></span>
               <span class="sisfour-cell-meta">Alpha Sesi Awal 14 hari terakhir</span>
             </div>
-            <span class="badge bg-label-danger flex-shrink-0"><?= (int) ($row['total_alpha'] ?? 0) ?> Alpha</span>
+            <span class="badge bg-label-warning flex-shrink-0"><?= (int) ($row['total_alpha'] ?? 0) ?> Alpha</span>
           </div>
         <?php endforeach; endif; ?>
       </div>
