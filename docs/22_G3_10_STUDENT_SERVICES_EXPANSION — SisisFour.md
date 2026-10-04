@@ -1,6 +1,6 @@
 # G3.10 — Student Services Expansion — SisisFour
 
-**Status:** LOCKED / IMPLEMENTATION ACTIVE
+**Status:** LOCKED / STATIC + DB GATES PASS / RUNTIME UAT PENDING
 **Branch:** `feat/g3-10-student-services-expansion-20261004`
 **Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`
 **Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.
@@ -586,14 +586,21 @@ Urutan:
 
 Jangan membuat/mengeksekusi hosting SQL dari asumsi baseline.
 
-Status 2026-10-04 setelah localhost DB verification:
-- G3.10A localhost schema = PASS.
-- G3.10B localhost schema/RBAC/menu = PASS.
-- fresh hosting dump `u473908839_sisfour2026` tanggal 2026-10-04 09:05 telah diaudit.
-- hosting baseline belum memiliki schema G3.10A/G3.10B.
-- `menus.id` hosting tetap legacy non-AUTO_INCREMENT; MAX(id) pada dump = 125.
-- hosting SQL A/B telah disusun dari dump aktual dan berstatus **PREPARED / NOT EXECUTED**.
-- hosting execution tetap memerlukan approval eksplisit setelah gate yang disepakati.
+Status 2026-10-04 setelah localhost + hosting verification dan final static gate:
+- G3.10A localhost schema = **PASS**.
+- G3.10B localhost schema/RBAC/menu = **PASS**.
+- fresh hosting dump `u473908839_sisfour2026` tanggal 2026-10-04 09:05 telah diaudit sebagai baseline sebelum hosting update.
+- `menus.id` hosting pada baseline tersebut legacy non-AUTO_INCREMENT; MAX(id) = 125, sehingga provisioning menu G3.10B memakai explicit positive ID.
+- hosting SQL G3.10A = **PASS**.
+- hosting SQL G3.10B = **PASS**.
+- PHP lint = **PASS**.
+- JavaScript syntax check = **PASS**.
+- PHPUnit `FunctionalConsistencyTest` = **PASS (25/25 tests, 70 assertions)**; warning code coverage driver tidak dianggap test failure.
+- route verification G3.10A/G3.10B = **PASS**.
+- `git diff --check` = **PASS**.
+- branch/remote sync pada closure checkpoint = **PASS**.
+- runtime/UAT acceptance = **PENDING / NOT YET VERIFIED**.
+- PR #19 tetap **DRAFT**; Ready/Merge/Deploy tidak dilakukan tanpa approval eksplisit.
 
 ## 19. Acceptance
 
