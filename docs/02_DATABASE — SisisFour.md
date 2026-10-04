@@ -570,3 +570,54 @@ existing memang demikian.
 Tidak ada schema/SQL change hanya untuk Dashboard composition pada spec G3.9.
 Schema baru hanya boleh muncul bila implementation membuktikan kebutuhan integrity
 yang tidak dapat ditegakkan secara aman pada service.
+
+
+## G3.10 — Student Services Expansion Schema Target
+
+### BK Group Recording
+
+```text
+catatan_kasus_kelompok
+catatan_kasus.id_kelompok NULL FK
+
+konseling_kelompok
+konseling_kelompok_anggota
+tindak_lanjut_konseling_kelompok
+```
+
+`catatan_kasus` tetap one-row-per-student.
+
+### Student Document Center
+
+```text
+dokumen_siswa
+dokumen_siswa_import_batch
+dokumen_siswa_access_log
+```
+
+Canonical document fields:
+
+```text
+id_tahun NOT NULL
+target_type ENUM('INDIVIDU','TINGKAT')
+id_siswa NULL
+tingkat NULL
+judul
+format_file ENUM('PDF','IMAGE')
+link_gdrive
+status ENUM('PUBLISHED','ARCHIVED')
+id_import_batch NULL
+actor/timestamps
+```
+
+Integrity:
+
+```text
+INDIVIDU → id_siswa wajib, tingkat NULL
+TINGKAT  → tingkat 7/8/9 wajib, id_siswa NULL
+exact period → tahun_ajaran.id
+bulk resolver → siswa.nisn
+historical target → anggota_kelas exact id_tahun
+```
+
+Hosting DDL belum boleh disusun dari asumsi; final hosting SQL menunggu fresh hosting dump setelah localhost UAT.

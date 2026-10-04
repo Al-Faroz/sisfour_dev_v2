@@ -534,3 +534,54 @@ Primary Role + Secondary Roles + Wali + Identity
 → incremental leaf dedupe
 → role-aware Sidebar sections
 ```
+
+
+## 20. G3.10 Access Boundary
+
+### BK Group Recording
+
+Pelanggaran Kelompok memakai permission existing:
+
+```text
+bk_kasus.view
+bk_kasus.manage
+```
+
+Konseling Kelompok memakai permission existing:
+
+```text
+bk_konseling.view
+bk_konseling.manage
+bk_konseling.export
+```
+
+Privacy Konseling tidak berubah:
+
+```text
+Admin / Operator / BK = sesuai permission
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = DEFAULT DENY detail
+```
+
+### Student Document Center
+
+Permission baru:
+
+```text
+dokumen_siswa.view_self
+dokumen_siswa.view_all
+dokumen_siswa.manage
+dokumen_siswa.export
+```
+
+Role default:
+
+```text
+Admin     = view_all + manage + export
+Operator  = view_all + manage + export
+Siswa     = view_self
+role lain = DEFAULT DENY
+```
+
+Self authorization selalu resolve `users.id_siswa`; request parameter tidak boleh memilih siswa lain.
+
+Google Drive link bukan authorization boundary. SisFour hanya mengontrol visibility/open route; actual Drive sharing tetap mengikuti policy file di Google Drive.

@@ -574,3 +574,57 @@ local runtime/UAT                            PENDING
 hosting deployment/re-smoke                  NOT STARTED
 PR                                            NOT OPENED
 ```
+
+
+## G3.10A — BK Group Recording
+
+### Catatan Pelanggaran Kelompok
+
+`catatan_kasus` tetap satu record per siswa. Group event ditambahkan melalui
+`catatan_kasus_kelompok`; setiap anggota menghasilkan child `catatan_kasus`
+dengan `id_kelompok` sama dalam satu transaction.
+
+Existing self-history, Wali scope, Dashboard Siswa, dashboard BK, dan export
+tetap berangkat dari child per-siswa.
+
+Tindak lanjut tetap 1:N per child. Aksi kelompok boleh fan-out ke seluruh child
+tanpa mengubah ownership histori masing-masing siswa.
+
+### Konseling Kelompok
+
+Konseling Kelompok adalah domain persistence terpisah:
+
+```text
+konseling_kelompok
+konseling_kelompok_anggota
+tindak_lanjut_konseling_kelompok
+```
+
+Tidak dibuat dengan copy N parent `konseling_bk`.
+
+Privacy, no-delete, period active-create, actor audit, option settings, dan
+follow-up status contract mengikuti Konseling Individu kecuali dinyatakan
+spesifik pada docs/22.
+
+### Export G3.10A
+
+Catatan Pelanggaran:
+
+```text
+Pelanggaran
+Kelompok Pelanggaran
+Tindak Lanjut
+```
+
+Konseling:
+
+```text
+Konseling Individu
+Tindak Lanjut Individu
+Konseling Kelompok
+Anggota Kelompok
+Tindak Lanjut Kelompok
+```
+
+User-controlled text wajib diekspor sebagai explicit string untuk mencegah
+spreadsheet formula injection.

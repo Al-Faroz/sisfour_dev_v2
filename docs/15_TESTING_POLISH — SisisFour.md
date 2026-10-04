@@ -1720,3 +1720,81 @@ viewport:
 1024×768
 1366×768
 ```
+
+
+## G3.10 — Student Services Expansion Gate
+
+### G3.10A BK Group Recording
+
+```text
+Pelanggaran kelompok:
+- create 2+ siswa all-or-nothing
+- invalid satu siswa membatalkan seluruh batch
+- setiap child mempunyai id_kelompok yang sama
+- individual record tetap id_kelompok NULL
+- self/history/dashboard masih per siswa
+- follow-up individual tetap bekerja
+- group fan-out tidak membuat partial child
+
+Konseling kelompok:
+- parent + anggota + follow-up persistence terpisah
+- member exact membership pada Tahun aktif
+- lintas kelas periode yang sama diperbolehkan
+- no-delete parent/follow-up
+- status parent mengikuti follow-up terbaru
+- non Admin/Operator/BK direct access DENY
+- export tidak flatten confidential parent per siswa
+
+XLSX:
+- group-aware sheets
+- exact period filter
+- user text explicit string
+- max 50.000 row per sheet
+```
+
+### G3.10B Student Document Center
+
+```text
+Admin/Operator manual INDIVIDU create
+Admin/Operator manual TINGKAT create
+Siswa self-only current period
+Siswa historical period selector
+INDIVIDU cross-student direct open DENY
+TINGKAT eligibility exact historical membership
+non Google Drive URL DENY
+format only PDF / IMAGE
+manual historical import allowed
+Lulus/Pindah historical membership remains valid
+
+Bulk:
+- template generated from exact id_tahun
+- optional filter semua/tingkat/kelas
+- authoritative columns NISN + LINK GOOGLE DRIVE
+- duplicate NISN row in file DENY
+- unknown NISN DENY
+- no membership selected period DENY
+- duplicate DB DENY
+- any blocking error => no commit
+- valid preview => one transaction commit
+- id_import_batch recorded
+- rollback metadata only, never Drive file
+
+Export:
+- metadata only
+- exact period filter
+- Admin/Operator only
+- access log optional sheet
+```
+
+Static gate remains:
+
+```text
+php -l changed PHP
+node --check changed JS
+php spark routes
+git diff --check
+unit tests
+working tree clean
+```
+
+G3.10 may not be Ready/merge/deploy without explicit user approval.

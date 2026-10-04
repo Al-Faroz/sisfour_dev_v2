@@ -776,3 +776,40 @@ Guru + PTSP
 functional gradient action UI
 multi-role Sidebar grouping
 ```
+
+
+### G3.10 — Student Services Expansion
+
+Canonical reference:
+
+```text
+docs/22_G3_10_STUDENT_SERVICES_EXPANSION — SisisFour.md
+```
+
+Subphase:
+
+```text
+G3.10A BK Group Recording
+G3.10B Student Document Center
+```
+
+G3.10 is stacked from the exact G3.9 head and must not mutate PR #18.
+
+Locked scope summary:
+
+```text
+Pelanggaran Kelompok = parent event + N catatan_kasus individual
+Konseling Kelompok   = separate parent/member/follow-up persistence
+BK exports            = group-aware, privacy-safe
+
+Dokumen Siswa storage = manual Google Drive link
+Drive API              = NONE
+target                 = INDIVIDU / TINGKAT
+period                 = exact tahun_ajaran.id (Tahun Ajaran + Semester)
+bulk individu          = XLSX NISN + Link GDrive
+format                 = PDF / IMAGE(JPG/JPEG/PNG) only
+Admin/Operator         = manage/export
+Siswa                  = self-only
+```
+
+G4 remains blocked until G3.10 is closed.
