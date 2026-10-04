@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\KonselingBkExportService;
 use App\Services\KonselingBkService;
+use App\Services\KonselingKelompokService;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
@@ -11,11 +12,13 @@ class BKKonseling extends BaseController
 {
     protected KonselingBkService $service;
     protected KonselingBkExportService $exportService;
+    protected KonselingKelompokService $groupService;
 
     public function __construct()
     {
         $this->service = new KonselingBkService();
         $this->exportService = new KonselingBkExportService();
+        $this->groupService = new KonselingKelompokService();
     }
 
     public function index()
@@ -82,9 +85,18 @@ class BKKonseling extends BaseController
         $data = $this->service->getExport($this->currentActorUserId(), $this->request->getGet());
         if (! ($data['success'] ?? false)) return $this->respond($data);
 
+        $groups = $this->groupService->exportData(
+            $this->currentActorUserId(),
+            $this->request->getGet()
+        );
+        if (! ($groups['success'] ?? false)) return $this->respond($groups);
+
         $file = $this->exportService->export(
             $data['rows'] ?? [],
-            $data['tindak_lanjut'] ?? []
+            $data['tindak_lanjut'] ?? [],
+            $groups['rows'] ?? [],
+            $groups['members'] ?? [],
+            $groups['follow_ups'] ?? []
         );
         if (! ($file['success'] ?? false)) return $this->respond($file);
 

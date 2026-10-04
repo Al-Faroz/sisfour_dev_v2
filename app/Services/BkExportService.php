@@ -4,6 +4,7 @@ namespace App\Services;
 
 use CodeIgniter\I18n\Time;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -27,6 +28,7 @@ class BkExportService
         $headers = [
             'No',
             'ID Catatan',
+            'ID Kelompok',
             'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
@@ -53,6 +55,7 @@ class BkExportService
             $rows[] = [
                 $no++,
                 $idKasus,
+                (int) ($row['id_kelompok'] ?? 0) ?: '',
                 $tahun,
                 $row['nisn'] ?? '',
                 $row['nama_siswa'] ?? '',
@@ -68,6 +71,7 @@ class BkExportService
         $followUpHeaders = [
             'No',
             'ID Catatan',
+            'ID Kelompok',
             'Tahun Ajaran',
             'NISN',
             'Nama Siswa',
@@ -89,6 +93,7 @@ class BkExportService
             $followUpExportRows[] = [
                 $noFollowUp++,
                 $idKasus,
+                (int) ($case['id_kelompok'] ?? 0) ?: '',
                 $case['tahun_label'] ?? $this->periodLabel($case),
                 $case['nisn'] ?? '',
                 $case['nama_siswa'] ?? '',
@@ -108,6 +113,31 @@ class BkExportService
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Pelanggaran');
             $this->writeSheet($sheet, $headers, $rows);
+
+            $groupRows = $this->groupRows($caseRows);
+            $groupHeaders = [
+                'No', 'ID Kelompok', 'Tahun Ajaran', 'Tanggal',
+                'Pelanggaran', 'Kategori', 'Keterangan', 'Jumlah Anggota',
+                'Dicatat Oleh',
+            ];
+            $groupExportRows = [];
+            foreach ($groupRows as $i => $group) {
+                $groupExportRows[] = [
+                    $i + 1,
+                    (int) ($group['id'] ?? 0),
+                    $this->periodLabel($group),
+                    $group['tanggal'] ?? '',
+                    $group['nama_pelanggaran'] ?? '',
+                    $group['kategori'] ?? '',
+                    $group['keterangan'] ?? '',
+                    (int) ($group['jumlah_anggota'] ?? 0),
+                    $group['nama_pencatat'] ?? $group['username_pencatat'] ?? '',
+                ];
+            }
+
+            $groupSheet = $spreadsheet->createSheet();
+            $groupSheet->setTitle('Kelompok Pelanggaran');
+            $this->writeSheet($groupSheet, $groupHeaders, $groupExportRows);
 
             $followUpSheet = $spreadsheet->createSheet();
             $followUpSheet->setTitle('Tindak Lanjut');
@@ -189,6 +219,38 @@ class BkExportService
         return $semester !== '' ? $tahun . ' - ' . $semester : $tahun;
     }
 
+    private function groupRows(array $caseRows): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(
+            static fn (array $row): int => (int) ($row['id_kelompok'] ?? 0),
+            $caseRows
+        ))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return db_connect()->table('catatan_kasus_kelompok g')
+            ->select([
+                'g.id', 'g.id_tahun', 'g.tanggal', 'g.keterangan',
+                'rp.nama_pelanggaran', 'rp.kategori',
+                'ta.nama_tahun', 'ta.semester',
+                'u.username AS username_pencatat',
+            ])
+            ->select('(SELECT COUNT(*) FROM catatan_kasus ck WHERE ck.id_kelompok = g.id) AS jumlah_anggota', false)
+            ->select('COALESCE(p.nama, gr.nama, u.username) AS nama_pencatat', false)
+            ->join('ref_pelanggaran rp', 'rp.id = g.id_pelanggaran')
+            ->join('tahun_ajaran ta', 'ta.id = g.id_tahun')
+            ->join('users u', 'u.id = g.created_by', 'left')
+            ->join('pegawai p', 'p.id = u.id_pegawai', 'left')
+            ->join('guru gr', 'gr.id = u.id_guru', 'left')
+            ->whereIn('g.id', $ids)
+            ->orderBy('g.tanggal', 'ASC')
+            ->orderBy('g.id', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
     private function followUpRows(array $caseRows): array
     {
         $caseIds = array_values(array_unique(array_filter(array_map(
@@ -266,10 +328,16 @@ class BkExportService
         $rowNo = 2;
         foreach ($rows as $row) {
             foreach ($row as $i => $value) {
-                $sheet->setCellValue(
-                    Coordinate::stringFromColumnIndex($i + 1) . $rowNo,
-                    $value
-                );
+                $cell = Coordinate::stringFromColumnIndex($i + 1) . $rowNo;
+                if (is_int($value) || is_float($value)) {
+                    $sheet->setCellValue($cell, $value);
+                } else {
+                    $sheet->setCellValueExplicit(
+                        $cell,
+                        (string) ($value ?? ''),
+                        DataType::TYPE_STRING
+                    );
+                }
             }
             $rowNo++;
         }

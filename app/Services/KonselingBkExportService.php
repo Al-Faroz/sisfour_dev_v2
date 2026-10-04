@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -10,7 +11,13 @@ use Throwable;
 
 class KonselingBkExportService
 {
-    public function export(array $rows, array $followUps = []): array
+    public function export(
+        array $rows,
+        array $followUps = [],
+        array $groupRows = [],
+        array $groupMembers = [],
+        array $groupFollowUps = []
+    ): array
     {
         try {
             $spreadsheet = new Spreadsheet();
@@ -80,6 +87,80 @@ class KonselingBkExportService
                 }, $followUps, array_keys($followUps))
             );
 
+            $groupSheet = new Worksheet($spreadsheet, 'Konseling Kelompok');
+            $spreadsheet->addSheet($groupSheet);
+            $this->writeSheet(
+                $groupSheet,
+                'Konseling Kelompok',
+                [
+                    'No', 'ID Kelompok', 'Tahun Ajaran', 'Tanggal',
+                    'Pertemuan Ke', 'Jumlah Anggota', 'Bentuk Layanan',
+                    'Cara Hadir', 'Bidang', 'Topik', 'Uraian Masalah',
+                    'Hasil Pembahasan & Kesepakatan', 'Rencana Berikutnya',
+                    'Tanggal Berikutnya', 'Status', 'Dicatat Oleh',
+                ],
+                array_map(static function (array $row, int $i): array {
+                    $tahun = trim((string) ($row['nama_tahun'] ?? ''));
+                    $semester = trim((string) ($row['semester'] ?? ''));
+                    return [
+                        $i + 1,
+                        (int) ($row['id'] ?? 0),
+                        trim($tahun . ($semester !== '' ? ' - ' . $semester : '')),
+                        $row['tanggal'] ?? '',
+                        (int) ($row['pertemuan_ke'] ?? 1),
+                        (int) ($row['jumlah_anggota'] ?? 0),
+                        $row['bentuk_layanan'] ?? '',
+                        $row['cara_hadir'] ?? '',
+                        $row['bidang'] ?? '',
+                        $row['topik'] ?? '',
+                        $row['uraian_masalah'] ?? '',
+                        $row['hasil_kesepakatan'] ?? '',
+                        $row['rencana_berikutnya'] ?? '',
+                        $row['tanggal_berikutnya'] ?? '',
+                        $row['status'] ?? '',
+                        $row['nama_pencatat'] ?? $row['username_pencatat'] ?? '',
+                    ];
+                }, $groupRows, array_keys($groupRows))
+            );
+
+            $memberSheet = new Worksheet($spreadsheet, 'Anggota Kelompok');
+            $spreadsheet->addSheet($memberSheet);
+            $this->writeSheet(
+                $memberSheet,
+                'Anggota Kelompok',
+                ['No', 'ID Kelompok', 'NISN', 'Nama Siswa', 'Kelas'],
+                array_map(static fn (array $row, int $i): array => [
+                    $i + 1,
+                    (int) ($row['id_konseling_kelompok'] ?? 0),
+                    $row['nisn'] ?? '',
+                    $row['nama_siswa'] ?? '',
+                    $row['nama_kelas'] ?? '',
+                ], $groupMembers, array_keys($groupMembers))
+            );
+
+            $groupFollowSheet = new Worksheet($spreadsheet, 'Tindak Lanjut Kelompok');
+            $spreadsheet->addSheet($groupFollowSheet);
+            $this->writeSheet(
+                $groupFollowSheet,
+                'Tindak Lanjut Kelompok',
+                [
+                    'No', 'ID Kelompok', 'Tanggal Tindak Lanjut',
+                    'Perkembangan', 'Hasil/Kesepakatan', 'Rencana Berikutnya',
+                    'Tanggal Berikutnya', 'Status', 'Dicatat Oleh',
+                ],
+                array_map(static fn (array $row, int $i): array => [
+                    $i + 1,
+                    (int) ($row['id_konseling_kelompok'] ?? 0),
+                    $row['tanggal'] ?? '',
+                    $row['perkembangan'] ?? '',
+                    $row['hasil_kesepakatan'] ?? '',
+                    $row['rencana_berikutnya'] ?? '',
+                    $row['tanggal_berikutnya'] ?? '',
+                    $row['status'] ?? '',
+                    $row['nama_pencatat'] ?? $row['username_pencatat'] ?? '',
+                ], $groupFollowUps, array_keys($groupFollowUps))
+            );
+
             $spreadsheet->setActiveSheetIndex(0);
             $dir = WRITEPATH . 'cache/exports';
             if (! is_dir($dir) && ! mkdir($dir, 0775, true) && ! is_dir($dir)) {
@@ -112,7 +193,16 @@ class KonselingBkExportService
         $rowNumber = 2;
         foreach ($rows as $row) {
             foreach ($row as $index => $value) {
-                $sheet->setCellValue(Coordinate::stringFromColumnIndex($index + 1) . $rowNumber, $value);
+                $cell = Coordinate::stringFromColumnIndex($index + 1) . $rowNumber;
+                if (is_int($value) || is_float($value)) {
+                    $sheet->setCellValue($cell, $value);
+                } else {
+                    $sheet->setCellValueExplicit(
+                        $cell,
+                        (string) ($value ?? ''),
+                        DataType::TYPE_STRING
+                    );
+                }
             }
             $rowNumber++;
         }
