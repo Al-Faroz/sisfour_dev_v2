@@ -1679,16 +1679,21 @@ functional gradient UI       PASS
 multi-role Sidebar grouping  PASS
 ```
 
-Final gate yang masih wajib sebelum G3.9 CLOSED / PR Ready:
+Technical gate pada exact head:
 
 ```text
-PHP lint changed PHP files
-node --check changed JS
-FunctionalConsistencyTest
-php spark routes
-git diff --check origin/main...HEAD
-clean working tree
+PHP lint changed PHP files       PASS / user local runtime evidence
+node --check changed JS          PASS / user local runtime evidence
+FunctionalConsistencyTest       PASS — 22 tests / 59 assertions
+php spark routes                 PASS / user local runtime evidence
+git diff --check                 PASS
+clean working tree               PASS
+code coverage driver warning     NON-BLOCKING
+```
 
+Final runtime gate yang masih wajib sebelum G3.9 CLOSED / PR Ready:
+
+```text
 single-role smoke:
 Admin / Operator / Pimpinan / BK / Kesehatan / PTSP / Guru / Guru+Wali / Siswa
 

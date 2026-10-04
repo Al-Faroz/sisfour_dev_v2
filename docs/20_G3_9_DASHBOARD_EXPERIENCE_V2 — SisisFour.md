@@ -1639,7 +1639,7 @@ Sidebar multi-role smoke = PASS / user runtime evidence
 Static all-role audit     = PASS / GitHub read evidence
 Final all-role runtime      = PENDING exact final head
 Final 360px/WebView       = PENDING exact final head
-Local technical gate     = PENDING
+Local technical gate     = PASS — 22 tests / 59 assertions; lint/routes/diff/status PASS
 PR G3.9                  = #18 / DRAFT
 G4/Cordova               = NOT STARTED
 ```
