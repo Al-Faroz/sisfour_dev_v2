@@ -154,6 +154,21 @@
   transition: transform 0.2s ease;
 }
 
+.sisfour-menu-role-header {
+  margin-top: .35rem;
+  padding-top: .85rem;
+  padding-bottom: .3rem;
+}
+
+.sisfour-menu-role-header .menu-header-text {
+  color: var(--bs-secondary-color, #8592a3);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .055em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
 /* Sneat desktop shell mulai pada xl (1200px). Page header ikut breakpoint yang sama. */
 @media (max-width: 1199.98px) {
   .sisfour-page-header {

@@ -17,6 +17,9 @@ use Config\Database;
  */
 class MenuService
 {
+    private const GLOBAL_MENU_IDS = [1];
+    private const ACCOUNT_MENU_IDS = [9, 10, 12];
+
     protected BaseConnection $db;
     protected AuthService $authService;
 
@@ -72,6 +75,236 @@ class MenuService
         $menus = $this->filterContextualMenus($menus, $userId);
 
         return $menus === [] ? [] : $this->buildTree($menus);
+    }
+
+    /**
+     * G3.9 multi-role Sidebar presentation.
+     *
+     * Permission tetap union melalui AuthService. Method ini hanya menjaga
+     * provenance navigation Primary/Secondary role.
+     */
+    public function getMultiRoleMenuLayout(
+        int $userId,
+        array $dashboardComposition,
+        bool $isWali
+    ): array {
+        if ($userId <= 0) {
+            return [
+                'is_multi_role' => false,
+                'global_items' => [],
+                'role_sections' => [],
+                'account_items' => [],
+            ];
+        }
+
+        $primaryRole = strtolower(trim((string) (
+            $dashboardComposition['primary_role'] ?? ''
+        )));
+        $secondaryRoles = array_values(array_filter(array_map(
+            static fn ($role): string => strtolower(trim((string) $role)),
+            $dashboardComposition['secondary_roles'] ?? []
+        )));
+        $roles = array_values(array_unique(array_filter(array_merge(
+            [$primaryRole],
+            $secondaryRoles
+        ))));
+
+        $roleTrees = [];
+
+        foreach ($roles as $role) {
+            $roleTrees[$role] = $this->getMenuTreeForRole(
+                $userId,
+                $role,
+                array_merge(
+                    self::GLOBAL_MENU_IDS,
+                    self::ACCOUNT_MENU_IDS
+                )
+            );
+        }
+
+        return SidebarMenuCompositionService::compose(
+            $dashboardComposition,
+            $roleTrees,
+            $this->getGlobalMenuItems($userId, $roles),
+            $this->getAccountMenuItems($userId),
+            $isWali
+        );
+    }
+
+    /**
+     * Mark active state untuk seluruh multi-role layout menggunakan satu
+     * best-match link global agar dua section tidak aktif bersamaan.
+     */
+    public function markMultiRoleLayoutActive(
+        array $layout,
+        string $currentPath
+    ): array {
+        $currentPath = $this->normalizeMenuPath($currentPath);
+        $aggregate = $layout['global_items'] ?? [];
+
+        foreach ($layout['role_sections'] ?? [] as $section) {
+            $aggregate = array_merge(
+                $aggregate,
+                $section['items'] ?? []
+            );
+        }
+
+        $aggregate = array_merge(
+            $aggregate,
+            $layout['account_items'] ?? []
+        );
+
+        $activeLink = $this->findBestActiveLink(
+            $aggregate,
+            $currentPath
+        );
+
+        $layout['global_items'] = $this->applyActiveState(
+            $layout['global_items'] ?? [],
+            $activeLink
+        );
+
+        foreach ($layout['role_sections'] ?? [] as &$section) {
+            $section['items'] = $this->applyActiveState(
+                $section['items'] ?? [],
+                $activeLink
+            );
+        }
+        unset($section);
+
+        $layout['account_items'] = $this->applyActiveState(
+            $layout['account_items'] ?? [],
+            $activeLink
+        );
+
+        return $layout;
+    }
+
+    /**
+     * @return list<array>
+     */
+    private function getMenuTreeForRole(
+        int $userId,
+        string $role,
+        array $excludeIds = []
+    ): array {
+        $role = strtolower(trim($role));
+
+        if ($role === '') {
+            return [];
+        }
+
+        $rows = $this->db
+            ->table('role_menus rm')
+            ->select('rm.id_menu')
+            ->where('rm.role', $role)
+            ->where('rm.tampil', 1)
+            ->get()
+            ->getResultArray();
+
+        $idMenus = array_map('intval', array_column($rows, 'id_menu'));
+
+        if ($excludeIds !== []) {
+            $idMenus = array_values(array_diff(
+                $idMenus,
+                array_map('intval', $excludeIds)
+            ));
+        }
+
+        $menus = $this->getMenuRowsByIds($idMenus);
+
+        if ($menus === []) {
+            return [];
+        }
+
+        $menus = $this->filterContextualMenus($menus, $userId);
+
+        return $menus === [] ? [] : $this->buildTree($menus);
+    }
+
+    /**
+     * Dashboard global hanya satu dan tetap menghormati role_menus.
+     *
+     * @return list<array>
+     */
+    private function getGlobalMenuItems(
+        int $userId,
+        array $roles
+    ): array {
+        if ($roles === []) {
+            return [];
+        }
+
+        $assigned = $this->db
+            ->table('role_menus rm')
+            ->whereIn('rm.role', $roles)
+            ->whereIn('rm.id_menu', self::GLOBAL_MENU_IDS)
+            ->where('rm.tampil', 1)
+            ->countAllResults() > 0;
+
+        if (! $assigned) {
+            return [];
+        }
+
+        $menus = $this->filterContextualMenus(
+            $this->getMenuRowsByIds(self::GLOBAL_MENU_IDS),
+            $userId
+        );
+
+        return $menus === [] ? [] : $this->buildTree($menus);
+    }
+
+    /**
+     * Profile adalah person identity surface, bukan operational role surface.
+     *
+     * @return list<array>
+     */
+    private function getAccountMenuItems(int $userId): array
+    {
+        $identity = $this->getUserIdentity($userId);
+        $idMenu = null;
+
+        if ((int) ($identity['id_guru'] ?? 0) > 0) {
+            $idMenu = 9;
+        } elseif ((int) ($identity['id_pegawai'] ?? 0) > 0) {
+            $idMenu = 12;
+        } elseif ((int) ($identity['id_siswa'] ?? 0) > 0) {
+            $idMenu = 10;
+        }
+
+        if ($idMenu === null) {
+            return [];
+        }
+
+        $menus = $this->filterContextualMenus(
+            $this->getMenuRowsByIds([$idMenu]),
+            $userId
+        );
+
+        return $menus === [] ? [] : $this->buildTree($menus);
+    }
+
+    /**
+     * @return list<array>
+     */
+    private function getMenuRowsByIds(array $idMenus): array
+    {
+        $idMenus = array_values(array_unique(array_filter(array_map(
+            'intval',
+            $idMenus
+        ))));
+
+        if ($idMenus === []) {
+            return [];
+        }
+
+        return $this->db
+            ->table('menus')
+            ->whereIn('id', $idMenus)
+            ->orderBy('urutan', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResultArray();
     }
 
     protected function filterContextualMenus(array $menus, int $userId): array

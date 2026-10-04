@@ -91,21 +91,45 @@ abstract class BaseController extends Controller
         $username = trim((string) session()->get('username'));
         $idGuru = session()->get('id_guru');
 
-        $tree = $this->menuService->getMenuTree($userId);
-        $tree = $this->pruneEmptyMenuGroups($tree);
-
-        $currentPath = trim(current_url(true)->getPath(), '/');
-        $tree = $this->menuService->markActive($tree, $currentPath);
-
-        $displayIdentity = $this->resolveDisplayIdentity($userId, $username);
-        $effectiveRoles = $this->authService->getUserRoles($userId);
-        $experienceRole = $this->resolveExperienceRole(
-            $effectiveRoles,
-            is_string($role) ? $role : null
+        $displayIdentity = $this->resolveDisplayIdentity(
+            $userId,
+            $username
         );
+        $effectiveRoles = $this->authService->getUserRoles($userId);
         $isWali = $idGuru
             ? $this->authService->isWaliKelas((int) $idGuru)
             : false;
+        $composition = DashboardCompositionService::compose(
+            is_string($role) ? $role : null,
+            $effectiveRoles,
+            $isWali
+        );
+        $experienceRole = (string) $composition['primary_role'];
+
+        $currentPath = trim(current_url(true)->getPath(), '/');
+        $isMultiRole = ($composition['secondary_roles'] ?? []) !== [];
+        $sidebarMenu = null;
+
+        if ($isMultiRole) {
+            $tree = [];
+            $sidebarMenu = $this->menuService->getMultiRoleMenuLayout(
+                $userId,
+                $composition,
+                $isWali
+            );
+            $sidebarMenu = $this->menuService
+                ->markMultiRoleLayoutActive(
+                    $sidebarMenu,
+                    $currentPath
+                );
+        } else {
+            $tree = $this->menuService->getMenuTree($userId);
+            $tree = $this->pruneEmptyMenuGroups($tree);
+            $tree = $this->menuService->markActive(
+                $tree,
+                $currentPath
+            );
+        }
 
         $roleLabel = [
             'admin' => 'Admin',
@@ -120,6 +144,7 @@ abstract class BaseController extends Controller
 
         $this->layoutData = [
             'menuTree' => $tree,
+            'sidebarMenu' => $sidebarMenu,
             'authUser' => [
                 'username' => $username,
                 'display_name' => $displayIdentity['name'],

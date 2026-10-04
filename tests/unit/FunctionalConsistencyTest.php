@@ -7,6 +7,7 @@ use App\Services\DashboardCompositionService;
 use App\Services\JadwalGuruService;
 use App\Services\RoleAssignmentPolicyService;
 use App\Services\RoleAwareDashboardService;
+use App\Services\SidebarMenuCompositionService;
 use CodeIgniter\Test\CIUnitTestCase;
 use ReflectionClass;
 
@@ -276,6 +277,141 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
 
         $this->assertFalse($result['success']);
         $this->assertSame('STUDENT_IDENTITY_ROLE', $result['code']);
+    }
+
+    public function testSidebarCompositionKeepsRoleSectionsAndDedupesLeaves(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'guru',
+            ['guru', 'operator'],
+            false
+        );
+
+        $roleTrees = [
+            'guru' => [
+                [
+                    'id' => 3,
+                    'nama_menu' => 'Master Data',
+                    'link' => '#',
+                    'children' => [
+                        [
+                            'id' => 33,
+                            'nama_menu' => 'Data Siswa',
+                            'link' => 'master/siswa',
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            'operator' => [
+                [
+                    'id' => 3,
+                    'nama_menu' => 'Master Data',
+                    'link' => '#',
+                    'children' => [
+                        [
+                            'id' => 33,
+                            'nama_menu' => 'Data Siswa',
+                            'link' => 'master/siswa',
+                            'children' => [],
+                        ],
+                        [
+                            'id' => 31,
+                            'nama_menu' => 'Data Guru',
+                            'link' => 'master/guru',
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $layout = SidebarMenuCompositionService::compose(
+            $composition,
+            $roleTrees,
+            [['id' => 1, 'link' => 'dashboard', 'children' => []]],
+            [['id' => 9, 'link' => 'profile/guru', 'children' => []]],
+            false
+        );
+
+        $this->assertTrue($layout['is_multi_role']);
+        $this->assertSame(
+            ['primary', 'secondary'],
+            array_column($layout['role_sections'], 'kind')
+        );
+        $this->assertSame(
+            ['Guru', 'Operator'],
+            array_column($layout['role_sections'], 'label')
+        );
+        $this->assertSame(
+            'Data Guru',
+            $layout['role_sections'][1]['items'][0]['children'][0]['nama_menu']
+        );
+        $this->assertCount(
+            1,
+            $layout['role_sections'][1]['items'][0]['children']
+        );
+        $this->assertSame(
+            'dashboard',
+            $layout['global_items'][0]['link']
+        );
+        $this->assertSame(
+            'profile/guru',
+            $layout['account_items'][0]['link']
+        );
+    }
+
+    public function testSidebarCompositionTreatsWaliAsGuruContextLabel(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'guru',
+            ['guru', 'ptsp'],
+            true
+        );
+
+        $layout = SidebarMenuCompositionService::compose(
+            $composition,
+            [
+                'guru' => [[
+                    'id' => 2,
+                    'nama_menu' => 'Presensi',
+                    'link' => '#',
+                    'children' => [[
+                        'id' => 21,
+                        'nama_menu' => 'Presensi Siswa',
+                        'link' => 'presensi/siswa',
+                        'children' => [],
+                    ]],
+                ]],
+                'ptsp' => [[
+                    'id' => 121,
+                    'nama_menu' => 'PTSP',
+                    'link' => '#',
+                    'children' => [[
+                        'id' => 122,
+                        'nama_menu' => 'Layanan PTSP',
+                        'link' => 'ptsp/layanan',
+                        'children' => [],
+                    ]],
+                ]],
+            ],
+            [],
+            [],
+            true
+        );
+
+        $this->assertSame(
+            'Guru / Wali Kelas',
+            $layout['role_sections'][0]['label']
+        );
+        $this->assertSame(
+            'PTSP',
+            $layout['role_sections'][1]['label']
+        );
+        $this->assertNotContains(
+            'Wali',
+            array_column($layout['role_sections'], 'role')
+        );
     }
 
     public function testScheduleOverlapUsesHalfOpenIntervals(): void
