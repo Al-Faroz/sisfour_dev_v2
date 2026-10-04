@@ -126,7 +126,7 @@ class MenuService
             $dashboardComposition,
             $roleTrees,
             $this->getGlobalMenuItems($userId, $roles),
-            $this->getAccountMenuItems($userId),
+            $this->getAccountMenuItems($userId, $roles),
             $isWali
         );
     }
@@ -259,20 +259,33 @@ class MenuService
      *
      * @return list<array>
      */
-    private function getAccountMenuItems(int $userId): array
-    {
+    private function getAccountMenuItems(
+        int $userId,
+        array $roles
+    ): array {
         $identity = $this->getUserIdentity($userId);
         $idMenu = null;
+        $requiresRoleMenuAssignment = true;
 
         if ((int) ($identity['id_guru'] ?? 0) > 0) {
             $idMenu = 9;
         } elseif ((int) ($identity['id_pegawai'] ?? 0) > 0) {
+            // Legacy contract: Profile Pegawai adalah identity self-service
+            // walaupun account belum mempunyai role_menus khusus.
             $idMenu = 12;
+            $requiresRoleMenuAssignment = false;
         } elseif ((int) ($identity['id_siswa'] ?? 0) > 0) {
             $idMenu = 10;
         }
 
         if ($idMenu === null) {
+            return [];
+        }
+
+        if (
+            $requiresRoleMenuAssignment
+            && ! $this->isMenuAssignedToAnyRole($idMenu, $roles)
+        ) {
             return [];
         }
 
@@ -282,6 +295,28 @@ class MenuService
         );
 
         return $menus === [] ? [] : $this->buildTree($menus);
+    }
+
+    private function isMenuAssignedToAnyRole(
+        int $idMenu,
+        array $roles
+    ): bool {
+        $roles = array_values(array_unique(array_filter(array_map(
+            static fn ($role): string =>
+                strtolower(trim((string) $role)),
+            $roles
+        ))));
+
+        if ($idMenu <= 0 || $roles === []) {
+            return false;
+        }
+
+        return $this->db
+            ->table('role_menus rm')
+            ->whereIn('rm.role', $roles)
+            ->where('rm.id_menu', $idMenu)
+            ->where('rm.tampil', 1)
+            ->countAllResults() > 0;
     }
 
     /**

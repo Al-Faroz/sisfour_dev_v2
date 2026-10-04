@@ -76,6 +76,25 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         $this->assertContains('ptsp', $composition['ignored_roles']);
     }
 
+    public function testDashboardCompositionBkKeepsKesehatanAndPtsp(): void
+    {
+        $composition = DashboardCompositionService::compose(
+            'bk',
+            ['bk', 'kesehatan', 'ptsp'],
+            false
+        );
+
+        $this->assertSame(
+            ['kesehatan', 'ptsp'],
+            $composition['secondary_roles']
+        );
+        $this->assertSame(
+            ['bk', 'kesehatan', 'ptsp'],
+            $composition['action_roles']
+        );
+        $this->assertSame([], $composition['ignored_roles']);
+    }
+
     public function testDashboardCompositionWaliUsesRestrictedSecondarySet(): void
     {
         $composition = DashboardCompositionService::compose(
@@ -411,6 +430,59 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         $this->assertNotContains(
             'Wali',
             array_column($layout['role_sections'], 'role')
+        );
+    }
+
+    public function testSidebarActiveStateUsesOneLongestMatch(): void
+    {
+        $service = (new ReflectionClass(\App\Services\MenuService::class))
+            ->newInstanceWithoutConstructor();
+
+        $layout = [
+            'is_multi_role' => true,
+            'global_items' => [[
+                'id' => 1,
+                'nama_menu' => 'Dashboard',
+                'link' => 'dashboard',
+                'children' => [],
+            ]],
+            'role_sections' => [
+                [
+                    'kind' => 'primary',
+                    'role' => 'guru',
+                    'label' => 'Guru',
+                    'items' => [[
+                        'id' => 23,
+                        'nama_menu' => 'Rekap Presensi',
+                        'link' => 'presensi/siswa',
+                        'children' => [],
+                    ]],
+                ],
+                [
+                    'kind' => 'secondary',
+                    'role' => 'operator',
+                    'label' => 'Operator',
+                    'items' => [[
+                        'id' => 41,
+                        'nama_menu' => 'Matrix Presensi',
+                        'link' => 'presensi/siswa/rekap',
+                        'children' => [],
+                    ]],
+                ],
+            ],
+            'account_items' => [],
+        ];
+
+        $resolved = $service->markMultiRoleLayoutActive(
+            $layout,
+            'presensi/siswa/rekap/detail'
+        );
+
+        $this->assertFalse(
+            $resolved['role_sections'][0]['items'][0]['active']
+        );
+        $this->assertTrue(
+            $resolved['role_sections'][1]['items'][0]['active']
         );
     }
 
