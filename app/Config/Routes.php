@@ -313,6 +313,24 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('siswa/json', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
     });
 
+    $routes->group('dokumen-siswa', static function ($routes) {
+        $routes->get('/', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
+        $routes->get('json', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
+        $routes->get('import', 'DokumenSiswa::importPage', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('create', 'DokumenSiswa::create', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->put('update/(:num)', 'DokumenSiswa::update/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->put('archive/(:num)', 'DokumenSiswa::archive/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->get('template', 'DokumenSiswa::template', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/preview', 'DokumenSiswa::previewImport', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/commit', 'DokumenSiswa::commitImport', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/rollback/(:num)', 'DokumenSiswa::rollbackImport/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->get('export', 'DokumenSiswa::export', ['filter' => 'permission:dokumen_siswa.export']);
+    });
+
+    $routes->get('dokumen-saya', 'DokumenSaya::index', ['filter' => 'permission:dokumen_siswa.view_self']);
+    $routes->get('dokumen-saya/json', 'DokumenSaya::index', ['filter' => 'permission:dokumen_siswa.view_self']);
+    $routes->get('dokumen-saya/buka/(:num)', 'DokumenSaya::open/$1', ['filter' => 'permission:dokumen_siswa.view_self']);
+
     // Dokumen personalia tersimpan non-public. Endpoint ini hanya mengirim file
     // setelah PersonaliaService memvalidasi self identity / permission Master.
     $routes->get('personalia/file/(:segment)/(:num)/(:segment)', 'Personalia::file/$1/$2/$3');
