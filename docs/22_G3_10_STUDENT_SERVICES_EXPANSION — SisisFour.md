@@ -1,6 +1,6 @@
 # G3.10 — Student Services Expansion — SisisFour
 
-**Status:** LOCKED / STATIC + DB GATES PASS / RUNTIME UAT PENDING
+**Status:** LOCKED / G3.10C IMPLEMENTED / REGRESSION + RUNTIME UAT PENDING
 **Branch:** `feat/g3-10-student-services-expansion-20261004`
 **Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`
 **Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.
@@ -22,6 +22,13 @@ G3.10B — Student Document Center
 ├─ link Google Drive manual
 ├─ bulk import Excel Dokumen Individu
 └─ metadata/audit export
+
+G3.10C — BK UI & Export Polish
+├─ canonical BK page-action hierarchy
+├─ reuse G3.9 compact action visual system
+├─ export scope: filter aktif / seluruh Tahun Ajaran
+├─ export mode: Ringkas / Lengkap-Audit
+└─ human-readable Pelanggaran + Konseling workbook
 ```
 
 Tidak ada Google Drive API, service account, Drive credential, server-side upload, atau file proxy pada phase ini.
@@ -639,7 +646,113 @@ metadata + access export
 mobile/WebView regression
 ```
 
-## 20. Out of Scope
+## 20. G3.10C — BK UI & Export Polish
+
+G3.10C adalah polish checkpoint sebelum closure G3.10. Tidak menambah schema database
+dan tidak mengubah privacy/RBAC canonical BK.
+
+### 20.1 Canonical BK page actions
+
+Catatan Pelanggaran dan Konseling BK memakai hierarchy action yang sama:
+
+```text
+[Kelompok] [Export XLSX] [Tambah Baru]
+```
+
+Enabled page-header actions memakai visual action system G3.9:
+
+```text
+Related / Kelompok → sisfour-action + compact + blue
+Export             → sisfour-action + compact + green
+Primary Create     → sisfour-action + compact + indigo
+```
+
+Action system tersebut tidak menggantikan semua Bootstrap button. Filter Reset/Tampilkan,
+row action, Cancel/Save modal, dan destructive action tetap memakai hierarchy Bootstrap
+yang sesuai agar semua control tidak terlihat mempunyai prioritas yang sama.
+
+### 20.2 Export UX
+
+Export Catatan Pelanggaran dan Konseling BK dibuka melalui modal dengan dua dimensi:
+
+```text
+Cakupan
+├─ Sesuai filter saat ini
+└─ Seluruh Tahun Ajaran terpilih
+
+Mode
+├─ Ringkas
+└─ Lengkap / Audit
+```
+
+Mode Ringkas ditujukan untuk penggunaan operasional sehari-hari dan meminimalkan internal
+ID pada sheet utama. Mode Lengkap/Audit menambahkan informasi teknis/audit yang diperlukan.
+
+### 20.3 Workbook Catatan Pelanggaran
+
+Canonical sheet order:
+
+```text
+1. Ringkasan
+2. Data Pelanggaran
+3. Riwayat Tindak Lanjut
+4. Kejadian Kelompok
+```
+
+Ringkasan menyimpan Tahun Ajaran, cakupan, mode, timestamp export, filter yang digunakan,
+serta metrik jumlah catatan/siswa/kejadian kelompok/tindak lanjut.
+
+### 20.4 Workbook Konseling BK
+
+Mode Ringkas:
+
+```text
+1. Ringkasan
+2. Data Konseling
+3. Riwayat Tindak Lanjut
+4. Anggota Kelompok
+```
+
+Mode Lengkap/Audit menambahkan:
+
+```text
+5. Detail Konseling
+```
+
+`Data Konseling` menyatukan Konseling Individu dan Kelompok melalui kolom
+`Jenis Konseling`. Narasi panjang/sensitif seperti Uraian Masalah dan
+Hasil/Kesepakatan tidak memenuhi tabel utama dan dipindahkan ke `Detail Konseling`
+pada mode Lengkap/Audit.
+
+Workbook tetap mempertahankan:
+- explicit-string protection untuk text user-controlled;
+- freeze header;
+- AutoFilter;
+- row guard;
+- temporary-file cleanup;
+- permission export existing;
+- privacy Konseling existing.
+
+### 20.5 Current implementation gate
+
+Status setelah source G3.10C diimplementasikan:
+
+```text
+BK page layout/action contract      IMPLEMENTED
+Export modal scope/mode             IMPLEMENTED
+Pelanggaran workbook redesign       IMPLEMENTED
+Konseling workbook redesign         IMPLEMENTED
+DB/schema change                    NONE
+Regression PHP/JS/unit              PENDING LOCAL RERUN
+Workbook runtime verification       PENDING
+Desktop/mobile/WebView UAT          PENDING
+Ready/Merge/Deploy                  NOT AUTHORIZED
+```
+
+PASS static/unit sebelum G3.10C adalah evidence untuk checkpoint source sebelumnya dan
+harus dijalankan ulang terhadap exact HEAD G3.10C sebelum phase dapat ditutup.
+
+## 21. Out of Scope
 
 ```text
 Google Drive API
