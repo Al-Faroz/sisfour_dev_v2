@@ -1,6 +1,6 @@
 # G3.10 — Student Services Expansion — SisisFour
 
-**Status:** LOCKED / G3.10C IMPLEMENTED / REGRESSION + RUNTIME UAT PENDING
+**Status:** LOCKED / G3.10C + SESSION HARDENING IMPLEMENTED / REGRESSION + RUNTIME UAT PENDING
 **Branch:** `feat/g3-10-student-services-expansion-20261004`
 **Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`
 **Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.
@@ -781,11 +781,37 @@ DB/schema change                    NONE
 Regression PHP/JS/unit              PENDING LOCAL RERUN
 Workbook runtime verification       PENDING
 Desktop/mobile/WebView UAT          PENDING
+Web session isolation/auth sync      IMPLEMENTED / RUNTIME RECHECK PENDING
 Ready/Merge/Deploy                  NOT AUTHORIZED
 ```
 
 PASS static/unit sebelum G3.10C adalah evidence untuk checkpoint source sebelumnya dan
 harus dijalankan ulang terhadap exact HEAD G3.10C sebelum phase dapat ditutup.
+
+### 20.6 Web session stability hardening
+
+Selama G3.10C UAT ditemukan laporan session Admin kadang tampak logout sendiri saat
+navigasi/back. Source audit menemukan dua hardening point:
+
+1. cookie session default `ci_session` terlalu generik untuk localhost/multi-app;
+2. self-update pada Settings User menaikkan `auth_version` tetapi sebelumnya tidak
+   menyinkronkan current session.
+
+Patch canonical:
+
+```text
+Session cookie   → sisfour_v2_session
+Self user update → refresh current actor session setelah commit
+Self reset       → refresh current actor session setelah credential reset
+Other sessions   → tetap invalid bila auth_version lama
+AuthFilter       → log alasan invalidasi tanpa credential/session secret
+```
+
+Perubahan nama cookie menyebabkan **one-time re-login** setelah source baru pertama kali
+dipakai. Hal tersebut expected dan bukan regression logout acak.
+
+Jika logout masih muncul setelah login ulang dengan cookie baru, lakukan diagnosis dari
+log `AuthFilter` dan schema `ci_sessions`; jangan menurunkan validasi auth_version.
 
 ## 21. Out of Scope
 

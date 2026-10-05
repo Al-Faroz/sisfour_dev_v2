@@ -23,6 +23,25 @@ auth_version
 logged_in
 ```
 
+### Web session hardening
+
+Session cookie web memakai nama aplikasi-spesifik:
+
+```text
+sisfour_v2_session
+```
+
+Jangan menggunakan nama generik `ci_session` pada deployment yang berbagi hostname
+dengan aplikasi CodeIgniter lain karena cookie dengan path `/` dapat saling menimpa.
+
+`auth_version` tetap menjadi invalidation token. Bila Admin memperbarui/reset akun
+yang sedang digunakan sendiri dan akun tetap aktif, session actor saat ini harus
+disinkronkan ke row `users` terbaru sehingga current session tetap valid sementara
+session lain dengan auth_version lama tetap terinvalidasi.
+
+`AuthFilter` mencatat alasan invalidasi tanpa menulis session ID/credential:
+missing session, missing auth_version, invalid user/status, atau mismatch auth_version.
+
 ## 2. Effective Role
 
 ```text
