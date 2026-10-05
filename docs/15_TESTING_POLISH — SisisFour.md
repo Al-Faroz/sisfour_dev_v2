@@ -1835,10 +1835,10 @@ unit tests
 working tree clean
 ```
 
-Final exact-head regression evidence 2026-10-05:
+Final executable-head regression evidence 2026-10-05:
 
 ```text
-Exact local/remote head                a0b7ec6
+Executable local/remote head           a0b7ec6
 PHP lint changed closure surfaces      PASS
 JavaScript syntax                      PASS
 Routes                                 PASS
@@ -1848,7 +1848,10 @@ git diff --check                       PASS
 working tree                           CLEAN / synced with origin
 ```
 
-Dengan runtime/UAT dan final exact-head regression sama-sama PASS, G3.10 berada pada
+Regression dijalankan pada executable head `a0b7ec6`. Commit setelah head tersebut hanya
+closure documentation/status sync dan tidak mengubah PHP/JS/runtime behavior.
+
+Dengan runtime/UAT dan final executable-head regression sama-sama PASS, G3.10 berada pada
 status **CLOSURE-READY**.
 
 CLOSURE-READY bukan approval untuk Ready/merge/deploy. PR #19 tetap Draft sampai ada
