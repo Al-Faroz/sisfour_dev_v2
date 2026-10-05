@@ -508,3 +508,65 @@ role_menus         173
 ```
 
 Hosting execution tetap memerlukan approval eksplisit.
+
+
+## 22. G3.9 — Role / Identity Database Contract
+
+G3.9 membedakan **person master identity** dari **operational role**.
+
+Person master tetap exclusive:
+
+```text
+Guru    → users.id_guru
+Pegawai → users.id_pegawai
+Siswa   → users.id_siswa
+
+satu user:
+id_guru OR id_pegawai OR id_siswa
+```
+
+GuruService/PegawaiService tetap menjaga NIK/NIP lintas Master Guru/Pegawai agar
+satu manusia tidak diduplikasi pada dua master.
+
+Role tetap:
+
+```text
+effective_roles = users.role UNION user_roles.role
+```
+
+Untuk G3.9:
+
+```text
+users.role = Primary Role / Role 1
+user_roles = additional role set
+```
+
+`user_roles` tidak membutuhkan `sort_order` pada G3.9. Role 2/3 adalah
+composition position yang dihitung melalui canonical whitelist/order pada
+application layer, bukan urutan row database.
+
+Operational role:
+
+```text
+BK
+Kesehatan
+PTSP
+```
+
+tidak otomatis berarti actor harus mempunyai `users.id_pegawai`.
+
+Valid staff person identity:
+
+```text
+users.id_guru > 0
+OR
+users.id_pegawai > 0
+```
+
+Authorization final tetap effective role + permission + scope + target/period
+validation. Audit/mutation ownership tetap menggunakan `users.id` bila domain
+existing memang demikian.
+
+Tidak ada schema/SQL change hanya untuk Dashboard composition pada spec G3.9.
+Schema baru hanya boleh muncul bila implementation membuktikan kebutuhan integrity
+yang tidak dapat ditegakkan secara aman pada service.

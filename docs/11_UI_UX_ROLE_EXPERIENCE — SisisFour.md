@@ -499,3 +499,132 @@ Aturan:
 - modal/form panjang harus usable pada portrait + keyboard;
 - desktop/laptop tidak boleh regression;
 - heavy administrative matrix Admin/Operator boleh exception hanya bila reduksi menghilangkan fungsi dan exception dicatat pada UAT.
+
+
+## 23. G3.9 — Role-Aware Dashboard Composition
+
+G3.9 mempertahankan tujuan dan source data per role pada section terdahulu, tetapi
+mengganti cara Dashboard digabung pada multi-role.
+
+### Role 1
+
+```text
+users.role = Role 1 / pemilik Dashboard
+```
+
+Role 1 menentukan:
+
+```text
+Metric Summary
+EWS / Access
+Data / Activity
+```
+
+### Role tambahan
+
+Additional role tidak membawa seluruh dashboardnya.
+
+Action-surface eligible:
+
+```text
+BK
+Kesehatan
+PTSP
+Guru
+```
+
+Non-action-surface:
+
+```text
+Admin
+Operator
+Pimpinan
+```
+
+Admin/Siswa exclusive.
+
+Secondary Operator/Pimpinan tetap memberi capability/menu sesuai permission,
+tetapi tidak membuat section Primary Action.
+
+### Sidebar multi-role
+
+G3.9 shell mengikuti composition yang sama dengan Dashboard:
+
+```text
+Primary Role
+→ pemilik section menu utama
+
+Secondary Role
+→ section menu tambahan/incremental
+→ tidak dilebur ke section Primary
+
+Wali
+→ context label pada Primary Guru
+→ bukan section role baru
+```
+
+Contoh Guru + Wali + PTSP:
+
+```text
+Dashboard
+
+UTAMA · GURU / WALI KELAS
+  Presensi
+  Master Data
+  Laporan
+  ...
+
+TAMBAHAN · PTSP
+  PTSP
+    Layanan PTSP
+    Polling Kepuasan
+    Pengaduan
+
+AKUN
+  Profile Guru
+```
+
+Menu leaf yang sudah dimiliki Primary tidak diulang pada section Secondary.
+Profile mengikuti person identity, bukan operational role.
+
+### Wali
+
+Wali tetap context Guru. Guru+Wali memakai Metric Summary Guru dan menambahkan
+context kelas wali/access sesuai mapping + permission.
+
+Wali tidak menghabiskan slot secondary role. Untuk Primary Guru yang aktif sebagai
+Wali, secondary yang valid adalah:
+
+```text
+Operator
+Kesehatan
+PTSP
+```
+
+maksimum satu secondary. Pimpinan tetap tidak diizinkan pada context Guru+Wali.
+
+### Identity normalization
+
+Pernyataan G3.6A lama bahwa role Kesehatan selalu memakai identity Pegawai
+**disupersede untuk multi-role G3.9**.
+
+Canonical:
+
+```text
+valid staff person identity
+= id_guru OR id_pegawai
+```
+
+Operational role BK/Kesehatan/PTSP ditentukan oleh role + permission + scope,
+bukan dengan menggandakan record Guru menjadi Pegawai.
+
+Profile tetap mengikuti master identity aktual.
+
+### Visual
+
+Role matrix lengkap, warna, state Guru/Wali, Metric Summary, dan action hierarchy
+mengikuti:
+
+```text
+docs/21_G3_9_DASHBOARD_VISUAL_STATE_MATRIX — SisisFour.md
+```

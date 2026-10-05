@@ -9,7 +9,8 @@ class PtspDashboardService extends KesehatanDashboardService
     protected function widgetsPtsp(int $userId): array
     {
         $user = $this->getUser($userId);
-        $hasIdentity = (int) ($user['id_pegawai'] ?? 0) > 0;
+        $hasIdentity = (int) ($user['id_guru'] ?? 0) > 0
+            || (int) ($user['id_pegawai'] ?? 0) > 0;
         $tahun = $this->tahunAktif();
         $idTahun = (int) ($tahun['id'] ?? 0);
         $hasPeriod = $idTahun > 0;
@@ -38,7 +39,12 @@ class PtspDashboardService extends KesehatanDashboardService
             'layanan_terbaru' => $canLayanan && $hasPeriod ? $this->latestLayanan($idTahun) : [],
             'pengaduan_terbaru' => $canPengaduan && $hasPeriod ? $this->latestPengaduan($idTahun) : [],
             'kepuasan_ringkas' => $canPolling && $hasPeriod ? $this->pollingSummary($idTahun) : [],
-            'quick_actions' => $this->quickActions($userId),
+            'quick_actions' =>
+                DashboardActionCatalogService::allActions(
+                    'ptsp',
+                    fn (string $permission): bool =>
+                        $this->can($userId, $permission)
+                ),
         ];
     }
 
@@ -92,24 +98,4 @@ class PtspDashboardService extends KesehatanDashboardService
             ->get()->getResultArray();
     }
 
-    private function quickActions(int $userId): array
-    {
-        $candidates = [
-            ['permission' => 'ptsp_layanan.view', 'label' => 'Layanan PTSP', 'description' => 'Kelola pengajuan layanan', 'icon' => 'bx-file', 'url' => 'ptsp/layanan'],
-            ['permission' => 'ptsp_polling.view', 'label' => 'Polling Kepuasan', 'description' => 'Lihat hasil kepuasan', 'icon' => 'bx-happy', 'url' => 'ptsp/polling'],
-            ['permission' => 'ptsp_pengaduan.view', 'label' => 'Pengaduan', 'description' => 'Kelola laporan masuk', 'icon' => 'bx-message-square-error', 'url' => 'ptsp/pengaduan'],
-            ['permission' => 'ptsp_layanan.view', 'label' => 'Buka Public PTSP', 'description' => 'Buka landing form publik', 'icon' => 'bx-globe', 'url' => 'ptsp'],
-        ];
-
-        $result = [];
-        foreach ($candidates as $candidate) {
-            if (! $this->can($userId, $candidate['permission'])) {
-                continue;
-            }
-            unset($candidate['permission']);
-            $result[] = $candidate;
-        }
-
-        return $result;
-    }
 }

@@ -389,3 +389,85 @@ Tiap card menampilkan:
 - tombol Copy Script API.
 
 Clipboard memakai `navigator.clipboard` pada secure context dan fallback `document.execCommand('copy')` untuk compatibility. Card ini tidak menambah permission/API baru dan tidak mengubah response contract.
+
+
+## 16. G3.9 — Dashboard Experience V2 Override
+
+G3.9 supersede hierarchy Dashboard G3.x lama pada aspek **layout/composition**,
+tetapi tidak mengubah source data, permission, scope, period, privacy, atau
+business rule domain.
+
+Canonical references:
+
+```text
+20_G3_9_DASHBOARD_EXPERIENCE_V2
+21_G3_9_DASHBOARD_VISUAL_STATE_MATRIX
+```
+
+Dashboard memakai building block:
+
+```text
+Primary Action Surface
+Metric Summary
+EWS / Access / Monitoring
+Data / Activity
+```
+
+### Admin / Operator / Pimpinan
+
+```text
+Metric Summary
+→ EWS / Access / Monitoring
+→ Data / Activity
+```
+
+Tidak ada generic Primary Action Surface.
+
+Quick Action Pimpinan existing direklasifikasi sebagai Monitoring/Access, bukan
+hilang.
+
+### BK / Kesehatan / PTSP / Guru
+
+```text
+Primary Action
+→ Metric Summary Role 1
+→ EWS / Access Role 1
+→ Data / Activity Role 1
+```
+
+### Guru + Wali
+
+```text
+Primary Action Guru
+→ Metric Summary Guru
+→ Context Kelas Wali + Access
+→ Data Guru/Wali
+```
+
+Wali tidak membuat KPI/Metric Summary kedua.
+
+### Siswa
+
+```text
+Status Hari Ini
+→ Metric Summary personal
+→ Self-Service Access
+→ Data personal
+```
+
+### Multi-role
+
+```text
+Role 1 = pemilik Dashboard
+Role tambahan = hanya menambah Primary Action bila role tersebut action-surface eligible
+Metric/EWS/Data = tetap Role 1
+```
+
+Operator/Pimpinan sebagai secondary tidak membuat section Home baru.
+
+Istilah UI generic **Aksi Cepat** tidak lagi canonical. Heading mengikuti konteks
+seperti `Hari Ini`, `Prioritas BK`, `Layanan UKS`, atau `Layanan PTSP`.
+
+KPI card lama berubah menjadi **Metric Summary / Metric Tile**. Empat metric tetap
+boleh 2×2 mobile, tetapi jumlah empat bukan kewajiban bila business data tidak
+membutuhkannya.

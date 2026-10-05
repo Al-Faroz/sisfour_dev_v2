@@ -38,11 +38,23 @@ $riwayatPrestasi = $widgets['riwayat_prestasi'] ?? [];
 $riwayatPelanggaran = $widgets['riwayat_pelanggaran'] ?? [];
 
 $kpi = [
-    ['Hadir', $rekap !== null ? (int) ($rekap['hadir'] ?? 0) : null, 'success'],
-    ['Sakit', $rekap !== null ? (int) ($rekap['sakit'] ?? 0) : null, 'warning'],
-    ['Izin', $rekap !== null ? (int) ($rekap['izin'] ?? 0) : null, 'info'],
-    ['Alpha', $rekap !== null ? (int) ($rekap['alpha'] ?? 0) : null, 'danger'],
+    ['Hadir', $rekap !== null ? (int) ($rekap['hadir'] ?? 0) : null, 'green', 'bx-check-circle'],
+    ['Sakit', $rekap !== null ? (int) ($rekap['sakit'] ?? 0) : null, 'amber', 'bx-plus-medical'],
+    ['Izin', $rekap !== null ? (int) ($rekap['izin'] ?? 0) : null, 'cyan', 'bx-file'],
+    ['Alpha', $rekap !== null ? (int) ($rekap['alpha'] ?? 0) : null, 'rose', 'bx-x-circle'],
 ];
+
+$actionTone = static function (string $label): string {
+    $label = strtolower(trim($label));
+
+    return match (true) {
+        str_contains($label, 'presensi') => 'sisfour-action--blue',
+        str_contains($label, 'kartu') => 'sisfour-action--teal',
+        str_contains($label, 'prestasi') => 'sisfour-action--green',
+        str_contains($label, 'profil') => 'sisfour-action--slate',
+        default => 'sisfour-action--indigo',
+    };
+};
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -102,43 +114,37 @@ $kpi = [
   <small class="text-muted">Sesi Awal</small>
 </div>
 
-<div class="sisfour-mobile-kpi-grid mb-4">
+<div class="sisfour-metric-grid mb-4">
   <?php foreach ($kpi as $item): ?>
-    <div class="card h-100">
-      <div class="card-body text-center">
-        <small class="text-muted d-block"><?= esc($item[0]) ?></small>
-        <h3 class="text-<?= esc($item[2]) ?> mb-0">
-          <?= $item[1] === null ? '—' : (int) $item[1] ?>
-        </h3>
-      </div>
+    <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--<?= esc($item[2]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item[3]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= $item[1] === null ? '—' : (int) $item[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item[0]) ?></span>
     </div>
   <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
 <?php if ($quickActions !== []): ?>
-<div class="card mb-4">
-  <div class="card-header sisfour-section-heading">
-    <h5 class="mb-0">Aksi Cepat</h5>
-  </div>
-  <div class="card-body">
-    <div class="row g-2">
-      <?php foreach ($quickActions as $action): ?>
-        <div class="col-6 col-md-3">
-          <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
-             class="btn btn-outline-primary w-100 h-100 sisfour-touch-target justify-content-start text-start p-3">
-            <span class="d-flex align-items-center gap-2 min-w-0">
-              <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
-              <span class="min-w-0">
-                <strong class="d-block text-wrap"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
-                <small class="d-block text-muted text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
-              </span>
-            </span>
-          </a>
-        </div>
-      <?php endforeach; ?>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Akses Saya</h5>
+  <small class="text-muted">Self-service personal</small>
+</div>
+<div class="row g-2 mb-4">
+  <?php foreach ($quickActions as $action): ?>
+    <div class="col-6 col-md-3">
+      <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
+         class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?> w-100 h-100 sisfour-touch-target">
+        <span class="d-flex align-items-center gap-2 min-w-0">
+          <i class="bx <?= esc((string) ($action['icon'] ?? 'bx-link')) ?> fs-4 flex-shrink-0"></i>
+          <span class="min-w-0">
+            <strong class="d-block text-wrap"><?= esc((string) ($action['label'] ?? '-')) ?></strong>
+            <small class="d-block opacity-75 text-wrap"><?= esc((string) ($action['description'] ?? '')) ?></small>
+          </span>
+        </span>
+      </a>
     </div>
-  </div>
+  <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
@@ -147,7 +153,7 @@ $kpi = [
   <div class="card-header d-flex justify-content-between align-items-center gap-2">
     <h5 class="mb-0">Sakit / Izin / Alpha Terbaru</h5>
     <?php if ($identityAvailable): ?>
-      <a href="<?= base_url('presensi/siswa/rekap') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact">Lihat Rekap</a>
+      <a href="<?= base_url('presensi/siswa/rekap') ?>" class="btn sisfour-action sisfour-action--blue sisfour-action--compact sisfour-touch-target--compact">Lihat Rekap</a>
     <?php endif; ?>
   </div>
 
@@ -190,7 +196,7 @@ $kpi = [
   <div class="card-header d-flex justify-content-between align-items-center gap-2">
     <h5 class="mb-0">Kartu Pelajar</h5>
     <?php if ($identityAvailable && ! empty($kartu)): ?>
-      <a href="<?= base_url('kartu/daftar') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact">Buka Kartu</a>
+      <a href="<?= base_url('kartu/daftar') ?>" class="btn sisfour-action sisfour-action--teal sisfour-action--compact sisfour-touch-target--compact">Buka Kartu</a>
     <?php endif; ?>
   </div>
   <div class="card-body">
@@ -207,10 +213,10 @@ $kpi = [
       <strong class="d-block mb-1"><?= esc((string) ($kartu['nomor_kartu'] ?? '-')) ?></strong>
       <div class="small text-muted mb-3">Terbit <?= esc((string) ($kartu['tanggal_terbit'] ?? '-')) ?></div>
       <div class="sisfour-mobile-actions">
-        <a href="<?= base_url('kartu/preview/' . (int) $kartu['id']) ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact">
+        <a href="<?= base_url('kartu/preview/' . (int) $kartu['id']) ?>" class="btn sisfour-action sisfour-action--teal sisfour-action--compact sisfour-touch-target--compact">
           <i class="bx bx-show me-1"></i> Preview
         </a>
-        <a href="<?= base_url('kartu/download/' . (int) $kartu['id']) ?>" class="btn btn-sm btn-primary sisfour-touch-target--compact">
+        <a href="<?= base_url('kartu/download/' . (int) $kartu['id']) ?>" class="btn sisfour-action sisfour-action--teal is-current sisfour-action--compact sisfour-touch-target--compact">
           <i class="bx bx-download me-1"></i> Unduh PDF
         </a>
       </div>
@@ -227,7 +233,7 @@ $kpi = [
       <div class="card-header d-flex justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Prestasi Saya</h5>
         <?php if ($identityAvailable): ?>
-          <a href="<?= base_url('bk/prestasi') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact">Lihat Semua</a>
+          <a href="<?= base_url('bk/prestasi') ?>" class="btn sisfour-action sisfour-action--green sisfour-action--compact sisfour-touch-target--compact">Lihat Semua</a>
         <?php endif; ?>
       </div>
       <div class="list-group list-group-flush">
@@ -254,7 +260,7 @@ $kpi = [
       <div class="card-header d-flex justify-content-between align-items-center gap-2">
         <h5 class="mb-0">Catatan Pelanggaran Saya</h5>
         <?php if ($identityAvailable): ?>
-          <a href="<?= base_url('bk/kasus') ?>" class="btn btn-sm btn-outline-primary sisfour-touch-target--compact">Lihat Semua</a>
+          <a href="<?= base_url('bk/kasus') ?>" class="btn sisfour-action sisfour-action--rose sisfour-action--compact sisfour-touch-target--compact">Lihat Semua</a>
         <?php endif; ?>
       </div>
       <div class="list-group list-group-flush">

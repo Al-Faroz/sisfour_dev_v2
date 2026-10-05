@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Phase aktif:** Tidak ada mutation phase aktif — **G3.8 CLOSED / MERGED — PR #17; G4 NOT STARTED**
+**Phase aktif:** **G3.9 — Dashboard Experience V2 / Regression & Closure — Draft PR #18; G4 NOT STARTED**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -1550,4 +1550,173 @@ Merge                         PASS / user approval
 merge commit                  2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 main after merge              2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 G4/Cordova                    NOT STARTED
+```
+
+
+## G3.9 — Dashboard Experience V2 Test Gate
+
+G3.9 menambah regression untuk composition tanpa mengurangi gate G3.7/G3.8.
+
+### Static / Unit
+
+Minimal:
+
+```text
+Primary Role berasal dari users.role
+effective permission tetap users.role UNION user_roles.role
+secondary role tidak mengganti Metric/EWS/Data owner
+Operator/Pimpinan secondary tidak menghasilkan action section
+eligible operational secondary menghasilkan action catalog permission-aware
+Wali tetap context Guru
+Admin/Siswa exclusive
+whitelist double/triple ditegakkan service-side
+Role 2/3 ordering deterministik
+valid staff identity = id_guru OR id_pegawai
+tidak ada dual Guru+Pegawai person identity
+```
+
+Unit test lama yang mengunci:
+
+```text
+admin > operator > pimpinan > bk > ...
+```
+
+sebagai pemilih Dashboard harus diganti dengan test Primary Role G3.9. Static
+experience priority lama tidak boleh tetap diam-diam menentukan Home.
+
+### Guru/Wali State
+
+Wajib test:
+
+```text
+not_applicable
+not_started
+available
+submitted
+wali_available
+ended
+```
+
+Expected presentation:
+
+```text
+submitted      → completed/green
+ended          → grey disabled
+wali_available → tetap actionable
+```
+
+Wali tidak mendapat Jurnal privilege.
+
+### Visual / Responsive
+
+Minimal viewport:
+
+```text
+360×800
+390×844
+412×915
+768×1024
+1024×768
+1366×768
+```
+
+Check:
+
+```text
+action vs metric terbaca jelas
+semua enabled dashboard action memakai functional colored gradient
+enabled dashboard action memakai shared action shadow
+metric/status/context/work-surface tetap flat tanpa action shadow
+disabled/expired action flat grey tanpa gradient/shadow
+metric tidak tampak clickable
+focus visible
+touch target aman
+no body/document horizontal overflow
+no horizontal operational table scroll
+desktop/tablet tidak regression
+WebView readiness G3.8 tidak regression
+```
+
+### Security
+
+```text
+no new permission leak
+scope/period tetap
+Konseling privacy tetap
+Siswa self-scope tetap
+UKS/PTSP/BK authorization tetap server-side
+invalid role combination ditolak server
+```
+
+G3.9 belum boleh dinyatakan CLOSED hanya dari screenshot; composition, permission,
+identity, viewport, dan negative-path test wajib ikut lulus.
+
+### G3.9E — Regression & Closure Current Gate
+
+Static/source audit:
+
+```text
+Primary Role owns Dashboard                    PASS / source audit
+secondary action only, no secondary payload   PASS / source audit
+Pimpinan/Guru/Wali/Siswa no Konseling payload PASS / source audit
+Dashboard legacy quick-action patterns         PASS / source audit
+enabled Dashboard action gradient contract     PASS / source audit
+multi-role Sidebar role provenance             PASS / source audit
+Sidebar incremental leaf dedupe                PASS / unit/source audit
+Profile identity routing                       PASS / source audit
+Profile Guru/Siswa role_menus visibility       PASS / source audit
+single-role Sidebar path preserved             PASS / source audit
+```
+
+Focused user runtime evidence:
+
+```text
+Guru + Kesehatan             PASS
+BK + Kesehatan + PTSP        PASS
+Guru + Wali + Kesehatan      PASS
+Guru + PTSP                  PASS
+functional gradient UI       PASS
+multi-role Sidebar grouping  PASS
+```
+
+Technical gate pada exact head:
+
+```text
+PHP lint changed PHP files       PASS / user local runtime evidence
+node --check changed JS          PASS / user local runtime evidence
+FunctionalConsistencyTest       PASS — 22 tests / 59 assertions
+php spark routes                 PASS / user local runtime evidence
+git diff --check                 PASS
+clean working tree               PASS
+code coverage driver warning     NON-BLOCKING
+```
+
+Final runtime gate yang masih wajib sebelum G3.9 CLOSED / PR Ready:
+
+```text
+single-role smoke:
+Admin / Operator / Pimpinan / BK / Kesehatan / PTSP / Guru / Guru+Wali / Siswa
+
+multi-role smoke:
+Guru+Kesehatan
+Guru+PTSP
+Guru+Wali+PTSP
+BK+Kesehatan+PTSP
+BK+Operator+Kesehatan
+
+negative/edge:
+no active period
+identity unavailable
+permission partially removed
+Menu & Role item disabled
+expired-session logout recovery
+active Sidebar parent/open state
+
+viewport:
+360×800
+390×844
+412×915
+768×1024
+1024×768
+1366×768
 ```

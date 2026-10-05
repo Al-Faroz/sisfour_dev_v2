@@ -12,38 +12,85 @@ $tahun = $widgets['tahun_aktif'] ?? [];
 <div class="sisfour-page-header">
   <div class="sisfour-page-header__copy"><h4 class="mb-1">Dashboard Operator</h4><p class="text-muted mb-0">Prioritas operasional harian madrasah.</p></div>
   <div class="sisfour-page-actions">
-    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
       <i class="bx bx-tv me-1"></i>EWS Signage
     </a>
     <span class="badge bg-label-primary fs-6"><?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?></span>
   </div>
 </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card border-start border-danger border-3"><div class="card-body"><small class="text-muted">Kelas Belum Presensi</small><h2 class="text-danger mb-0"><?= (int) ($presensi['belum_kelas'] ?? 0) ?></h2><small>dari <?= (int) ($presensi['wajib_kelas'] ?? 0) ?> kelas wajib</small></div></div></div>
-  <div class="col-md-4"><div class="card border-start border-warning border-3"><div class="card-body"><small class="text-muted">Jadwal Belum Jurnal</small><h2 class="text-warning mb-0"><?= (int) ($jurnal['belum'] ?? 0) ?></h2><small>dari <?= (int) ($jurnal['wajib'] ?? 0) ?> jadwal aktif</small></div></div></div>
-  <div class="col-md-4"><div class="card border-start border-danger border-3"><div class="card-body"><small class="text-muted">EWS Alpha 14 Hari</small><h2 class="text-danger mb-0"><?= (int) ($widgets['ews_count'] ?? 0) ?></h2><small>siswa perlu perhatian</small></div></div></div>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Kondisi Operasional</h5>
+  <small class="text-muted">Pengecualian hari ini</small>
+</div>
+<div class="sisfour-metric-grid sisfour-metric-grid--3 mb-4">
+  <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--amber">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-list-check"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($presensi['belum_kelas'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Kelas Belum Presensi</span>
+    <span class="sisfour-metric-tile__meta">dari <?= (int) ($presensi['wajib_kelas'] ?? 0) ?> kelas wajib</span>
+  </div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--violet">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-book-content"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($jurnal['belum'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Jadwal Belum Jurnal</span>
+    <span class="sisfour-metric-tile__meta">dari <?= (int) ($jurnal['wajib'] ?? 0) ?> jadwal aktif</span>
+  </div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--amber">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-radar"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['ews_count'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">EWS Alpha 14 Hari</span>
+    <span class="sisfour-metric-tile__meta">siswa perlu perhatian</span>
+  </div>
 </div>
 
-<div class="row g-3 mb-4">
-  <?php foreach ([['Siswa', $master['siswa'] ?? 0], ['Guru', $master['guru'] ?? 0], ['Pegawai', $master['pegawai'] ?? 0], ['Kelas', $master['kelas'] ?? 0]] as $item): ?>
-    <div class="col-6 col-xl-3"><div class="card h-100"><div class="card-body"><small class="text-muted"><?= esc($item[0]) ?></small><h4 class="mb-0"><?= (int) $item[1] ?></h4></div></div></div>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Ringkasan Master</h5>
+  <small class="text-muted">Data aktif</small>
+</div>
+<div class="sisfour-metric-grid mb-4">
+  <?php foreach ([
+    ['Siswa', $master['siswa'] ?? 0, 'indigo', 'bx-group'],
+    ['Guru', $master['guru'] ?? 0, 'blue', 'bx-chalkboard'],
+    ['Pegawai', $master['pegawai'] ?? 0, 'cyan', 'bx-id-card'],
+    ['Kelas', $master['kelas'] ?? 0, 'violet', 'bx-door-open'],
+  ] as $item): ?>
+    <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--<?= esc($item[2]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($item[3]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= (int) $item[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($item[0]) ?></span>
+    </div>
   <?php endforeach; ?>
 </div>
 
 <div class="card mb-4">
   <div class="card-header"><h5 class="mb-0">Presensi Hari Ini</h5></div>
-  <div class="card-body"><div class="row g-3 text-center">
+  <div class="card-body"><div class="sisfour-context-stat-grid">
     <?php foreach ([['Hadir',$presensi['hadir']??0,'success'],['Sakit',$presensi['sakit']??0,'warning'],['Izin',$presensi['izin']??0,'info'],['Alpha',$presensi['alpha']??0,'danger']] as $item): ?>
-      <div class="col-6 col-md-3"><div class="border rounded p-3"><small class="text-muted d-block"><?= esc($item[0]) ?></small><h4 class="text-<?= esc($item[2]) ?> mb-0"><?= (int) $item[1] ?></h4></div></div>
+      <div class="sisfour-context-stat"><small class="text-muted d-block"><?= esc($item[0]) ?></small><strong class="text-<?= esc($item[2]) ?>"><?= (int) $item[1] ?></strong></div>
     <?php endforeach; ?>
   </div></div>
 </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card"><div class="card-body"><small class="text-muted">Kasus BK Bulan Ini</small><h4 class="mb-0"><?= (int) ($widgets['bk_bulan_ini'] ?? 0) ?></h4></div></div></div>
-  <div class="col-md-4"><div class="card"><div class="card-body"><small class="text-muted">Prestasi Bulan Ini</small><h4 class="mb-0"><?= (int) ($widgets['prestasi_bulan_ini'] ?? 0) ?></h4></div></div></div>
-  <div class="col-md-4"><div class="card"><div class="card-body"><small class="text-muted">Kartu Aktif</small><h4 class="mb-0"><?= (int) ($kartu['aktif'] ?? 0) ?></h4></div></div></div>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Ringkasan Pendukung</h5>
+</div>
+<div class="sisfour-metric-grid sisfour-metric-grid--3 mb-4">
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--rose">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-note"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['bk_bulan_ini'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Kasus BK Bulan Ini</span>
+  </div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--green">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-trophy"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['prestasi_bulan_ini'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Prestasi Bulan Ini</span>
+  </div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--teal">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-id-card"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($kartu['aktif'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Kartu Aktif</span>
+  </div>
 </div>
 
 <div class="row g-3">

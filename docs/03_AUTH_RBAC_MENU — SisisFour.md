@@ -387,3 +387,150 @@ period rule change  = NONE
 ```
 
 Semua responsive/mobile adaptation tetap presentation-only. Route/Filter + Service existing tetap authoritative. Expected DENY pada cross-role regression tetap wajib dipertahankan.
+
+
+## 19. G3.9 — Primary Role, Multi-Role & Dashboard Composition
+
+Section ini **supersede Experience Priority §15 untuk pemilihan Dashboard/Home**.
+Effective role dan permission union tidak berubah.
+
+### 19.1 Primary Role
+
+```text
+users.role = Role 1 / Primary Role
+```
+
+Role 1 menentukan identity Dashboard:
+
+```text
+Metric Summary
+EWS / Access
+Data / Activity
+dashboard heading/context utama
+```
+
+`user_roles.role` menambah effective role/capability, tetapi tidak mengambil alih
+Dashboard hanya karena berada lebih tinggi pada priority list lama.
+
+### 19.2 Additional Role
+
+Role tambahan adalah set permission/capability yang divalidasi whitelist G3.9.
+
+```text
+Admin      = exclusive
+Siswa      = exclusive
+
+Primary BK
+→ additional: Operator / Pimpinan / Kesehatan / PTSP
+→ max 2
+
+Primary Guru
+→ additional: Operator / Pimpinan / Kesehatan / PTSP
+→ max 1
+
+Guru + Wali context
+→ additional: Operator / Kesehatan / PTSP
+→ Pimpinan tetap tidak diizinkan
+→ max 1
+```
+
+Primary Operator/Pimpinan/Kesehatan/PTSP tetap valid untuk single-role account,
+tetapi bukan primary multi-role pada contract G3.9.
+
+### 19.3 Wali
+
+Wali tetap context Guru dan tidak menghabiskan slot `user_roles`.
+
+### 19.4 Person Identity vs Operational Role
+
+G3.9 menormalkan:
+
+```text
+person master identity:
+Guru    → id_guru
+Pegawai → id_pegawai
+Siswa   → id_siswa
+```
+
+Satu account person tetap mempunyai satu master identity.
+
+BK/Kesehatan/PTSP adalah operational role. Role tersebut dapat dijalankan oleh
+valid staff identity:
+
+```text
+id_guru OR id_pegawai
+```
+
+selama effective role, permission, scope, period, dan business invariant sah.
+
+Role tidak boleh dipakai untuk membuat duplicate Master Guru/Pegawai.
+
+### 19.5 Dashboard Action Composition
+
+```text
+Admin / Operator / Pimpinan
+→ tidak menghasilkan Primary Action Surface
+
+BK / Kesehatan / PTSP / Guru
+→ dapat menghasilkan Primary Action Surface
+
+secondary Operator/Pimpinan
+→ tetap menambah capability/menu
+→ tidak menambah action section Home
+```
+
+UI composition bukan authorization boundary.
+
+### 19.6 Multi-Role Sidebar Composition
+
+G3.9 membedakan **authorization union** dari **navigation composition**.
+
+Authorization tetap:
+
+```text
+effective_roles = Primary Role UNION Secondary Roles
+permission      = union seluruh effective role yang valid
+```
+
+Sidebar tidak boleh lagi melebur seluruh menu effective role menjadi satu tree
+tanpa provenance role.
+
+Untuk account multi-role:
+
+```text
+Dashboard
+↓
+Primary Role section
+↓
+Secondary Role 1 section
+↓
+Secondary Role 2 section
+↓
+Account / Profile
+```
+
+Rules:
+
+1. Primary/secondary ordering mengikuti `DashboardCompositionService`.
+2. Wali tetap context Guru dan tidak membuat section role baru.
+3. Secondary Operator/Pimpinan tetap dapat menghasilkan menu sesuai permission,
+   walaupun tidak menghasilkan Primary Action Surface Dashboard.
+4. Leaf menu yang sudah tampil pada Primary tidak diulang pada Secondary.
+5. Parent/container boleh muncul pada lebih dari satu section untuk menjaga
+   struktur/provenance role.
+6. Dashboard hanya tampil satu kali sebagai global navigation.
+7. Profile berasal dari person identity, bukan operational secondary role.
+8. Permission/scope/context filtering tetap dijalankan setelah role ownership.
+9. Single-role mempertahankan presentation existing; heading role tambahan hanya
+   diperlukan pada multi-role.
+10. `role_menus` tetap navigation assignment dan bukan security boundary.
+
+Target source flow:
+
+```text
+Primary Role + Secondary Roles + Wali + Identity
+→ role-owned menu candidates
+→ permission/context filter
+→ incremental leaf dedupe
+→ role-aware Sidebar sections
+```

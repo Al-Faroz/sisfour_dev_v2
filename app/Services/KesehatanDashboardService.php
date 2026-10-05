@@ -9,7 +9,8 @@ class KesehatanDashboardService extends SiswaDashboardService
     protected function widgetsKesehatan(int $userId): array
     {
         $user = $this->getUser($userId);
-        $hasIdentity = (int) ($user['id_pegawai'] ?? 0) > 0;
+        $hasIdentity = (int) ($user['id_guru'] ?? 0) > 0
+            || (int) ($user['id_pegawai'] ?? 0) > 0;
         $tahun = $this->tahunAktif();
         $idTahun = (int) ($tahun['id'] ?? 0);
         $hasPeriod = $idTahun > 0;
@@ -75,13 +76,18 @@ class KesehatanDashboardService extends SiswaDashboardService
             'kunjungan_terbaru' => $canHarian && $hasPeriod
                 ? $this->latestVisits($idTahun)
                 : [],
-            'primary_action' => $canManageHarian ? [
-                'label' => 'Tambah Data Kunjungan',
-                'description' => 'Catat kunjungan siswa ke UKS',
-                'icon' => 'bx-plus-medical',
-                'url' => 'uks/harian#tambah',
-            ] : null,
-            'quick_actions' => $this->quickActions($userId),
+            'primary_action' =>
+                DashboardActionCatalogService::primaryAction(
+                    'kesehatan',
+                    fn (string $permission): bool =>
+                        $this->can($userId, $permission)
+                ),
+            'quick_actions' =>
+                DashboardActionCatalogService::accessActions(
+                    'kesehatan',
+                    fn (string $permission): bool =>
+                        $this->can($userId, $permission)
+                ),
         ];
     }
 
@@ -150,48 +156,4 @@ class KesehatanDashboardService extends SiswaDashboardService
             ->getResultArray();
     }
 
-    private function quickActions(int $userId): array
-    {
-        $candidates = [
-            [
-                'permission' => 'uks_harian.view',
-                'label' => 'Data UKS',
-                'description' => 'Buka Catatan Harian UKS',
-                'icon' => 'bx-plus-medical',
-                'url' => 'uks/harian',
-            ],
-            [
-                'permission' => 'uks_ckg.view',
-                'label' => 'Data CKG',
-                'description' => 'Buka data pemeriksaan CKG',
-                'icon' => 'bx-pulse',
-                'url' => 'uks/ckg',
-            ],
-            [
-                'permission' => 'uks_ckg.import',
-                'label' => 'Import CKG',
-                'description' => 'Import pemeriksaan CKG via XLSX',
-                'icon' => 'bx-import',
-                'url' => 'uks/ckg#import',
-            ],
-            [
-                'permission' => 'uks_master.manage',
-                'label' => 'Master UKS',
-                'description' => 'Kelola keluhan, tindakan, dan hasil',
-                'icon' => 'bx-list-ul',
-                'url' => 'uks/master',
-            ],
-        ];
-
-        $result = [];
-        foreach ($candidates as $candidate) {
-            if (! $this->can($userId, $candidate['permission'])) {
-                continue;
-            }
-            unset($candidate['permission']);
-            $result[] = $candidate;
-        }
-
-        return $result;
-    }
 }

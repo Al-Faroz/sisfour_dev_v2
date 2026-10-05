@@ -4,11 +4,12 @@
  *
  * PENTING: partial ini murni "dumb renderer". Tidak ada if(role === '...')
  * di sini sama sekali. Sumber kebenaran akses menu ada di tabel `role_menus`
- * dan sudah diproses jadi $menuTree oleh MenuService::getMenuTree() +
- * markActive() di BaseController::prepareLayoutData().
+ * dan sudah diproses oleh MenuService/BaseController.
  *
- * Kalau menu untuk suatu role salah/kurang/lebih, JANGAN edit file ini —
- * perbaiki data di tabel role_menus.
+ * Single-role memakai $menuTree existing. Multi-role memakai $sidebarMenu
+ * yang sudah dikelompokkan Primary/Secondary oleh composition service.
+ * Partial ini hanya merender hasil composition; authorization tetap bukan
+ * tanggung jawab view.
  */
 
 if (! function_exists('render_menu_items')) {
@@ -119,6 +120,43 @@ $logoUrl = $hasLogo
   <div class="menu-inner-shadow"></div>
 
   <ul class="menu-inner py-1">
-    <?php render_menu_items($menuTree ?? []); ?>
+    <?php
+    $resolvedSidebar = is_array($sidebarMenu ?? null)
+        ? $sidebarMenu
+        : [];
+    $isMultiRoleSidebar = ! empty($resolvedSidebar['is_multi_role']);
+    ?>
+
+    <?php if ($isMultiRoleSidebar): ?>
+      <?php render_menu_items($resolvedSidebar['global_items'] ?? []); ?>
+
+      <?php foreach (($resolvedSidebar['role_sections'] ?? []) as $section): ?>
+        <?php
+        $sectionKind = (string) ($section['kind'] ?? 'secondary');
+        $sectionPrefix = $sectionKind === 'primary'
+            ? 'Utama'
+            : 'Tambahan';
+        $sectionLabel = trim((string) ($section['label'] ?? ''));
+        ?>
+        <?php if ($sectionLabel !== ''): ?>
+          <li class="menu-header sisfour-menu-role-header">
+            <span class="menu-header-text">
+              <?= esc($sectionPrefix) ?> · <?= esc($sectionLabel) ?>
+            </span>
+          </li>
+        <?php endif; ?>
+
+        <?php render_menu_items($section['items'] ?? []); ?>
+      <?php endforeach; ?>
+
+      <?php if (! empty($resolvedSidebar['account_items'])): ?>
+        <li class="menu-header sisfour-menu-role-header">
+          <span class="menu-header-text">Akun</span>
+        </li>
+        <?php render_menu_items($resolvedSidebar['account_items']); ?>
+      <?php endif; ?>
+    <?php else: ?>
+      <?php render_menu_items($menuTree ?? []); ?>
+    <?php endif; ?>
   </ul>
 </aside>

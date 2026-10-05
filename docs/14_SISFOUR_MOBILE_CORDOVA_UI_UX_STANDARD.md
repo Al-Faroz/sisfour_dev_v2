@@ -519,3 +519,47 @@ merge commit            = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 hosting deployment      = NOT AUTHORIZED / NOT EXECUTED
 G4/Cordova              = NOT STARTED
 ```
+
+
+## 30. G3.9 — Dashboard Mobile Contract
+
+G3.9 tidak mengubah readiness WebView G3.8. Ia mengubah hierarchy/affordance
+Dashboard Web yang nantinya dibungkus G4.
+
+Mobile Dashboard:
+
+```text
+Metric Summary 4 item → default 2×2
+Primary Action        → 44–48px minimum
+Access Action         → 44px minimum
+long primary action   → boleh full width
+label                  → boleh wrap
+recent/data            → adaptive card/list
+horizontal op table    → tetap dilarang
+```
+
+Actionable control Dashboard mempunyai background + subtle shadow.
+
+Metric Tile mempunyai tonal background tetapi tidak memakai action shadow/pressed
+state.
+
+Guru/Wali:
+
+```text
+current task     → paling menonjol
+available        → actionable color
+submitted        → green
+not_started      → neutral
+wali_available   → contextual actionable
+ended            → grey disabled
+not_applicable   → muted
+```
+
+Tidak ada flashing/pulsing attention animation.
+
+Pada 360px, metric 2-column dipertahankan hanya bila label tetap aman. Access grid
+boleh turun menjadi 1 column untuk label/context panjang. Touch target tidak boleh
+dikorbankan untuk mempertahankan jumlah kolom.
+
+Safe-area, visualViewport, session-expiry recovery, network error behavior, dan
+WebView readiness G3.8 tetap wajib tidak regression.

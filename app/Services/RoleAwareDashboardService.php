@@ -3,29 +3,19 @@
 namespace App\Services;
 
 /**
- * DashboardService dengan priority experience role yang konsisten
- * terhadap effective role dan managed Guru identity.
+ * DashboardService dengan enrichment role/context.
  *
- * SettingsUserService mempertahankan role Guru sebagai secondary role
- * ketika sebuah akun mempunyai id_guru. Karena itu BK, Kesehatan, dan PTSP harus
- * diprioritaskan sebelum Guru agar experience operasional tidak jatuh ke Dashboard Guru.
- *
- * Semua widget dan data authorization tetap diwarisi dari DashboardService.
+ * G3.9 menghapus static experience priority sebagai pemilih Home. Primary Role
+ * (users.role) adalah owner Dashboard; effective role tetap dipakai untuk
+ * permission/capability. Semua widget/data authorization tetap diwarisi.
  */
 class RoleAwareDashboardService extends DashboardService
 {
-    public function resolveDashboardRole(array $roles): string
-    {
-        foreach (
-            ['admin', 'operator', 'pimpinan', 'bk', 'kesehatan', 'ptsp', 'guru', 'siswa']
-            as $role
-        ) {
-            if (in_array($role, $roles, true)) {
-                return $role;
-            }
-        }
-
-        return 'guru';
+    public function resolveDashboardRole(
+        array $roles,
+        ?string $primaryRole = null
+    ): string {
+        return parent::resolveDashboardRole($roles, $primaryRole);
     }
 
     /**

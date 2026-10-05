@@ -353,6 +353,50 @@ Tab utama ditulis di View. Mobile boleh scroll horizontal untuk tabs/navigation;
 
 Data-driven dari menu/role/context. Menu bukan security boundary.
 
+### 21.1 Single Role
+
+Single-role mempertahankan tree existing tanpa heading role tambahan yang
+membebani visual.
+
+### 21.2 Multi-Role
+
+Sidebar multi-role wajib menjaga hierarchy role:
+
+```text
+Dashboard
+
+UTAMA · <Primary Role / Context Wali bila ada>
+  menu milik Primary Role
+
+TAMBAHAN · <Secondary Role 1>
+  menu incremental role tersebut
+
+TAMBAHAN · <Secondary Role 2>
+  menu incremental role tersebut
+
+AKUN
+  profile sesuai person identity
+```
+
+Section label bersifat informational:
+
+```text
+small / muted
+non-clickable
+flat
+no gradient
+no action shadow
+```
+
+Leaf navigation tidak boleh diduplikasi antar section. Parent/container boleh
+diulang bila diperlukan untuk menjaga struktur menu per role.
+
+Dashboard hanya satu. Wali tidak menjadi section role. Profile tidak mengikuti
+secondary operational role; Profile mengikuti identity Guru/Pegawai/Siswa.
+
+Role grouping adalah presentation/navigation saja. Authorization tetap memakai
+PermissionFilter + Service + scope/period/target/business invariant.
+
 ## 22. Branding
 
 `nama_sekolah`, `logo_sekolah`, `icon_sekolah` berasal dari setting sistem. Login dan authenticated shell memakai source branding yang sama.
@@ -423,3 +467,109 @@ UI dinyatakan konsisten bila:
 ## 30. Phase Rule
 
 Aturan di dokumen ini bersifat global. Sub-phase baru wajib mengikutinya, dan ketika ditemukan feature existing yang sedang disentuh tetapi menyimpang, penyimpangan tersebut harus diperbaiki atau dicatat eksplisit sebagai exception.
+
+
+## 31. G3.9 — Dashboard Action & Metric Visual Contract
+
+Section Dashboard §19 tetap berlaku pada prinsip ringkas, tetapi hierarchy visual
+G3.9 mengikuti dokumen 20/21.
+
+### Action
+
+Semua control Dashboard yang enabled/clickable wajib mempunyai affordance:
+
+```text
+functional gradient background
+soft functional border
+subtle shared action shadow
+visible focus
+pressed state
+adequate touch target
+```
+
+Gradient enabled action harus terlihat berbeda dari background aplikasi/card.
+Flat tonal background dicadangkan untuk information/status/context.
+
+Outline-only tidak menjadi pola utama Dashboard G3.9.
+
+Rule ini scoped ke Dashboard/action component. Jangan mengubah semua `.btn`
+global sehingga form/modal/module lain ikut berubah tanpa audit.
+
+### Hard Affordance Contract
+
+Pada Dashboard G3.9, background **tidak otomatis berarti tombol**.
+
+```text
+enabled clickable action
+→ functional GRADIENT background
+→ soft functional border
+→ shared subtle action shadow
+→ hover/focus/pressed state
+
+metric / badge / status / context / work surface
+→ FLAT tonal background
+→ no gradient
+→ no action shadow
+→ no pressed state
+
+disabled / expired action
+→ flat neutral grey
+→ no gradient
+→ no action shadow
+→ no pointer action
+```
+
+Dengan demikian:
+
+```text
+GRADIENT = enabled action
+FLAT     = information/status/context
+SHADOW   = interactivity
+```
+
+Work Surface `Hari Ini` dapat memakai emphasized border ketika current, tetapi
+tidak memakai action shadow karena keseluruhan surface bukan tombol.
+
+Outer Sneat card boleh memakai ambient theme elevation; itu bukan action shadow.
+
+### Metric
+
+Metric Summary adalah informasi:
+
+```text
+soft tonal background
+icon
+value sebagai hierarchy utama
+label
+optional metadata
+```
+
+Metric tidak memakai button-like shadow, pressed state, chevron action, atau
+pointer cue palsu.
+
+### State Override
+
+```text
+available           → functional gradient
+current/priority    → stronger functional gradient
+completed           → success/green
+not started         → neutral/light
+late actionable     → amber
+expired/disabled    → neutral grey + no shadow
+error/destructive   → danger/red
+not applicable      → muted neutral
+```
+
+Expired tidak menjadi danger hanya karena time-window berakhir.
+
+Status chip tetap berbeda dari button.
+
+### Heading
+
+Generic heading `Aksi Cepat` bukan canonical. Gunakan heading context-aware atau
+hilangkan heading bila konteks komponen sudah jelas.
+
+### Shared CSS
+
+Radius/shadow/color family harus memakai shared token/class dan tetap mengikuti
+Sneat global standard.

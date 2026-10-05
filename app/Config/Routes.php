@@ -8,6 +8,7 @@ $routes->get('/', 'Auth::login');
 $routes->get('auth/login', 'Auth::login');
 $routes->post('auth/login', 'Auth::login');
 $routes->post('auth/logout', 'Auth::logout', ['filter' => 'auth']);
+$routes->get('auth/logout', 'Auth::logoutFallback');
 
 $routes->group('api', static function ($routes) {
     $routes->post('auth/login', 'Auth::apiLogin');

@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.8 — CLOSED / MERGED — PR #17; G4 NOT STARTED
+**Development aktif:** G3.9 — ACTIVE — Draft PR #18; G4 NOT STARTED
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -46,7 +46,7 @@ kesehatan
 ptsp
 ```
 
-Wali Kelas adalah context Guru, bukan role baru. Kesehatan dan PTSP memakai identity Pegawai. Multi-role diperbolehkan.
+Wali Kelas adalah context Guru, bukan role baru. Pada contract G3.9, BK/Kesehatan/PTSP adalah operational role yang dapat dijalankan oleh valid staff identity Guru atau Pegawai. Multi-role diperbolehkan sesuai whitelist G3.9.
 
 ## 4. Identity UX
 
@@ -682,4 +682,97 @@ merge commit           = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 main after merge       = 2a22d4d8a4d8fce9ec1dd27504b9ef77c357dec9
 hosting deployment     = NOT AUTHORIZED / NOT EXECUTED
 G4/Cordova             = NOT STARTED
+```
+
+
+### G3.9 — Dashboard Experience V2
+
+Baseline:
+
+```text
+main   = 95bedb09200ed954c60ea34fa0d8665d471528da
+branch = feat/g3-9-dashboard-experience-v2-20261003
+G3.8   = CLOSED / MERGED — PR #17
+```
+
+G3.9 ditempatkan setelah G3.8 dan sebelum G4. Phase ini merapikan Dashboard
+experience/composition tanpa membuat project Cordova.
+
+Canonical references:
+
+```text
+docs/20_G3_9_DASHBOARD_EXPERIENCE_V2 — SisisFour.md
+docs/21_G3_9_DASHBOARD_VISUAL_STATE_MATRIX — SisisFour.md
+```
+
+Contract utama:
+
+```text
+users.role     = Role 1 / Primary Role / pemilik Dashboard
+user_roles     = additional roles
+Wali           = context Guru, bukan role
+
+Metric Summary = Role 1
+EWS / Access   = Role 1
+Data / Activity= Role 1
+
+Admin / Operator / Pimpinan
+→ tidak mempunyai Primary Action Surface
+
+BK / Kesehatan / PTSP / Guru
+→ dapat mempunyai Primary Action Surface
+
+secondary Operator/Pimpinan
+→ capability/menu tetap union
+→ tidak menambah action section Dashboard
+```
+
+G3.9 juga menormalkan perbedaan antara **person master identity** dan
+**operational role**:
+
+```text
+person identity:
+Guru    → id_guru
+Pegawai → id_pegawai
+Siswa   → id_siswa
+
+staff operational role:
+BK / Kesehatan / PTSP
+→ authorization berdasarkan effective role + permission + scope
+→ tidak mewajibkan duplicate Guru/Pegawai master
+```
+
+Guru dan Pegawai tetap mutual-exclusive pada master person. Satu user tidak dibuat
+mempunyai duplicate person record hanya untuk memenuhi secondary role.
+
+G3.9 current implementation status:
+
+```text
+audit/spec                    = DONE
+composition contract          = LOCKED / IMPLEMENTED
+identity contract             = LOCKED / IMPLEMENTED
+role ordering                 = LOCKED / IMPLEMENTED
+role whitelist                = LOCKED / IMPLEMENTED
+visual state matrix           = LOCKED / IMPLEMENTED
+gradient action affordance    = LOCKED / IMPLEMENTED
+multi-role Sidebar            = LOCKED / IMPLEMENTED
+DB/schema/SQL                 = NONE
+focused visual smoke          = PASS / user runtime evidence
+static all-role regression    = PASS / GitHub read evidence
+technical executable gate      = PASS — 22 tests / 59 assertions; lint/routes/diff/status PASS
+final all-role runtime          = PENDING exact final head
+final 360px/WebView close-out = PENDING exact final head
+PR G3.9                       = #18 / DRAFT
+G4/Cordova                    = NOT STARTED
+```
+
+Focused runtime evidence yang sudah diterima pada G3.9:
+
+```text
+Guru + Kesehatan
+BK + Kesehatan + PTSP
+Guru + Wali + Kesehatan
+Guru + PTSP
+functional gradient action UI
+multi-role Sidebar grouping
 ```

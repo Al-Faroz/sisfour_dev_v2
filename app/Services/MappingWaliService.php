@@ -322,6 +322,12 @@ class MappingWaliService
             return $validation;
         }
 
+        $roleValidation = $this->validateWaliRoleContract($idGuru);
+
+        if ($roleValidation !== null) {
+            return $roleValidation;
+        }
+
         $guruAktif = $this->mappingModel
             ->findAktifByGuruTahun(
                 $idGuru,
@@ -566,6 +572,14 @@ class MappingWaliService
             ];
         }
 
+        $roleValidation = $this->validateWaliRoleContract(
+            (int) $mapping['id_guru']
+        );
+
+        if ($roleValidation !== null) {
+            return $roleValidation;
+        }
+
         if (
             ! $this->mappingModel->restoreMapping(
                 $id,
@@ -789,6 +803,52 @@ class MappingWaliService
         }
 
         return null;
+    }
+
+    private function validateWaliRoleContract(int $idGuru): ?array
+    {
+        $user = $this->db
+            ->table('users')
+            ->select('id, role, id_guru, id_pegawai, id_siswa')
+            ->where('id_guru', $idGuru)
+            ->where('status_aktif', 1)
+            ->get()
+            ->getRowArray();
+
+        // Preserve legacy ability to keep mapping data even when a Guru account
+        // has not been provisioned. The contract becomes enforceable as soon as
+        // an active user is linked to the Guru identity.
+        if ($user === null) {
+            return null;
+        }
+
+        $userId = (int) ($user['id'] ?? 0);
+        $primary = trim((string) ($user['role'] ?? ''));
+        $effectiveRoles = $this->authService->getUserRoles($userId);
+        $secondary = array_values(array_diff(
+            $effectiveRoles,
+            $primary !== '' ? [$primary] : []
+        ));
+
+        $policy = RoleAssignmentPolicyService::validate(
+            $primary !== '' ? $primary : null,
+            $secondary,
+            (int) ($user['id_guru'] ?? 0) ?: null,
+            (int) ($user['id_pegawai'] ?? 0) ?: null,
+            (int) ($user['id_siswa'] ?? 0) ?: null,
+            true
+        );
+
+        if ($policy['success']) {
+            return null;
+        }
+
+        return [
+            'success' => false,
+            'code' => 'ROLE_COMBINATION',
+            'message' => 'Guru tidak dapat dijadikan Wali sebelum konfigurasi role diperbaiki. '
+                . (string) $policy['message'],
+        ];
     }
 
     protected function getOneActive(int $id): ?array

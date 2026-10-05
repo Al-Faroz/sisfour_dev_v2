@@ -16,7 +16,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
     <p class="text-muted mb-0">Ringkasan sistem dan operasional SisisFour.</p>
   </div>
   <div class="sisfour-page-actions">
-    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary sisfour-touch-target">
+    <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
       <i class="bx bx-tv me-1"></i>EWS Signage
     </a>
     <span class="badge bg-label-primary fs-6">
@@ -25,66 +25,63 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   </div>
 </div>
 
-<div class="row g-3 mb-4">
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Ringkasan Sistem</h5>
+  <small class="text-muted">Data master aktif</small>
+</div>
+<div class="sisfour-metric-grid mb-4">
   <?php foreach ([
-    ['Siswa Aktif', $master['siswa'] ?? 0, 'bx-group', 'primary'],
-    ['Guru', $master['guru'] ?? 0, 'bx-chalkboard', 'success'],
-    ['Pegawai', $master['pegawai'] ?? 0, 'bx-id-card', 'info'],
-    ['Kelas Aktif', $master['kelas'] ?? 0, 'bx-door-open', 'warning'],
+    ['Siswa Aktif', $master['siswa'] ?? 0, 'bx-group', 'indigo'],
+    ['Guru', $master['guru'] ?? 0, 'bx-chalkboard', 'blue'],
+    ['Pegawai', $master['pegawai'] ?? 0, 'bx-id-card', 'cyan'],
+    ['Kelas Aktif', $master['kelas'] ?? 0, 'bx-door-open', 'violet'],
   ] as $card): ?>
-    <div class="col-6 col-xl-3">
-      <div class="card h-100">
-        <div class="card-body d-flex align-items-center gap-3">
-          <span class="avatar-initial rounded bg-label-<?= esc($card[3]) ?> p-2"><i class="bx <?= esc($card[2]) ?>"></i></span>
-          <div>
-            <small class="text-muted d-block"><?= esc($card[0]) ?></small>
-            <div class="fs-3 fw-bold lh-sm mt-1"><?= (int) $card[1] ?></div>
-          </div>
-        </div>
-      </div>
+    <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--<?= esc($card[3]) ?>">
+      <span class="sisfour-metric-tile__icon"><i class="bx <?= esc($card[2]) ?>"></i></span>
+      <strong class="sisfour-metric-tile__value"><?= (int) $card[1] ?></strong>
+      <span class="sisfour-metric-tile__label"><?= esc($card[0]) ?></span>
     </div>
   <?php endforeach; ?>
 </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-md-4">
-    <div class="card h-100"><div class="card-body">
-      <small class="text-muted">Kelas Wajib Presensi</small>
-      <div class="fs-3 fw-bold lh-sm my-1"><?= (int) ($presensi['wajib_kelas'] ?? 0) ?></div>
-      <div class="small"><span class="text-success">Sudah <?= (int) ($presensi['sudah_kelas'] ?? 0) ?></span> · <span class="text-danger">Belum <?= (int) ($presensi['belum_kelas'] ?? 0) ?></span></div>
-    </div></div>
+<div class="sisfour-dashboard-heading">
+  <h5 class="mb-0">Kondisi Operasional</h5>
+  <small class="text-muted">Presensi, jurnal, dan EWS</small>
+</div>
+<div class="sisfour-metric-grid sisfour-metric-grid--3 mb-4">
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--blue">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-list-check"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($presensi['wajib_kelas'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Kelas Wajib Presensi</span>
+    <span class="sisfour-metric-tile__meta">Sudah <?= (int) ($presensi['sudah_kelas'] ?? 0) ?> · Belum <?= (int) ($presensi['belum_kelas'] ?? 0) ?></span>
   </div>
-  <div class="col-md-4">
-    <div class="card h-100"><div class="card-body">
-      <small class="text-muted">Jadwal Wajib Jurnal</small>
-      <div class="fs-3 fw-bold lh-sm my-1"><?= (int) ($jurnal['wajib'] ?? 0) ?></div>
-      <div class="small"><span class="text-success">Sudah <?= (int) ($jurnal['sudah'] ?? 0) ?></span> · <span class="text-danger">Belum <?= (int) ($jurnal['belum'] ?? 0) ?></span></div>
-    </div></div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--violet">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-book-content"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($jurnal['wajib'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">Jadwal Wajib Jurnal</span>
+    <span class="sisfour-metric-tile__meta">Sudah <?= (int) ($jurnal['sudah'] ?? 0) ?> · Belum <?= (int) ($jurnal['belum'] ?? 0) ?></span>
   </div>
-  <div class="col-md-4">
-    <div class="card h-100"><div class="card-body">
-      <small class="text-muted">EWS Alpha 14 Hari</small>
-      <div class="fs-3 fw-bold lh-sm my-1 text-danger"><?= (int) ($widgets['ews_count'] ?? 0) ?></div>
-      <small class="text-muted">Siswa dengan ≥3 Alpha, Sesi Awal.</small>
-    </div></div>
+  <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--amber">
+    <span class="sisfour-metric-tile__icon"><i class="bx bx-radar"></i></span>
+    <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['ews_count'] ?? 0) ?></strong>
+    <span class="sisfour-metric-tile__label">EWS Alpha 14 Hari</span>
+    <span class="sisfour-metric-tile__meta">Siswa dengan ≥3 Alpha Sesi Awal</span>
   </div>
 </div>
 
 <div class="card mb-4">
   <div class="card-header"><h5 class="mb-0">Presensi Siswa Hari Ini — Sesi Awal</h5></div>
   <div class="card-body">
-    <div class="row g-3 text-center">
+    <div class="sisfour-context-stat-grid">
       <?php foreach ([
         ['Hadir', $presensi['hadir'] ?? 0, 'success'],
         ['Sakit', $presensi['sakit'] ?? 0, 'warning'],
         ['Izin', $presensi['izin'] ?? 0, 'info'],
         ['Alpha', $presensi['alpha'] ?? 0, 'danger'],
       ] as $item): ?>
-        <div class="col-6 col-md-3">
-          <div class="border rounded p-3 h-100">
-            <small class="text-muted d-block"><?= esc($item[0]) ?></small>
-            <div class="fs-4 fw-bold text-<?= esc($item[2]) ?> mt-1"><?= (int) $item[1] ?></div>
-          </div>
+        <div class="sisfour-context-stat">
+          <small class="text-muted d-block"><?= esc($item[0]) ?></small>
+          <strong class="text-<?= esc($item[2]) ?>"><?= (int) $item[1] ?></strong>
         </div>
       <?php endforeach; ?>
     </div>

@@ -354,12 +354,11 @@ class AuthService
     }
 
     /**
-     * Role Kesehatan adalah role berbasis Pegawai.
+     * G3.9: role Kesehatan adalah operational role.
      *
-     * Jika permission UKS masih bisa diperoleh dari effective role lain
-     * (mis. Admin/Pimpinan/Guru/Siswa sesuai permission), identity Pegawai
-     * tidak dipaksakan. Tetapi bila grant hanya berasal dari role kesehatan,
-     * users.id_pegawai wajib tersedia.
+     * Jika grant hanya berasal dari role kesehatan, actor wajib mempunyai
+     * staff person identity (Guru atau Pegawai). Effective role lain yang
+     * memang mempunyai permission UKS tetap dapat memberi akses independen.
      */
     private function uksPermissionIdentityValid(
         string $permissionKey,
@@ -373,13 +372,16 @@ class AuthService
 
         $user = $this->db
             ->table('users')
-            ->select('id_pegawai')
+            ->select('id_guru, id_pegawai')
             ->where('id', $userId)
             ->where('status_aktif', 1)
             ->get()
             ->getRowArray();
 
-        if ((int) ($user['id_pegawai'] ?? 0) > 0) {
+        if (
+            (int) ($user['id_guru'] ?? 0) > 0
+            || (int) ($user['id_pegawai'] ?? 0) > 0
+        ) {
             return true;
         }
 
@@ -398,11 +400,11 @@ class AuthService
     }
 
     /**
-     * Role PTSP adalah role berbasis Pegawai.
+     * G3.9: role PTSP adalah operational role.
      *
-     * Bila permission PTSP hanya berasal dari role ptsp, users.id_pegawai
-     * wajib valid. Effective role lain yang memang mempunyai permission PTSP
-     * tetap dapat memberikan akses secara independen.
+     * Bila permission PTSP hanya berasal dari role ptsp, actor wajib mempunyai
+     * staff person identity (Guru atau Pegawai). Effective role lain yang
+     * memang mempunyai permission PTSP tetap dapat memberi akses independen.
      */
     private function ptspPermissionIdentityValid(
         string $permissionKey,
@@ -416,13 +418,16 @@ class AuthService
 
         $user = $this->db
             ->table('users')
-            ->select('id_pegawai')
+            ->select('id_guru, id_pegawai')
             ->where('id', $userId)
             ->where('status_aktif', 1)
             ->get()
             ->getRowArray();
 
-        if ((int) ($user['id_pegawai'] ?? 0) > 0) {
+        if (
+            (int) ($user['id_guru'] ?? 0) > 0
+            || (int) ($user['id_pegawai'] ?? 0) > 0
+        ) {
             return true;
         }
 
