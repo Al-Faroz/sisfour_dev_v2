@@ -42,7 +42,7 @@
 
         <?php if (! empty($initial['can_export'])): ?>
         <div class="modal fade" id="modalKonselingExport" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form class="modal-content" id="formKonselingExport">
-            <div class="modal-header"><div><h5 class="modal-title mb-1">Export Konseling BK</h5><small class="text-muted">Data Konseling bersifat rahasia. Pilih workbook sesuai kebutuhan penggunaan.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+            <div class="modal-header align-items-start gap-3"><div class="flex-grow-1 min-w-0"><h5 class="modal-title mb-1">Export Konseling BK</h5><small class="text-muted d-block">Data Konseling bersifat rahasia. Pilih workbook sesuai kebutuhan penggunaan.</small></div><button type="button" class="btn-close flex-shrink-0 ms-auto mt-1" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
             <div class="modal-body">
                 <h6 class="mb-2">Cakupan Data</h6>
                 <div class="vstack gap-2 mb-4">
