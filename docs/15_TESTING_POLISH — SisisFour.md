@@ -1835,7 +1835,21 @@ unit tests
 working tree clean
 ```
 
-Final exact-head static/unit/diff regression tetap wajib dijalankan setelah seluruh
-source + docs closure sync. Runtime/UAT PASS tidak menggantikan regression tersebut.
+Final exact-head regression evidence 2026-10-05:
 
-G3.10 may not be Ready/merge/deploy without explicit user approval.
+```text
+Exact local/remote head                a0b7ec6
+PHP lint changed closure surfaces      PASS
+JavaScript syntax                      PASS
+Routes                                 PASS
+FunctionalConsistencyTest              PASS — 26/26, 75 assertions
+Code coverage driver                   WARNING ONLY
+git diff --check                       PASS
+working tree                           CLEAN / synced with origin
+```
+
+Dengan runtime/UAT dan final exact-head regression sama-sama PASS, G3.10 berada pada
+status **CLOSURE-READY**.
+
+CLOSURE-READY bukan approval untuk Ready/merge/deploy. PR #19 tetap Draft sampai ada
+approval eksplisit user.
