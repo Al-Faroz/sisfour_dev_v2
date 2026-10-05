@@ -116,6 +116,49 @@
   gap: 0.5rem;
 }
 
+/* ---------- Export modal ---------- */
+.sisfour-export-modal .modal-dialog {
+  max-width: 35rem;
+}
+
+.sisfour-export-modal .modal-content {
+  overflow: hidden;
+  border: 0;
+  border-radius: 0.85rem;
+}
+
+.sisfour-export-modal .modal-header {
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem 0.9rem;
+  border-bottom: 0;
+}
+
+.sisfour-export-modal .modal-header > .flex-grow-1 {
+  min-width: 0;
+}
+
+.sisfour-export-modal .sisfour-export-modal__close {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto !important;
+  padding: 0.45rem !important;
+  opacity: 0.65;
+}
+
+.sisfour-export-modal .sisfour-export-modal__close:hover,
+.sisfour-export-modal .sisfour-export-modal__close:focus {
+  opacity: 1;
+}
+
+.sisfour-export-modal .modal-body {
+  padding: 0.75rem 1.5rem 1rem;
+}
+
+.sisfour-export-modal .modal-footer {
+  padding: 0.75rem 1.5rem 1.35rem;
+  border-top: 0;
+}
+
 /* ---------- Pagination ---------- */
 .sisfour-pager {
   display: flex;
@@ -222,6 +265,22 @@
 }
 
 @media (max-width: 575.98px) {
+  .sisfour-export-modal .modal-dialog {
+    margin: 0.75rem;
+  }
+
+  .sisfour-export-modal .modal-header {
+    padding: 1.15rem 1rem 0.8rem;
+  }
+
+  .sisfour-export-modal .modal-body {
+    padding: 0.65rem 1rem 0.85rem;
+  }
+
+  .sisfour-export-modal .modal-footer {
+    padding: 0.7rem 1rem 1rem;
+  }
+
   .sisfour-page-actions > .btn,
   .sisfour-page-actions > a.btn {
     flex: 1 1 auto;

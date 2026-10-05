@@ -99,9 +99,9 @@
         </div>
 
         <?php if (! empty($initial['can_manage'])): ?>
-            <div class="modal fade" id="modalKasusExport" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog"><form class="modal-content" id="formKasusExport">
-                    <div class="modal-header align-items-start gap-3"><div class="flex-grow-1 min-w-0"><h5 class="modal-title mb-1">Export Catatan Pelanggaran</h5><small class="text-muted d-block">Pilih cakupan data dan tingkat detail workbook.</small></div><button type="button" class="btn-close flex-shrink-0 ms-auto mt-1" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+            <div class="modal fade sisfour-export-modal" id="modalKasusExport" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="formKasusExport">
+                    <div class="modal-header align-items-start gap-3"><div class="flex-grow-1 min-w-0"><h5 class="modal-title mb-1">Export Catatan Pelanggaran</h5><small class="text-muted d-block">Pilih cakupan data dan tingkat detail workbook.</small></div><button type="button" class="btn-close sisfour-export-modal__close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                     <div class="modal-body">
                         <h6 class="mb-2">Cakupan Data</h6>
                         <div class="vstack gap-2 mb-4">
