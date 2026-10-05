@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.10 — Student Services Expansion — Draft PR #19 stacked on PR #18; G4 NOT STARTED
+**Development aktif:** G3.10 — Student Services Expansion — CLOSURE-READY / Draft PR #19 stacked on PR #18; G4 BLOCKED pending G3.9 final runtime closure + stack close decision
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -257,7 +257,9 @@ G3.6B PTSP                             CLOSED / MERGED — PR #14
 G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
 G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
 G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
-G4    Cordova APK                            NOT STARTED
+G3.9  Dashboard Experience V2                IMPLEMENTED / FINAL RUNTIME CLOSURE PENDING — PR #18 DRAFT
+G3.10 Student Services Expansion             CLOSURE-READY — PR #19 DRAFT / STACKED ON G3.9
+G4    Cordova APK                            BLOCKED UNTIL G3.9 + G3.10 STABLE/CLOSED
 ```
 
 ### G3.6A — UKS / Kesehatan
@@ -501,6 +503,15 @@ merge commit                      59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
 ## 15. G4 — Cordova APK
+
+Start gate G4:
+
+```text
+G3.9 final runtime closure = PASS
+G3.10 closure             = PASS
+PR stack disposition      = explicit user decision
+G4                        = baru boleh START setelah G3 stable
+```
 
 Setelah G3 stable:
 

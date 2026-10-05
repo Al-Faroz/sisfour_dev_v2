@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.10 — Student Services Expansion — implementation branch stacked on G3.9; G4 NOT STARTED
+**Development aktif:** G3.10 — Student Services Expansion — CLOSURE-READY / Draft PR #19 stacked on G3.9; G4 BLOCKED until G3.9 + G3.10 are stable/closed
 **Branch aktif:** `feat/g3-10-student-services-expansion-20261004`
 **Baseline `main`:** G3.8 closed baseline `95bedb09200ed954c60ea34fa0d8665d471528da`
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
