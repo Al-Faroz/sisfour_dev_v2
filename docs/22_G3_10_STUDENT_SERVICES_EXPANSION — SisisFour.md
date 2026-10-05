@@ -60,22 +60,24 @@ Hard rules:
 9. follow-up tetap tersimpan per `catatan_kasus`; bulk/fan-out follow-up kelompok boleh membuat child per anggota dalam satu transaction;
 10. no point/scoring tetap berlaku.
 
-Export Catatan Pelanggaran:
+Export Catatan Pelanggaran mengikuti kontrak G3.10C:
 
 ```text
-Sheet 1 Pelanggaran
-  one row per student
-  + Mode
-  + ID Kelompok
-  + Jumlah Anggota
+RINGKAS
+1. Ringkasan
+2. Rekap Pelanggaran
+3. Tindak Lanjut
 
-Sheet 2 Kelompok Pelanggaran
-  one row per group event
-
-Sheet 3 Tindak Lanjut
-  one row per student follow-up
-  + ID Kelompok
+LENGKAP / AUDIT
+1. Ringkasan
+2. Data Pelanggaran
+3. Riwayat Tindak Lanjut
+4. Kejadian Kelompok
 ```
+
+Mode Ringkas tidak membawa NISN, ID Catatan/ID Kelompok, timestamp audit, atau sheet
+Kejadian Kelompok terpisah. Mode Lengkap/Audit mempertahankan metadata tersebut untuk
+tracing.
 
 ## 3. G3.10A — Konseling Kelompok
 
@@ -130,17 +132,26 @@ Rules:
 7. no-delete contract parent/follow-up tetap berlaku;
 8. parent status mengikuti tindak lanjut kelompok terbaru bila ada.
 
-Export Konseling:
+Export Konseling mengikuti kontrak G3.10C:
 
 ```text
-1. Konseling Individu
-2. Tindak Lanjut Individu
-3. Konseling Kelompok
-4. Anggota Kelompok
-5. Tindak Lanjut Kelompok
+RINGKAS
+1. Ringkasan
+2. Rekap Konseling
+3. Tindak Lanjut
+
+LENGKAP / AUDIT
+1. Ringkasan
+2. Data Konseling
+3. Detail Konseling
+4. Riwayat Tindak Lanjut
+5. Anggota Kelompok
 ```
 
-Konseling Kelompok tidak di-flatten menjadi duplikasi parent per siswa.
+Mode Ringkas menggabungkan Individu/Kelompok sebagai laporan operasional tanpa ID/NISN
+audit dan tanpa Hasil/Kesepakatan sensitif. Mode Lengkap/Audit mempertahankan detail
+tracing, anggota, actor, dan narasi sensitif. Konseling Kelompok tidak di-flatten menjadi
+duplikasi parent per siswa pada mode Lengkap/Audit.
 
 ## 4. XLSX Hardening
 
@@ -690,7 +701,20 @@ ID pada sheet utama. Mode Lengkap/Audit menambahkan informasi teknis/audit yang 
 
 ### 20.3 Workbook Catatan Pelanggaran
 
-Canonical sheet order:
+Mode Ringkas adalah laporan operasional yang sengaja berbeda dari dataset audit:
+
+```text
+1. Ringkasan
+2. Rekap Pelanggaran
+3. Tindak Lanjut
+```
+
+`Rekap Pelanggaran` hanya membawa informasi yang perlu dibaca sehari-hari:
+Tanggal, Nama Siswa, Kelas, Pelanggaran, Kategori, Jenis Kejadian, Keterangan,
+dan Jumlah Tindak Lanjut. NISN, ID internal, timestamp audit, serta sheet kejadian
+kelompok terpisah tidak dimasukkan.
+
+Mode Lengkap/Audit:
 
 ```text
 1. Ringkasan
@@ -699,30 +723,40 @@ Canonical sheet order:
 4. Kejadian Kelompok
 ```
 
-Ringkasan menyimpan Tahun Ajaran, cakupan, mode, timestamp export, filter yang digunakan,
-serta metrik jumlah catatan/siswa/kejadian kelompok/tindak lanjut.
+Mode ini membawa NISN, ID Catatan/ID Kelompok, timestamp, actor tindak lanjut, dan
+dataset kejadian kelompok untuk kebutuhan tracing.
+
+Ringkasan pada kedua mode menyimpan Tahun Ajaran, cakupan, mode, timestamp export,
+filter yang digunakan, serta metrik jumlah catatan/siswa/kejadian kelompok/tindak lanjut.
 
 ### 20.4 Workbook Konseling BK
 
-Mode Ringkas:
+Mode Ringkas adalah laporan operasional dan hanya mempunyai tiga sheet:
+
+```text
+1. Ringkasan
+2. Rekap Konseling
+3. Tindak Lanjut
+```
+
+`Rekap Konseling` menyatukan Individu/Kelompok melalui kolom `Jenis Konseling` dan
+hanya membawa Tanggal, Siswa/Kelompok, Kelas, Layanan, Bidang, Topik, Status,
+Rencana Berikutnya, dan Tanggal Berikutnya. Ringkas tidak membawa NISN, ID Referensi,
+sheet Anggota Kelompok terpisah, actor audit, Uraian Masalah, atau Hasil/Kesepakatan.
+
+Mode Lengkap/Audit mempunyai lima sheet:
 
 ```text
 1. Ringkasan
 2. Data Konseling
-3. Riwayat Tindak Lanjut
-4. Anggota Kelompok
+3. Detail Konseling
+4. Riwayat Tindak Lanjut
+5. Anggota Kelompok
 ```
 
-Mode Lengkap/Audit menambahkan:
-
-```text
-5. Detail Konseling
-```
-
-`Data Konseling` menyatukan Konseling Individu dan Kelompok melalui kolom
-`Jenis Konseling`. Narasi panjang/sensitif seperti Uraian Masalah dan
-Hasil/Kesepakatan tidak memenuhi tabel utama dan dipindahkan ke `Detail Konseling`
-pada mode Lengkap/Audit.
+Mode Lengkap/Audit membawa Tahun Ajaran, jumlah anggota, pertemuan ke-, cara hadir,
+actor, NISN/ID pada sheet audit terkait, Uraian Masalah, Hasil/Kesepakatan,
+Perkembangan, serta membership kelompok untuk kebutuhan tracing.
 
 Workbook tetap mempertahankan:
 - explicit-string protection untuk text user-controlled;
@@ -740,6 +774,7 @@ Status setelah source G3.10C diimplementasikan:
 ```text
 BK page layout/action contract      IMPLEMENTED
 Export modal scope/mode             IMPLEMENTED
+Ringkas vs Lengkap differentiation   IMPLEMENTED / RUNTIME RECHECK PENDING
 Pelanggaran workbook redesign       IMPLEMENTED
 Konseling workbook redesign         IMPLEMENTED
 DB/schema change                    NONE

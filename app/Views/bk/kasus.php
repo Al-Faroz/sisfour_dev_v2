@@ -110,8 +110,8 @@
                         </div>
                         <h6 class="mb-2">Format Workbook</h6>
                         <div class="vstack gap-2">
-                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="ringkas" checked><span><strong>Ringkas</strong><small class="d-block text-muted">Human-readable, ID teknis diminimalkan. Direkomendasikan untuk penggunaan harian.</small></span></label>
-                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="lengkap"><span><strong>Lengkap / Audit</strong><small class="d-block text-muted">Menyertakan kolom ID internal dan detail audit tambahan.</small></span></label>
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="ringkas" checked><span><strong>Ringkas</strong><small class="d-block text-muted">3 sheet laporan operasional; tanpa NISN, ID teknis, timestamp audit, dan sheet kejadian kelompok terpisah.</small></span></label>
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="lengkap"><span><strong>Lengkap / Audit</strong><small class="d-block text-muted">4 sheet audit; menyertakan NISN, ID Catatan/Kelompok, timestamp, serta detail kejadian kelompok.</small></span></label>
                         </div>
                     </div>
                     <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary"><i class="bx bx-export me-1"></i> Export XLSX</button></div>
