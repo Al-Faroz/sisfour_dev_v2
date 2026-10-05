@@ -150,7 +150,6 @@ class KonselingBkExportService
             $followRows[] = [
                 count($followRows) + 1,
                 'INDIVIDU',
-                (int) ($row['id_konseling'] ?? 0),
                 $row['tanggal_konseling'] ?? '',
                 $row['tanggal'] ?? '',
                 $row['nama_siswa'] ?? '',
@@ -161,6 +160,7 @@ class KonselingBkExportService
                 $row['tanggal_berikutnya'] ?? '',
                 $row['status'] ?? '',
                 $row['nama_pencatat'] ?? $row['username_pencatat'] ?? '',
+                (int) ($row['id_konseling'] ?? 0),
             ];
         }
         foreach ($groupFollowUps as $row) {
@@ -169,7 +169,6 @@ class KonselingBkExportService
             $followRows[] = [
                 count($followRows) + 1,
                 'KELOMPOK',
-                $groupId,
                 $parent['tanggal'] ?? '',
                 $row['tanggal'] ?? '',
                 implode('; ', $membersByGroup[$groupId] ?? []),
@@ -180,6 +179,7 @@ class KonselingBkExportService
                 $row['tanggal_berikutnya'] ?? '',
                 $row['status'] ?? '',
                 $row['nama_pencatat'] ?? $row['username_pencatat'] ?? '',
+                $groupId,
             ];
         }
         usort($followRows, static function (array $a, array $b): int {
@@ -247,10 +247,10 @@ class KonselingBkExportService
                 $followSheet,
                 'Riwayat Tindak Lanjut',
                 [
-                    'No', 'Jenis Konseling', 'ID Referensi', 'Tanggal Konseling',
+                    'No', 'Jenis Konseling', 'Tanggal Konseling',
                     'Tanggal Tindak Lanjut', 'Siswa / Anggota', 'Kelas',
                     'Perkembangan', 'Hasil / Kesepakatan', 'Rencana Berikutnya',
-                    'Tanggal Berikutnya', 'Status', 'Dicatat Oleh',
+                    'Tanggal Berikutnya', 'Status', 'Dicatat Oleh', 'ID Referensi',
                 ],
                 $followRows
             );

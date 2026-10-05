@@ -89,7 +89,7 @@
         <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Riwayat Pelanggaran</h5>
-                <span class="text-muted small">Gunakan filter di atas untuk mempersempit data.</span>
+                <span class="text-muted small" id="kasusTotal"><?= number_format((int) ($initial['total'] ?? 0), 0, ',', '.') ?> catatan</span>
             </div>
             <div id="kasusMobileList" class="d-md-none list-group list-group-flush"></div>
             <div class="d-none d-md-block table-responsive">

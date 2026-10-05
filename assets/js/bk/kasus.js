@@ -21,6 +21,7 @@
   const detailContent = document.getElementById('detailKasusContent');
   const formTindak = document.getElementById('formTindakLanjut');
   const timeline = document.getElementById('timelineTindakLanjut');
+  const totalLabel = document.getElementById('kasusTotal');
   if (!body || !mobileList) return;
 
   const state = { limit: 25, offset: 0, total: 0 };
@@ -103,7 +104,7 @@
       const payload=await requestJson(`${base}/bk/kasus?${params(true)}`); const data=payload.data||{}; const rows=Array.isArray(data.rows)?data.rows:[];
       state.total=Number(data.total||0); state.limit=Number(data.limit||state.limit); state.offset=Number(data.offset??state.offset);
       if (!rows.length && state.total>0 && state.offset>=state.total) { state.offset=Math.floor((state.total-1)/state.limit)*state.limit; await load(); return; }
-      hideAlert(); renderRows(rows, Boolean(data.can_manage)); pager?.render(state);
+      hideAlert(); renderRows(rows, Boolean(data.can_manage)); pager?.render(state); if (totalLabel) totalLabel.textContent=`${state.total} catatan`;
     } catch(error) { show(error.message||'Data pelanggaran gagal dimuat.'); } finally { pager?.setDisabled(false); }
   }
 
