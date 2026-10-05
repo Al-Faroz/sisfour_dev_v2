@@ -48,121 +48,24 @@ class BkExportService
         }
 
         $caseMap = [];
-        $dataRows = [];
         $studentIds = [];
         $individualCount = 0;
         $groupCaseIds = [];
 
-        foreach ($caseRows as $i => $row) {
+        foreach ($caseRows as $row) {
             $idKasus = (int) ($row['id'] ?? 0);
             $idGroup = (int) ($row['id_kelompok'] ?? 0);
             $kelas = trim((string) ($row['nama_kelas'] ?? '')) ?: '-';
-            $period = $this->periodLabel($row);
+
             $caseMap[$idKasus] = $row + [
-                'tahun_label' => $period,
+                'tahun_label' => $this->periodLabel($row),
                 'nama_kelas' => $kelas,
             ];
-            $studentIds[(int) ($row['id_siswa'] ?? 0)] = true;
-            if ($idGroup > 0) {
-                $groupCaseIds[$idGroup] = true;
-            } else {
-                $individualCount++;
-            }
 
-            $export = [
-                $i + 1,
-                $row['tanggal'] ?? '',
-                $period,
-                $row['nisn'] ?? '',
-                $row['nama_siswa'] ?? '',
-                $kelas,
-                $idGroup > 0 ? 'KELOMPOK' : 'INDIVIDU',
-                $idGroup > 0 ? ($groupCount[$idGroup] ?? 0) : 1,
-                $row['nama_pelanggaran'] ?? '',
-                $row['kategori'] ?? '',
-                $row['keterangan'] ?? '',
-                $followUpCount[$idKasus] ?? 0,
-            ];
-
-            if ($mode === 'lengkap') {
-                $export[] = $idKasus;
-                $export[] = $idGroup ?: '';
-                $export[] = $row['created_at'] ?? '';
-            }
-
-            $dataRows[] = $export;
-        }
-
-        $followRows = [];
-        foreach ($followUps as $i => $followUp) {
-            $idKasus = (int) ($followUp['id_kasus'] ?? 0);
-            $case = $caseMap[$idKasus] ?? [];
-            $row = [
-                $i + 1,
-                $followUp['tanggal'] ?? '',
-                $case['nama_siswa'] ?? '',
-                $case['nama_kelas'] ?? '-',
-                $case['nama_pelanggaran'] ?? '',
-                $followUp['tindak_lanjut'] ?? '',
-                $followUp['keterangan'] ?? '',
-                $followUp['nama_input'] ?? $followUp['username_input'] ?? '',
-            ];
-            if ($mode === 'lengkap') {
-                $row[] = $idKasus;
-                $row[] = (int) ($case['id_kelompok'] ?? 0) ?: '';
-                $row[] = $case['tahun_label'] ?? $this->periodLabel($case);
-                $row[] = $case['nisn'] ?? '';
-                $row[] = $case['tanggal'] ?? '';
-                $row[] = $case['kategori'] ?? '';
-            }
-            $followRows[] = $row;
-        }
-
-        $groupExportRows = [];
-        foreach ($groupRows as $i => $group) {
-            $row = [
-                $i + 1,
-                $group['tanggal'] ?? '',
-                $this->periodLabel($group),
-                $group['nama_pelanggaran'] ?? '',
-                $group['kategori'] ?? '',
-                (int) ($group['jumlah_anggota'] ?? 0),
-                $group['keterangan'] ?? '',
-                $group['nama_pencatat'] ?? $group['username_pencatat'] ?? '',
-            ];
-            if ($mode === 'lengkap') {
-                $row[] = (int) ($group['id'] ?? 0);
-            }
-            $groupExportRows[] = $row;
-        }
-
-        $dataHeaders = [
-            'No', 'Tanggal', 'Tahun Ajaran', 'NISN', 'Nama Siswa', 'Kelas',
-            'Mode', 'Jumlah Anggota', 'Pelanggaran', 'Kategori', 'Keterangan',
-            'Jumlah Tindak Lanjut',
-        ];
-        if ($mode === 'lengkap') {
-            array_push($dataHeaders, 'ID Catatan', 'ID Kelompok', 'Dibuat Pada');
-        }
-
-        $followHeaders = [
-            'No', 'Tanggal Tindak Lanjut', 'Nama Siswa', 'Kelas', 'Pelanggaran',
-            'Tindak Lanjut', 'Keterangan', 'Dicatat Oleh',
-        ];
-        if ($mode === 'lengkap') {
-            array_push(
-                $followHeaders,
-                'ID Catatan', 'ID Kelompok', 'Tahun Ajaran', 'NISN',
-                'Tanggal Pelanggaran', 'Kategori'
-            );
-        }
-
-        $groupHeaders = [
-            'No', 'Tanggal', 'Tahun Ajaran', 'Pelanggaran', 'Kategori',
-            'Jumlah Anggota', 'Keterangan', 'Dicatat Oleh',
-        ];
-        if ($mode === 'lengkap') {
-            $groupHeaders[] = 'ID Kelompok';
+            $idSiswa = (int) ($row['id_siswa'] ?? 0);
+            if ($idSiswa > 0) $studentIds[$idSiswa] = true;
+            if ($idGroup > 0) $groupCaseIds[$idGroup] = true;
+            else $individualCount++;
         }
 
         try {
@@ -180,7 +83,7 @@ class BkExportService
                 ],
                 [
                     'Total Catatan Siswa' => count($caseRows),
-                    'Siswa Unik' => count(array_filter(array_keys($studentIds))),
+                    'Siswa Unik' => count($studentIds),
                     'Catatan Individu' => $individualCount,
                     'Kejadian Kelompok' => count($groupCaseIds),
                     'Total Tindak Lanjut' => count($followUps),
@@ -188,14 +91,114 @@ class BkExportService
                 $this->filterSummary((array) ($data['filter'] ?? []))
             );
 
-            $dataSheet = $spreadsheet->createSheet();
-            $this->writeDataSheet($dataSheet, 'Data Pelanggaran', $dataHeaders, $dataRows);
+            if ($mode === 'ringkas') {
+                $rekapRows = [];
+                foreach ($caseRows as $i => $row) {
+                    $idKasus = (int) ($row['id'] ?? 0);
+                    $idGroup = (int) ($row['id_kelompok'] ?? 0);
+                    $rekapRows[] = [
+                        $i + 1,
+                        $row['tanggal'] ?? '',
+                        $row['nama_siswa'] ?? '',
+                        trim((string) ($row['nama_kelas'] ?? '')) ?: '-',
+                        $row['nama_pelanggaran'] ?? '',
+                        $row['kategori'] ?? '',
+                        $idGroup > 0 ? 'KELOMPOK' : 'INDIVIDU',
+                        $row['keterangan'] ?? '',
+                        $followUpCount[$idKasus] ?? 0,
+                    ];
+                }
 
-            $followSheet = $spreadsheet->createSheet();
-            $this->writeDataSheet($followSheet, 'Riwayat Tindak Lanjut', $followHeaders, $followRows);
+                $followRows = [];
+                foreach ($followUps as $i => $followUp) {
+                    $idKasus = (int) ($followUp['id_kasus'] ?? 0);
+                    $case = $caseMap[$idKasus] ?? [];
+                    $followRows[] = [
+                        $i + 1,
+                        $followUp['tanggal'] ?? '',
+                        $case['nama_siswa'] ?? '',
+                        $case['nama_kelas'] ?? '-',
+                        $case['nama_pelanggaran'] ?? '',
+                        $followUp['tindak_lanjut'] ?? '',
+                        $followUp['keterangan'] ?? '',
+                        $followUp['nama_input'] ?? $followUp['username_input'] ?? '',
+                    ];
+                }
 
-            $groupSheet = $spreadsheet->createSheet();
-            $this->writeDataSheet($groupSheet, 'Kejadian Kelompok', $groupHeaders, $groupExportRows);
+                $dataSheet = $spreadsheet->createSheet();
+                $this->writeDataSheet($dataSheet, 'Rekap Pelanggaran', [
+                    'No', 'Tanggal', 'Nama Siswa', 'Kelas', 'Pelanggaran',
+                    'Kategori', 'Jenis Kejadian', 'Keterangan', 'Jumlah Tindak Lanjut',
+                ], $rekapRows);
+
+                $followSheet = $spreadsheet->createSheet();
+                $this->writeDataSheet($followSheet, 'Tindak Lanjut', [
+                    'No', 'Tanggal', 'Nama Siswa', 'Kelas', 'Pelanggaran',
+                    'Tindak Lanjut', 'Keterangan', 'Dicatat Oleh',
+                ], $followRows);
+            } else {
+                $dataRows = [];
+                foreach ($caseRows as $i => $row) {
+                    $idKasus = (int) ($row['id'] ?? 0);
+                    $idGroup = (int) ($row['id_kelompok'] ?? 0);
+                    $kelas = trim((string) ($row['nama_kelas'] ?? '')) ?: '-';
+                    $dataRows[] = [
+                        $i + 1, $row['tanggal'] ?? '', $this->periodLabel($row),
+                        $row['nisn'] ?? '', $row['nama_siswa'] ?? '', $kelas,
+                        $idGroup > 0 ? 'KELOMPOK' : 'INDIVIDU',
+                        $idGroup > 0 ? ($groupCount[$idGroup] ?? 0) : 1,
+                        $row['nama_pelanggaran'] ?? '', $row['kategori'] ?? '',
+                        $row['keterangan'] ?? '', $followUpCount[$idKasus] ?? 0,
+                        $idKasus, $idGroup ?: '', $row['created_at'] ?? '',
+                    ];
+                }
+
+                $followRows = [];
+                foreach ($followUps as $i => $followUp) {
+                    $idKasus = (int) ($followUp['id_kasus'] ?? 0);
+                    $case = $caseMap[$idKasus] ?? [];
+                    $followRows[] = [
+                        $i + 1, $followUp['tanggal'] ?? '', $case['nama_siswa'] ?? '',
+                        $case['nama_kelas'] ?? '-', $case['nama_pelanggaran'] ?? '',
+                        $followUp['tindak_lanjut'] ?? '', $followUp['keterangan'] ?? '',
+                        $followUp['nama_input'] ?? $followUp['username_input'] ?? '',
+                        $idKasus, (int) ($case['id_kelompok'] ?? 0) ?: '',
+                        $case['tahun_label'] ?? $this->periodLabel($case),
+                        $case['nisn'] ?? '', $case['tanggal'] ?? '', $case['kategori'] ?? '',
+                    ];
+                }
+
+                $groupExportRows = [];
+                foreach ($groupRows as $i => $group) {
+                    $groupExportRows[] = [
+                        $i + 1, $group['tanggal'] ?? '', $this->periodLabel($group),
+                        $group['nama_pelanggaran'] ?? '', $group['kategori'] ?? '',
+                        (int) ($group['jumlah_anggota'] ?? 0), $group['keterangan'] ?? '',
+                        $group['nama_pencatat'] ?? $group['username_pencatat'] ?? '',
+                        (int) ($group['id'] ?? 0),
+                    ];
+                }
+
+                $dataSheet = $spreadsheet->createSheet();
+                $this->writeDataSheet($dataSheet, 'Data Pelanggaran', [
+                    'No', 'Tanggal', 'Tahun Ajaran', 'NISN', 'Nama Siswa', 'Kelas',
+                    'Mode', 'Jumlah Anggota', 'Pelanggaran', 'Kategori', 'Keterangan',
+                    'Jumlah Tindak Lanjut', 'ID Catatan', 'ID Kelompok', 'Dibuat Pada',
+                ], $dataRows);
+
+                $followSheet = $spreadsheet->createSheet();
+                $this->writeDataSheet($followSheet, 'Riwayat Tindak Lanjut', [
+                    'No', 'Tanggal Tindak Lanjut', 'Nama Siswa', 'Kelas', 'Pelanggaran',
+                    'Tindak Lanjut', 'Keterangan', 'Dicatat Oleh', 'ID Catatan',
+                    'ID Kelompok', 'Tahun Ajaran', 'NISN', 'Tanggal Pelanggaran', 'Kategori',
+                ], $followRows);
+
+                $groupSheet = $spreadsheet->createSheet();
+                $this->writeDataSheet($groupSheet, 'Kejadian Kelompok', [
+                    'No', 'Tanggal', 'Tahun Ajaran', 'Pelanggaran', 'Kategori',
+                    'Jumlah Anggota', 'Keterangan', 'Dicatat Oleh', 'ID Kelompok',
+                ], $groupExportRows);
+            }
 
             $spreadsheet->setActiveSheetIndex(0);
             $result = $this->saveSpreadsheet(
@@ -222,7 +225,6 @@ class BkExportService
 
         return $result;
     }
-
     public function prestasi(array $data, int $userId): array
     {
         $prestasiRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
