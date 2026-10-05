@@ -1,7 +1,7 @@
 # SisisFour Mobile & Cordova UI/UX Standard
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
+**Tanggal Acuan:** 5 Oktober 2026
 **Baseline UI:** Sneat Free v3 + Bootstrap 5.3.x + CodeIgniter 4
 **Target utama:** Android portrait melalui browser mobile dan Cordova WebView
 **Role prioritas:** Pimpinan, BK, Guru, Guru+Wali Kelas, Siswa
@@ -340,7 +340,7 @@ restore state pada gagal
 
 ## 22. Session/Auth WebView
 
-G3 menjaga Web login/session. G4 melakukan spike strategy wrapper. Session expiry Fetch harus tampil sebagai sesi berakhir lalu arahkan login.
+G3 menjaga Web login/session. G4 memakai local Cordova shell + controlled InAppBrowser; Web login/session + CSRF tetap authoritative di CI4. Session expiry Fetch harus tampil sebagai sesi berakhir lalu arahkan login.
 
 ## 23. Download / External Link
 
@@ -383,7 +383,7 @@ G2   = stabilization
 G3.1–G3.6C = role/domain mobile foundations + feature delivery
 G3.7 = Global Mobile Sweep — CLOSED / MERGED — PR #16
 G3.8 = Viewport/WebView Readiness — CLOSED / MERGED — PR #17
-G4   = Cordova APK packaging/integration — NOT STARTED
+G4   = Cordova APK packaging/integration — G4.0 ACTIVE / ARCHITECTURE LOCKED
 ```
 
 
@@ -563,3 +563,30 @@ dikorbankan untuk mempertahankan jumlah kolom.
 
 Safe-area, visualViewport, session-expiry recovery, network error behavior, dan
 WebView readiness G3.8 tetap wajib tidak regression.
+
+## 31. G4.0 — Wrapper UI/UX Contract
+
+G4 tidak membuat UI aplikasi kedua. Runtime UI tetap CI4/Sneat dari production SisFour.
+
+```text
+local Cordova shell
+→ loading/offline/fatal shell state
+→ controlled fullscreen InAppBrowser
+→ production SisFour responsive UI
+```
+
+UX/native boundary:
+
+- internal `https://sisfour.mtsn4jombang.sch.id/*` tetap di app;
+- external HTTPS keluar melalui controlled browser;
+- `mailto:`, `tel:`, map/chat intent hanya melalui allowlist yang didukung;
+- remote page tidak mendapat arbitrary Cordova/native execution;
+- native bridge hanya untuk action eksplisit yang memang membutuhkan capability native;
+- Android Back harus mempertahankan modal/sidebar/offcanvas/dirty-form/history/root contract;
+- root/dashboard memakai keputusan double-back/exit pada spike;
+- geolocation tidak diminta saat dashboard load;
+- download/open/share mempertahankan server authorization dan session aktif;
+- offline startup memakai local shell state, bukan blank WebView;
+- tidak ada silent mutation queue/replay.
+
+Android Back dan authenticated native download adalah **high-risk spike gates** dan belum boleh dianggap PASS sampai dibuktikan pada APK nyata.

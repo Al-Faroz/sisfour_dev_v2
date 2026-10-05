@@ -1,22 +1,28 @@
 # Cordova Packaging & Integration — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
-**Current Boundary:** G3.8 WebView readiness CLOSED / MERGED — PR #17; G4/Cordova NOT STARTED
+**Tanggal Acuan:** 5 Oktober 2026
+**Current Boundary:** G3.9 + G3.10 CLOSED / MERGED; G4.0A Environment PASS; G4.0B Architecture Lock APPROVED
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
 ## 1. Target Architecture
 
 ```text
-CI4/Sneat Web Application
+Cordova Android APK
         ↓
-responsive mobile UI
+local Cordova shell (privileged)
         ↓
-Cordova Android WebView wrapper
+controlled fullscreen InAppBrowser
+        ↓
+https://sisfour.mtsn4jombang.sch.id/
+        ↓
+CI4/Sneat responsive Web UI
 ```
 
-Server tetap source of truth untuk auth, RBAC, scope, period context, business rule, validation, transaction, dan persistence.
+Primary Cordova WebView tidak memuat production URL langsung sebagai privileged remote content. Remote SisFour tidak diberi arbitrary Cordova API. Native capability hanya melalui bridge sempit yang divalidasi oleh local shell.
+
+Server tetap source of truth untuk auth, session, CSRF, RBAC, scope, period context, business rule, validation, transaction, persistence, document authorization, privacy Konseling, dan geofence decision.
 
 ## 2. Separation of Phases
 
@@ -77,20 +83,42 @@ G4/Cordova              = NOT STARTED
 
 ## 3. G4 Architecture Spike
 
-Sebelum implementasi APK penuh, spike minimal membuktikan:
+G4.0 baseline:
 
 ```text
-production/staging URL aman dibuka dalam WebView
-session/login/logout stabil
-redirect normal
-deviceready tersedia
-device Back dapat dikontrol
-geolocation permission bekerja
-download/open/share dapat ditangani
-external link diarahkan keluar WebView bila perlu
+main                         = de3efc5119f811d30f4c1759e20d244106ebd899
+branch                       = feat/g4-cordova-android-20261005
+G4.0A Environment Preflight = PASS
+G4.0B Architecture Lock     = PASS / user approval
+Cordova CLI                 = 13.0.0
+cordova-android target      = 15.1.0
+Android SDK                 = API 36
+Build Tools                 = 36.0.0
+JDK                         = 17
 ```
 
-Plugin/version final ditentukan saat G4.
+Minimal spike G4.1 wajib membuktikan:
+
+```text
+local shell deviceready tersedia
+production URL dibuka melalui controlled InAppBrowser
+session/login/logout/redirect stabil
+CSRF same-origin Web tetap bekerja
+device Back memenuhi project contract
+geolocation permission allow/deny bekerja
+authenticated download/open/share dapat ditangani
+external URL/intents diarahkan sesuai policy
+offline startup tidak menjadi blank WebView
+tidak ada client-side authorization widening
+```
+
+Plugin baseline locked:
+
+```text
+cordova-plugin-inappbrowser  = 7.0.0
+cordova-plugin-geolocation   = 4.1.0
+local SisFour Android plugin = download/open/share/controlled intents bila spike membuktikan diperlukan
+```
 
 ## 4. Web Auth vs API Auth
 
@@ -110,7 +138,7 @@ Restore workflow hanya jika aman dan tidak menyebabkan mutation ulang.
 
 ## 6. Cordova Mode
 
-Setelah `deviceready`, wrapper dapat menambah class `sisfour-cordova` hanya untuk perbedaan WebView nyata; jangan membuat UI kedua.
+Setelah `deviceready`, local shell membuka satu instance controlled InAppBrowser untuk production SisFour. Jangan membuat UI aplikasi kedua. Perbedaan native hanya boleh ditambahkan bila benar-benar diperlukan oleh runtime APK.
 
 ## 7. Android Back
 
@@ -307,3 +335,105 @@ G4 tidak digunakan untuk:
 - redesign besar dashboard/table yang seharusnya selesai di G3;
 - memindahkan authorization ke JavaScript/Cordova;
 - membuat offline academic mutation tanpa desain khusus.
+
+## 24. G4.0 Architecture Lock
+
+### 24.1 Trust boundary
+
+```text
+Local shell:
+- owns cordova.js / deviceready
+- owns native plugins
+- validates native bridge messages
+- owns startup offline/fatal state
+
+Remote production UI:
+- owns CI4/Sneat application UI
+- owns Web login/session
+- owns CSRF
+- never receives arbitrary native execution capability
+
+Server:
+- remains authentication/authorization/business boundary
+```
+
+Dilarang:
+
+```text
+<content src="https://sisfour.mtsn4jombang.sch.id/">
+arbitrary native.exec / evalNative
+hardcoded password/token/API secret
+client-side role/permission decision
+offline academic mutation replay
+background location
+```
+
+### 24.2 Navigation policy
+
+```text
+https://sisfour.mtsn4jombang.sch.id/*  -> tetap di app
+external HTTPS                          -> controlled system browser
+HTTP                                    -> deny
+mailto/tel/maps/chat                    -> controlled allowlisted intent bila didukung
+```
+
+Redirect dari route internal tetap boleh menjalankan server authorization terlebih dahulu. Contoh Dokumen Saya: `/dokumen-saya/buka/{id}` tetap internal sampai server selesai memvalidasi akses; redirect Google Drive kemudian keluar ke browser eksternal.
+
+### 24.3 Bridge allowlist
+
+Remote Web hanya boleh meminta native action yang terdokumentasi:
+
+```text
+location.request
+external.open
+file.open
+file.share
+app.exit
+```
+
+Semua message wajib JSON valid, type allowlisted, payload tervalidasi, dan hanya diterima saat browser berada pada origin SisFour production. Tidak ada arbitrary command atau arbitrary file read.
+
+### 24.4 Android Back
+
+Back adalah high-risk G4.1 gate:
+
+```text
+modal/sidebar/offcanvas/dropdown -> close layer
+detail/history                    -> history back
+dirty form                        -> confirmation
+root/dashboard                    -> double-back / exit
+```
+
+History sentinel/adapter Web boleh dipakai hanya untuk mempertahankan contract ini. Bila InAppBrowser default history tidak cukup reliable, spike berhenti dan native Back integration diperluas sebelum feature lain dilanjutkan.
+
+### 24.5 File / download / share
+
+Server tetap melakukan authorization terlebih dahulu. Authenticated download handler harus mempertahankan session/cookie dan user-agent yang relevan, lalu menyerahkan hasil ke Android download/open/share flow. File Konseling/export rahasia tidak boleh bocor ke actor yang tidak berhak.
+
+### 24.6 Repository layout
+
+```text
+mobile/cordova/
+  config.xml
+  package.json
+  package-lock.json
+  www/
+    index.html
+    css/shell.css
+    js/shell.js
+  local-plugins/
+    sisfour-native-android/
+  resources/
+```
+
+Generated `platforms/` dan `plugins/` bukan source of truth dan harus dapat direcreate dari manifest/lock.
+
+### 24.7 Phase status
+
+```text
+G4.0A Environment Preflight     PASS
+G4.0B Architecture Lock        PASS / user approval
+docs-only architecture commit  CURRENT
+G4.1 Minimal Android Spike     NEXT
+signed APK / device matrix     PENDING
+```

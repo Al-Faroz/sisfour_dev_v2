@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
-**Phase aktif:** **G3.9 — Dashboard Experience V2 / Regression & Closure — Draft PR #18; G4 NOT STARTED**
+**Tanggal Acuan:** 5 Oktober 2026
+**Phase aktif:** **G4.0 — Cordova Android Foundation; Environment Preflight PASS; Architecture Lock APPROVED**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -482,7 +482,7 @@ G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
 G3.8   WebView Readiness      CLOSED / MERGED — PR #17
-G4     Cordova APK             NOT STARTED
+G4     Cordova APK             G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1856,3 +1856,49 @@ status **CLOSURE-READY**.
 
 CLOSURE-READY bukan approval untuk Ready/merge/deploy. PR #19 tetap Draft sampai ada
 approval eksplisit user.
+
+## G4.0 — Environment & Architecture Lock Gate
+
+Canonical baseline:
+
+```text
+main / origin-main                de3efc5119f811d30f4c1759e20d244106ebd899
+feature branch                    feat/g4-cordova-android-20261005
+G3.9 PR #18                       CLOSED / MERGED
+G3.10 PR #19                      CLOSED / MERGED
+```
+
+Environment preflight evidence 2026-10-05:
+
+```text
+JDK 17.0.20.1                     PASS
+Node 24.19.0                      PASS
+npm 11.17.0                       PASS
+Cordova CLI 13.0.0                PASS
+ANDROID_HOME                      PASS
+Android CLI                       PASS
+ADB / Platform Tools              PASS
+Android Platform API 36           PASS
+Build Tools 36.0.0                PASS
+Command-line Tools                PASS
+system Gradle 8.14.4              PASS
+working tree / canonical main     PASS
+```
+
+Architecture gate:
+
+```text
+local Cordova shell               LOCKED
+controlled InAppBrowser           LOCKED
+production HTTPS only             LOCKED
+Web session + CSRF unchanged      LOCKED
+server authorization boundary     LOCKED
+narrow native bridge              LOCKED
+no offline mutation replay        LOCKED
+Android Back                      PENDING G4.1 APK proof
+authenticated native download     PENDING G4.1 APK proof
+geolocation permission/runtime    PENDING G4.1 APK proof
+external intent routing           PENDING G4.1 APK proof
+```
+
+G4.1 may start only from this exact lock. G4.1 acceptance must prove `deviceready`, session/login/logout/redirect continuity, Back contract, location allow/deny, download/open/share, external link routing, network failure behavior, and no authorization/privacy widening before broader APK work continues.

@@ -1,10 +1,10 @@
 # Pola Pengerjaan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.10 — Student Services Expansion — CLOSURE-READY / Draft PR #19 stacked on G3.9; G4 BLOCKED until G3.9 + G3.10 are stable/closed
-**Branch aktif:** `feat/g3-10-student-services-expansion-20261004`
-**Baseline `main`:** G3.8 closed baseline `95bedb09200ed954c60ea34fa0d8665d471528da`
+**Tanggal Acuan:** 5 Oktober 2026
+**Development aktif:** G4.0 — Cordova Android Foundation — G4.0A Environment Preflight PASS; G4.0B Architecture Lock APPROVED
+**Branch aktif:** `feat/g4-cordova-android-20261005`
+**Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` — PR #18 dan PR #19 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -368,9 +368,9 @@ G3.6B PTSP                 CLOSED / MERGED — PR #14
 G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
 G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
 G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
-G3.9 Dashboard Experience V2 REGRESSION / CLOSURE — Draft PR #18
-G3.10 Student Services Expansion IMPLEMENTATION ACTIVE
-G4 Cordova APK              NOT STARTED
+G3.9 Dashboard Experience V2             CLOSED / MERGED — PR #18
+G3.10 Student Services Expansion          CLOSED / MERGED — PR #19
+G4 Cordova APK                            G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
@@ -974,7 +974,7 @@ Enabled Dashboard action = functional colored gradient + action shadow
 Information surface      = flat tonal, no action shadow
 Disabled/expired         = flat neutral grey, no gradient/shadow
 DB/schema/SQL            = NONE
-G4/Cordova               = NOT STARTED
+G4/Cordova               = G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
 ```
 
 G3.9E regression/closure checkpoint:
@@ -988,8 +988,69 @@ Guru + PTSP                      = PASS / user runtime evidence
 multi-role Sidebar               = PASS / user runtime evidence
 privacy payload static audit     = PASS / GitHub read evidence
 GitHub Actions CI                = NONE
-final local executable gate      = PENDING exact final head
-final 360px/WebView close-out    = PENDING exact final head
-PR #18                           = DRAFT
-Ready/Merge/Deploy               = NOT AUTHORIZED
+final local executable gate      = PASS / closure evidence
+final 360px/WebView close-out    = PASS / closure evidence
+PR #18                           = CLOSED / MERGED
+merge commit                     = 49253a1932088264ac6ceea8433d59d35cafe2f5
+G4 follow-on                     = ACTIVE on dedicated feature branch
+```
+
+## 20. G4.0 — Cordova Android Foundation
+
+Baseline canonical:
+
+```text
+main                         = de3efc5119f811d30f4c1759e20d244106ebd899
+G3.9 / PR #18                = CLOSED / MERGED
+G3.10 / PR #19               = CLOSED / MERGED
+branch G4                    = feat/g4-cordova-android-20261005
+G4.0A Environment Preflight = PASS
+G4.0B Architecture Lock     = APPROVED
+```
+
+Architecture lock:
+
+```text
+Cordova local shell
+→ deviceready / native orchestration
+→ one controlled InAppBrowser instance
+→ https://sisfour.mtsn4jombang.sch.id/
+→ CI4 Web session + CSRF + server RBAC/service tetap authoritative
+```
+
+Primary Cordova WebView **tidak** memuat production URL sebagai privileged `<content src="https://...">`.
+Remote SisFour tidak mendapat arbitrary Cordova/native API. Native capability hanya melalui bridge sempit yang divalidasi dan dibatasi pada kebutuhan G4.
+
+Locked native scope:
+
+```text
+Android Back contract
+foreground geolocation on explicit user action
+authenticated download
+open/share downloaded file
+controlled external browser / intents
+status-bar / edge-to-edge integration
+release build/signing
+```
+
+Locked non-goal:
+
+```text
+no client-side authorization
+no JWT replacement for Web session
+no offline academic mutation replay
+no hardcoded credential/token/secret
+no widening Konseling/privacy scope
+no G3 business-rule redesign
+```
+
+Implementation order:
+
+```text
+G4.0A environment preflight         PASS
+G4.0B architecture lock             PASS / user approval
+docs-only architecture commit       CURRENT
+G4.1 minimal Cordova Android spike  NEXT
+runtime proof                       before feature expansion
+signed/multi-device regression      final gate
 ```
