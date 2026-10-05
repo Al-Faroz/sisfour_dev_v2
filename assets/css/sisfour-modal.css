@@ -100,39 +100,6 @@ body.sisfour-role-operational .modal-footer .btn.btn-danger {
 }
 
 
-/*
- * BK export modal close control.
- *
- * Sneat menggeser seluruh .modal .btn-close keluar dari header dengan
- * transform translate(23px, -25px) + position:absolute. Dua modal export
- * memakai close control yang harus tetap berada di dalam header.
- */
-.modal.sisfour-export-modal .modal-header .btn-close.sisfour-export-modal__close {
-  position: static !important;
-  inset: auto !important;
-  display: inline-flex;
-  flex: 0 0 2rem;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin: 0 0 0 auto !important;
-  padding: 0 !important;
-  background-color: transparent !important;
-  box-shadow: none !important;
-  opacity: 0.7;
-  transform: none !important;
-}
-
-.modal.sisfour-export-modal .modal-header .btn-close.sisfour-export-modal__close:hover,
-.modal.sisfour-export-modal .modal-header .btn-close.sisfour-export-modal__close:focus,
-.modal.sisfour-export-modal .modal-header .btn-close.sisfour-export-modal__close:active {
-  background-color: rgba(105, 108, 255, 0.08) !important;
-  box-shadow: none !important;
-  opacity: 1;
-  transform: none !important;
-}
-
 /* Modal kompleks memakai seluruh layar pada ponsel, sesuai kontrak UI mobile. */
 @media (max-width: 575.98px) {
   .modal-dialog.modal-lg,

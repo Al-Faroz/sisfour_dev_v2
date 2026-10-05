@@ -6,9 +6,9 @@
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy"><h4 class="fw-bold mb-1">Konseling BK</h4><p class="text-muted mb-0">Catatan layanan Konseling bersifat rahasia dan hanya dapat diakses pengguna berwenang.</p></div>
         <div class="sisfour-page-actions">
-            <a href="<?= esc(base_url('bk/konseling-kelompok')) ?>" class="btn sisfour-action sisfour-action--compact sisfour-action--blue"><i class="bx bx-group me-1"></i> Konseling Kelompok</a>
-            <?php if (! empty($initial['can_export'])): ?><button type="button" id="btnKonselingExport" class="btn sisfour-action sisfour-action--compact sisfour-action--green"><i class="bx bx-export me-1"></i> Export XLSX</button><?php endif; ?>
-            <?php if (! empty($initial['can_manage'])): ?><button type="button" id="btnKonselingBaru" class="btn sisfour-action sisfour-action--compact sisfour-action--indigo"><i class="bx bx-plus me-1"></i> Konseling Baru</button><?php endif; ?>
+            <a href="<?= esc(base_url('bk/konseling-kelompok')) ?>" class="btn btn-outline-primary"><i class="bx bx-group me-1"></i> Konseling Kelompok</a>
+            <?php if (! empty($initial['can_export'])): ?><button type="button" id="btnKonselingExport" class="btn btn-outline-success"><i class="bx bx-export me-1"></i> Export XLSX</button><?php endif; ?>
+            <?php if (! empty($initial['can_manage'])): ?><button type="button" id="btnKonselingBaru" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Konseling Baru</button><?php endif; ?>
         </div>
     </div>
 
@@ -41,8 +41,8 @@
         </div>
 
         <?php if (! empty($initial['can_export'])): ?>
-        <div class="modal fade sisfour-export-modal" id="modalKonselingExport" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="formKonselingExport">
-            <div class="modal-header align-items-start gap-3"><div class="flex-grow-1 min-w-0"><h5 class="modal-title mb-1">Export Konseling BK</h5><small class="text-muted d-block">Data Konseling bersifat rahasia. Pilih workbook sesuai kebutuhan penggunaan.</small></div><button type="button" class="btn-close sisfour-export-modal__close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+        <div class="modal fade" id="modalKonselingExport" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formKonselingExport">
+            <div class="modal-header"><div><h5 class="modal-title mb-1">Export Konseling BK</h5><small class="text-muted d-block">Data Konseling bersifat rahasia. Pilih workbook sesuai kebutuhan penggunaan.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
             <div class="modal-body">
                 <h6 class="mb-2">Cakupan Data</h6>
                 <div class="vstack gap-2 mb-4">

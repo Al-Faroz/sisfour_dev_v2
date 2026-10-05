@@ -7,9 +7,9 @@
       <p class="text-muted mb-0">Satu kejadian kelompok menghasilkan Catatan Pelanggaran individual untuk setiap siswa.</p>
     </div>
     <div class="sisfour-page-actions">
-      <a class="btn sisfour-action sisfour-action--compact sisfour-action--blue" href="<?= esc(base_url('bk/kasus')) ?>"><i class="bx bx-left-arrow-alt me-1"></i> Catatan Individu</a>
+      <a class="btn btn-outline-secondary" href="<?= esc(base_url('bk/kasus')) ?>"><i class="bx bx-left-arrow-alt me-1"></i> Catatan Individu</a>
       <?php if (! empty($initial['success'])): ?>
-        <button class="btn sisfour-action sisfour-action--compact sisfour-action--indigo" type="button" id="btnKasusKelompokBaru"><i class="bx bx-group me-1"></i> Tambah Kelompok</button>
+        <button class="btn btn-primary" type="button" id="btnKasusKelompokBaru"><i class="bx bx-group me-1"></i> Tambah Kelompok</button>
       <?php endif; ?>
     </div>
   </div>

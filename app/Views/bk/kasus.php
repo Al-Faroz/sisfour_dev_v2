@@ -10,9 +10,9 @@
         </div>
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="sisfour-page-actions">
-                <a class="btn sisfour-action sisfour-action--compact sisfour-action--blue" href="<?= esc(base_url('bk/kasus-kelompok')) ?>"><i class="bx bx-group me-1"></i> Pelanggaran Kelompok</a>
-                <button class="btn sisfour-action sisfour-action--compact sisfour-action--green" id="btnKasusExport" type="button"><i class="bx bx-export me-1"></i> Export XLSX</button>
-                <button class="btn sisfour-action sisfour-action--compact sisfour-action--indigo" id="btnKasusBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Catatan</button>
+                <a class="btn btn-outline-primary" href="<?= esc(base_url('bk/kasus-kelompok')) ?>"><i class="bx bx-group me-1"></i> Pelanggaran Kelompok</a>
+                <button class="btn btn-outline-success" id="btnKasusExport" type="button"><i class="bx bx-export me-1"></i> Export XLSX</button>
+                <button class="btn btn-primary" id="btnKasusBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Catatan</button>
             </div>
         <?php endif; ?>
     </div>
@@ -99,9 +99,9 @@
         </div>
 
         <?php if (! empty($initial['can_manage'])): ?>
-            <div class="modal fade sisfour-export-modal" id="modalKasusExport" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="formKasusExport">
-                    <div class="modal-header align-items-start gap-3"><div class="flex-grow-1 min-w-0"><h5 class="modal-title mb-1">Export Catatan Pelanggaran</h5><small class="text-muted d-block">Pilih cakupan data dan tingkat detail workbook.</small></div><button type="button" class="btn-close sisfour-export-modal__close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+            <div class="modal fade" id="modalKasusExport" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formKasusExport">
+                    <div class="modal-header"><div><h5 class="modal-title mb-1">Export Catatan Pelanggaran</h5><small class="text-muted d-block">Pilih cakupan data dan tingkat detail workbook.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
                     <div class="modal-body">
                         <h6 class="mb-2">Cakupan Data</h6>
                         <div class="vstack gap-2 mb-4">
