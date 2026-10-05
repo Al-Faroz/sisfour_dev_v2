@@ -529,6 +529,49 @@ GET dokumen-saya/buka/{id}
 
 Raw link tidak menjadi authorization boundary.
 
+### 15.1 Dashboard Siswa access
+
+Jika actor Siswa mempunyai permission `dokumen_siswa.view_self` dan identity siswa valid,
+Dashboard Siswa menampilkan action `Dokumen Saya` pada blok `Akses Saya`.
+
+```text
+Surface     = Self-Service Access
+Label       = Dokumen Saya
+Route       = dokumen-saya
+Permission  = dokumen_siswa.view_self
+Family      = Cyan
+```
+
+Action ini tidak membentuk operational Primary Action Surface baru dan tidak memperluas
+scope. Dataset tetap diselesaikan oleh `DokumenSiswaService::selfPage()` dengan
+`DIRI_SENDIRI`.
+
+### 15.2 Data Dokumen manager table
+
+Halaman `dokumen-siswa` untuk Admin/Operator memakai presentation contract:
+
+```text
+Desktop columns
+Dokumen | Penerima | Status | Pencatat | Aksi
+
+Dokumen
+→ Judul + Format + sumber Manual/Import
+
+Penerima
+→ INDIVIDU: Nama + NISN + Kelas saat ini bila tersedia
+→ TINGKAT: Tingkat + label dokumen bersama
+
+Pencatat
+→ actor + created_at
+```
+
+Service tetap authoritative untuk filter/paging. UI memakai `limit/offset` yang sudah
+tersedia dengan canonical pager 25/50/100. Mobile memakai adaptive list dari row yang sama,
+bukan horizontal operational table.
+
+Hard-delete tetap hanya selected IDs pada current page/result dan tidak berubah menjadi
+delete-all filtered.
+
 ## 16. Audit
 
 ```text
@@ -654,6 +697,8 @@ deletion audit snapshot retained
 Google Drive never deleted/mutated
 open/access audit
 metadata + access export
+Data Dokumen table hierarchy + pager
+Dashboard Siswa → Dokumen Saya self-service action
 mobile/WebView regression
 ```
 

@@ -611,6 +611,40 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
     }
 
+    public function testStudentDocumentUiAndDashboardAccessContract(): void
+    {
+        $documentView = (string) file_get_contents(
+            ROOTPATH . 'app/Views/dokumen_siswa/index.php'
+        );
+        $dashboardService = (string) file_get_contents(
+            ROOTPATH . 'app/Services/SiswaDashboardService.php'
+        );
+        $dashboardView = (string) file_get_contents(
+            ROOTPATH . 'app/Views/dashboard_siswa.php'
+        );
+
+        $this->assertStringContainsString(
+            'id="dokumenPager"',
+            $documentView
+        );
+        $this->assertStringContainsString(
+            '<th>Dokumen</th>',
+            $documentView
+        );
+        $this->assertStringContainsString(
+            "'permission' => 'dokumen_siswa.view_self'",
+            $dashboardService
+        );
+        $this->assertStringContainsString(
+            "'label' => 'Dokumen Saya'",
+            $dashboardService
+        );
+        $this->assertStringContainsString(
+            "str_contains(\$label, 'dokumen') => 'sisfour-action--cyan'",
+            $dashboardView
+        );
+    }
+
     public function testScheduleOverlapUsesHalfOpenIntervals(): void
     {
         $service = (new ReflectionClass(JadwalGuruService::class))

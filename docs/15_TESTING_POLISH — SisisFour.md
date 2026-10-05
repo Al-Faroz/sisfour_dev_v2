@@ -1793,6 +1793,16 @@ Export:
 - current class optional display only
 - Admin/Operator only
 - access log sheet included
+
+UI / Dashboard:
+- Data Dokumen desktop table memakai hierarchy Dokumen / Penerima / Status / Pencatat / Aksi
+- mobile Data Dokumen tetap adaptive list dari dataset yang sama
+- Data Dokumen mempunyai canonical pager + page size 25/50/100
+- filter mempertahankan page size dan reset offset ke halaman awal
+- hard-delete selection tetap current-page scoped
+- Dashboard Siswa menampilkan Dokumen Saya hanya bila dokumen_siswa.view_self tersedia
+- Dokumen Saya berada pada Self-Service Access, bukan operational Primary Action Surface
+- action Dokumen Saya menuju dokumen-saya dan memakai Cyan action family
 ```
 
 Static gate remains:
