@@ -6,9 +6,9 @@
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy"><h4 class="fw-bold mb-1">Konseling BK</h4><p class="text-muted mb-0">Catatan layanan Konseling bersifat rahasia dan hanya dapat diakses pengguna berwenang.</p></div>
         <div class="sisfour-page-actions">
-            <a href="<?= esc(base_url('bk/konseling-kelompok')) ?>" class="btn btn-outline-primary"><i class="bx bx-group me-1"></i> Konseling Kelompok</a>
-            <?php if (! empty($initial['can_export'])): ?><a href="#" id="btnKonselingExport" class="btn btn-outline-success"><i class="bx bx-export me-1"></i> Export</a><?php endif; ?>
-            <?php if (! empty($initial['can_manage'])): ?><button type="button" id="btnKonselingBaru" class="btn btn-primary"><i class="bx bx-plus me-1"></i> Konseling Baru</button><?php endif; ?>
+            <a href="<?= esc(base_url('bk/konseling-kelompok')) ?>" class="btn sisfour-action sisfour-action--compact sisfour-action--blue"><i class="bx bx-group me-1"></i> Konseling Kelompok</a>
+            <?php if (! empty($initial['can_export'])): ?><button type="button" id="btnKonselingExport" class="btn sisfour-action sisfour-action--compact sisfour-action--green"><i class="bx bx-export me-1"></i> Export XLSX</button><?php endif; ?>
+            <?php if (! empty($initial['can_manage'])): ?><button type="button" id="btnKonselingBaru" class="btn sisfour-action sisfour-action--compact sisfour-action--indigo"><i class="bx bx-plus me-1"></i> Konseling Baru</button><?php endif; ?>
         </div>
     </div>
 
@@ -39,6 +39,25 @@
             <div class="d-none d-md-block table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Layanan</th><th>Bidang / Topik</th><th>Status</th><th class="text-end">Aksi</th></tr></thead><tbody id="konselingBody"></tbody></table></div>
             <div class="card-footer"><div id="bkKonselingPager"></div></div>
         </div>
+
+        <?php if (! empty($initial['can_export'])): ?>
+        <div class="modal fade" id="modalKonselingExport" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form class="modal-content" id="formKonselingExport">
+            <div class="modal-header"><div><h5 class="modal-title mb-1">Export Konseling BK</h5><small class="text-muted">Data Konseling bersifat rahasia. Pilih workbook sesuai kebutuhan penggunaan.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+            <div class="modal-body">
+                <h6 class="mb-2">Cakupan Data</h6>
+                <div class="vstack gap-2 mb-4">
+                    <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="scope" value="filtered" checked><span><strong>Sesuai filter saat ini</strong><small class="d-block text-muted">Mengikuti pencarian, kelas, status, bidang, dan rentang tanggal yang aktif.</small></span></label>
+                    <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="scope" value="year"><span><strong>Seluruh Tahun Ajaran terpilih</strong><small class="d-block text-muted">Mengabaikan filter lain dan mengekspor seluruh Konseling pada Tahun Ajaran terpilih.</small></span></label>
+                </div>
+                <h6 class="mb-2">Format Workbook</h6>
+                <div class="vstack gap-2">
+                    <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="ringkas" checked><span><strong>Ringkas</strong><small class="d-block text-muted">Tabel utama mudah dibaca; narasi sensitif panjang tidak memenuhi sheet utama.</small></span></label>
+                    <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="lengkap"><span><strong>Lengkap / Audit</strong><small class="d-block text-muted">Menambahkan Detail Konseling yang memuat uraian dan hasil/kesepakatan sensitif.</small></span></label>
+                </div>
+            </div>
+            <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary"><i class="bx bx-export me-1"></i> Export XLSX</button></div>
+        </form></div></div>
+        <?php endif; ?>
 
         <?php if (! empty($initial['can_manage'])): ?>
         <div class="modal fade" id="modalKonselingBaru" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><form class="modal-content" id="formKonselingBaru">
