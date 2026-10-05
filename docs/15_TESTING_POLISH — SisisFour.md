@@ -1805,6 +1805,25 @@ UI / Dashboard:
 - action Dokumen Saya menuju dokumen-saya dan memakai Cyan action family
 ```
 
+Runtime/UAT evidence 2026-10-05:
+
+```text
+Manual Input Dokumen                  PASS
+Import Massal                         PASS
+Dokumen Saya Role Siswa               PASS
+Data Dokumen table + pager            PASS
+Dashboard Siswa → Dokumen Saya        PASS
+Cross-student direct open DENY        PASS
+Invalid Drive URL rejection           PASS
+Duplicate document rejection          PASS
+Hard delete + delete snapshot         PASS
+Google Drive untouched                PASS
+Access audit OPEN                     PASS
+Metadata + access-log export          PASS
+Session stability after hardening     PASS
+Mobile 360px / responsive smoke       PASS
+```
+
 Static gate remains:
 
 ```text
@@ -1815,5 +1834,8 @@ git diff --check
 unit tests
 working tree clean
 ```
+
+Final exact-head static/unit/diff regression tetap wajib dijalankan setelah seluruh
+source + docs closure sync. Runtime/UAT PASS tidak menggantikan regression tersebut.
 
 G3.10 may not be Ready/merge/deploy without explicit user approval.

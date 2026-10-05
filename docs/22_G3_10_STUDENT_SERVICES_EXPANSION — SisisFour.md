@@ -1,6 +1,6 @@
 # G3.10 — Student Services Expansion — SisisFour
 
-**Status:** LOCKED / G3.10C + SESSION HARDENING IMPLEMENTED / REGRESSION + RUNTIME UAT PENDING
+**Status:** LOCKED / RUNTIME UAT PASS / FINAL EXACT-HEAD REGRESSION PENDING
 **Branch:** `feat/g3-10-student-services-expansion-20261004`
 **Base:** exact head G3.9 `96c22ab0bd9e2bc18d15a2a1a5592b0aace16bb1`
 **Dependency:** PR #18 G3.9 remains Draft; G3.10 is stacked and must not change PR #18.
@@ -665,7 +665,16 @@ Status 2026-10-04 setelah localhost + hosting verification dan final static gate
 - runtime/UAT G3.10B Dokumen Saya pada role Siswa = **PASS / user evidence 2026-10-05**.
 - Data Dokumen table/pager polish = **PASS / user evidence 2026-10-05**.
 - Dashboard Siswa → Dokumen Saya access = **PASS / user evidence 2026-10-05**.
-- runtime/UAT acceptance keseluruhan = **PARTIAL PASS / final regression + remaining negative/audit cases pending**.
+- cross-student protection = **PASS / user evidence 2026-10-05**.
+- invalid Google Drive URL rejection = **PASS / source + unit + user evidence**.
+- duplicate document protection = **PASS / user evidence 2026-10-05**.
+- hard delete + delete snapshot + Drive untouched = **PASS / user evidence 2026-10-05**.
+- access audit OPEN = **PASS / user evidence 2026-10-05**.
+- metadata + access-log export = **PASS / user evidence 2026-10-05**.
+- session stability after `sisfour_v2_session` hardening = **PASS / user evidence 2026-10-05**.
+- mobile 360px Data Dokumen / Dashboard Siswa / Dokumen Saya = **PASS / user evidence 2026-10-05**.
+- runtime/UAT acceptance keseluruhan = **PASS**.
+- final exact-head static/unit/diff regression = **PENDING**.
 - PR #19 tetap **DRAFT**; Ready/Merge/Deploy tidak dilakukan tanpa approval eksplisit.
 
 ## 19. Acceptance
