@@ -484,30 +484,6 @@ $classes = $initial['classes'] ?? [];
         </div>
 
         <?php if (! empty($initial['can_manage'])): ?>
-                                        <button
-                                            class="btn btn-sm btn-outline-primary btn-edit-dokumen"
-                                            type="button"
-                                        >
-                                            Edit
-                                        </button>
-
-                                        <?php if (($row['status'] ?? '') === 'PUBLISHED'): ?>
-                                            <button
-                                                class="btn btn-sm btn-outline-secondary btn-archive-dokumen"
-                                                type="button"
-                                                data-id="<?= (int) $row['id'] ?>"
-                                            >
-                                                Arsipkan
-                                            </button>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php if (! empty($initial['can_manage'])): ?>
             <div class="card sisfour-table-card mt-4">
                 <div class="card-header">
                     <h5 class="mb-0">Batch Import Terakhir</h5>
