@@ -5,6 +5,8 @@ namespace App\Services;
 use CodeIgniter\I18n\Time;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -15,8 +17,14 @@ class BkExportService
     private const TZ = 'Asia/Jakarta';
     private const MAX_EXPORT_ROWS = 50000;
 
-    public function kasus(array $data, int $userId): array
-    {
+    public function kasus(
+        array $data,
+        int $userId,
+        string $mode = 'ringkas',
+        string $scope = 'filtered'
+    ): array {
+        $mode = $mode === 'lengkap' ? 'lengkap' : 'ringkas';
+        $scope = $scope === 'year' ? 'year' : 'filtered';
         $caseRows = is_array($data['rows'] ?? null) ? $data['rows'] : [];
         $followUps = $this->followUpRows($caseRows);
         if (count($followUps) > self::MAX_EXPORT_ROWS) {
@@ -34,139 +42,165 @@ class BkExportService
         }
 
         $followUpCount = [];
-
         foreach ($followUps as $row) {
             $idKasus = (int) ($row['id_kasus'] ?? 0);
             $followUpCount[$idKasus] = ($followUpCount[$idKasus] ?? 0) + 1;
         }
 
-        $headers = [
-            'No',
-            'ID Catatan',
-            'Mode',
-            'ID Kelompok',
-            'Jumlah Anggota',
-            'Tahun Ajaran',
-            'NISN',
-            'Nama Siswa',
-            'Kelas',
-            'Tanggal',
-            'Pelanggaran',
-            'Kategori',
-            'Keterangan',
-            'Jumlah Tindak Lanjut',
-        ];
-        $rows = [];
         $caseMap = [];
-        $no = 1;
+        $dataRows = [];
+        $studentIds = [];
+        $individualCount = 0;
+        $groupCaseIds = [];
 
-        foreach ($caseRows as $row) {
+        foreach ($caseRows as $i => $row) {
             $idKasus = (int) ($row['id'] ?? 0);
-            $tahun = $this->periodLabel($row);
+            $idGroup = (int) ($row['id_kelompok'] ?? 0);
             $kelas = trim((string) ($row['nama_kelas'] ?? '')) ?: '-';
+            $period = $this->periodLabel($row);
             $caseMap[$idKasus] = $row + [
-                'tahun_label' => $tahun,
+                'tahun_label' => $period,
                 'nama_kelas' => $kelas,
             ];
+            $studentIds[(int) ($row['id_siswa'] ?? 0)] = true;
+            if ($idGroup > 0) {
+                $groupCaseIds[$idGroup] = true;
+            } else {
+                $individualCount++;
+            }
 
-            $rows[] = [
-                $no++,
-                $idKasus,
-                (int) ($row['id_kelompok'] ?? 0) > 0 ? 'KELOMPOK' : 'INDIVIDU',
-                (int) ($row['id_kelompok'] ?? 0) ?: '',
-                (int) ($row['id_kelompok'] ?? 0) > 0
-                    ? ($groupCount[(int) $row['id_kelompok']] ?? 0)
-                    : 1,
-                $tahun,
+            $export = [
+                $i + 1,
+                $row['tanggal'] ?? '',
+                $period,
                 $row['nisn'] ?? '',
                 $row['nama_siswa'] ?? '',
                 $kelas,
-                $row['tanggal'] ?? '',
+                $idGroup > 0 ? 'KELOMPOK' : 'INDIVIDU',
+                $idGroup > 0 ? ($groupCount[$idGroup] ?? 0) : 1,
                 $row['nama_pelanggaran'] ?? '',
                 $row['kategori'] ?? '',
                 $row['keterangan'] ?? '',
                 $followUpCount[$idKasus] ?? 0,
             ];
+
+            if ($mode === 'lengkap') {
+                $export[] = $idKasus;
+                $export[] = $idGroup ?: '';
+                $export[] = $row['created_at'] ?? '';
+            }
+
+            $dataRows[] = $export;
         }
 
-        $followUpHeaders = [
-            'No',
-            'ID Catatan',
-            'ID Kelompok',
-            'Tahun Ajaran',
-            'NISN',
-            'Nama Siswa',
-            'Kelas',
-            'Tanggal Pelanggaran',
-            'Pelanggaran',
-            'Kategori',
-            'Tanggal Tindak Lanjut',
-            'Tindak Lanjut',
-            'Keterangan Tindak Lanjut',
-            'Dicatat Oleh',
-        ];
-        $followUpExportRows = [];
-        $noFollowUp = 1;
-
-        foreach ($followUps as $followUp) {
+        $followRows = [];
+        foreach ($followUps as $i => $followUp) {
             $idKasus = (int) ($followUp['id_kasus'] ?? 0);
             $case = $caseMap[$idKasus] ?? [];
-            $followUpExportRows[] = [
-                $noFollowUp++,
-                $idKasus,
-                (int) ($case['id_kelompok'] ?? 0) ?: '',
-                $case['tahun_label'] ?? $this->periodLabel($case),
-                $case['nisn'] ?? '',
+            $row = [
+                $i + 1,
+                $followUp['tanggal'] ?? '',
                 $case['nama_siswa'] ?? '',
                 $case['nama_kelas'] ?? '-',
-                $case['tanggal'] ?? '',
                 $case['nama_pelanggaran'] ?? '',
-                $case['kategori'] ?? '',
-                $followUp['tanggal'] ?? '',
                 $followUp['tindak_lanjut'] ?? '',
                 $followUp['keterangan'] ?? '',
                 $followUp['nama_input'] ?? $followUp['username_input'] ?? '',
             ];
+            if ($mode === 'lengkap') {
+                $row[] = $idKasus;
+                $row[] = (int) ($case['id_kelompok'] ?? 0) ?: '';
+                $row[] = $case['tahun_label'] ?? $this->periodLabel($case);
+                $row[] = $case['nisn'] ?? '';
+                $row[] = $case['tanggal'] ?? '';
+                $row[] = $case['kategori'] ?? '';
+            }
+            $followRows[] = $row;
+        }
+
+        $groupExportRows = [];
+        foreach ($groupRows as $i => $group) {
+            $row = [
+                $i + 1,
+                $group['tanggal'] ?? '',
+                $this->periodLabel($group),
+                $group['nama_pelanggaran'] ?? '',
+                $group['kategori'] ?? '',
+                (int) ($group['jumlah_anggota'] ?? 0),
+                $group['keterangan'] ?? '',
+                $group['nama_pencatat'] ?? $group['username_pencatat'] ?? '',
+            ];
+            if ($mode === 'lengkap') {
+                $row[] = (int) ($group['id'] ?? 0);
+            }
+            $groupExportRows[] = $row;
+        }
+
+        $dataHeaders = [
+            'No', 'Tanggal', 'Tahun Ajaran', 'NISN', 'Nama Siswa', 'Kelas',
+            'Mode', 'Jumlah Anggota', 'Pelanggaran', 'Kategori', 'Keterangan',
+            'Jumlah Tindak Lanjut',
+        ];
+        if ($mode === 'lengkap') {
+            array_push($dataHeaders, 'ID Catatan', 'ID Kelompok', 'Dibuat Pada');
+        }
+
+        $followHeaders = [
+            'No', 'Tanggal Tindak Lanjut', 'Nama Siswa', 'Kelas', 'Pelanggaran',
+            'Tindak Lanjut', 'Keterangan', 'Dicatat Oleh',
+        ];
+        if ($mode === 'lengkap') {
+            array_push(
+                $followHeaders,
+                'ID Catatan', 'ID Kelompok', 'Tahun Ajaran', 'NISN',
+                'Tanggal Pelanggaran', 'Kategori'
+            );
+        }
+
+        $groupHeaders = [
+            'No', 'Tanggal', 'Tahun Ajaran', 'Pelanggaran', 'Kategori',
+            'Jumlah Anggota', 'Keterangan', 'Dicatat Oleh',
+        ];
+        if ($mode === 'lengkap') {
+            $groupHeaders[] = 'ID Kelompok';
         }
 
         try {
             $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Pelanggaran');
-            $this->writeSheet($sheet, $headers, $rows);
+            $summary = $spreadsheet->getActiveSheet();
+            $this->writeSummarySheet(
+                $summary,
+                'Ringkasan',
+                'Ringkasan Export Catatan Pelanggaran',
+                [
+                    'Tahun Ajaran' => $this->periodLabel((array) ($data['tahun_dipilih'] ?? [])),
+                    'Cakupan Export' => $scope === 'year' ? 'Seluruh Tahun Ajaran terpilih' : 'Sesuai filter saat ini',
+                    'Format Workbook' => $mode === 'lengkap' ? 'Lengkap / Audit' : 'Ringkas',
+                    'Dibuat Pada' => Time::now(self::TZ)->format('Y-m-d H:i:s'),
+                ],
+                [
+                    'Total Catatan Siswa' => count($caseRows),
+                    'Siswa Unik' => count(array_filter(array_keys($studentIds))),
+                    'Catatan Individu' => $individualCount,
+                    'Kejadian Kelompok' => count($groupCaseIds),
+                    'Total Tindak Lanjut' => count($followUps),
+                ],
+                $this->filterSummary((array) ($data['filter'] ?? []))
+            );
 
-            $groupHeaders = [
-                'No', 'ID Kelompok', 'Tahun Ajaran', 'Tanggal',
-                'Pelanggaran', 'Kategori', 'Keterangan', 'Jumlah Anggota',
-                'Dicatat Oleh',
-            ];
-            $groupExportRows = [];
-            foreach ($groupRows as $i => $group) {
-                $groupExportRows[] = [
-                    $i + 1,
-                    (int) ($group['id'] ?? 0),
-                    $this->periodLabel($group),
-                    $group['tanggal'] ?? '',
-                    $group['nama_pelanggaran'] ?? '',
-                    $group['kategori'] ?? '',
-                    $group['keterangan'] ?? '',
-                    (int) ($group['jumlah_anggota'] ?? 0),
-                    $group['nama_pencatat'] ?? $group['username_pencatat'] ?? '',
-                ];
-            }
+            $dataSheet = $spreadsheet->createSheet();
+            $this->writeDataSheet($dataSheet, 'Data Pelanggaran', $dataHeaders, $dataRows);
+
+            $followSheet = $spreadsheet->createSheet();
+            $this->writeDataSheet($followSheet, 'Riwayat Tindak Lanjut', $followHeaders, $followRows);
 
             $groupSheet = $spreadsheet->createSheet();
-            $groupSheet->setTitle('Kelompok Pelanggaran');
-            $this->writeSheet($groupSheet, $groupHeaders, $groupExportRows);
+            $this->writeDataSheet($groupSheet, 'Kejadian Kelompok', $groupHeaders, $groupExportRows);
 
-            $followUpSheet = $spreadsheet->createSheet();
-            $followUpSheet->setTitle('Tindak Lanjut');
-            $this->writeSheet($followUpSheet, $followUpHeaders, $followUpExportRows);
             $spreadsheet->setActiveSheetIndex(0);
-
             $result = $this->saveSpreadsheet(
                 $spreadsheet,
-                'catatan_pelanggaran_' . date('Ymd_His') . '.xlsx'
+                'catatan_pelanggaran_' . $mode . '_' . date('Ymd_His') . '.xlsx'
             );
         } catch (Throwable $e) {
             $result = [
@@ -178,7 +212,12 @@ class BkExportService
         }
 
         if ($result['success']) {
-            $this->log($userId, 'BK Pelanggaran', 'Export Catatan Pelanggaran + Tindak Lanjut berdasarkan Tahun Ajaran terpilih');
+            $this->log(
+                $userId,
+                'BK Pelanggaran',
+                'Export Catatan Pelanggaran mode ' . strtoupper($mode)
+                . ' dengan cakupan ' . strtoupper($scope)
+            );
         }
 
         return $result;
@@ -237,6 +276,16 @@ class BkExportService
         }
 
         return $semester !== '' ? $tahun . ' - ' . $semester : $tahun;
+    }
+
+    private function filterSummary(array $filter): string
+    {
+        $parts = [];
+        if (! empty($filter['search'])) $parts[] = 'Pencarian: ' . $filter['search'];
+        if (! empty($filter['kategori'])) $parts[] = 'Kategori: ' . $filter['kategori'];
+        if (! empty($filter['tanggal_mulai'])) $parts[] = 'Dari: ' . $filter['tanggal_mulai'];
+        if (! empty($filter['tanggal_selesai'])) $parts[] = 'Sampai: ' . $filter['tanggal_selesai'];
+        return $parts === [] ? 'Tidak ada filter tambahan.' : implode(' | ', $parts);
     }
 
     private function groupRows(array $caseRows): array
@@ -323,7 +372,7 @@ class BkExportService
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle(substr($title, 0, 31));
-            $this->writeSheet($sheet, $headers, $rows);
+            $this->writeDataSheet($sheet, substr($title, 0, 31), $headers, $rows);
 
             return $this->saveSpreadsheet($spreadsheet, $filename);
         } catch (Throwable $e) {
@@ -336,12 +385,69 @@ class BkExportService
         }
     }
 
-    private function writeSheet(Worksheet $sheet, array $headers, array $rows): void
+    private function writeSummarySheet(
+        Worksheet $sheet,
+        string $title,
+        string $heading,
+        array $meta,
+        array $metrics,
+        string $filterText
+    ): void {
+        $sheet->setTitle($title);
+        $sheet->mergeCells('A1:F1');
+        $sheet->setCellValueExplicit('A1', $heading, DataType::TYPE_STRING);
+        $sheet->getStyle('A1:F1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 14],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '696CFF']],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(28);
+
+        $row = 3;
+        foreach ($meta as $label => $value) {
+            $sheet->setCellValueExplicit('A' . $row, (string) $label, DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('B' . $row, (string) $value, DataType::TYPE_STRING);
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+            $row++;
+        }
+
+        $sheet->mergeCells('D3:F3');
+        $sheet->setCellValueExplicit('D3', 'Filter Digunakan', DataType::TYPE_STRING);
+        $sheet->getStyle('D3:F3')->getFont()->setBold(true);
+        $sheet->mergeCells('D4:F6');
+        $sheet->setCellValueExplicit('D4', $filterText, DataType::TYPE_STRING);
+        $sheet->getStyle('D4:F6')->getAlignment()->setVertical('top')->setWrapText(true);
+
+        $metricRow = max($row + 1, 9);
+        $sheet->mergeCells('A' . $metricRow . ':B' . $metricRow);
+        $sheet->setCellValueExplicit('A' . $metricRow, 'Ringkasan Angka', DataType::TYPE_STRING);
+        $sheet->getStyle('A' . $metricRow . ':B' . $metricRow)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => '566A7F']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F2F4F7']],
+        ]);
+        $metricRow++;
+        foreach ($metrics as $label => $value) {
+            $sheet->setCellValueExplicit('A' . $metricRow, (string) $label, DataType::TYPE_STRING);
+            $sheet->setCellValue('B' . $metricRow, (int) $value);
+            $metricRow++;
+        }
+
+        $sheet->getColumnDimension('A')->setWidth(24);
+        $sheet->getColumnDimension('B')->setWidth(28);
+        $sheet->getColumnDimension('C')->setWidth(4);
+        $sheet->getColumnDimension('D')->setWidth(24);
+        $sheet->getColumnDimension('E')->setWidth(24);
+        $sheet->getColumnDimension('F')->setWidth(24);
+    }
+
+    private function writeDataSheet(Worksheet $sheet, string $title, array $headers, array $rows): void
     {
+        $sheet->setTitle(substr($title, 0, 31));
         foreach ($headers as $i => $header) {
-            $sheet->setCellValue(
+            $sheet->setCellValueExplicit(
                 Coordinate::stringFromColumnIndex($i + 1) . '1',
-                $header
+                (string) $header,
+                DataType::TYPE_STRING
             );
         }
 
@@ -352,30 +458,52 @@ class BkExportService
                 if (is_int($value) || is_float($value)) {
                     $sheet->setCellValue($cell, $value);
                 } else {
-                    $sheet->setCellValueExplicit(
-                        $cell,
-                        (string) ($value ?? ''),
-                        DataType::TYPE_STRING
-                    );
+                    $sheet->setCellValueExplicit($cell, (string) ($value ?? ''), DataType::TYPE_STRING);
                 }
             }
             $rowNo++;
         }
 
         $last = Coordinate::stringFromColumnIndex(count($headers));
-        $sheet->getStyle("A1:{$last}1")->getFont()->setBold(true);
-        $sheet->getStyle("A1:{$last}" . max(1, $rowNo - 1))
-            ->getAlignment()
-            ->setVertical('top')
-            ->setWrapText(true);
+        $sheet->getStyle("A1:{$last}1")->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '566A7F']],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(28);
+        if ($rowNo > 2) {
+            $sheet->getStyle("A2:{$last}" . ($rowNo - 1))
+                ->getAlignment()
+                ->setVertical(Alignment::VERTICAL_TOP)
+                ->setWrapText(true);
+        }
         $sheet->freezePane('A2');
         $sheet->setAutoFilter("A1:{$last}1");
 
-        foreach (range(1, count($headers)) as $column) {
-            $sheet->getColumnDimension(
-                Coordinate::stringFromColumnIndex($column)
-            )->setAutoSize($column !== count($headers));
+        foreach ($headers as $i => $header) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i + 1))
+                ->setWidth($this->columnWidth((string) $header));
         }
+    }
+
+    private function columnWidth(string $header): float
+    {
+        $h = mb_strtolower($header);
+        if ($h === 'no') return 6;
+        if (str_contains($h, 'tanggal')) return 16;
+        if (str_contains($h, 'nisn')) return 16;
+        if (str_contains($h, 'nama siswa')) return 30;
+        if ($h === 'kelas') return 14;
+        if (str_contains($h, 'tahun ajaran')) return 22;
+        if (str_contains($h, 'keterangan')) return 38;
+        if (str_contains($h, 'pelanggaran')) return 30;
+        if (str_contains($h, 'tindak lanjut')) return 28;
+        if (str_contains($h, 'dicatat oleh')) return 26;
+        if (str_starts_with($h, 'id ')) return 14;
+        return 18;
     }
 
     private function saveSpreadsheet(Spreadsheet $spreadsheet, string $filename): array

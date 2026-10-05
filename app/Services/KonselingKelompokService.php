@@ -116,7 +116,57 @@ class KonselingKelompokService
         ];
     }
 
-    private function baseBuilder(int $idT,array $input){$b=db_connect()->table('konseling_kelompok kg')->select(['kg.*','ta.nama_tahun','ta.semester','u.username AS username_pencatat'])->select('(SELECT COUNT(*) FROM konseling_kelompok_anggota a WHERE a.id_konseling_kelompok=kg.id) AS jumlah_anggota',false)->select('COALESCE(g.nama,p.nama,u.username) AS nama_pencatat',false)->join('tahun_ajaran ta','ta.id=kg.id_tahun')->join('users u','u.id=kg.created_by','left')->join('guru g','g.id=u.id_guru','left')->join('pegawai p','p.id=u.id_pegawai','left')->where('kg.id_tahun',$idT);$s=trim((string)($input['status']??''));$bi=trim((string)($input['bidang']??''));$q=trim((string)($input['search']??''));if($s!=='')$b->where('kg.status',$s);if($bi!=='')$b->where('kg.bidang',$bi);if($q!=='')$b->groupStart()->like('kg.topik',$q)->orLike('kg.uraian_masalah',$q)->groupEnd();return $b;}
+    private function baseBuilder(int $idT, array $input)
+    {
+        $builder = db_connect()
+            ->table('konseling_kelompok kg')
+            ->select([
+                'kg.*',
+                'ta.nama_tahun',
+                'ta.semester',
+                'u.username AS username_pencatat',
+            ])
+            ->select(
+                '(SELECT COUNT(*) FROM konseling_kelompok_anggota a WHERE a.id_konseling_kelompok=kg.id) AS jumlah_anggota',
+                false
+            )
+            ->select('COALESCE(g.nama,p.nama,u.username) AS nama_pencatat', false)
+            ->join('tahun_ajaran ta', 'ta.id=kg.id_tahun')
+            ->join('users u', 'u.id=kg.created_by', 'left')
+            ->join('guru g', 'g.id=u.id_guru', 'left')
+            ->join('pegawai p', 'p.id=u.id_pegawai', 'left')
+            ->where('kg.id_tahun', $idT);
+
+        $status = trim((string) ($input['status'] ?? ''));
+        $bidang = trim((string) ($input['bidang'] ?? ''));
+        $search = trim((string) ($input['search'] ?? ''));
+        $tanggalMulai = trim((string) ($input['tanggal_mulai'] ?? ''));
+        $tanggalSelesai = trim((string) ($input['tanggal_selesai'] ?? ''));
+        $idKelas = (int) ($input['id_kelas'] ?? 0);
+
+        if ($status !== '') $builder->where('kg.status', $status);
+        if ($bidang !== '') $builder->where('kg.bidang', $bidang);
+        if ($tanggalMulai !== '') $builder->where('kg.tanggal >=', $tanggalMulai);
+        if ($tanggalSelesai !== '') $builder->where('kg.tanggal <=', $tanggalSelesai);
+        if ($idKelas > 0) {
+            $builder->where(
+                'EXISTS (SELECT 1 FROM konseling_kelompok_anggota a_filter'
+                . ' WHERE a_filter.id_konseling_kelompok = kg.id'
+                . ' AND a_filter.id_kelas = ' . $idKelas . ')',
+                null,
+                false
+            );
+        }
+        if ($search !== '') {
+            $builder
+                ->groupStart()
+                ->like('kg.topik', $search)
+                ->orLike('kg.uraian_masalah', $search)
+                ->groupEnd();
+        }
+
+        return $builder;
+    }
 
     private function validateStageOne(array $i):array{$o=$this->formSettings->options();$t=trim((string)($i['tanggal']??''));$p=filter_var($i['pertemuan_ke']??null,FILTER_VALIDATE_INT);$b=trim((string)($i['bentuk_layanan']??''));$c=trim((string)($i['cara_hadir']??''));$d=trim((string)($i['bidang']??''));$top=trim((string)($i['topik']??''));if(!$this->validDate($t))return $this->fail('VALIDATION','Tanggal Konseling tidak valid.');if($p===false||$p<1||$p>99)return $this->fail('VALIDATION','Pertemuan ke- wajib 1–99.');if(!in_array($b,$o['bentuk_layanan']??[],true)||!in_array($c,$o['cara_hadir']??[],true)||!in_array($d,$o['bidang']??[],true)||!in_array($top,$o['topik'][$d]??[],true))return $this->fail('VALIDATION','Pilihan layanan/bidang/topik tidak valid.');return ['success'=>true,'data'=>['tanggal'=>$t,'pertemuan_ke'=>(int)$p,'bentuk_layanan'=>$b,'cara_hadir'=>$c,'bidang'=>$d,'topik'=>$top]];}
     private function validateStageTwo(array $i,array $e):array{$o=$this->formSettings->options();$u=trim((string)($i['uraian_masalah']??''));$h=trim((string)($i['hasil_kesepakatan']??''));$r=trim((string)($i['rencana_berikutnya']??''));$tb=trim((string)($i['tanggal_berikutnya']??''));$s=trim((string)($i['status']??'Proses'));if(!in_array($s,$o['status']??[],true))return $this->fail('VALIDATION','Status tidak valid.');if($r!==''&&!in_array($r,$o['rencana']??[],true)&&$r!==trim((string)($e['rencana_berikutnya']??'')))return $this->fail('VALIDATION','Rencana berikutnya tidak valid.');if($tb!==''&&(!$this->validDate($tb)||$tb<(string)$e['tanggal']))return $this->fail('VALIDATION','Tanggal berikutnya tidak valid.');if($s==='Selesai'&&($u===''||$h===''))return $this->fail('VALIDATION','Uraian dan hasil wajib untuk status Selesai.');return ['success'=>true,'data'=>['uraian_masalah'=>$u!==''?$u:null,'hasil_kesepakatan'=>$h!==''?$h:null,'rencana_berikutnya'=>$r!==''?$r:null,'tanggal_berikutnya'=>$tb!==''?$tb:null,'status'=>$s]];}

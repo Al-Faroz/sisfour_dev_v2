@@ -139,7 +139,12 @@ class BKKasus extends BaseController
             return $this->respond($data);
         }
 
-        $file = $this->exportService->kasus($data, $userId);
+        $mode = strtolower(trim((string) $this->request->getGet('export_mode')));
+        $scope = strtolower(trim((string) $this->request->getGet('export_scope')));
+        $mode = in_array($mode, ['ringkas', 'lengkap'], true) ? $mode : 'ringkas';
+        $scope = in_array($scope, ['filtered', 'year'], true) ? $scope : 'filtered';
+
+        $file = $this->exportService->kasus($data, $userId, $mode, $scope);
 
         if (! $file['success']) {
             return $this->respond($file);

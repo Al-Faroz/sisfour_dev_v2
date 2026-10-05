@@ -82,21 +82,31 @@ class BKKonseling extends BaseController
 
     public function export()
     {
-        $data = $this->service->getExport($this->currentActorUserId(), $this->request->getGet());
+        $userId = $this->currentActorUserId();
+        $input = $this->request->getGet();
+        $data = $this->service->getExport($userId, $input);
         if (! ($data['success'] ?? false)) return $this->respond($data);
 
-        $groups = $this->groupService->exportData(
-            $this->currentActorUserId(),
-            $this->request->getGet()
-        );
+        $groups = $this->groupService->exportData($userId, $input);
         if (! ($groups['success'] ?? false)) return $this->respond($groups);
+
+        $mode = strtolower(trim((string) $this->request->getGet('export_mode')));
+        $scope = strtolower(trim((string) $this->request->getGet('export_scope')));
+        $mode = in_array($mode, ['ringkas', 'lengkap'], true) ? $mode : 'ringkas';
+        $scope = in_array($scope, ['filtered', 'year'], true) ? $scope : 'filtered';
 
         $file = $this->exportService->export(
             $data['rows'] ?? [],
             $data['tindak_lanjut'] ?? [],
             $groups['rows'] ?? [],
             $groups['members'] ?? [],
-            $groups['follow_ups'] ?? []
+            $groups['follow_ups'] ?? [],
+            [
+                'mode' => $mode,
+                'scope' => $scope,
+                'tahun_dipilih' => $data['tahun_dipilih'] ?? [],
+                'filter' => $data['filter'] ?? [],
+            ]
         );
         if (! ($file['success'] ?? false)) return $this->respond($file);
 
