@@ -22,6 +22,7 @@ $canPresensi = ! empty($access['presensi']);
 $canPrestasi = ! empty($access['prestasi']);
 $canPelanggaran = ! empty($access['pelanggaran']);
 $canKartu = ! empty($access['kartu']);
+$canDokumen = ! empty($access['dokumen']);
 $canProfile = ! empty($access['profile']);
 
 $statusHariIni = trim((string) ($presensiHariIni['status'] ?? ''));
@@ -51,6 +52,7 @@ $actionTone = static function (string $label): string {
         str_contains($label, 'presensi') => 'sisfour-action--blue',
         str_contains($label, 'kartu') => 'sisfour-action--teal',
         str_contains($label, 'prestasi') => 'sisfour-action--green',
+        str_contains($label, 'dokumen') => 'sisfour-action--cyan',
         str_contains($label, 'profil') => 'sisfour-action--slate',
         default => 'sisfour-action--indigo',
     };
@@ -130,9 +132,9 @@ $actionTone = static function (string $label): string {
   <h5 class="mb-0">Akses Saya</h5>
   <small class="text-muted">Self-service personal</small>
 </div>
-<div class="row g-2 mb-4">
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-2 mb-4">
   <?php foreach ($quickActions as $action): ?>
-    <div class="col-6 col-md-3">
+    <div class="col">
       <a href="<?= base_url((string) ($action['url'] ?? '')) ?>"
          class="btn sisfour-action sisfour-action--tile <?= esc($actionTone((string) ($action['label'] ?? '')), 'attr') ?> w-100 h-100 sisfour-touch-target">
         <span class="d-flex align-items-center gap-2 min-w-0">
@@ -288,7 +290,7 @@ $actionTone = static function (string $label): string {
 </div>
 <?php endif; ?>
 
-<?php if (! $canPresensi && ! $canKartu && ! $canPrestasi && ! $canPelanggaran && ! $canProfile): ?>
+<?php if (! $canPresensi && ! $canKartu && ! $canDokumen && ! $canPrestasi && ! $canPelanggaran && ! $canProfile): ?>
   <div class="alert alert-secondary mb-0">Belum ada data self-service yang tersedia untuk akun ini.</div>
 <?php endif; ?>
 

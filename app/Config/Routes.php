@@ -211,6 +211,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('kasus/(:segment)/tindak-lanjut', 'BKKasus::createTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
         $routes->put('kasus/tindak-lanjut/(:segment)', 'BKKasus::updateTindakLanjut/$1', ['filter' => 'permission:bk_kasus.manage']);
         $routes->get('kasus/export', 'BKKasus::export', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->get('kasus-kelompok', 'BKKasusKelompok::index', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->get('kasus-kelompok/json', 'BKKasusKelompok::index', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->get('kasus-kelompok/detail/(:num)', 'BKKasusKelompok::detail/$1', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->post('kasus-kelompok/create', 'BKKasusKelompok::create', ['filter' => 'permission:bk_kasus.manage']);
+        $routes->post('kasus-kelompok/(:num)/tindak-lanjut', 'BKKasusKelompok::followUp/$1', ['filter' => 'permission:bk_kasus.manage']);
         $routes->get('pelanggaran', 'BKPelanggaran::index', ['filter' => 'permission:bk_pelanggaran_master.manage']);
         $routes->get('pelanggaran/json', 'BKPelanggaran::index', ['filter' => 'permission:bk_pelanggaran_master.manage']);
         $routes->post('pelanggaran/create', 'BKPelanggaran::create', ['filter' => 'permission:bk_pelanggaran_master.manage']);
@@ -307,6 +312,26 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('siswa', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
         $routes->get('siswa/json', 'ProfileSiswa::index', ['filter' => 'permission:profile_siswa.view']);
     });
+
+    $routes->group('dokumen-siswa', static function ($routes) {
+        $routes->get('/', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
+        $routes->get('json', 'DokumenSiswa::index', ['filter' => 'permission:dokumen_siswa.view_all']);
+        $routes->get('import', 'DokumenSiswa::importPage', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->get('cari-siswa', 'DokumenSiswa::searchStudents', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('create', 'DokumenSiswa::create', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->put('update/(:num)', 'DokumenSiswa::update/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->put('archive/(:num)', 'DokumenSiswa::archive/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('hard-delete', 'DokumenSiswa::hardDelete', ['filter' => 'permission:dokumen_siswa.hard_delete']);
+        $routes->get('template', 'DokumenSiswa::template', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/preview', 'DokumenSiswa::previewImport', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/commit', 'DokumenSiswa::commitImport', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->post('import/rollback/(:num)', 'DokumenSiswa::rollbackImport/$1', ['filter' => 'permission:dokumen_siswa.manage']);
+        $routes->get('export', 'DokumenSiswa::export', ['filter' => 'permission:dokumen_siswa.export']);
+    });
+
+    $routes->get('dokumen-saya', 'DokumenSaya::index', ['filter' => 'permission:dokumen_siswa.view_self']);
+    $routes->get('dokumen-saya/json', 'DokumenSaya::index', ['filter' => 'permission:dokumen_siswa.view_self']);
+    $routes->get('dokumen-saya/buka/(:num)', 'DokumenSaya::open/$1', ['filter' => 'permission:dokumen_siswa.view_self']);
 
     // Dokumen personalia tersimpan non-public. Endpoint ini hanya mengirim file
     // setelah PersonaliaService memvalidasi self identity / permission Master.

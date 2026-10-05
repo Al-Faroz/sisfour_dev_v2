@@ -18,5 +18,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->post('konseling/(:num)/tindak-lanjut', 'BKKonseling::createFollowUp/$1', ['filter' => 'permission:bk_konseling.manage']);
         $routes->put('konseling/tindak-lanjut/(:num)', 'BKKonseling::updateFollowUp/$1', ['filter' => 'permission:bk_konseling.manage']);
         $routes->get('konseling/export', 'BKKonseling::export', ['filter' => 'permission:bk_konseling.export']);
+        $routes->get('konseling-kelompok', 'BKKonselingKelompok::index', ['filter' => 'permission:bk_konseling.view']);
+        $routes->get('konseling-kelompok/json', 'BKKonselingKelompok::index', ['filter' => 'permission:bk_konseling.view']);
+        $routes->get('konseling-kelompok/detail/(:num)', 'BKKonselingKelompok::detail/$1', ['filter' => 'permission:bk_konseling.view']);
+        $routes->post('konseling-kelompok/create', 'BKKonselingKelompok::create', ['filter' => 'permission:bk_konseling.manage']);
+        $routes->put('konseling-kelompok/update/(:num)', 'BKKonselingKelompok::update/$1', ['filter' => 'permission:bk_konseling.manage']);
+        $routes->post('konseling-kelompok/(:num)/tindak-lanjut', 'BKKonselingKelompok::followUp/$1', ['filter' => 'permission:bk_konseling.manage']);
     });
 });

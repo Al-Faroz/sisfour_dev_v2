@@ -21,6 +21,7 @@
   const detailContent = document.getElementById('detailKasusContent');
   const formTindak = document.getElementById('formTindakLanjut');
   const timeline = document.getElementById('timelineTindakLanjut');
+  const totalLabel = document.getElementById('kasusTotal');
   if (!body || !mobileList) return;
 
   const state = { limit: 25, offset: 0, total: 0 };
@@ -103,7 +104,7 @@
       const payload=await requestJson(`${base}/bk/kasus?${params(true)}`); const data=payload.data||{}; const rows=Array.isArray(data.rows)?data.rows:[];
       state.total=Number(data.total||0); state.limit=Number(data.limit||state.limit); state.offset=Number(data.offset??state.offset);
       if (!rows.length && state.total>0 && state.offset>=state.total) { state.offset=Math.floor((state.total-1)/state.limit)*state.limit; await load(); return; }
-      hideAlert(); renderRows(rows, Boolean(data.can_manage)); pager?.render(state);
+      hideAlert(); renderRows(rows, Boolean(data.can_manage)); pager?.render(state); if (totalLabel) totalLabel.textContent=`${state.total} catatan`;
     } catch(error) { show(error.message||'Data pelanggaran gagal dimuat.'); } finally { pager?.setDisabled(false); }
   }
 
@@ -150,7 +151,8 @@
   document.getElementById('btnKasusCari')?.addEventListener('click',()=>{state.offset=0;load();});
   document.getElementById('btnKasusReset')?.addEventListener('click',()=>{ if(tahun){tahun.value=''; window.SisfourActiveYearDefault?.applyDefault(tahun);} if(search)search.value=''; if(kategori)kategori.value=''; if(mulai)mulai.value=''; if(selesai)selesai.value=''; state.offset=0; load(); });
   search?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();state.offset=0;load();}});
-  document.getElementById('btnKasusExport')?.addEventListener('click',event=>{event.preventDefault();const p=params(false);p.delete('format');window.location.href=`${base}/bk/kasus/export?${p.toString()}`;});
+  document.getElementById('btnKasusExport')?.addEventListener('click',()=>{const modal=document.getElementById('modalKasusExport');if(modal)bootstrap.Modal.getOrCreateInstance(modal).show();});
+  document.getElementById('formKasusExport')?.addEventListener('submit',event=>{event.preventDefault();const fd=new FormData(event.currentTarget);const p=params(false);p.delete('format');const scope=String(fd.get('scope')||'filtered');if(scope==='year'){['search','kategori','tanggal_mulai','tanggal_selesai'].forEach(key=>p.delete(key));}p.set('export_scope',scope);p.set('export_mode',String(fd.get('mode')||'ringkas'));window.location.href=`${base}/bk/kasus/export?${p.toString()}`;});
 
   form?.addEventListener('submit',async event=>{
     event.preventDefault(); if(form.dataset.busy==='1') return; form.dataset.busy='1'; const button=formSubmitButton(form); setButtonBusy(button,true,'Menyimpan...');

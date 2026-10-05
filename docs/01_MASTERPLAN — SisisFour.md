@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.9 — ACTIVE — Draft PR #18; G4 NOT STARTED
+**Development aktif:** G3.10 — Student Services Expansion — CLOSURE-READY / Draft PR #19 stacked on PR #18; G4 BLOCKED pending G3.9 final runtime closure + stack close decision
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -257,7 +257,9 @@ G3.6B PTSP                             CLOSED / MERGED — PR #14
 G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
 G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
 G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
-G4    Cordova APK                            NOT STARTED
+G3.9  Dashboard Experience V2                IMPLEMENTED / FINAL RUNTIME CLOSURE PENDING — PR #18 DRAFT
+G3.10 Student Services Expansion             CLOSURE-READY — PR #19 DRAFT / STACKED ON G3.9
+G4    Cordova APK                            BLOCKED UNTIL G3.9 + G3.10 STABLE/CLOSED
 ```
 
 ### G3.6A — UKS / Kesehatan
@@ -501,6 +503,15 @@ merge commit                      59b22b651ad0d508ea3a29261ef590d4c9506da4
 ```
 
 ## 15. G4 — Cordova APK
+
+Start gate G4:
+
+```text
+G3.9 final runtime closure = PASS
+G3.10 closure             = PASS
+PR stack disposition      = explicit user decision
+G4                        = baru boleh START setelah G3 stable
+```
 
 Setelah G3 stable:
 
@@ -776,3 +787,44 @@ Guru + PTSP
 functional gradient action UI
 multi-role Sidebar grouping
 ```
+
+
+### G3.10 — Student Services Expansion
+
+Canonical reference:
+
+```text
+docs/22_G3_10_STUDENT_SERVICES_EXPANSION — SisisFour.md
+```
+
+Subphase:
+
+```text
+G3.10A BK Group Recording
+G3.10B Student Document Center
+```
+
+G3.10 is stacked from the exact G3.9 head and must not mutate PR #18.
+
+Locked scope summary:
+
+```text
+Pelanggaran Kelompok = parent event + N catatan_kasus individual
+Konseling Kelompok   = separate parent/member/follow-up persistence
+BK exports            = group-aware, privacy-safe
+
+Dokumen Siswa storage = manual Google Drive link
+Drive API              = NONE
+target                 = INDIVIDU / TINGKAT
+period ownership       = NONE
+INDIVIDU               = permanent ownership by id_siswa
+TINGKAT                = 7/8/9; current eligibility via active-period membership
+bulk individu          = XLSX NISN + Link GDrive
+template helper        = canonical Google Sheets folder-file helper
+format                 = PDF / IMAGE(JPG/JPEG/PNG) only
+hard delete            = selected metadata only + deletion audit; Drive untouched
+Admin/Operator         = manage/export/hard-delete
+Siswa                  = self-only
+```
+
+G4 remains blocked until G3.10 is closed.

@@ -450,6 +450,19 @@ class MenuService
             return $ptsp;
         }
 
+        $documents = match ($link) {
+            'dokumen-siswa' => ['dokumen_siswa.view_all', 'dokumen_siswa.manage'],
+            'dokumen-siswa/import' => ['dokumen_siswa.manage'],
+            'dokumen-saya' => ['dokumen_siswa.view_self'],
+            default => $name === 'Dokumen Siswa'
+                ? ['dokumen_siswa.view_all', 'dokumen_siswa.manage']
+                : null,
+        };
+
+        if ($documents !== null) {
+            return $documents;
+        }
+
         if ($link === 'statistik') {
             return ['statistik.view'];
         }

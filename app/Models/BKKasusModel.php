@@ -65,6 +65,7 @@ class BKKasusModel
             ->select([
                 'ck.id',
                 'ck.id_tahun',
+                'ck.id_kelompok',
                 'ck.id_siswa',
                 'ck.id_pelanggaran',
                 'ck.tanggal',
@@ -166,6 +167,7 @@ class BKKasusModel
             ->select([
                 'ck.id',
                 'ck.id_tahun',
+                'ck.id_kelompok',
                 'ck.id_siswa',
                 'ck.id_pelanggaran',
                 'ck.tanggal',

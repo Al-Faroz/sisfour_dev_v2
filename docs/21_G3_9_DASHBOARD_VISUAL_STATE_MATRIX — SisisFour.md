@@ -893,6 +893,7 @@ Metric tetap informational.
 |---|---|
 | Presensi Saya | Blue Soft |
 | Kartu | Teal Soft |
+| Dokumen Saya | Cyan Soft |
 | Prestasi | Green Soft |
 | Profil | Slate Soft |
 

@@ -1720,3 +1720,139 @@ viewport:
 1024×768
 1366×768
 ```
+
+
+## G3.10 — Student Services Expansion Gate
+
+### G3.10A BK Group Recording
+
+```text
+Pelanggaran kelompok:
+- create 2+ siswa all-or-nothing
+- invalid satu siswa membatalkan seluruh batch
+- setiap child mempunyai id_kelompok yang sama
+- individual record tetap id_kelompok NULL
+- self/history/dashboard masih per siswa
+- follow-up individual tetap bekerja
+- group fan-out tidak membuat partial child
+
+Konseling kelompok:
+- parent + anggota + follow-up persistence terpisah
+- member exact membership pada Tahun aktif
+- lintas kelas periode yang sama diperbolehkan
+- no-delete parent/follow-up
+- status parent mengikuti follow-up terbaru
+- non Admin/Operator/BK direct access DENY
+- export tidak flatten confidential parent per siswa
+
+XLSX:
+- group-aware sheets
+- exact period filter
+- user text explicit string
+- max 50.000 row per sheet
+```
+
+### G3.10B Student Document Center
+
+```text
+Admin/Operator manual INDIVIDU create tanpa period ownership
+Admin/Operator manual TINGKAT create tanpa stored id_tahun
+Siswa INDIVIDU tetap visible tanpa Tahun Ajaran aktif
+TINGKAT eligibility memakai current membership pada Tahun Ajaran aktif
+No active period → TINGKAT tidak tampil
+INDIVIDU cross-student direct open DENY
+non Google Drive URL DENY
+format only PDF / IMAGE
+Lulus/Pindah/Keluar tetap dapat Dokumen Individu
+
+Bulk:
+- context hanya Judul + Format
+- template DATA_DOKUMEN + PETUNJUK
+- PETUNJUK memuat clickable canonical Spreadsheet Helper URL
+- template filter semua siswa / tingkat / kelas memakai periode aktif hanya untuk roster
+- authoritative columns NISN + LINK GOOGLE DRIVE
+- duplicate NISN row in file DENY
+- unknown NISN DENY
+- duplicate DB id_siswa+normalized judul DENY
+- any blocking error => no commit
+- valid preview => one transaction commit
+- id_import_batch recorded
+- rollback metadata only, never Drive file
+
+Hard delete:
+- selected IDs only
+- permission dokumen_siswa.hard_delete
+- every target revalidated server-side
+- deletion snapshot created
+- access logs dependent deleted
+- dokumen_siswa rows hard-deleted transactionally
+- Google Drive never mutated/deleted
+
+Export:
+- no Tahun Ajaran/Semester ownership columns
+- current class optional display only
+- Admin/Operator only
+- access log sheet included
+
+UI / Dashboard:
+- Data Dokumen desktop table memakai hierarchy Dokumen / Penerima / Status / Pencatat / Aksi
+- mobile Data Dokumen tetap adaptive list dari dataset yang sama
+- Data Dokumen mempunyai canonical pager + page size 25/50/100
+- filter mempertahankan page size dan reset offset ke halaman awal
+- hard-delete selection tetap current-page scoped
+- Dashboard Siswa menampilkan Dokumen Saya hanya bila dokumen_siswa.view_self tersedia
+- Dokumen Saya berada pada Self-Service Access, bukan operational Primary Action Surface
+- action Dokumen Saya menuju dokumen-saya dan memakai Cyan action family
+```
+
+Runtime/UAT evidence 2026-10-05:
+
+```text
+Manual Input Dokumen                  PASS
+Import Massal                         PASS
+Dokumen Saya Role Siswa               PASS
+Data Dokumen table + pager            PASS
+Dashboard Siswa → Dokumen Saya        PASS
+Cross-student direct open DENY        PASS
+Invalid Drive URL rejection           PASS
+Duplicate document rejection          PASS
+Hard delete + delete snapshot         PASS
+Google Drive untouched                PASS
+Access audit OPEN                     PASS
+Metadata + access-log export          PASS
+Session stability after hardening     PASS
+Mobile 360px / responsive smoke       PASS
+```
+
+Static gate remains:
+
+```text
+php -l changed PHP
+node --check changed JS
+php spark routes
+git diff --check
+unit tests
+working tree clean
+```
+
+Final executable-head regression evidence 2026-10-05:
+
+```text
+Executable local/remote head           a0b7ec6
+PHP lint changed closure surfaces      PASS
+JavaScript syntax                      PASS
+Routes                                 PASS
+FunctionalConsistencyTest              PASS — 26/26, 75 assertions
+Code coverage driver                   WARNING ONLY
+git diff --check                       PASS
+working tree                           CLEAN / synced with origin
+```
+
+Regression dijalankan pada executable head `a0b7ec6`. Commit setelah head tersebut hanya
+closure documentation/status sync dan tidak mengubah PHP/JS/runtime behavior.
+
+Dengan runtime/UAT dan final executable-head regression sama-sama PASS, G3.10 berada pada
+status **CLOSURE-READY**.
+
+CLOSURE-READY bukan approval untuk Ready/merge/deploy. PR #19 tetap Draft sampai ada
+approval eksplisit user.

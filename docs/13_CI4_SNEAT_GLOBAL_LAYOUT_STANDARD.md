@@ -369,6 +369,33 @@ footer: Batal + primary action
 
 Gunakan `modal-dialog-scrollable` untuk content panjang. Project mobile boleh meng-override menjadi fullscreen pada viewport kecil.
 
+### 19.1 Sneat v3 close-button behavior
+
+Sneat Free v3 memberi treatment visual khusus pada tombol close modal biasa:
+
+```css
+.modal .btn-close {
+  transform: translate(...);
+}
+
+.modal .modal-header .btn-close {
+  position: absolute;
+}
+```
+
+Vendor juga menetralkan transform tersebut pada modal yang memakai
+`modal-dialog-scrollable`, `modal-fullscreen`, atau `modal-top`.
+
+Application standard:
+
+1. jangan patch `core.css` / vendor;
+2. jangan membuat override `.btn-close` per-feature hanya untuk mengoreksi posisi;
+3. modal multi-section / content yang dapat memanjang memakai
+   `modal-dialog-scrollable` sehingga close + scroll mengikuti behavior native Sneat;
+4. modal kompleks mobile dapat memakai `modal-fullscreen-sm-down` sesuai project standard;
+5. bila project ingin mengubah behavior close untuk **semua** modal, perubahan harus
+   menjadi application-foundation rule tunggal dan SSOT harus diperbarui terlebih dahulu.
+
 ## 20. Alerts / Confirmation
 
 Inline alert untuk page/field state. SweetAlert2/toast dapat digunakan untuk feedback/confirmation.

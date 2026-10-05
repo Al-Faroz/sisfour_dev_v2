@@ -4,10 +4,12 @@ namespace Tests\Unit;
 
 use App\Services\DashboardActionCatalogService;
 use App\Services\DashboardCompositionService;
+use App\Services\DokumenSiswaExportService;
 use App\Services\JadwalGuruService;
 use App\Services\RoleAssignmentPolicyService;
 use App\Services\RoleAwareDashboardService;
 use App\Services\SidebarMenuCompositionService;
+use App\Services\StudentDocumentPolicyService;
 use CodeIgniter\Test\CIUnitTestCase;
 use ReflectionClass;
 
@@ -543,6 +545,103 @@ final class FunctionalConsistencyTest extends CIUnitTestCase
         );
         $this->assertTrue(
             $resolved['role_sections'][1]['items'][0]['active']
+        );
+    }
+
+    public function testStudentDocumentPolicyAllowsOnlyLockedFormats(): void
+    {
+        $this->assertSame(
+            'PDF',
+            StudentDocumentPolicyService::normalizeFormat('pdf')
+        );
+        $this->assertSame(
+            'IMAGE',
+            StudentDocumentPolicyService::normalizeFormat(' image ')
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeFormat('docx')
+        );
+        $this->assertTrue(
+            StudentDocumentPolicyService::validLevel('7')
+        );
+        $this->assertFalse(
+            StudentDocumentPolicyService::validLevel('10')
+        );
+    }
+
+    public function testStudentDocumentPolicyAcceptsOnlyHttpsGoogleDriveFileHost(): void
+    {
+        $drive = 'https://drive.google.com/file/d/example/view';
+
+        $this->assertSame(
+            $drive,
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                $drive
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'https://docs.google.com/document/d/example/edit'
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'http://drive.google.com/file/d/example/view'
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'https://drive.google.com.evil.example/file'
+            )
+        );
+        $this->assertNull(
+            StudentDocumentPolicyService::normalizeGoogleDriveUrl(
+                'https://example.com/file.pdf'
+            )
+        );
+    }
+
+    public function testStudentDocumentTemplateLocksCanonicalHelperUrl(): void
+    {
+        $this->assertSame(
+            'https://docs.google.com/spreadsheets/d/'
+            . '16CKvPVbkxZk6zW9dTeN35ivk3Qi_bIzIXKQWCFsnywQ/'
+            . 'edit?usp=sharing',
+            DokumenSiswaExportService::HELPER_URL
+        );
+    }
+
+    public function testStudentDocumentUiAndDashboardAccessContract(): void
+    {
+        $documentView = (string) file_get_contents(
+            ROOTPATH . 'app/Views/dokumen_siswa/index.php'
+        );
+        $dashboardService = (string) file_get_contents(
+            ROOTPATH . 'app/Services/SiswaDashboardService.php'
+        );
+        $dashboardView = (string) file_get_contents(
+            ROOTPATH . 'app/Views/dashboard_siswa.php'
+        );
+
+        $this->assertStringContainsString(
+            'id="dokumenPager"',
+            $documentView
+        );
+        $this->assertStringContainsString(
+            '<th>Dokumen</th>',
+            $documentView
+        );
+        $this->assertStringContainsString(
+            "'permission' => 'dokumen_siswa.view_self'",
+            $dashboardService
+        );
+        $this->assertStringContainsString(
+            "'label' => 'Dokumen Saya'",
+            $dashboardService
+        );
+        $this->assertStringContainsString(
+            "str_contains(\$label, 'dokumen') => 'sisfour-action--cyan'",
+            $dashboardView
         );
     }
 

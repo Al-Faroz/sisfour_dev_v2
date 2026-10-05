@@ -298,7 +298,13 @@ body
 footer: Batal + primary action
 ```
 
-Gunakan `modal-dialog-scrollable` untuk content panjang. Mobile complex form/detail menggunakan `modal-fullscreen-sm-down` bila sesuai.
+Gunakan `modal-dialog-scrollable` untuk content panjang. Modal multi-section yang berpotensi
+melewati viewport, termasuk dialog pilihan Export, juga memakai `modal-dialog-scrollable`
+agar mengikuti behavior close/scroll native Sneat. Mobile complex form/detail menggunakan
+`modal-fullscreen-sm-down` bila sesuai.
+
+Jangan membuat CSS feature-specific untuk memindahkan `.modal .btn-close`. Behavior vendor
+Sneat dan pemilihan class modal canonical mengikuti `13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md`.
 
 ## 17. Confirmation & Feedback
 

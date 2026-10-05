@@ -10,6 +10,8 @@
         </div>
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="sisfour-page-actions">
+                <a class="btn btn-outline-primary" href="<?= esc(base_url('bk/kasus-kelompok')) ?>"><i class="bx bx-group me-1"></i> Pelanggaran Kelompok</a>
+                <button class="btn btn-outline-success" id="btnKasusExport" type="button"><i class="bx bx-export me-1"></i> Export XLSX</button>
                 <button class="btn btn-primary" id="btnKasusBaru" type="button"><i class="bx bx-plus me-1"></i> Tambah Catatan</button>
             </div>
         <?php endif; ?>
@@ -87,7 +89,7 @@
         <div class="card sisfour-table-card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="mb-0">Riwayat Pelanggaran</h5>
-                <?php if (! empty($initial['can_manage'])): ?><a class="btn btn-sm btn-outline-primary" id="btnKasusExport" href="#"><i class="bx bx-export me-1"></i> Export XLSX</a><?php endif; ?>
+                <span class="text-muted small" id="kasusTotal"><?= number_format((int) ($initial['total'] ?? 0), 0, ',', '.') ?> catatan</span>
             </div>
             <div id="kasusMobileList" class="d-md-none list-group list-group-flush"></div>
             <div class="d-none d-md-block table-responsive">
@@ -95,6 +97,27 @@
             </div>
             <div class="card-footer"><div id="bkKasusPager"></div></div>
         </div>
+
+        <?php if (! empty($initial['can_manage'])): ?>
+            <div class="modal fade" id="modalKasusExport" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formKasusExport">
+                    <div class="modal-header"><div><h5 class="modal-title mb-1">Export Catatan Pelanggaran</h5><small class="text-muted d-block">Pilih cakupan data dan tingkat detail workbook.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+                    <div class="modal-body">
+                        <h6 class="mb-2">Cakupan Data</h6>
+                        <div class="vstack gap-2 mb-4">
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="scope" value="filtered" checked><span><strong>Sesuai filter saat ini</strong><small class="d-block text-muted">Mengikuti pencarian, kategori, dan rentang tanggal yang sedang aktif.</small></span></label>
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="scope" value="year"><span><strong>Seluruh Tahun Ajaran terpilih</strong><small class="d-block text-muted">Mengabaikan filter lain dan mengekspor seluruh data pada Tahun Ajaran yang dipilih.</small></span></label>
+                        </div>
+                        <h6 class="mb-2">Format Workbook</h6>
+                        <div class="vstack gap-2">
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="ringkas" checked><span><strong>Ringkas</strong><small class="d-block text-muted">3 sheet laporan operasional; tanpa NISN, ID teknis, timestamp audit, dan sheet kejadian kelompok terpisah.</small></span></label>
+                            <label class="border rounded p-3 d-flex gap-3 align-items-start"><input class="form-check-input mt-1" type="radio" name="mode" value="lengkap"><span><strong>Lengkap / Audit</strong><small class="d-block text-muted">4 sheet audit; menyertakan NISN, ID Catatan/Kelompok, timestamp, serta detail kejadian kelompok.</small></span></label>
+                        </div>
+                    </div>
+                    <div class="modal-footer sisfour-modal-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary"><i class="bx bx-export me-1"></i> Export XLSX</button></div>
+                </form></div>
+            </div>
+        <?php endif; ?>
 
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="modal fade" id="modalKasus" tabindex="-1" aria-hidden="true">

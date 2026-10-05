@@ -22,7 +22,7 @@ class AuthFilter implements FilterInterface
             return $this->beforeApi($request);
         }
 
-        return $this->beforeWeb();
+        return $this->beforeWeb($request);
     }
 
     public function after(
@@ -33,9 +33,22 @@ class AuthFilter implements FilterInterface
         return null;
     }
 
-    private function beforeWeb()
+    private function beforeWeb(RequestInterface $request)
     {
         if (session()->get('logged_in') !== true) {
+            $sessionConfig = config('Session');
+            $cookieName = (string) ($sessionConfig->cookieName ?? '');
+            $cookiePresent = $cookieName !== ''
+                && array_key_exists($cookieName, $_COOKIE);
+
+            log_message(
+                'warning',
+                'Web auth session missing: path={path}, cookie_present={cookiePresent}',
+                [
+                    'path' => $request->getUri()->getPath(),
+                    'cookiePresent' => $cookiePresent ? 'yes' : 'no',
+                ]
+            );
             session()->setFlashdata(
                 'error',
                 'Silakan login terlebih dahulu.'
@@ -47,6 +60,12 @@ class AuthFilter implements FilterInterface
         $userId = (int) session()->get('user_id');
 
         if ($userId <= 0) {
+            log_message(
+                'warning',
+                'Web auth invalid user_id in session: path={path}',
+                ['path' => $request->getUri()->getPath()]
+            );
+
             session()->destroy();
 
             return redirect()->to('/auth/login');
@@ -55,6 +74,15 @@ class AuthFilter implements FilterInterface
         $sessionAuthVersion = session()->get('auth_version');
 
         if ($sessionAuthVersion === null) {
+            log_message(
+                'warning',
+                'Web auth missing auth_version: user_id={userId}, path={path}',
+                [
+                    'userId' => $userId,
+                    'path' => $request->getUri()->getPath(),
+                ]
+            );
+
             session()->destroy();
 
             return redirect()
@@ -79,6 +107,18 @@ class AuthFilter implements FilterInterface
             || (int) $user['status_aktif'] !== 1
             || (int) $user['auth_version'] !== (int) $sessionAuthVersion
         ) {
+            log_message(
+                'warning',
+                'Web auth invalidated: user_id={userId}, path={path}, status={status}, session_auth_version={sessionVersion}, db_auth_version={dbVersion}',
+                [
+                    'userId' => $userId,
+                    'path' => $request->getUri()->getPath(),
+                    'status' => $user ? (int) $user['status_aktif'] : -1,
+                    'sessionVersion' => (int) $sessionAuthVersion,
+                    'dbVersion' => $user ? (int) $user['auth_version'] : -1,
+                ]
+            );
+
             session()->destroy();
 
             return redirect()

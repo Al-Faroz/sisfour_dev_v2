@@ -215,6 +215,7 @@ class SettingsUserService
                     : "Memperbarui user #{$id}"
             );
             $this->db->transCommit();
+            $this->refreshCurrentSessionIfSelf($actorUserId, $id);
 
             return [
                 'success' => true,
@@ -278,6 +279,8 @@ class SettingsUserService
         }
 
         $this->log($actorUserId, 'RESET_PASSWORD', "Reset password user #{$id}");
+        $this->refreshCurrentSessionIfSelf($actorUserId, $id);
+
         return ['success' => true, 'message' => $managed
             ? 'Username dan password berhasil disinkronkan ke identitas login NIP/NIK.'
             : 'Password berhasil direset.'];
@@ -517,6 +520,29 @@ class SettingsUserService
     private function currentUserId(): int
     {
         return (int) (session()->get('user_id') ?? 0);
+    }
+
+    private function refreshCurrentSessionIfSelf(int $actorUserId, int $targetUserId): void
+    {
+        if ($actorUserId <= 0 || $actorUserId !== $targetUserId) {
+            return;
+        }
+
+        $user = $this->db
+            ->table('users')
+            ->select([
+                'id', 'role', 'username', 'id_guru', 'id_siswa',
+                'id_pegawai', 'auth_version', 'status_aktif',
+            ])
+            ->where('id', $targetUserId)
+            ->get()
+            ->getRowArray();
+
+        if (! $user || (int) ($user['status_aktif'] ?? 0) !== 1) {
+            return;
+        }
+
+        $this->authService->setUserSession($user);
     }
 
     private function log(int $actorUserId, string $aksi, string $keterangan): void

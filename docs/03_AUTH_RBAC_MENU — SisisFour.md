@@ -23,6 +23,25 @@ auth_version
 logged_in
 ```
 
+### Web session hardening
+
+Session cookie web memakai nama aplikasi-spesifik:
+
+```text
+sisfour_v2_session
+```
+
+Jangan menggunakan nama generik `ci_session` pada deployment yang berbagi hostname
+dengan aplikasi CodeIgniter lain karena cookie dengan path `/` dapat saling menimpa.
+
+`auth_version` tetap menjadi invalidation token. Bila Admin memperbarui/reset akun
+yang sedang digunakan sendiri dan akun tetap aktif, session actor saat ini harus
+disinkronkan ke row `users` terbaru sehingga current session tetap valid sementara
+session lain dengan auth_version lama tetap terinvalidasi.
+
+`AuthFilter` mencatat alasan invalidasi tanpa menulis session ID/credential:
+missing session, missing auth_version, invalid user/status, atau mismatch auth_version.
+
 ## 2. Effective Role
 
 ```text
@@ -534,3 +553,73 @@ Primary Role + Secondary Roles + Wali + Identity
 → incremental leaf dedupe
 → role-aware Sidebar sections
 ```
+
+
+## 20. G3.10 Access Boundary
+
+### BK Group Recording
+
+Pelanggaran Kelompok memakai permission existing:
+
+```text
+bk_kasus.view
+bk_kasus.manage
+```
+
+Konseling Kelompok memakai permission existing:
+
+```text
+bk_konseling.view
+bk_konseling.manage
+bk_konseling.export
+```
+
+Privacy Konseling tidak berubah:
+
+```text
+Admin / Operator / BK = sesuai permission
+Pimpinan / Guru / Wali / Siswa / Kesehatan / PTSP = DEFAULT DENY detail
+```
+
+### Student Document Center
+
+Permission baru:
+
+```text
+dokumen_siswa.view_self
+dokumen_siswa.view_all
+dokumen_siswa.manage
+dokumen_siswa.export
+dokumen_siswa.hard_delete
+```
+
+Role default:
+
+```text
+Admin     = view_all + manage + export + hard_delete
+Operator  = view_all + manage + export + hard_delete
+Siswa     = view_self
+role lain = DEFAULT DENY
+```
+
+Self authorization selalu resolve `users.id_siswa`; request parameter tidak boleh memilih siswa lain.
+
+Google Drive link bukan authorization boundary. SisFour hanya mengontrol visibility/open route; actual Drive sharing tetap mengikuti policy file di Google Drive.
+
+
+### G3.10B Hard Delete Boundary
+
+`dokumen_siswa.hard_delete` adalah capability destructive terpisah dari
+`dokumen_siswa.manage`.
+
+```text
+Admin/Operator + hard_delete
+→ boleh hard delete selected document IDs
+
+Siswa/role lain
+→ DEFAULT DENY
+```
+
+Server wajib revalidate seluruh ID, snapshot ke `dokumen_siswa_delete_log`,
+hapus dependent access log, lalu hard-delete metadata dalam satu transaction.
+File Google Drive tidak pernah dihapus oleh SisFour.
