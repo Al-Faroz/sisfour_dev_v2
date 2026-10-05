@@ -16,6 +16,9 @@ $classes = $initial['classes'] ?? [];
     data-can-hard-delete="<?= ! empty($initial['can_hard_delete']) ? '1' : '0' ?>"
     data-focus-import="<?= ! empty($focusImport) ? '1' : '0' ?>"
     data-has-active-period="<?= ! empty($activePeriod) ? '1' : '0' ?>"
+    data-total="<?= (int) ($initial['total'] ?? 0) ?>"
+    data-limit="<?= (int) ($initial['limit'] ?? 25) ?>"
+    data-offset="<?= (int) ($initial['offset'] ?? 0) ?>"
 >
     <script type="application/json" id="dokumenClassesData"><?= json_encode(
         $classes,
@@ -108,6 +111,12 @@ $classes = $initial['classes'] ?? [];
                     action="<?= esc(base_url('dokumen-siswa')) ?>"
                     class="row g-3 align-items-end"
                 >
+                    <input
+                        type="hidden"
+                        name="limit"
+                        value="<?= (int) ($initial['limit'] ?? 25) ?>"
+                    >
+
                     <div class="col-6 col-md-2">
                         <label class="form-label">Target</label>
                         <select class="form-select" name="target_type">
@@ -277,27 +286,35 @@ $classes = $initial['classes'] ?? [];
 
                                 <div class="small text-muted mt-1">
                                     <?php if (($row['target_type'] ?? '') === 'INDIVIDU'): ?>
-                                        <?= esc(
-                                            ($row['nama_siswa'] ?? '-')
-                                            . (
-                                                ! empty($row['nama_kelas_current'])
-                                                    ? ' · '
-                                                        . $row['nama_kelas_current']
-                                                    : ''
-                                            )
-                                        ) ?>
+                                        <?= esc($row['nama_siswa'] ?? '-') ?>
+                                        <?php if (! empty($row['nisn'])): ?>
+                                            · <?= esc($row['nisn']) ?>
+                                        <?php endif; ?>
+                                        <?php if (! empty($row['nama_kelas_current'])): ?>
+                                            · <?= esc($row['nama_kelas_current']) ?>
+                                        <?php endif; ?>
                                     <?php else: ?>
-                                        <?= esc(
-                                            'Tingkat '
-                                            . ($row['tingkat'] ?? '-')
-                                        ) ?>
+                                        <?= esc('Tingkat ' . ($row['tingkat'] ?? '-')) ?>
                                     <?php endif; ?>
-                                    ·
-                                    <?= esc($row['format_file'] ?? '-') ?>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                    <span class="badge bg-label-info">
+                                        <?= esc($row['format_file'] ?? '-') ?>
+                                    </span>
+                                    <span class="small text-muted">
+                                        <?= esc(
+                                            $row['nama_pencatat']
+                                            ?? $row['username_pencatat']
+                                            ?? '-'
+                                        ) ?>
+                                        <?php if (! empty($row['created_at'])): ?>
+                                            · <?= esc(date('d-m-Y H:i', strtotime((string) $row['created_at']))) ?>
+                                        <?php endif; ?>
+                                    </span>
                                 </div>
 
                                 <?php if (! empty($initial['can_manage'])): ?>
-                                    <div class="d-flex gap-2 mt-2">
+                                    <div class="sisfour-mobile-actions mt-2">
                                         <button
                                             class="btn btn-sm btn-outline-primary btn-edit-dokumen"
                                             type="button"
@@ -336,9 +353,8 @@ $classes = $initial['classes'] ?? [];
                                     >
                                 </th>
                             <?php endif; ?>
-                            <th>Judul</th>
-                            <th>Target</th>
-                            <th>Format</th>
+                            <th>Dokumen</th>
+                            <th>Penerima</th>
                             <th>Status</th>
                             <th>Pencatat</th>
                             <th class="text-end">Aksi</th>
@@ -348,7 +364,7 @@ $classes = $initial['classes'] ?? [];
                         <?php if (($initial['rows'] ?? []) === []): ?>
                             <tr>
                                 <td
-                                    colspan="<?= ! empty($initial['can_hard_delete']) ? 7 : 6 ?>"
+                                    colspan="<?= ! empty($initial['can_hard_delete']) ? 6 : 5 ?>"
                                     class="text-center text-muted py-4"
                                 >
                                     Belum ada Dokumen pada filter ini.
@@ -379,37 +395,36 @@ $classes = $initial['classes'] ?? [];
                                 <?php endif; ?>
 
                                 <td>
-                                    <strong><?= esc($row['judul'] ?? '-') ?></strong>
+                                    <strong class="d-block"><?= esc($row['judul'] ?? '-') ?></strong>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                                        <span class="badge bg-label-info">
+                                            <?= esc($row['format_file'] ?? '-') ?>
+                                        </span>
+                                        <?php if (! empty($row['id_import_batch'])): ?>
+                                            <span class="small text-muted">
+                                                Import #<?= (int) $row['id_import_batch'] ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="small text-muted">Manual</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+
+                                <td>
                                     <?php if (($row['target_type'] ?? '') === 'INDIVIDU'): ?>
+                                        <strong class="d-block"><?= esc($row['nama_siswa'] ?? '-') ?></strong>
                                         <div class="small text-muted">
                                             <?= esc($row['nisn'] ?? '-') ?>
+                                            <?php if (! empty($row['nama_kelas_current'])): ?>
+                                                · <?= esc($row['nama_kelas_current']) ?>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php endif; ?>
-                                </td>
-
-                                <td>
-                                    <?php if (($row['target_type'] ?? '') === 'INDIVIDU'): ?>
-                                        <?= esc($row['nama_siswa'] ?? '-') ?>
-                                        <?php if (! empty($row['nama_kelas_current'])): ?>
-                                            <div class="small text-muted">
-                                                <?= esc(
-                                                    'Kelas saat ini: '
-                                                    . $row['nama_kelas_current']
-                                                ) ?>
-                                            </div>
-                                        <?php endif; ?>
                                     <?php else: ?>
-                                        <?= esc(
-                                            'Tingkat '
-                                            . ($row['tingkat'] ?? '-')
-                                        ) ?>
+                                        <strong class="d-block">
+                                            <?= esc('Tingkat ' . ($row['tingkat'] ?? '-')) ?>
+                                        </strong>
+                                        <div class="small text-muted">Dokumen bersama per tingkat</div>
                                     <?php endif; ?>
-                                </td>
-
-                                <td>
-                                    <span class="badge bg-label-info">
-                                        <?= esc($row['format_file'] ?? '-') ?>
-                                    </span>
                                 </td>
 
                                 <td>
@@ -419,15 +434,56 @@ $classes = $initial['classes'] ?? [];
                                 </td>
 
                                 <td>
-                                    <?= esc(
-                                        $row['nama_pencatat']
-                                        ?? $row['username_pencatat']
-                                        ?? '-'
-                                    ) ?>
+                                    <span class="d-block">
+                                        <?= esc(
+                                            $row['nama_pencatat']
+                                            ?? $row['username_pencatat']
+                                            ?? '-'
+                                        ) ?>
+                                    </span>
+                                    <?php if (! empty($row['created_at'])): ?>
+                                        <span class="small text-muted">
+                                            <?= esc(date('d-m-Y H:i', strtotime((string) $row['created_at']))) ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
 
                                 <td class="text-end">
                                     <?php if (! empty($initial['can_manage'])): ?>
+                                        <div class="sisfour-row-actions justify-content-end">
+                                            <button
+                                                class="btn btn-sm btn-outline-primary btn-edit-dokumen"
+                                                type="button"
+                                            >
+                                                Edit
+                                            </button>
+
+                                            <?php if (($row['status'] ?? '') === 'PUBLISHED'): ?>
+                                                <button
+                                                    class="btn btn-sm btn-outline-secondary btn-archive-dokumen"
+                                                    type="button"
+                                                    data-id="<?= (int) $row['id'] ?>"
+                                                >
+                                                    Arsipkan
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">—</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer">
+                <div id="dokumenPager"></div>
+            </div>
+        </div>
+
+        <?php if (! empty($initial['can_manage'])): ?>
                                         <button
                                             class="btn btn-sm btn-outline-primary btn-edit-dokumen"
                                             type="button"
@@ -451,8 +507,6 @@ $classes = $initial['classes'] ?? [];
                     </tbody>
                 </table>
             </div>
-        </div>
-
         <?php if (! empty($initial['can_manage'])): ?>
             <div class="card sisfour-table-card mt-4">
                 <div class="card-header">

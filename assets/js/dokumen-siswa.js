@@ -33,6 +33,40 @@
     const bulkForm = document.getElementById('formBulkDokumen');
     const selectedIds = new Set();
 
+    const pagingState = {
+        total: Number(app.dataset.total || 0),
+        limit: Number(app.dataset.limit || 25),
+        offset: Number(app.dataset.offset || 0),
+    };
+
+    const pagerContainer = document.getElementById('dokumenPager');
+    const pager = pagerContainer && window.SisfourPagination
+        ? window.SisfourPagination.create(pagerContainer, {
+            label: 'dokumen',
+            onChange: (next) => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('limit', String(next.limit));
+                url.searchParams.set('offset', String(next.offset));
+                window.location.href = url.toString();
+            },
+        })
+        : null;
+
+    if (
+        pagingState.total > 0
+        && pagingState.offset >= pagingState.total
+    ) {
+        const lastOffset = Math.floor(
+            (pagingState.total - 1) / pagingState.limit
+        ) * pagingState.limit;
+        const url = new URL(window.location.href);
+        url.searchParams.set('offset', String(lastOffset));
+        window.location.replace(url.toString());
+        return;
+    }
+
+    pager?.render(pagingState);
+
     let previewToken = '';
 
     const escapeHtml = (value) => {

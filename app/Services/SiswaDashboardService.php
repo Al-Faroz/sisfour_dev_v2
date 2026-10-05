@@ -29,6 +29,7 @@ class SiswaDashboardService extends PimpinanDashboardService
         $canPrestasi = $this->can($userId, 'prestasi.view');
         $canPelanggaran = $this->can($userId, 'bk_kasus.view');
         $canKartu = $this->can($userId, 'kartu_pelajar.view');
+        $canDokumen = $this->can($userId, 'dokumen_siswa.view_self');
         $canProfile = $this->can($userId, 'profile_siswa.view');
 
         return [
@@ -40,6 +41,7 @@ class SiswaDashboardService extends PimpinanDashboardService
                 'prestasi' => $canPrestasi,
                 'pelanggaran' => $canPelanggaran,
                 'kartu' => $canKartu,
+                'dokumen' => $canDokumen,
                 'profile' => $canProfile,
             ],
             'presensi_hari_ini' => $canPresensi && $hasIdentity && $hasActiveYear
@@ -144,6 +146,13 @@ class SiswaDashboardService extends PimpinanDashboardService
                 'description' => 'Buka Kartu Pelajar saya',
                 'icon' => 'bx-id-card',
                 'url' => 'kartu/daftar',
+            ],
+            [
+                'permission' => 'dokumen_siswa.view_self',
+                'label' => 'Dokumen Saya',
+                'description' => 'Buka Dokumen Siswa saya',
+                'icon' => 'bx-folder-open',
+                'url' => 'dokumen-saya',
             ],
             [
                 'permission' => 'prestasi.view',
