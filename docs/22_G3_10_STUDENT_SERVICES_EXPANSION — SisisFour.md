@@ -663,9 +663,9 @@ Status 2026-10-04 setelah localhost + hosting verification dan final static gate
 - runtime/UAT G3.10B manual input = **PASS / user evidence 2026-10-05**.
 - runtime/UAT G3.10B bulk import = **PASS / user evidence 2026-10-05**.
 - runtime/UAT G3.10B Dokumen Saya pada role Siswa = **PASS / user evidence 2026-10-05**.
-- Data Dokumen table/pager polish = **IMPLEMENTED / LOCAL UAT PENDING**.
-- Dashboard Siswa → Dokumen Saya access = **IMPLEMENTED / LOCAL UAT PENDING**.
-- runtime/UAT acceptance keseluruhan = **PARTIAL PASS / remaining regression pending**.
+- Data Dokumen table/pager polish = **PASS / user evidence 2026-10-05**.
+- Dashboard Siswa → Dokumen Saya access = **PASS / user evidence 2026-10-05**.
+- runtime/UAT acceptance keseluruhan = **PARTIAL PASS / final regression + remaining negative/audit cases pending**.
 - PR #19 tetap **DRAFT**; Ready/Merge/Deploy tidak dilakukan tanpa approval eksplisit.
 
 ## 19. Acceptance
