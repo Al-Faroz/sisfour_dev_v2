@@ -25,7 +25,7 @@ G3.10B — Student Document Center
 
 G3.10C — BK UI & Export Polish
 ├─ canonical BK page-action hierarchy
-├─ reuse G3.9 compact action visual system
+├─ canonical Bootstrap/Sneat button hierarchy dari docs/11 + docs/13
 ├─ export scope: filter aktif / seluruh Tahun Ajaran
 ├─ export mode: Ringkas / Lengkap-Audit
 └─ human-readable Pelanggaran + Konseling workbook
@@ -670,17 +670,18 @@ Catatan Pelanggaran dan Konseling BK memakai hierarchy action yang sama:
 [Kelompok] [Export XLSX] [Tambah Baru]
 ```
 
-Enabled page-header actions memakai visual action system G3.9:
+Page-header actions mengikuti hierarchy global docs/11 + docs/13:
 
 ```text
-Related / Kelompok → sisfour-action + compact + blue
-Export             → sisfour-action + compact + green
-Primary Create     → sisfour-action + compact + indigo
+Related / Kelompok → btn-outline-primary
+Export             → btn-outline-success
+Primary Create     → btn-primary
 ```
 
-Action system tersebut tidak menggantikan semua Bootstrap button. Filter Reset/Tampilkan,
-row action, Cancel/Save modal, dan destructive action tetap memakai hierarchy Bootstrap
-yang sesuai agar semua control tidak terlihat mempunyai prioritas yang sama.
+Visual `sisfour-action--*` dari G3.9 tetap scoped untuk Dashboard/action surface dan
+tidak dipakai sebagai pengganti button hierarchy form/module operasional. Filter
+Reset/Tampilkan, row action, Cancel/Save modal, dan destructive action tetap mengikuti
+hierarchy Bootstrap/Sneat canonical.
 
 ### 20.2 Export UX
 
@@ -772,8 +773,8 @@ Workbook tetap mempertahankan:
 Status setelah source G3.10C diimplementasikan:
 
 ```text
-BK page layout/action contract      IMPLEMENTED
-Export modal scope/mode             IMPLEMENTED
+BK page layout/action contract      IMPLEMENTED / GLOBAL SSOT ALIGNED
+Export modal scope/mode             IMPLEMENTED / NATIVE SNEAT SCROLLABLE
 Ringkas vs Lengkap differentiation   IMPLEMENTED / RUNTIME RECHECK PENDING
 Pelanggaran workbook redesign       IMPLEMENTED
 Konseling workbook redesign         IMPLEMENTED
@@ -788,7 +789,35 @@ Ready/Merge/Deploy                  NOT AUTHORIZED
 PASS static/unit sebelum G3.10C adalah evidence untuk checkpoint source sebelumnya dan
 harus dijalankan ulang terhadap exact HEAD G3.10C sebelum phase dapat ditutup.
 
-### 20.6 Web session stability hardening
+### 20.6 Sneat modal correction
+
+Runtime UAT menemukan tombol close modal Export tampak keluar dari sudut modal. Audit
+vendor menunjukkan ini berasal dari treatment native Sneat untuk modal biasa
+(`.modal .btn-close` memakai translate + absolute positioning).
+
+Canonical correction **bukan** CSS per-feature. Modal Export Catatan Pelanggaran dan
+Konseling BK memakai:
+
+```text
+modal-dialog
++ modal-dialog-centered
++ modal-dialog-scrollable
+```
+
+Dengan demikian behavior close dan short-viewport scrolling mengikuti Sneat native.
+Custom `sisfour-export-modal` dan override close per-feature dihapus.
+
+Button page-header juga dikembalikan ke docs/11:
+
+```text
+Related/Group  = btn-outline-primary
+Export         = btn-outline-success
+Primary Create = btn-primary
+```
+
+G3.9 `sisfour-action--*` tetap khusus Dashboard/action surface.
+
+### 20.7 Web session stability hardening
 
 Selama G3.10C UAT ditemukan laporan session Admin kadang tampak logout sendiri saat
 navigasi/back. Source audit menemukan dua hardening point:
