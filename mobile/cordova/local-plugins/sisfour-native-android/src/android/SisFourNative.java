@@ -814,26 +814,28 @@ public class SisFourNative extends CordovaPlugin {
             return "";
         }
 
-        return switch (
+        String normalized =
                 extension.toLowerCase(
                         Locale.ROOT
-                )
-        ) {
-            case "xlsx" ->
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            case "pdf" ->
-                    "application/pdf";
-            case "zip" ->
-                    "application/zip";
-            case "png" ->
-                    "image/png";
-            case "jpg", "jpeg" ->
-                    "image/jpeg";
-            case "sql" ->
-                    "application/sql";
-            default ->
-                    "";
-        };
+                );
+
+        switch (normalized) {
+            case "xlsx":
+                return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "pdf":
+                return "application/pdf";
+            case "zip":
+                return "application/zip";
+            case "png":
+                return "image/png";
+            case "jpg":
+            case "jpeg":
+                return "image/jpeg";
+            case "sql":
+                return "application/sql";
+            default:
+                return "";
+        }
     }
 
     private String normalizeMimeType(
