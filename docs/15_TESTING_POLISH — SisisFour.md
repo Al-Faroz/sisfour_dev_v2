@@ -2430,3 +2430,41 @@ native export after normal Web mutation still succeeds
 ```
 
 Static source evidence: zero-byte attachment rejected before `ACTION_CREATE_DOCUMENT`.
+
+
+## G4.1 PRE-BUILD FREEZE STATIC PASS — 6 Oktober 2026
+
+The current runtime source passed the final pre-build static/consistency gate before the next debug APK build.
+
+```text
+shell.js parse                              PASS
+4 injected runtime scripts                 PASS
+native plugin JS                           PASS
+autofill after_prepare hook                PASS
+Kartu JS                                   PASS
+Statistik JS                               PASS
+Jurnal JS                                  PASS
+package.json/package-lock/plugin JSON       PASS
+native Java structural gate                PASS
+same-origin thin-wrapper boundary           PASS
+no business endpoint in shell/native        PASS
+GET + POST generic attachment transport     PASS
+response cookie -> WebView cookie sync      PASS
+redirect rejection                          PASS
+attachment requirement                      PASS
+zero-byte rejection                         PASS
+Android ACTION_CREATE_DOCUMENT Save As      PASS
+legacy storage permission absent            PASS
+Dashboard bottom-left + exclusions          PASS
+server-derived geofence request flag        PASS
+browser fallback Kartu/Statistik retained   PASS
+launcher master 1024×1024                   PASS
+legacy density 36/48/72/96/144/192          PASS
+old 2319×2299 mobile master absent          PASS
+splash + white-logo shell handoff source    PASS
+generated platforms/plugins absent          PASS
+APK/AAB/keystore/secret absent from repo    PASS
+branch behind main                          0
+```
+
+This gate is **source/static PASS only**. Gradle compilation of the exact final HEAD and real-device UAT remain separate evidence and must not be pre-claimed.
