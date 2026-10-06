@@ -25,11 +25,17 @@ icon-xxhdpi.png    144 × 144 px
 icon-xxxhdpi.png   192 × 192 px
 ```
 
-Adaptive icon:
+Launcher icon:
 
-- background: `adaptive-background.xml` / white.
-- foreground: `adaptive-foreground.xml`.
-- foreground item is 72dp and its square bitmap is scaled with `gravity="fill"`; the 1024×1024 artwork is fitted into the safe-zone item instead of being center-cropped.
+- launcher uses the user-provided density PNGs directly:
+  - 36 × 36 px ldpi
+  - 48 × 48 px mdpi
+  - 72 × 72 px hdpi
+  - 96 × 96 px xhdpi
+  - 144 × 144 px xxhdpi
+  - 192 × 192 px xxxhdpi
+- no adaptive foreground/background XML is used by the launcher pipeline.
+- this avoids routing Android modern launchers through a separate generated adaptive foreground path.
 
 Splash/opening handoff:
 
