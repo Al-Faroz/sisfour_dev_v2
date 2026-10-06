@@ -611,6 +611,14 @@ public class SisFourNative extends CordovaPlugin {
             }
         }
 
+        if (tempFile.length() <= 0) {
+            deleteQuietly(tempFile);
+            callbackContext.error(
+                    "Server mengembalikan file kosong."
+            );
+            return;
+        }
+
         promptSaveAs(
                 tempFile,
                 fileName,
