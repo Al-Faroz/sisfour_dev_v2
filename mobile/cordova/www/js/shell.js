@@ -345,7 +345,7 @@
 
     button.style.cssText = [
         'position:fixed',
-        'right:104px',
+        'left:calc(env(safe-area-inset-left, 0px) + 18px)',
         'bottom:calc(env(safe-area-inset-bottom, 0px) + 18px)',
         'z-index:2147483647',
         'width:48px',
