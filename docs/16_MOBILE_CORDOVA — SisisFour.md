@@ -807,3 +807,49 @@ mobile/cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Build warning SDK XML/deprecated Gradle API tidak mengubah status build menjadi FAIL; warning tersebut dipantau terpisah dari acceptance feature parity.
+
+
+### XLSX `export.bin` root cause — confirmed 6 Oktober 2026
+
+Audit lintas-domain terhadap Master Siswa, BK, Konseling, Prestasi, UKS, PTSP, Dokumen Siswa, dan Laporan menunjukkan pola server yang konsisten:
+
+```text
+PhpSpreadsheet/Xlsx
+→ server menentukan filename *.xlsx
+→ CodeIgniter response->download(...)->setFileName(filename)
+```
+
+Nama file pada aplikasi Web **bukan akar masalah**.
+
+Repo memakai CodeIgniter 4.7.4. `response->download($path, null)` menggunakan `setMime=false` secara default sehingga response XLSX dapat membawa:
+
+```text
+Content-Type: application/octet-stream
+Content-Disposition:
+attachment; filename="nama.xlsx"; filename*=UTF-8''nama.xlsx
+```
+
+Android `URLUtil.guessFileName()` legacy tidak reliable untuk header dengan parameter `filename*` tambahan. Fallback terhadap URL `.../export` + MIME octet-stream menghasilkan `export.bin`.
+
+Remediation native bersifat generic:
+
+```text
+1. baca Content-Disposition response
+2. parse filename* RFC 5987/6266
+3. fallback ke filename
+4. pertahankan filename dari server
+5. bila MIME response octet-stream, gunakan MIME event yang lebih spesifik
+6. bila masih generik, infer MIME dari ekstensi filename
+7. URLUtil hanya fallback terakhir
+```
+
+Cordova tidak mengenal nama modul/endpoint bisnis pada parser ini.
+
+Dashboard helper setelah UAT dipindah ke kiri bawah dengan safe-area; rule visibility tetap tidak muncul pada login/root/dashboard.
+
+Status:
+
+```text
+generic XLSX filename/MIME remediation = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+Dashboard bottom-left                  = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+```
