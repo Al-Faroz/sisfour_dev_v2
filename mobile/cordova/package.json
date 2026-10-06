@@ -15,7 +15,8 @@
   "devDependencies": {
     "cordova-android": "15.1.0",
     "cordova-plugin-inappbrowser": "7.0.0",
-    "id.sch.mtsn4jombang.sisfour.native": "file:local-plugins/sisfour-native-android"
+    "id.sch.mtsn4jombang.sisfour.native": "file:local-plugins/sisfour-native-android",
+    "cordova-plugin-geolocation": "4.1.0"
   },
   "cordova": {
     "platforms": [
@@ -23,7 +24,10 @@
     ],
     "plugins": {
       "cordova-plugin-inappbrowser": {},
-      "id.sch.mtsn4jombang.sisfour.native": {}
+      "id.sch.mtsn4jombang.sisfour.native": {},
+      "cordova-plugin-geolocation": {
+        "GPS_REQUIRED": "false"
+      }
     }
   },
   "private": true
