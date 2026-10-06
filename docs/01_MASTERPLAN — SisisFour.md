@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.0 — Cordova Android Foundation — environment PASS; architecture wrapper/native boundary LOCKED
+**Development aktif:** G4.1C — authenticated Android download/export bridge — G4.1B runtime UAT PASS
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -259,7 +259,7 @@ G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
 G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
 G3.9  Dashboard Experience V2                CLOSED / MERGED — PR #18
 G3.10 Student Services Expansion             CLOSED / MERGED — PR #19
-G4    Cordova APK                            G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
+G4    Cordova APK                            G4.1C ACTIVE — DOWNLOAD BRIDGE UAT PENDING
 ```
 
 ### G3.6A — UKS / Kesehatan
@@ -528,8 +528,10 @@ geolocation on explicit user action only
 authenticated download/open/share
 controlled external browser/intents
 online-first; no offline mutation replay
-real-device regression
-signed package/distribution
+G4.1G final icon + splash + source asset
+G4.2 versioning + keystore + signed APK/AAB
+clean install + signed update + multi-device regression
+distribution artifact
 ```
 
 ## 16. Release Rule
