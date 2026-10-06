@@ -504,7 +504,7 @@ Dokumen Siswa XLSX/template
 Laporan Presensi/Jurnal
 Backup download
 Kartu Pelajar single-file download
-file tersimpan di Android Downloads
+Android Save As membuka pemilih lokasi dan file tersimpan di tujuan pilihan user
 session/RBAC tetap enforced
 logout lalu direct download tidak lolos
 ```
@@ -748,7 +748,7 @@ Remediation implemented after this UAT:
 
 ### GET export filename
 
-GET attachments no longer rely on the WebView download-event MIME/filename guess alone. Native Android now performs authenticated same-origin GET with WebView session cookie, reads response `Content-Disposition` and MIME directly, rejects login/error redirects, and saves the streamed attachment to Downloads. This is intended to preserve server filenames such as `.xlsx` instead of falling back to `export.bin`.
+GET attachments tidak lagi mengandalkan tebakan MIME/filename dari event WebView. Native Android melakukan authenticated same-origin GET dengan cookie sesi WebView, membaca `Content-Disposition` dan MIME langsung dari response, menolak redirect/login/error, menulis sementara ke app-private cache, lalu menyerahkan file ke Android Save As. Filename server seperti `.xlsx` dipertahankan dan tidak boleh fallback menjadi `export.bin`.
 
 ### Splash / icon
 
@@ -795,7 +795,7 @@ Dashboard injected runtime script parse    PASS
 autofill prepare hook parse                PASS
 native GET download method present           PASS
 native Content-Disposition read             PASS
-MediaStore Downloads write path             PASS
+ACTION_CREATE_DOCUMENT Save As source path   PASS / DEVICE UAT PENDING
 safe-zone splash/adaptive resources         PASS
 Gradle build                                PASS / USER TERMINAL EVIDENCE
 new device UAT                              PENDING
