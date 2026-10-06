@@ -18,6 +18,11 @@
 
     <content src="index.html" />
 
+    <hook
+        type="after_prepare"
+        src="hooks/after_prepare_inappbrowser.js"
+    />
+
     <icon src="resources/branding/mtsn4jombang-logo-master.png" />
 
     <platform name="android">
