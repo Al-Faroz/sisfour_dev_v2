@@ -31,7 +31,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class SisFourNative extends CordovaPlugin {
     private static final String ACTION_DOWNLOAD = "download";
@@ -490,6 +492,11 @@ public class SisFourNative extends CordovaPlugin {
         int status =
                 connection.getResponseCode();
 
+        syncResponseCookies(
+                connection,
+                url
+        );
+
         if (status < 200 || status >= 300) {
             if (
                     status >= 300
@@ -610,6 +617,63 @@ public class SisFourNative extends CordovaPlugin {
                 mimeType,
                 callbackContext
         );
+    }
+
+    private void syncResponseCookies(
+            HttpURLConnection connection,
+            String url
+    ) {
+        Map<String, List<String>> headers =
+                connection.getHeaderFields();
+
+        if (headers == null || headers.isEmpty()) {
+            return;
+        }
+
+        CookieManager cookieManager =
+                CookieManager.getInstance();
+
+        boolean changed = false;
+
+        for (
+                Map.Entry<String, List<String>> entry
+                        : headers.entrySet()
+        ) {
+            String name =
+                    entry.getKey();
+
+            if (
+                    name == null
+                    || !"set-cookie"
+                            .equalsIgnoreCase(name)
+            ) {
+                continue;
+            }
+
+            List<String> values =
+                    entry.getValue();
+
+            if (values == null) {
+                continue;
+            }
+
+            for (String value : values) {
+                if (TextUtils.isEmpty(value)) {
+                    continue;
+                }
+
+                cookieManager.setCookie(
+                        url,
+                        value
+                );
+
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            cookieManager.flush();
+        }
     }
 
     private File createTempDownloadFile(
