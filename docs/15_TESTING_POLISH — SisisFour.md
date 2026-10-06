@@ -2245,3 +2245,52 @@ expired/forbidden tidak menghasilkan false-success file
 ```
 
 Google Drive Dokumen Siswa diuji sebagai external-navigation flow, bukan generic native same-origin download.
+
+
+## G4 Android Save As Device Gate
+
+For each supported GET attachment type:
+
+```text
+tap Download/Export
+→ native Android Save As picker opens
+→ suggested filename equals server filename
+→ user can choose destination
+→ user can rename file
+→ Save writes valid file
+→ Cancel returns safely and no success message is shown
+```
+
+Minimum formats:
+
+```text
+XLSX
+PDF
+SQL
+PNG
+JPG/JPEG
+```
+
+ZIP is validated when the generic POST-output path is implemented; current Kartu JPG ZIP remains on the separate POST gate.
+
+Regression:
+
+```text
+no WRITE_EXTERNAL_STORAGE prompt
+no startup storage prompt
+session expired -> no Save As for login/error body
+forbidden route -> no false-success file
+two concurrent native saves -> second is rejected safely
+temporary cache cleaned after save/cancel/error
+```
+
+Branding handoff:
+
+```text
+native color logo visible cleanly
+no oversized/cropped splash
+handoff to white logo on green is brief and non-overlapping
+no artificial startup delay
+prefers-reduced-motion has no cosmetic animation
+remote Web appears normally after load
+```
