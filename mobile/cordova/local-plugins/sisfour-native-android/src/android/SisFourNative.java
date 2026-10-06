@@ -1330,7 +1330,7 @@ public class SisFourNative extends CordovaPlugin {
 
         safe =
                 safe.replaceAll(
-                        "[\\/:*?\"<>|\\r\\n]+",
+                        "[\\\\/:*?\"<>|\\r\\n]+",
                         "_"
                 );
 
