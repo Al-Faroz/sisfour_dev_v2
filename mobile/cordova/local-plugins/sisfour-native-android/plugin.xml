@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin
+    id="id.sch.mtsn4jombang.sisfour.native"
+    version="0.1.0"
+    xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+>
+    <name>SisFourNative</name>
+    <description>Native Android bridge for SisFour download/open/share integration.</description>
+    <license>UNLICENSED</license>
+
+    <js-module src="www/sisfour-native.js" name="SisFourNative">
+        <clobbers target="SisFourNative" />
+    </js-module>
+
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="SisFourNative">
+                <param
+                    name="android-package"
+                    value="id.sch.mtsn4jombang.sisfour.nativebridge.SisFourNative"
+                />
+            </feature>
+        </config-file>
+
+        <config-file target="AndroidManifest.xml" parent="/*">
+            <uses-permission
+                android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+                android:maxSdkVersion="28"
+            />
+        </config-file>
+
+        <source-file
+            src="src/android/SisFourNative.java"
+            target-dir="src/id/sch/mtsn4jombang/sisfour/nativebridge"
+        />
+    </platform>
+</plugin>
