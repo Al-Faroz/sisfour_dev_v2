@@ -1960,7 +1960,7 @@ G4.1E upload/import chooser      SOURCE READY / UAT PENDING
 G4.1F POST output bridge         IMPLEMENTED / BUILD + UAT PENDING
 G4.1F Android Back adapter       IMPLEMENTED / UAT PENDING
 G4.1G branding candidate         IMPLEMENTED / UAT PENDING
-G4.2 release engineering         PLANNED
+G4.2 version/signing procedure  PREPARED / KEY + SIGNED BUILD PENDING
 ```
 
 
@@ -2055,4 +2055,40 @@ redirect-to-login guard PASS
 attachment response guard PASS
 Gradle build PENDING
 device UAT PENDING
+```
+
+
+## G4.2 — Release Signing Gate
+
+Preparation source:
+
+```text
+widget/application id = id.sch.mtsn4jombang.sisfour
+versionName           = 1.0.0
+versionCode           = 10000
+real build-release.json ignored
+keystore extensions ignored
+release APK/AAB scripts available
+release procedure documented
+```
+
+Promotion is blocked until G4.1 exact-head device UAT passes.
+
+Release gate:
+
+```text
+release keystore created outside repo
+independent encrypted backup exists
+alias/password custody recorded securely
+certificate SHA-256 fingerprint recorded
+signed APK build PASS
+apksigner verify PASS
+clean install PASS
+next-version signed update PASS
+same package id PASS
+same certificate PASS
+versionCode monotonic PASS
+multi-device smoke PASS
+final artifact checksum recorded
+keystore/password absent from Git diff PASS
 ```
