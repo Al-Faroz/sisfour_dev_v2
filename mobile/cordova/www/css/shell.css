@@ -88,34 +88,4 @@ body {
     align-items: center;
 }
 
-.shell__logo {
-    display: block;
-    width: min(38vw, 144px);
-    height: auto;
-    margin: 0 auto 18px;
-
-    animation:
-        sisfour-logo-breathe
-        1.4s
-        ease-in-out
-        infinite
-        alternate;
-}
-
-@keyframes sisfour-logo-breathe {
-    from {
-        transform: scale(0.985);
-        opacity: 0.9;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .shell__logo {
-        animation: none;
-    }
 }
