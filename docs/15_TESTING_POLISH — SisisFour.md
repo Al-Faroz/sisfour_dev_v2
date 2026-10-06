@@ -482,7 +482,7 @@ G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
 G3.8   WebView Readiness      CLOSED / MERGED — PR #17
-G4     Cordova APK             G4.1C ACTIVE — DOWNLOAD BRIDGE UAT PENDING
+G4     Cordova APK             G4.1 ACTIVE — PARITY + BRANDING DEVICE UAT PENDING
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1954,6 +1954,57 @@ G4.1C source                     IMPLEMENTED
 G4.1C static/build               PENDING / user terminal evidence
 G4.1C GET download runtime UAT   PENDING
 G4.1C POST download regression   PENDING
-G4.1G branding                   PLANNED
+G4.1D Dashboard helper           IMPLEMENTED / UAT PENDING
+G4.1D native geolocation         IMPLEMENTED / UAT PENDING
+G4.1E upload/import chooser      SOURCE READY / UAT PENDING
+G4.1G branding candidate         IMPLEMENTED / UAT PENDING
 G4.2 release engineering         PLANNED
 ```
+
+
+## G4.1D/G4.1E/G4.1G — Device Batch Gate
+
+Navigation:
+
+```text
+Dashboard floating helper visible on internal non-dashboard page
+helper opens authenticated /dashboard
+helper absent on login/root/dashboard
+helper does not cover sticky save/action controls
+Android Back regression remains valid
+```
+
+Native location:
+
+```text
+no permission prompt at startup
+no permission prompt at dashboard load
+Presensi/Jurnal user action triggers location when required
+allow -> location accepted
+deny -> clear failure / no false success
+non-geofence actor/action -> no unnecessary location request
+```
+
+Upload/import:
+
+```text
+Android document picker opens
+cancel returns safely
+valid XLSX/file returns to form
+invalid MIME/size remains server-rejected
+import/upload authorization unchanged
+```
+
+Branding:
+
+```text
+launcher icon is SisFour/MTsN 4 Jombang, not Cordova
+adaptive mask visually acceptable on real launcher
+native splash shows official identity
+no visible Cordova placeholder between splash and remote Web
+local loading shell remains responsive
+reduced-motion preference disables cosmetic animation
+no startup delay that feels materially worse
+```
+
+Current branding source provenance is recorded in `mobile/cordova/resources/branding/README.md`. If adaptive mask crops the official mark/text excessively, create a safe-padded derived foreground while retaining the official master untouched.
