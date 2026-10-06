@@ -6,6 +6,6 @@
         android:gravity="center">
         <bitmap
             android:src="@drawable/sisfour_brand_logo"
-            android:gravity="center" />
+            android:gravity="fill" />
     </item>
 </layer-list>
