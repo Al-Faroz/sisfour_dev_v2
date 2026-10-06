@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1 parity batch — authenticated GET/POST output, Dashboard/geolocation, Android Back, upload/import regression, dan branding candidate
+**Development aktif:** G4.1 thin-wrapper recovery — parity Android diperbaiki tanpa memindahkan business rule Web/server ke Cordova
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -259,7 +259,7 @@ G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
 G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
 G3.9  Dashboard Experience V2                CLOSED / MERGED — PR #18
 G3.10 Student Services Expansion             CLOSED / MERGED — PR #19
-G4    Cordova APK                            G4.1 ACTIVE — PARITY + BRANDING DEVICE UAT PENDING
+G4    Cordova APK                            G4.1 ACTIVE — THIN-WRAPPER RECOVERY / DEVICE UAT PENDING
 ```
 
 ### G3.6A — UKS / Kesehatan
