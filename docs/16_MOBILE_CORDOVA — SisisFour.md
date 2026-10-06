@@ -671,8 +671,8 @@ color vector master = mobile/cordova/resources/branding/LogoFlat.svg
 white vector master = mobile/cordova/resources/branding/LogoFlat_White.svg
 Android raster master = mobile/cordova/resources/branding/launcher-master-1024.png (1024×1024)
 legacy launcher density = 36 / 48 / 72 / 96 / 144 / 192 px
-adaptive foreground = launcher-master-1024 through safe-zone XML
-adaptive bg = white
+adaptive foreground = NOT USED; launcher uses direct density PNGs
+adaptive bg = NOT USED
 native splash = color launcher-master-1024 on white
 local shell = exact white SVG on #119450; lightweight fade-in handoff
 old 2319×2299 mobile master = RETIRED / REMOVED
@@ -755,7 +755,7 @@ GET attachments tidak lagi mengandalkan tebakan MIME/filename dari event WebView
 ### Splash / icon
 
 - native splash uses a safe-zone XML drawable around the final 1024×1024 color raster derived from the user-provided SVG;
-- adaptive foreground uses the same final 1024×1024 raster through a separate safe-zone XML drawable;
+- launcher uses the user-provided density PNGs directly; no adaptive foreground/background XML is used;
 - legacy launcher icons are explicit density resources: 36/48/72/96/144/192 px;
 - the earlier 2319×2299 mobile master is retired and removed;
 - the post-splash shell uses the exact user-provided white SVG on brand green, preventing the prior oversized/double-logo presentation.
@@ -1039,11 +1039,8 @@ Final source pipeline:
 ```text
 user LogoFlat.svg (square vector)
 → deterministic 1024×1024 transparent PNG
-→ launcher-master-1024.png
-├─ drawable-nodpi/sisfour_brand_logo.png
-│  ├─ adaptive foreground
-│  └─ native splash icon
-└─ legacy launcher derivatives
+→ launcher-master-1024.png (retained as branding master / drawable source)
+→ launcher density PNGs used directly by Cordova
    ├─ ldpi      36×36
    ├─ mdpi      48×48
    ├─ hdpi      72×72
@@ -1054,7 +1051,7 @@ user LogoFlat.svg (square vector)
 
 `config.xml` no longer references the retired 2319×2299 mobile master. The retired file is removed from `mobile/cordova/resources/branding/`.
 
-This is the branding state to be used by the next and only PRE-BUILD-FREEZE clean debug build.
+This is the corrected launcher state: direct user-provided density PNGs, without adaptive launcher XML.
 
 
 ### Session cookie continuity across native transport
