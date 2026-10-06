@@ -1959,7 +1959,7 @@ G4.1D native geolocation         IMPLEMENTED / REBUILD UAT PENDING
 G4.1E upload/import chooser      PASS / USER DEVICE UAT
 G4.1F POST output bridge         IMPLEMENTED GENERIC / REBUILD + DEVICE UAT PENDING
 G4.1F Android Back adapter       IMPLEMENTED / REBUILD UAT PENDING
-G4.1G branding candidate         REMEDIATED / REBUILD UAT PENDING
+G4.1G final branding source      STATIC PASS / CLEAN REBUILD + CLEAN-INSTALL UAT PENDING
 G4.2 version/signing procedure  PREPARED / KEY + SIGNED BUILD PENDING
 ```
 
@@ -2196,9 +2196,11 @@ startup/login/dashboard                    -> no location prompt
 ```
 
 
-### G4.1 Thin-Wrapper Debug Build Evidence — 6 Oktober 2026
+### G4.1 Historical Thin-Wrapper Debug Build Evidence — 6 Oktober 2026
 
-User terminal evidence pada exact recovery branch menghasilkan:
+Evidence berikut berasal dari recovery source **sebelum** final Save As + generic POST + cookie-sync + 1024 launcher pipeline. Ia tidak boleh dipakai sebagai PASS untuk current PRE-BUILD-FREEZE HEAD.
+
+User terminal evidence pada recovery branch menghasilkan:
 
 ```text
 cordova build android     PASS
@@ -2415,3 +2417,16 @@ repeat export after >5 minutes does not desync session
 normal Web mutation after native export still succeeds
 native export after normal Web mutation still succeeds
 ```
+
+
+### Generic attachment integrity regression
+
+```text
+2xx + attachment + non-empty body -> Save As allowed
+2xx + attachment + zero-byte body -> ERROR, no Save As success
+3xx redirect                     -> ERROR
+4xx/5xx                          -> ERROR
+2xx without attachment           -> ERROR
+```
+
+Static source evidence: zero-byte attachment rejected before `ACTION_CREATE_DOCUMENT`.
