@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Current Boundary:** G3.9 + G3.10 CLOSED / MERGED; G4.0A Environment PASS; G4.0B Architecture Lock APPROVED
+**Current Boundary:** G3.9 + G3.10 CLOSED / MERGED; G4.0 environment/architecture PASS; G4.1 PRE-BUILD FREEZE active; exact-head clean build + device UAT pending
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
@@ -1052,3 +1052,31 @@ user LogoFlat.svg (square vector)
 `config.xml` no longer references the retired 2319×2299 mobile master. The retired file is removed from `mobile/cordova/resources/branding/`.
 
 This is the branding state to be used by the next and only PRE-BUILD-FREEZE clean debug build.
+
+
+### Session cookie continuity across native transport
+
+Server config audit confirms:
+
+```text
+CSRF protection = cookie
+CSRF regenerate = false
+session cookie = sisfour_v2_session
+session timeToUpdate = 300 seconds
+session regenerateDestroy = false
+```
+
+Because CI4 may rotate the session ID during any request, the native transport contract is bidirectional:
+
+```text
+before request:
+Android WebView CookieManager
+→ Cookie header native GET/POST
+
+after response:
+all Set-Cookie response headers
+→ Android WebView CookieManager
+→ flush
+```
+
+Cookie synchronization is implemented once in the shared attachment response handler, so it applies to generic GET and generic POST. Remote Web cannot provide or override Cookie/Authorization headers.
