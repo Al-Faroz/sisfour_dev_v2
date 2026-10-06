@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
     'use strict';
 
     const APP_URL =
@@ -63,6 +63,55 @@
         return true;
     };
 
+    const showBrowserAlert = (message) => {
+        if (!browser) {
+            return;
+        }
+
+        browser.executeScript({
+            code: `window.alert(${JSON.stringify(message)});`,
+        });
+    };
+
+    const handleDownload = (event) => {
+        if (!event || !isInternalUrl(event.url)) {
+            showBrowserAlert(
+                'Download diblokir karena sumber file tidak diizinkan.'
+            );
+            return;
+        }
+
+        if (!window.SisFourNative?.download) {
+            showBrowserAlert(
+                'Handler download Android belum tersedia.'
+            );
+            return;
+        }
+
+        window.SisFourNative.download(
+            {
+                url: event.url,
+                userAgent: event.userAgent || '',
+                contentDisposition:
+                    event.contentDisposition || '',
+                mimetype: event.mimetype || '',
+                contentLength:
+                    Number(event.contentLength) || 0,
+            },
+            () => {
+                // Android DownloadManager owns progress/completion UI.
+            },
+            (error) => {
+                const detail =
+                    typeof error === 'string'
+                        ? error
+                        : 'Download gagal dimulai.';
+
+                showBrowserAlert(detail);
+            }
+        );
+    };
+
     const releaseBrowser = () => {
         browser = null;
         opening = false;
@@ -110,6 +159,11 @@
                     'Navigasi non-HTTPS atau tidak dikenal diblokir.'
                 );
             }
+        );
+
+        browser.addEventListener(
+            'download',
+            handleDownload
         );
 
         browser.addEventListener(
