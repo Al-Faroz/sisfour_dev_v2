@@ -415,7 +415,6 @@
 
     const shouldShow =
         path !== '/'
-        && path !== '/dashboard'
         && !path.startsWith('/auth');
 
     const existing =
