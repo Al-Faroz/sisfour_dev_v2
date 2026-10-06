@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1 device-remediation batch — Upload PASS; export filename, branding, Dashboard, geolocation verification, dan Android Autofill fixes IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+**Development aktif:** G4.1 thin-wrapper recovery — SSOT reread complete; wrapper boundary cleaned; Upload PASS; GET export/Dashboard/geolocation/branding/autofill rebuild + device UAT PENDING
 **Branch aktif:** `feat/g4-cordova-android-20261005`
 **Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` — PR #18 dan PR #19 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
@@ -370,7 +370,7 @@ G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
 G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
 G3.9 Dashboard Experience V2             CLOSED / MERGED — PR #18
 G3.10 Student Services Expansion          CLOSED / MERGED — PR #19
-G4 Cordova APK                            G4.1 ACTIVE — PARITY + BRANDING CANDIDATE IMPLEMENTED / DEVICE UAT PENDING
+G4 Cordova APK                            G4.1 ACTIVE — THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
@@ -1054,3 +1054,18 @@ G4.1 minimal Cordova Android spike  NEXT
 runtime proof                       before feature expansion
 signed/multi-device regression      final gate
 ```
+
+
+### G4.1 thin-wrapper recovery rule
+
+Recovery audit 6 Oktober 2026 mengunci ulang pola G4:
+
+```text
+Website/CI4/Sneat = aplikasi utama + business UI
+Server            = auth/RBAC/business/geofence authority
+Cordova shell     = Android/WebView adapter saja
+```
+
+Cordova tidak boleh memiliki rule role/capability/geofencing/radius/Tahun Ajaran atau endpoint bisnis khusus hanya untuk meniru Web. Setiap kendala G4 wajib membaca ulang `00 + 00A + domain terkait + 14 + 15 + 16` sebelum mutation.
+
+Endpoint-specific POST download bridge yang sempat ditambahkan pada recovery awal direvert dari runtime source karena membuat wrapper mengetahui workflow Statistik/Kartu. POST output tetap menjadi gap terpisah sampai tersedia solusi generik yang sesuai Architecture Lock.
