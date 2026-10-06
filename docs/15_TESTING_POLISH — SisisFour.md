@@ -482,7 +482,7 @@ G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
 G3.8   WebView Readiness      CLOSED / MERGED — PR #17
-G4     Cordova APK             G4.1 ACTIVE — PARITY + BRANDING DEVICE UAT PENDING
+G4     Cordova APK             G4.1 ACTIVE — THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1953,13 +1953,13 @@ G4.1B runtime UAT                PASS / user evidence
 G4.1C source                     IMPLEMENTED
 G4.1C static/build               PENDING / user terminal evidence
 G4.1C GET download runtime UAT   PENDING
-G4.1C POST download regression   PENDING
-G4.1D Dashboard helper           IMPLEMENTED / UAT PENDING
-G4.1D native geolocation         IMPLEMENTED / UAT PENDING
-G4.1E upload/import chooser      SOURCE READY / UAT PENDING
-G4.1F POST output bridge         IMPLEMENTED / BUILD + UAT PENDING
-G4.1F Android Back adapter       IMPLEMENTED / UAT PENDING
-G4.1G branding candidate         IMPLEMENTED / UAT PENDING
+G4.1C GET download regression    IMPLEMENTED / REBUILD UAT PENDING
+G4.1D Dashboard helper           IMPLEMENTED / REBUILD UAT PENDING
+G4.1D native geolocation         IMPLEMENTED / REBUILD UAT PENDING
+G4.1E upload/import chooser      PASS / USER DEVICE UAT
+G4.1F POST output bridge         PENDING GENERIC SOLUTION
+G4.1F Android Back adapter       IMPLEMENTED / REBUILD UAT PENDING
+G4.1G branding candidate         REMEDIATED / REBUILD UAT PENDING
 G4.2 version/signing procedure  PREPARED / KEY + SIGNED BUILD PENDING
 ```
 
@@ -2130,4 +2130,37 @@ Autofill:
 - username/password fields recognized by configured Android Autofill service
 - tapping username/password surfaces saved credentials when manager has them
 - no SisFour-owned plaintext credential storage
+```
+
+
+## G4 Thin-Wrapper Recovery Regression
+
+Sebelum build APK berikutnya:
+
+```text
+shell.js parse PASS
+plugin JS parse PASS
+package/package-lock JSON PASS
+no endpoint bisnis Statistik/Kartu in Cordova shell/native PASS
+no remote login form mutation from Cordova PASS
+Dashboard only one injected implementation PASS
+Dashboard excluded from login/root/dashboard PASS
+Jurnal load result includes server-derived geofence_required PASS
+Jurnal JS requests location only when geofence_required=true PASS
+shell CSS syntax clean PASS
+POST output remains explicitly PENDING, not false-PASS
+```
+
+Device geolocation matrix:
+
+```text
+geofencing OFF + Presensi Siswa Guru       -> no location prompt
+geofencing OFF + Jurnal Guru Hadir         -> no location prompt
+geofencing ON  + Presensi Guru Terjadwal   -> location required
+geofencing ON  + Jurnal Guru Hadir         -> location required
+Jurnal Izin/Sakit                          -> no location prompt
+scope SEMUA                                -> no location prompt
+deny permission                            -> no false success
+outside radius                             -> server rejection
+startup/login/dashboard                    -> no location prompt
 ```
