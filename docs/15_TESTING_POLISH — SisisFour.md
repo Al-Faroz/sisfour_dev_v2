@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Phase aktif:** **G4.0 — Cordova Android Foundation; Environment Preflight PASS; Architecture Lock APPROVED**
+**Phase aktif:** **G4.1 — PRE-BUILD FREEZE; known source remediation implemented; exact-head clean build + device UAT pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -2387,4 +2387,31 @@ adaptive mask does not cut critical logo/text
 native color logo is not oversized/cropped
 handoff to white logo has no duplicate overlap
 no artificial splash delay
+```
+
+
+### Native/WebView cookie continuity gate
+
+CI4 session configuration regenerates the session ID periodically (`timeToUpdate = 300`). Generic native GET/POST therefore must not only send the WebView cookies; it must also propagate response `Set-Cookie` values back into Android `CookieManager`.
+
+Static acceptance:
+
+```text
+native request reads CookieManager session        PASS
+shared GET/POST response handler reads Set-Cookie PASS
+response cookies written to CookieManager         PASS
+CookieManager.flush after changes                  PASS
+redirect remains disabled                          PASS
+CSRF regenerate=false confirmed                    PASS
+session ID periodic regeneration accounted for    PASS
+```
+
+Device regression:
+
+```text
+remain logged in after GET Save As
+remain logged in after POST Statistik/Kartu Save As
+repeat export after >5 minutes does not desync session
+normal Web mutation after native export still succeeds
+native export after normal Web mutation still succeeds
 ```
