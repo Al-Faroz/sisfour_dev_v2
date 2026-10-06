@@ -111,7 +111,7 @@
                     || 'file';
 
                 showRemoteAlert(
-                    'File tersimpan di Downloads: '
+                    'File berhasil disimpan: '
                     + fileName
                 );
             },
