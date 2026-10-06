@@ -2355,3 +2355,36 @@ destination                     Android ACTION_CREATE_DOCUMENT
 Chrome fallback                 preserved
 business endpoints in wrapper   NONE
 ```
+
+
+## G4 PRE-BUILD FREEZE — Branding Static Gate
+
+Before the next APK build:
+
+```text
+config top-level icon        -> launcher-master-1024.png
+drawable-nodpi brand logo    -> launcher-master-1024.png
+ldpi legacy icon             -> 36×36
+mdpi legacy icon             -> 48×48
+hdpi legacy icon             -> 72×72
+xhdpi legacy icon            -> 96×96
+xxhdpi legacy icon           -> 144×144
+xxxhdpi legacy icon          -> 192×192
+adaptive background          -> white
+adaptive foreground          -> final 1024 master through safe-zone XML
+native splash                -> final color 1024 master through splash XML
+post-splash shell            -> exact user LogoFlat_White.svg on #119450
+old 2319×2299 mobile master  -> absent / no reference
+Cordova placeholder branding -> absent
+```
+
+Device acceptance after clean install:
+
+```text
+launcher shows SisFour/MTsN 4 Jombang logo
+no old/default Cordova icon
+adaptive mask does not cut critical logo/text
+native color logo is not oversized/cropped
+handoff to white logo has no duplicate overlap
+no artificial splash delay
+```
