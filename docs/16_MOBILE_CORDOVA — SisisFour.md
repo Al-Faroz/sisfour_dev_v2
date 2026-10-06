@@ -465,11 +465,13 @@ local shell validates SisFour HTTPS origin
         ↓
 SisFourNative.download
         ↓
-CookieManager session cookie + user-agent
+native authenticated HTTPS GET
+(cookie session + user-agent)
         ↓
-Android DownloadManager
+read response Content-Disposition + MIME
         ↓
-public Downloads + Android completion notification
+Android public Downloads
+(MediaStore on Android 10+, legacy file path on Android 9-)
 ```
 
 Rules:
@@ -630,7 +632,7 @@ mobile master   = mobile/cordova/resources/branding/mtsn4jombang-logo-master.png
 launcher icon   = official logo, legacy + adaptive candidate
 adaptive bg     = white
 native splash   = official logo on white
-local shell     = official logo + lightweight reduced-motion-safe breathe
+local shell     = text-only loading state; no duplicate logo after native splash
 Cordova branding/default placeholder = NONE
 ```
 
