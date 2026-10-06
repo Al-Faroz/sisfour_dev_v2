@@ -1,0 +1,46 @@
+﻿<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        http-equiv="Content-Security-Policy"
+        content="
+            default-src 'self' data:;
+            script-src 'self';
+            style-src 'self';
+            img-src 'self' data:;
+            connect-src 'self';
+        "
+    >
+
+    <title>SisFour</title>
+
+    <link rel="stylesheet" href="css/shell.css">
+</head>
+
+<body>
+    <main class="shell" aria-live="polite">
+        <div class="shell__brand">
+            <h1>SisFour</h1>
+            <p>Sistem Informasi MTsN 4 Jombang</p>
+        </div>
+
+        <div
+            id="appStatus"
+            class="shell__status"
+            role="status"
+        >
+            Menyiapkan aplikasi…
+        </div>
+    </main>
+
+    <script src="cordova.js"></script>
+    <script src="js/shell.js"></script>
+</body>
+</html>

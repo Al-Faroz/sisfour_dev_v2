@@ -1,0 +1,24 @@
+{
+  "name": "id.sch.mtsn4jombang.sisfour",
+  "displayName": "SisFour",
+  "version": "1.0.0",
+  "description": "SisFour Android wrapper for MTsN 4 Jombang.",
+  "scripts": {
+    "requirements:android": "cordova requirements android",
+    "build:android": "cordova build android"
+  },
+  "keywords": [
+    "ecosystem:cordova"
+  ],
+  "author": "MTsN 4 Jombang",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "cordova-android": "15.1.0"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ]
+  },
+  "private": true
+}

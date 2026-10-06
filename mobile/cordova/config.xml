@@ -1,0 +1,22 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<widget
+    id="id.sch.mtsn4jombang.sisfour"
+    version="1.0.0"
+    xmlns="http://www.w3.org/ns/widgets"
+    xmlns:cdv="http://cordova.apache.org/ns/1.0"
+>
+    <name>SisFour</name>
+
+    <description>
+        SisFour Android wrapper for MTsN 4 Jombang.
+    </description>
+
+    <author>
+        MTsN 4 Jombang
+    </author>
+
+    <content src="index.html" />
+
+    <!-- G4 security baseline: cleartext external intent is not allowed. -->
+    <allow-intent href="https://*/*" />
+</widget>
