@@ -435,12 +435,12 @@ G4.0A Environment Preflight     PASS
 G4.0B Architecture Lock        PASS / user approval
 G4.1A Cordova shell scaffold    PASS
 G4.1B Controlled IAB runtime    PASS / user UAT evidence
-G4.1C Auth GET download bridge  IMPLEMENTED / REBUILD + UAT PENDING
-G4.1D Dashboard + geolocation   IMPLEMENTED / REBUILD + UAT PENDING
+G4.1C Auth GET download bridge  BUILD PASS / DEVICE UAT PENDING
+G4.1D Dashboard + geolocation   BUILD PASS / DEVICE UAT PENDING
 G4.1E Upload/import chooser     PASS / USER DEVICE UAT
-G4.1F Android Back              IMPLEMENTED / REBUILD + UAT PENDING
+G4.1F Android Back              BUILD PASS / DEVICE UAT PENDING
 G4.1F POST output               PENDING GENERIC THIN-WRAPPER SOLUTION
-G4.1G APK branding              REMEDIATED / REBUILD + UAT PENDING
+G4.1G APK branding              BUILD PASS / DEVICE UAT PENDING
 G4.2 Release engineering        VERSION/SIGNING PROCEDURE PREPARED / KEY + SIGNED BUILD PENDING
 signed APK / device matrix      PENDING
 ```
@@ -605,9 +605,9 @@ Bridge tersebut **direvert dari runtime source** pada thin-wrapper recovery 6 Ok
 Status:
 
 ```text
-GET attachment download  = IMPLEMENTED GENERIC / REBUILD UAT PENDING
+GET attachment download  = BUILD PASS / DEVICE UAT PENDING
 POST attachment output   = PENDING GENERIC SOLUTION
-Android Back adapter     = IMPLEMENTED GENERIC / REBUILD UAT PENDING
+Android Back adapter     = BUILD PASS / DEVICE UAT PENDING
 ```
 
 Solusi POST berikutnya harus memenuhi semua syarat:
@@ -752,11 +752,11 @@ Static source validation after remediation:
 shell.js outer parse                       PASS
 Dashboard injected runtime script parse    PASS
 autofill prepare hook parse                PASS
-native GET/POST methods present             PASS
+native GET download method present           PASS
 native Content-Disposition read             PASS
 MediaStore Downloads write path             PASS
 safe-zone splash/adaptive resources         PASS
-Gradle build                                PENDING
+Gradle build                                PASS / USER TERMINAL EVIDENCE
 new device UAT                              PENDING
 ```
 
@@ -786,3 +786,24 @@ PENDING POST attachment output generic solution
 PENDING Android autofill native hook compile/device UAT
 PENDING launcher icon + splash clean-build/device UAT
 ```
+
+
+### Debug build evidence — thin-wrapper recovery
+
+Exact branch recovery build pada 6 Oktober 2026:
+
+```text
+cordova build android     PASS
+CordovaLib                PASS
+app compileDebugJava      PASS
+debug APK                 GENERATED
+device UAT                NEXT
+```
+
+APK lokal:
+
+```text
+mobile/cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Build warning SDK XML/deprecated Gradle API tidak mengubah status build menjadi FAIL; warning tersebut dipantau terpisah dari acceptance feature parity.
