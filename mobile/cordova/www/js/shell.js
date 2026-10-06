@@ -7,6 +7,9 @@
     const APP_ORIGIN =
         new URL(APP_URL).origin;
 
+    const DASHBOARD_URL =
+        new URL('dashboard', APP_URL).href;
+
     const status =
         document.getElementById('appStatus');
 
@@ -16,6 +19,7 @@
     let browser = null;
     let opening = false;
     let closingAfterError = false;
+    let currentUrl = APP_URL;
 
     const setStatus = (
         message,
@@ -112,9 +116,340 @@
         );
     };
 
+    const clampNumber = (
+        value,
+        min,
+        max,
+        fallback
+    ) => {
+        const number = Number(value);
+
+        if (!Number.isFinite(number)) {
+            return fallback;
+        }
+
+        return Math.min(
+            max,
+            Math.max(min, number)
+        );
+    };
+
+    const sendGeoResult = (payload) => {
+        if (!browser) {
+            return;
+        }
+
+        browser.executeScript({
+            code:
+                `window.__sisfourNativeGeoResolve`
+                + ` && window.__sisfourNativeGeoResolve(`
+                + `${JSON.stringify(payload)});`,
+        });
+    };
+
+    const handleLocationRequest = (data) => {
+        if (!isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const requestId =
+            typeof data?.requestId === 'string'
+                ? data.requestId
+                : '';
+
+        if (
+            !/^[A-Za-z0-9._:-]{1,96}$/
+                .test(requestId)
+        ) {
+            return;
+        }
+
+        if (!navigator.geolocation) {
+            sendGeoResult({
+                requestId,
+                ok: false,
+                code: 2,
+                message:
+                    'Layanan lokasi Android tidak tersedia.',
+            });
+            return;
+        }
+
+        const rawOptions =
+            data.options
+            && typeof data.options === 'object'
+                ? data.options
+                : {};
+
+        const options = {
+            enableHighAccuracy:
+                rawOptions.enableHighAccuracy !== false,
+            timeout: clampNumber(
+                rawOptions.timeout,
+                1000,
+                30000,
+                15000
+            ),
+            maximumAge: clampNumber(
+                rawOptions.maximumAge,
+                0,
+                60000,
+                0
+            ),
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                sendGeoResult({
+                    requestId,
+                    ok: true,
+                    position: {
+                        coords: {
+                            latitude:
+                                position.coords.latitude,
+                            longitude:
+                                position.coords.longitude,
+                            accuracy:
+                                position.coords.accuracy,
+                            altitude:
+                                position.coords.altitude,
+                            altitudeAccuracy:
+                                position.coords.altitudeAccuracy,
+                            heading:
+                                position.coords.heading,
+                            speed:
+                                position.coords.speed,
+                        },
+                        timestamp:
+                            position.timestamp
+                            || Date.now(),
+                    },
+                });
+            },
+            (error) => {
+                sendGeoResult({
+                    requestId,
+                    ok: false,
+                    code:
+                        Number(error?.code) || 2,
+                    message:
+                        error?.message
+                        || 'Lokasi tidak dapat diperoleh.',
+                });
+            },
+            options
+        );
+    };
+
+    const handleBridgeMessage = (event) => {
+        const data = event?.data;
+
+        if (
+            !data
+            || typeof data !== 'object'
+        ) {
+            return;
+        }
+
+        if (data.type === 'location.request') {
+            handleLocationRequest(data);
+        }
+    };
+
+    const injectRemoteHelpers = () => {
+        if (!browser || !isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const code = `
+(() => {
+    const dashboardUrl = ${JSON.stringify(DASHBOARD_URL)};
+
+    const currentPath =
+        window.location.pathname.replace(/\\/+$/, '')
+        || '/';
+
+    const shouldShowDashboard =
+        currentPath !== '/dashboard'
+        && currentPath !== '/'
+        && !currentPath.startsWith('/auth');
+
+    if (
+        shouldShowDashboard
+        && !document.getElementById('sisfourCordovaDashboard')
+    ) {
+        const button = document.createElement('button');
+
+        button.id = 'sisfourCordovaDashboard';
+        button.type = 'button';
+        button.setAttribute(
+            'aria-label',
+            'Kembali ke Dashboard'
+        );
+        button.setAttribute(
+            'title',
+            'Kembali ke Dashboard'
+        );
+        button.textContent = '⌂';
+
+        button.style.cssText = [
+            'position:fixed',
+            'right:14px',
+            'bottom:calc(env(safe-area-inset-bottom, 0px) + 70px)',
+            'z-index:2147483646',
+            'width:46px',
+            'height:46px',
+            'border:0',
+            'border-radius:50%',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'padding:0',
+            'font:700 25px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+            'color:#fff',
+            'background:#696cff',
+            'box-shadow:0 4px 14px rgba(0,0,0,.24)',
+            'opacity:.92',
+            'touch-action:manipulation'
+        ].join(';');
+
+        button.addEventListener('click', () => {
+            window.location.assign(dashboardUrl);
+        });
+
+        document.body.appendChild(button);
+    }
+
+    if (
+        window.cordova_iab
+        && !window.__sisfourNativeGeoInstalled
+    ) {
+        window.__sisfourNativeGeoInstalled = true;
+        window.__sisfourNativeGeoPending =
+            Object.create(null);
+
+        window.__sisfourNativeGeoResolve =
+            (payload) => {
+                const requestId =
+                    payload
+                    && typeof payload.requestId === 'string'
+                        ? payload.requestId
+                        : '';
+
+                const pending =
+                    window.__sisfourNativeGeoPending[
+                        requestId
+                    ];
+
+                if (!pending) {
+                    return;
+                }
+
+                delete window.__sisfourNativeGeoPending[
+                    requestId
+                ];
+
+                if (payload.ok) {
+                    pending.success(
+                        payload.position
+                    );
+                    return;
+                }
+
+                if (typeof pending.error === 'function') {
+                    pending.error({
+                        code:
+                            Number(payload.code) || 2,
+                        message:
+                            payload.message
+                            || 'Lokasi tidak dapat diperoleh.'
+                    });
+                }
+            };
+
+        const nativeGetCurrentPosition =
+            (success, error, options) => {
+                if (typeof success !== 'function') {
+                    throw new TypeError(
+                        'Callback geolocation wajib berupa fungsi.'
+                    );
+                }
+
+                const requestId =
+                    'geo-'
+                    + Date.now().toString(36)
+                    + '-'
+                    + Math.random()
+                        .toString(36)
+                        .slice(2, 10);
+
+                window.__sisfourNativeGeoPending[
+                    requestId
+                ] = {
+                    success,
+                    error
+                };
+
+                const safeOptions = {
+                    enableHighAccuracy:
+                        options?.enableHighAccuracy !== false,
+                    timeout:
+                        Number(options?.timeout) || 15000,
+                    maximumAge:
+                        Number(options?.maximumAge) || 0
+                };
+
+                window.cordova_iab.postMessage(
+                    JSON.stringify({
+                        type: 'location.request',
+                        requestId,
+                        options: safeOptions
+                    })
+                );
+            };
+
+        try {
+            if (!navigator.geolocation) {
+                Object.defineProperty(
+                    navigator,
+                    'geolocation',
+                    {
+                        configurable: true,
+                        value: {}
+                    }
+                );
+            }
+
+            Object.defineProperty(
+                navigator.geolocation,
+                'getCurrentPosition',
+                {
+                    configurable: true,
+                    writable: true,
+                    value: nativeGetCurrentPosition
+                }
+            );
+        } catch (error) {
+            try {
+                navigator.geolocation.getCurrentPosition =
+                    nativeGetCurrentPosition;
+            } catch (ignored) {
+                // The page keeps its browser implementation.
+            }
+        }
+    }
+})();
+`;
+
+        browser.executeScript({
+            code,
+        });
+    };
+
     const releaseBrowser = () => {
         browser = null;
         opening = false;
+        currentUrl = APP_URL;
     };
 
     const openSisFour = () => {
@@ -147,6 +482,7 @@
             'beforeload',
             (event, callback) => {
                 if (isInternalUrl(event.url)) {
+                    currentUrl = event.url;
                     callback(event.url);
                     return;
                 }
@@ -162,13 +498,22 @@
         );
 
         browser.addEventListener(
+            'message',
+            handleBridgeMessage
+        );
+
+        browser.addEventListener(
             'download',
             handleDownload
         );
 
         browser.addEventListener(
             'loadstart',
-            () => {
+            (event) => {
+                if (isInternalUrl(event?.url)) {
+                    currentUrl = event.url;
+                }
+
                 setStatus(
                     'Memuat SisFour…'
                 );
@@ -177,9 +522,13 @@
 
         browser.addEventListener(
             'loadstop',
-            () => {
+            (event) => {
                 if (!browser) {
                     return;
+                }
+
+                if (isInternalUrl(event?.url)) {
+                    currentUrl = event.url;
                 }
 
                 opening = false;
@@ -188,6 +537,7 @@
                     'SisFour siap.'
                 );
 
+                injectRemoteHelpers();
                 browser.show();
             }
         );
