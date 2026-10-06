@@ -20,6 +20,7 @@
     let opening = false;
     let closingAfterError = false;
     let currentUrl = APP_URL;
+    let fileDownloadBusy = false;
 
     const setStatus = (
         message,
@@ -272,6 +273,222 @@
         );
     };
 
+    const sendFileDownloadResult = (payload) => {
+        if (!browser) {
+            return;
+        }
+
+        browser.executeScript({
+            code:
+                `window.__sisfourFileDownloadResolve`
+                + ` && window.__sisfourFileDownloadResolve(`
+                + `${JSON.stringify(payload)});`,
+        });
+    };
+
+    const validSafeHeaders = (rawHeaders) => {
+        const headers = {};
+
+        if (
+            !rawHeaders
+            || typeof rawHeaders !== 'object'
+        ) {
+            return headers;
+        }
+
+        for (const [rawName, rawValue] of Object.entries(rawHeaders)) {
+            const name =
+                String(rawName || '')
+                    .trim()
+                    .toLowerCase();
+
+            const value =
+                String(rawValue ?? '')
+                    .trim();
+
+            if (
+                !value
+                || value.length > 1024
+            ) {
+                continue;
+            }
+
+            if (name === 'accept') {
+                headers.Accept = value;
+                continue;
+            }
+
+            if (name === 'x-requested-with') {
+                headers['X-Requested-With'] =
+                    value;
+            }
+        }
+
+        return headers;
+    };
+
+    const normalizeDownloadFields = (rawFields) => {
+        if (!Array.isArray(rawFields)) {
+            return null;
+        }
+
+        if (rawFields.length > 1200) {
+            return null;
+        }
+
+        const fields = [];
+        let totalChars = 0;
+
+        for (const item of rawFields) {
+            if (
+                !item
+                || typeof item !== 'object'
+            ) {
+                return null;
+            }
+
+            const name =
+                String(item.name ?? '');
+
+            const value =
+                String(item.value ?? '');
+
+            if (
+                !name
+                || name.length > 256
+                || value.length > 12 * 1024 * 1024
+            ) {
+                return null;
+            }
+
+            totalChars +=
+                name.length
+                + value.length;
+
+            if (totalChars > 24 * 1024 * 1024) {
+                return null;
+            }
+
+            fields.push({
+                name,
+                value,
+            });
+        }
+
+        return fields;
+    };
+
+    const handleFileDownloadRequest = (data) => {
+        if (!isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const requestId =
+            typeof data?.requestId === 'string'
+                ? data.requestId
+                : '';
+
+        if (
+            !/^[A-Za-z0-9._:-]{1,96}$/
+                .test(requestId)
+        ) {
+            return;
+        }
+
+        const method =
+            String(data?.method || '')
+                .toUpperCase();
+
+        const url =
+            parseUrl(data?.url || '');
+
+        const fields =
+            normalizeDownloadFields(
+                data?.fields
+            );
+
+        if (
+            method !== 'POST'
+            || !url
+            || !isInternalUrl(url.href)
+            || fields === null
+        ) {
+            sendFileDownloadResult({
+                requestId,
+                ok: false,
+                message:
+                    'Request file native tidak valid.',
+            });
+            return;
+        }
+
+        if (fileDownloadBusy) {
+            sendFileDownloadResult({
+                requestId,
+                ok: false,
+                message:
+                    'Masih ada proses penyimpanan file yang belum selesai.',
+            });
+            return;
+        }
+
+        if (!window.SisFourNative?.downloadRequest) {
+            sendFileDownloadResult({
+                requestId,
+                ok: false,
+                message:
+                    'Handler POST download Android belum tersedia.',
+            });
+            return;
+        }
+
+        fileDownloadBusy = true;
+
+        window.SisFourNative.downloadRequest(
+            {
+                url: url.href,
+                method,
+                headers:
+                    validSafeHeaders(
+                        data?.headers
+                    ),
+                fields,
+                userAgent:
+                    String(
+                        data?.userAgent || ''
+                    ).slice(0, 2048),
+            },
+            (result) => {
+                fileDownloadBusy = false;
+
+                sendFileDownloadResult({
+                    requestId,
+                    ok: true,
+                    result: {
+                        fileName:
+                            result?.fileName
+                            || 'file',
+                        mimeType:
+                            result?.mimeType
+                            || '',
+                    },
+                });
+            },
+            (error) => {
+                fileDownloadBusy = false;
+
+                sendFileDownloadResult({
+                    requestId,
+                    ok: false,
+                    message:
+                        typeof error === 'string'
+                            ? error
+                            : 'POST download gagal diproses.',
+                });
+            }
+        );
+    };
+
     const handleBridgeMessage = (event) => {
         const data = event?.data;
 
@@ -284,6 +501,11 @@
 
         if (data.type === 'location.request') {
             handleLocationRequest(data);
+            return;
+        }
+
+        if (data.type === 'file.download') {
+            handleFileDownloadRequest(data);
             return;
         }
 
@@ -556,6 +778,215 @@
             // Keep the WebView implementation if it is immutable.
         }
     }
+})();
+`;
+
+        browser.executeScript({
+            code,
+        });
+    };
+
+    const injectFileDownloadBridge = () => {
+        if (!browser || !isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const code = `
+(() => {
+    if (
+        !window.cordova_iab
+        || window.SisFourFileDownload
+    ) {
+        return;
+    }
+
+    const pending =
+        Object.create(null);
+
+    const absoluteInternalUrl = (value) => {
+        try {
+            const url =
+                new URL(
+                    value,
+                    window.location.href
+                );
+
+            if (
+                url.protocol !== 'https:'
+                || url.origin
+                    !== window.location.origin
+            ) {
+                return null;
+            }
+
+            return url.href;
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const headersToObject = (rawHeaders) => {
+        const result = {};
+
+        try {
+            const headers =
+                new Headers(
+                    rawHeaders || {}
+                );
+
+            for (const [name, value] of headers.entries()) {
+                const lower =
+                    String(name)
+                        .toLowerCase();
+
+                if (
+                    lower === 'accept'
+                    || lower === 'x-requested-with'
+                ) {
+                    result[name] = value;
+                }
+            }
+        } catch (error) {
+            // Invalid optional headers become empty.
+        }
+
+        return result;
+    };
+
+    const formDataFields = (body) => {
+        const fields = [];
+
+        if (body instanceof FormData) {
+            for (const [name, value] of body.entries()) {
+                if (typeof value !== 'string') {
+                    throw new TypeError(
+                        'POST file native hanya menerima field teks.'
+                    );
+                }
+
+                fields.push({
+                    name,
+                    value
+                });
+            }
+
+            return fields;
+        }
+
+        if (body instanceof URLSearchParams) {
+            for (const [name, value] of body.entries()) {
+                fields.push({
+                    name,
+                    value
+                });
+            }
+
+            return fields;
+        }
+
+        throw new TypeError(
+            'Body POST file harus FormData atau URLSearchParams.'
+        );
+    };
+
+    window.__sisfourFileDownloadResolve =
+        (payload) => {
+            const requestId =
+                payload
+                && typeof payload.requestId
+                    === 'string'
+                    ? payload.requestId
+                    : '';
+
+            const callbacks =
+                pending[requestId];
+
+            if (!callbacks) {
+                return;
+            }
+
+            delete pending[requestId];
+
+            if (payload.ok) {
+                callbacks.resolve(
+                    payload.result || {}
+                );
+                return;
+            }
+
+            callbacks.reject(
+                new Error(
+                    payload.message
+                    || 'Download file gagal.'
+                )
+            );
+        };
+
+    window.SisFourFileDownload = {
+        post(request) {
+            const url =
+                absoluteInternalUrl(
+                    request?.url || ''
+                );
+
+            if (!url) {
+                return Promise.reject(
+                    new Error(
+                        'URL download tidak diizinkan.'
+                    )
+                );
+            }
+
+            let fields;
+
+            try {
+                fields =
+                    formDataFields(
+                        request?.body
+                    );
+            } catch (error) {
+                return Promise.reject(
+                    error
+                );
+            }
+
+            const requestId =
+                'file-'
+                + Date.now().toString(36)
+                + '-'
+                + Math.random()
+                    .toString(36)
+                    .slice(2, 10);
+
+            return new Promise(
+                (resolve, reject) => {
+                    pending[requestId] = {
+                        resolve,
+                        reject
+                    };
+
+                    window.cordova_iab
+                        .postMessage(
+                            JSON.stringify({
+                                type:
+                                    'file.download',
+                                requestId,
+                                method: 'POST',
+                                url,
+                                headers:
+                                    headersToObject(
+                                        request?.headers
+                                    ),
+                                fields,
+                                userAgent:
+                                    navigator.userAgent
+                                    || ''
+                            })
+                        );
+                }
+            );
+        }
+    };
 })();
 `;
 
@@ -857,6 +1288,7 @@
     const injectRemoteAdapters = () => {
         injectDashboardButton();
         injectGeolocationBridge();
+        injectFileDownloadBridge();
         injectBackAdapter();
     };
 
