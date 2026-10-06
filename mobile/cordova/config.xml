@@ -23,11 +23,11 @@
         src="hooks/after_prepare_inappbrowser.js"
     />
 
-    <icon src="resources/branding/mtsn4jombang-logo-master.png" />
+    <icon src="resources/branding/launcher-master-1024.png" />
 
     <platform name="android">
         <resource-file
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/launcher-master-1024.png"
             target="/app/src/main/res/drawable-nodpi/sisfour_brand_logo.png"
         />
         <preference
@@ -52,37 +52,37 @@
         />
         <icon
             density="ldpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-ldpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="mdpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-mdpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="hdpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-hdpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xhdpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-xhdpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xxhdpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-xxhdpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xxxhdpi"
-            src="resources/branding/mtsn4jombang-logo-master.png"
+            src="resources/branding/icon-xxxhdpi.png"
             foreground="resources/branding/adaptive-foreground.xml"
             background="resources/branding/adaptive-background.xml"
         />
