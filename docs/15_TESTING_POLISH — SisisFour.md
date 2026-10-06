@@ -2216,3 +2216,32 @@ octet-stream MIME fallback is generic
 no business endpoint/name hardcoded in native bridge
 Dashboard helper bottom-left
 ```
+
+
+## G4 Generic File-Type Download Matrix
+
+Real-device regression wajib mencakup seluruh tipe file aktual SisFour, bukan hanya XLSX/PDF:
+
+```text
+XLSX  -> minimal Master Siswa + satu domain service-export
+PDF   -> Kartu individual / output PDF GET yang sah
+SQL   -> Backup Database
+PNG   -> authenticated attachment/document bila fixture tersedia
+JPG   -> authenticated attachment/document bila fixture tersedia
+JPEG  -> authenticated attachment/document bila fixture tersedia
+ZIP   -> Kartu JPG ZIP (POST-output gate terpisah)
+```
+
+Untuk setiap file:
+
+```text
+filename server preserved
+extension benar
+MIME sesuai bila diketahui
+file tidak berubah menjadi .bin
+file tersimpan / dapat dibuka
+session/RBAC tetap authoritative
+expired/forbidden tidak menghasilkan false-success file
+```
+
+Google Drive Dokumen Siswa diuji sebagai external-navigation flow, bukan generic native same-origin download.
