@@ -482,7 +482,7 @@ G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
 G3.8   WebView Readiness      CLOSED / MERGED — PR #17
-G4     Cordova APK             G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
+G4     Cordova APK             G4.1C ACTIVE — DOWNLOAD BRIDGE UAT PENDING
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1902,3 +1902,58 @@ external intent routing           PENDING G4.1 APK proof
 ```
 
 G4.1 may start only from this exact lock. G4.1 acceptance must prove `deviceready`, session/login/logout/redirect continuity, Back contract, location allow/deny, download/open/share, external link routing, network failure behavior, and no authorization/privacy widening before broader APK work continues.
+
+
+## G4.1C — Authenticated Download Regression Gate
+
+Source/static:
+
+```text
+node --check mobile/cordova/www/js/shell.js
+plugin.xml well-formed
+plugin/package JSON valid
+cordova prepare android
+cordova requirements android
+cordova build android
+git diff --check origin/main...HEAD
+git status
+```
+
+Real-device minimum after rebuild:
+
+```text
+login via APK
+GET export Catatan Pelanggaran
+GET export Konseling BK
+GET export Prestasi
+GET export UKS/PTSP/Dokumen Siswa
+Laporan Presensi/Jurnal
+Backup download
+Kartu Pelajar single-file download
+file appears in Downloads
+correct filename + extension + MIME
+download notification completes
+RBAC denial remains denial
+session expiry does not produce a false-success file
+external/non-SisFour download URL is not bridged
+```
+
+Separate POST-download regression:
+
+```text
+Statistik PDF POST/client payload
+Kartu Pelajar export JPG ZIP POST
+other POST attachment surfaces discovered by regression
+```
+
+Gate status:
+
+```text
+G4.1B runtime UAT                PASS / user evidence
+G4.1C source                     IMPLEMENTED
+G4.1C static/build               PENDING / user terminal evidence
+G4.1C GET download runtime UAT   PENDING
+G4.1C POST download regression   PENDING
+G4.1G branding                   PLANNED
+G4.2 release engineering         PLANNED
+```
