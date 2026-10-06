@@ -1951,7 +1951,7 @@ Gate status:
 ```text
 G4.1B runtime UAT                PASS / user evidence
 G4.1C source                     IMPLEMENTED
-G4.1C static/build               PENDING / user terminal evidence
+G4.1C static/build               PASS / user terminal evidence — debug APK built successfully
 G4.1C GET download runtime UAT   PENDING
 G4.1C GET download regression    IMPLEMENTED / REBUILD UAT PENDING
 G4.1D Dashboard helper           IMPLEMENTED / REBUILD UAT PENDING
@@ -2046,7 +2046,7 @@ JSON manifests PASS
 no endpoint-specific POST bridge in Cordova PASS
 GET download response header guard PASS
 Android Back adapter generic PASS
-Gradle build PENDING
+Gradle build PASS / user terminal evidence
 device UAT PENDING
 ```
 
@@ -2157,3 +2157,32 @@ deny permission                            -> no false success
 outside radius                             -> server rejection
 startup/login/dashboard                    -> no location prompt
 ```
+
+
+### G4.1 Thin-Wrapper Debug Build Evidence — 6 Oktober 2026
+
+User terminal evidence pada exact recovery branch menghasilkan:
+
+```text
+cordova build android     PASS
+CordovaLib compile        PASS
+app compileDebugJava      PASS
+Gradle                    BUILD SUCCESSFUL
+debug APK                 CREATED
+```
+
+Artifact lokal:
+
+```text
+mobile/cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Build warnings yang terlihat tidak memblokir APK debug:
+
+```text
+SDK XML version mismatch warning
+deprecated API note
+Gradle deprecated feature warning for future Gradle 9
+```
+
+Warnings tersebut dicatat sebagai environment/toolchain follow-up, bukan G4.1 build failure. Device UAT tetap wajib sebelum acceptance.
