@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1 thin-wrapper recovery — SSOT/source cleanup PASS; clean debug APK build PASS; device UAT current exact head NEXT
+**Development aktif:** G4.1 thin-wrapper recovery — generic GET/POST Save As + branding/home/geofence remediation implemented; exact-head rebuild + device UAT NEXT
 **Branch aktif:** `feat/g4-cordova-android-20261005`
 **Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` — PR #18 dan PR #19 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
