@@ -11,3 +11,13 @@ exports.download = (options, success, error) => {
         [options]
     );
 };
+
+exports.downloadPost = (options, success, error) => {
+    exec(
+        success,
+        error,
+        'SisFourNative',
+        'downloadPost',
+        [options]
+    );
+};
