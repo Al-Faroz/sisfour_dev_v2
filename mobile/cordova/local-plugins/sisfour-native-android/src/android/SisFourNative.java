@@ -791,11 +791,49 @@ public class SisFourNative extends CordovaPlugin {
             if (!TextUtils.isEmpty(inferred)) {
                 return inferred;
             }
+
+            String canonical =
+                    canonicalMimeForExtension(
+                            extension
+                    );
+
+            if (!TextUtils.isEmpty(canonical)) {
+                return canonical;
+            }
         }
 
         return TextUtils.isEmpty(normalized)
                 ? "application/octet-stream"
                 : normalized;
+    }
+
+    private String canonicalMimeForExtension(
+            String extension
+    ) {
+        if (extension == null) {
+            return "";
+        }
+
+        return switch (
+                extension.toLowerCase(
+                        Locale.ROOT
+                )
+        ) {
+            case "xlsx" ->
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "pdf" ->
+                    "application/pdf";
+            case "zip" ->
+                    "application/zip";
+            case "png" ->
+                    "image/png";
+            case "jpg", "jpeg" ->
+                    "image/jpeg";
+            case "sql" ->
+                    "application/sql";
+            default ->
+                    "";
+        };
     }
 
     private String normalizeMimeType(
