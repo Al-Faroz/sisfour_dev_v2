@@ -15,3 +15,18 @@ exports.download = (
         [options]
     );
 };
+
+
+exports.downloadRequest = (
+    options,
+    success,
+    error
+) => {
+    exec(
+        success,
+        error,
+        'SisFourNative',
+        'downloadRequest',
+        [options]
+    );
+};
