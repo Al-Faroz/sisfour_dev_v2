@@ -16,7 +16,4 @@
     </author>
 
     <content src="index.html" />
-
-    <!-- G4 security baseline: cleartext external intent is not allowed. -->
-    <allow-intent href="https://*/*" />
 </widget>

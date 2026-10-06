@@ -13,12 +13,16 @@
   "author": "MTsN 4 Jombang",
   "license": "UNLICENSED",
   "devDependencies": {
-    "cordova-android": "15.1.0"
+    "cordova-android": "15.1.0",
+    "cordova-plugin-inappbrowser": "7.0.0"
   },
   "cordova": {
     "platforms": [
       "android"
-    ]
+    ],
+    "plugins": {
+      "cordova-plugin-inappbrowser": {}
+    }
   },
   "private": true
 }
