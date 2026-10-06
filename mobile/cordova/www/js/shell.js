@@ -617,6 +617,761 @@
             }
         }
     }
+
+    if (
+        window.cordova_iab
+        && !window.__sisfourNativeFileInstalled
+    ) {
+        window.__sisfourNativeFileInstalled = true;
+        window.__sisfourNativeFilePending =
+            Object.create(null);
+
+        window.__sisfourNativeFileResolve =
+            (payload) => {
+                const requestId =
+                    payload
+                    && typeof payload.requestId === 'string'
+                        ? payload.requestId
+                        : '';
+
+                const pending =
+                    window.__sisfourNativeFilePending[
+                        requestId
+                    ];
+
+                if (!pending) {
+                    return;
+                }
+
+                delete window.__sisfourNativeFilePending[
+                    requestId
+                ];
+
+                if (payload.ok) {
+                    pending.resolve(
+                        payload.result || {}
+                    );
+                    return;
+                }
+
+                pending.reject(
+                    new Error(
+                        payload.message
+                        || 'Download gagal diproses.'
+                    )
+                );
+            };
+
+        const nativeCsrfHeaders = () => {
+            const headers = {};
+
+            try {
+                const token =
+                    window.SisisFourCsrf?.getToken?.();
+
+                const headerName =
+                    window.SisisFourCsrf?.headerName
+                    || 'X-CSRF-TOKEN';
+
+                if (token) {
+                    headers[headerName] = token;
+                }
+            } catch (ignored) {
+                // Form token may still be present.
+            }
+
+            return headers;
+        };
+
+        const nativeFormFields = (formData) => {
+            const fields = [];
+
+            for (
+                const [name, value]
+                of formData.entries()
+            ) {
+                if (typeof value !== 'string') {
+                    continue;
+                }
+
+                fields.push({
+                    name,
+                    value
+                });
+            }
+
+            return fields;
+        };
+
+        const requestNativePostDownload = (
+            url,
+            fields,
+            accept
+        ) => new Promise((resolve, reject) => {
+            const requestId =
+                'file-'
+                + Date.now().toString(36)
+                + '-'
+                + Math.random()
+                    .toString(36)
+                    .slice(2, 10);
+
+            window.__sisfourNativeFilePending[
+                requestId
+            ] = {
+                resolve,
+                reject
+            };
+
+            window.cordova_iab.postMessage(
+                JSON.stringify({
+                    type: 'file.downloadPost',
+                    requestId,
+                    url,
+                    fields,
+                    accept,
+                    headers:
+                        nativeCsrfHeaders(),
+                    userAgent:
+                        navigator.userAgent || ''
+                })
+            );
+        });
+
+        const statistikExportForm =
+            document.getElementById(
+                'statistikExportForm'
+            );
+
+        if (statistikExportForm) {
+            const nativeStatistikSubmit = () => {
+                const status =
+                    document.getElementById(
+                        'statistikStatus'
+                    );
+
+                if (status) {
+                    status.textContent =
+                        'Mengunduh PDF melalui Android...';
+                }
+
+                const fields =
+                    nativeFormFields(
+                        new FormData(
+                            statistikExportForm
+                        )
+                    );
+
+                requestNativePostDownload(
+                    statistikExportForm.action,
+                    fields,
+                    'application/pdf'
+                )
+                    .then((result) => {
+                        if (status) {
+                            status.textContent =
+                                'PDF tersimpan di Downloads: '
+                                + (
+                                    result.fileName
+                                    || 'statistik.pdf'
+                                );
+                        }
+                    })
+                    .catch((error) => {
+                        if (status) {
+                            status.textContent =
+                                error.message
+                                || 'Export PDF gagal.';
+                        }
+                    });
+            };
+
+            try {
+                Object.defineProperty(
+                    statistikExportForm,
+                    'submit',
+                    {
+                        configurable: true,
+                        writable: true,
+                        value: nativeStatistikSubmit
+                    }
+                );
+            } catch (ignored) {
+                statistikExportForm.submit =
+                    nativeStatistikSubmit;
+            }
+        }
+
+        const kartuButtonIds = [
+            'btnCetakDepanSelected',
+            'btnCetakBelakangSelected',
+            'btnCetakDepanKelas',
+            'btnCetakBelakangKelas',
+            'btnExportJpgKelas'
+        ];
+
+        const showKartuAlert = (
+            message,
+            type = 'info'
+        ) => {
+            const alert =
+                document.getElementById(
+                    'kartuAlert'
+                );
+
+            if (!alert) {
+                return;
+            }
+
+            alert.className =
+                'alert alert-' + type;
+
+            alert.textContent = message;
+        };
+
+        const selectedKartuIds = () => {
+            const values = new Set();
+
+            document
+                .querySelectorAll(
+                    '.check-kartu:checked:not(:disabled)'
+                )
+                .forEach((input) => {
+                    const value =
+                        String(input.value || '')
+                            .trim();
+
+                    if (value) {
+                        values.add(value);
+                    }
+                });
+
+            return Array.from(values);
+        };
+
+        const captureKartuButtonState = () =>
+            kartuButtonIds
+                .map((id) =>
+                    document.getElementById(id)
+                )
+                .filter(Boolean)
+                .map((button) => ({
+                    button,
+                    disabled:
+                        Boolean(button.disabled)
+                }));
+
+        const setCapturedButtonsBusy = (
+            states,
+            busy
+        ) => {
+            states.forEach((state) => {
+                state.button.disabled =
+                    busy
+                        ? true
+                        : state.disabled;
+            });
+        };
+
+        document.addEventListener(
+            'click',
+            (event) => {
+                const button =
+                    event.target?.closest?.(
+                        '#btnCetakDepanSelected,'
+                        + '#btnCetakBelakangSelected,'
+                        + '#btnCetakDepanKelas,'
+                        + '#btnCetakBelakangKelas,'
+                        + '#btnExportJpgKelas'
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+
+                const idKelas =
+                    String(
+                        document
+                            .getElementById(
+                                'kartuKelas'
+                            )
+                            ?.value
+                        || ''
+                    ).trim();
+
+                const fields = [];
+                let url = '';
+                let accept = '';
+                let fallbackName = '';
+
+                if (
+                    button.id
+                    === 'btnExportJpgKelas'
+                ) {
+                    if (!idKelas) {
+                        showKartuAlert(
+                            'Pilih kelas terlebih dahulu untuk export JPG ZIP.',
+                            'warning'
+                        );
+                        return;
+                    }
+
+                    fields.push({
+                        name: 'id_kelas',
+                        value: idKelas
+                    });
+
+                    url =
+                        window.location.origin
+                        + '/kartu/export-jpg-zip';
+
+                    accept =
+                        'application/zip';
+
+                    fallbackName =
+                        'kartu_pelajar_JPG_DEPAN.zip';
+                } else {
+                    const isSelected =
+                        button.id.endsWith(
+                            'Selected'
+                        );
+
+                    const side =
+                        button.id.includes(
+                            'Belakang'
+                        )
+                            ? 'back'
+                            : 'front';
+
+                    const mode =
+                        isSelected
+                            ? 'selected'
+                            : 'class';
+
+                    fields.push({
+                        name: 'side',
+                        value: side
+                    });
+
+                    fields.push({
+                        name: 'mode',
+                        value: mode
+                    });
+
+                    if (isSelected) {
+                        const ids =
+                            selectedKartuIds();
+
+                        if (!ids.length) {
+                            showKartuAlert(
+                                'Pilih minimal satu kartu aktif.',
+                                'warning'
+                            );
+                            return;
+                        }
+
+                        ids.forEach((id) => {
+                            fields.push({
+                                name: 'id_kartu[]',
+                                value: id
+                            });
+                        });
+                    } else {
+                        if (!idKelas) {
+                            showKartuAlert(
+                                'Pilih kelas terlebih dahulu.',
+                                'warning'
+                            );
+                            return;
+                        }
+
+                        fields.push({
+                            name: 'id_kelas',
+                            value: idKelas
+                        });
+                    }
+
+                    url =
+                        window.location.origin
+                        + '/kartu/cetak-massal';
+
+                    accept =
+                        'application/pdf';
+
+                    fallbackName =
+                        'kartu_pelajar_A4.pdf';
+                }
+
+                const buttonStates =
+                    captureKartuButtonState();
+
+                setCapturedButtonsBusy(
+                    buttonStates,
+                    true
+                );
+
+                showKartuAlert(
+                    'Menyiapkan file melalui Android. Jangan menutup halaman ini.',
+                    'info'
+                );
+
+                requestNativePostDownload(
+                    url,
+                    fields,
+                    accept
+                )
+                    .then((result) => {
+                        showKartuAlert(
+                            'File tersimpan di Downloads: '
+                            + (
+                                result.fileName
+                                || fallbackName
+                            ),
+                            'success'
+                        );
+                    })
+                    .catch((error) => {
+                        showKartuAlert(
+                            error.message
+                            || 'Download gagal.',
+                            'danger'
+                        );
+                    })
+                    .finally(() => {
+                        setCapturedButtonsBusy(
+                            buttonStates,
+                            false
+                        );
+                    });
+            },
+            true
+        );
+    }
+
+    if (
+        window.cordova_iab
+        && !window.__sisfourCordovaBackInstalled
+    ) {
+        window.__sisfourCordovaBackInstalled =
+            true;
+
+        let allowRealBack = false;
+        let exitArmedAt = 0;
+
+        const rearmBackSentinel = () => {
+            window.history.pushState(
+                {
+                    sisfourCordovaBack:
+                        true
+                },
+                '',
+                window.location.href
+            );
+        };
+
+        const hideBootstrapLayer = (
+            selector,
+            apiName,
+            dismissSelector
+        ) => {
+            const element =
+                document.querySelector(
+                    selector
+                );
+
+            if (!element) {
+                return false;
+            }
+
+            try {
+                const api =
+                    window.bootstrap?.[apiName];
+
+                const instance =
+                    api?.getInstance?.(element)
+                    || api?.getOrCreateInstance?.(
+                        element
+                    );
+
+                if (instance?.hide) {
+                    instance.hide();
+                    return true;
+                }
+            } catch (ignored) {
+                // Fallback below.
+            }
+
+            const dismiss =
+                element.querySelector(
+                    dismissSelector
+                );
+
+            if (dismiss) {
+                dismiss.click();
+                return true;
+            }
+
+            element.classList.remove('show');
+            return true;
+        };
+
+        const closeTopLayer = () => {
+            if (
+                hideBootstrapLayer(
+                    '.modal.show',
+                    'Modal',
+                    '[data-bs-dismiss="modal"]'
+                )
+            ) {
+                return true;
+            }
+
+            if (
+                hideBootstrapLayer(
+                    '.offcanvas.show',
+                    'Offcanvas',
+                    '[data-bs-dismiss="offcanvas"]'
+                )
+            ) {
+                return true;
+            }
+
+            const dropdownMenu =
+                document.querySelector(
+                    '.dropdown-menu.show'
+                );
+
+            if (dropdownMenu) {
+                const dropdown =
+                    dropdownMenu.closest(
+                        '.dropdown'
+                    );
+
+                const toggle =
+                    dropdown?.querySelector(
+                        '[data-bs-toggle="dropdown"]'
+                    );
+
+                try {
+                    const instance =
+                        window.bootstrap
+                            ?.Dropdown
+                            ?.getInstance?.(
+                                toggle
+                            );
+
+                    if (instance?.hide) {
+                        instance.hide();
+                        return true;
+                    }
+                } catch (ignored) {
+                    // Fallback below.
+                }
+
+                toggle?.click?.();
+                return true;
+            }
+
+            if (
+                document.documentElement
+                    .classList
+                    .contains(
+                        'layout-menu-expanded'
+                    )
+            ) {
+                try {
+                    window.Helpers
+                        ?.setCollapsed?.(
+                            true
+                        );
+                } catch (ignored) {
+                    document
+                        .documentElement
+                        .classList
+                        .remove(
+                            'layout-menu-expanded'
+                        );
+                }
+
+                document
+                    .documentElement
+                    .classList
+                    .remove(
+                        'layout-menu-expanded'
+                    );
+
+                return true;
+            }
+
+            const appSidebar =
+                document.querySelector(
+                    '[data-bs-toggle="sidebar"]'
+                )
+                ?.getAttribute(
+                    'data-target'
+                );
+
+            if (appSidebar) {
+                const openSidebar =
+                    document.querySelector(
+                        appSidebar + '.show'
+                    );
+
+                if (openSidebar) {
+                    openSidebar
+                        .classList
+                        .remove('show');
+
+                    document
+                        .querySelector(
+                            '.app-overlay.show'
+                        )
+                        ?.classList
+                        .remove('show');
+
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        const pageLooksDirty = () => {
+            try {
+                const probe =
+                    new Event(
+                        'beforeunload',
+                        {
+                            cancelable: true
+                        }
+                    );
+
+                window.dispatchEvent(probe);
+
+                return probe.defaultPrevented;
+            } catch (ignored) {
+                return false;
+            }
+        };
+
+        const showExitHint = () => {
+            let hint =
+                document.getElementById(
+                    'sisfourCordovaExitHint'
+                );
+
+            if (!hint) {
+                hint =
+                    document.createElement(
+                        'div'
+                    );
+
+                hint.id =
+                    'sisfourCordovaExitHint';
+
+                hint.style.cssText = [
+                    'position:fixed',
+                    'left:50%',
+                    'bottom:calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                    'transform:translateX(-50%)',
+                    'z-index:2147483647',
+                    'max-width:calc(100vw - 32px)',
+                    'padding:10px 14px',
+                    'border-radius:999px',
+                    'background:rgba(32,33,36,.92)',
+                    'color:#fff',
+                    'font:500 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+                    'box-shadow:0 4px 16px rgba(0,0,0,.28)',
+                    'pointer-events:none'
+                ].join(';');
+
+                document.body.appendChild(
+                    hint
+                );
+            }
+
+            hint.textContent =
+                'Tekan Kembali sekali lagi untuk keluar.';
+
+            hint.hidden = false;
+
+            window.clearTimeout(
+                window.__sisfourExitHintTimer
+            );
+
+            window.__sisfourExitHintTimer =
+                window.setTimeout(
+                    () => {
+                        hint.hidden = true;
+                    },
+                    1800
+                );
+        };
+
+        rearmBackSentinel();
+
+        window.addEventListener(
+            'popstate',
+            () => {
+                if (allowRealBack) {
+                    allowRealBack = false;
+                    return;
+                }
+
+                if (closeTopLayer()) {
+                    rearmBackSentinel();
+                    return;
+                }
+
+                const path =
+                    window.location.pathname
+                        .replace(/\/+$/, '')
+                    || '/';
+
+                if (
+                    path === '/'
+                    || path === '/dashboard'
+                ) {
+                    const now = Date.now();
+
+                    if (
+                        now - exitArmedAt
+                        <= 1800
+                    ) {
+                        window.cordova_iab
+                            .postMessage(
+                                JSON.stringify({
+                                    type: 'app.exit'
+                                })
+                            );
+                        return;
+                    }
+
+                    exitArmedAt = now;
+                    rearmBackSentinel();
+                    showExitHint();
+                    return;
+                }
+
+                if (
+                    pageLooksDirty()
+                    && !window.confirm(
+                        'Perubahan belum disimpan. Tinggalkan halaman ini?'
+                    )
+                ) {
+                    rearmBackSentinel();
+                    return;
+                }
+
+                allowRealBack = true;
+                window.history.back();
+            }
+        );
+    }
+
 })();
 `;
 
