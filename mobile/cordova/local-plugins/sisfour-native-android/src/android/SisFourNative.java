@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.webkit.CookieManager;
+import android.webkit.MimeTypeMap;
 import android.webkit.URLUtil;
 
 import org.apache.cordova.CallbackContext;
@@ -30,6 +31,9 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 public class SisFourNative extends CordovaPlugin {
     private static final String ACTION_DOWNLOAD = "download";
@@ -248,18 +252,17 @@ public class SisFourNative extends CordovaPlugin {
                         );
 
                 String mimeType =
-                        TextUtils.isEmpty(
-                                responseMimeType
-                        )
-                                ? eventMimeType
-                                : responseMimeType;
+                        chooseMimeType(
+                                responseMimeType,
+                                eventMimeType
+                        );
 
                 if (
                         TextUtils.isEmpty(
                                 contentDisposition
                         )
                         || !contentDisposition
-                                .toLowerCase()
+                                .toLowerCase(Locale.ROOT)
                                 .contains("attachment")
                 ) {
                     callbackContext.error(
@@ -268,15 +271,28 @@ public class SisFourNative extends CordovaPlugin {
                     return;
                 }
 
-                String fileName =
-                        URLUtil.guessFileName(
-                                url,
-                                contentDisposition,
-                                mimeType
+                String serverFileName =
+                        extractDownloadFileName(
+                                contentDisposition
                         );
+
+                String fileName =
+                        TextUtils.isEmpty(serverFileName)
+                                ? URLUtil.guessFileName(
+                                        url,
+                                        contentDisposition,
+                                        mimeType
+                                )
+                                : serverFileName;
 
                 fileName =
                         sanitizeFileName(fileName);
+
+                mimeType =
+                        resolveMimeType(
+                                mimeType,
+                                fileName
+                        );
 
                 try (
                         InputStream input =
@@ -595,6 +611,191 @@ public class SisFourNative extends CordovaPlugin {
         } catch (URISyntaxException error) {
             return null;
         }
+    }
+
+    private String extractDownloadFileName(
+            String contentDisposition
+    ) {
+        if (TextUtils.isEmpty(contentDisposition)) {
+            return "";
+        }
+
+        String fallback = "";
+
+        String[] parts =
+                contentDisposition.split(";");
+
+        for (String rawPart : parts) {
+            String part =
+                    rawPart == null
+                            ? ""
+                            : rawPart.trim();
+
+            int separator =
+                    part.indexOf('=');
+
+            if (separator <= 0) {
+                continue;
+            }
+
+            String key =
+                    part.substring(
+                            0,
+                            separator
+                    )
+                            .trim()
+                            .toLowerCase(
+                                    Locale.ROOT
+                            );
+
+            String value =
+                    part.substring(
+                            separator + 1
+                    )
+                            .trim();
+
+            if (
+                    value.length() >= 2
+                    && (
+                            (
+                                    value.startsWith("\"")
+                                    && value.endsWith("\"")
+                            )
+                            || (
+                                    value.startsWith("'")
+                                    && value.endsWith("'")
+                            )
+                    )
+            ) {
+                value =
+                        value.substring(
+                                1,
+                                value.length() - 1
+                        );
+            }
+
+            if ("filename*".equals(key)) {
+                int charsetSeparator =
+                        value.indexOf("''");
+
+                String encoded =
+                        charsetSeparator >= 0
+                                ? value.substring(
+                                        charsetSeparator + 2
+                                )
+                                : value;
+
+                try {
+                    String decoded =
+                            URLDecoder.decode(
+                                    encoded,
+                                    StandardCharsets.UTF_8
+                                            .name()
+                            );
+
+                    if (!TextUtils.isEmpty(decoded)) {
+                        return decoded;
+                    }
+                } catch (Exception ignored) {
+                    // Fall back to the regular filename parameter.
+                }
+            }
+
+            if (
+                    "filename".equals(key)
+                    && !TextUtils.isEmpty(value)
+            ) {
+                fallback =
+                        value.replace(
+                                "\\\"",
+                                "\""
+                        );
+            }
+        }
+
+        return fallback;
+    }
+
+    private String chooseMimeType(
+            String responseMimeType,
+            String eventMimeType
+    ) {
+        String response =
+                normalizeMimeType(
+                        responseMimeType
+                );
+
+        String event =
+                normalizeMimeType(
+                        eventMimeType
+                );
+
+        if (
+                !TextUtils.isEmpty(response)
+                && !"application/octet-stream"
+                        .equalsIgnoreCase(response)
+        ) {
+            return response;
+        }
+
+        if (
+                !TextUtils.isEmpty(event)
+                && !"application/octet-stream"
+                        .equalsIgnoreCase(event)
+        ) {
+            return event;
+        }
+
+        return response;
+    }
+
+    private String resolveMimeType(
+            String mimeType,
+            String fileName
+    ) {
+        String normalized =
+                normalizeMimeType(mimeType);
+
+        if (
+                !TextUtils.isEmpty(normalized)
+                && !"application/octet-stream"
+                        .equalsIgnoreCase(normalized)
+        ) {
+            return normalized;
+        }
+
+        int dot =
+                fileName == null
+                        ? -1
+                        : fileName.lastIndexOf('.');
+
+        if (
+                dot >= 0
+                && dot < fileName.length() - 1
+        ) {
+            String extension =
+                    fileName.substring(
+                            dot + 1
+                    )
+                            .toLowerCase(
+                                    Locale.ROOT
+                            );
+
+            String inferred =
+                    MimeTypeMap
+                            .getSingleton()
+                            .getMimeTypeFromExtension(
+                                    extension
+                            );
+
+            if (!TextUtils.isEmpty(inferred)) {
+                return inferred;
+            }
+        }
+
+        return TextUtils.isEmpty(normalized)
+                ? "application/octet-stream"
+                : normalized;
     }
 
     private String normalizeMimeType(
