@@ -203,9 +203,16 @@
             }
         });
 
-        geoNote.textContent = status === 'Hadir'
-            ? 'Status Hadir mengikuti validasi geofence server untuk Guru. Admin/Operator tidak dibatasi lokasi.'
-            : 'Status Izin/Sakit tidak memerlukan lokasi. Daftar siswa S/I/A tidak digunakan ketika Guru tidak hadir.';
+        if (status !== 'Hadir') {
+            geoNote.textContent =
+                'Status Izin/Sakit tidak memerlukan lokasi. Daftar siswa S/I/A tidak digunakan ketika Guru tidak hadir.';
+        } else if (current?.geofence_required) {
+            geoNote.textContent =
+                'Geofencing aktif. Lokasi diminta saat Jurnal disimpan.';
+        } else {
+            geoNote.textContent =
+                'Geofencing tidak diwajibkan untuk workflow ini.';
+        }
 
         setStudentSectionState();
 
@@ -556,7 +563,10 @@
 
         try {
             let location = { latitude: null, longitude: null };
-            if (selectedStatus === 'Hadir' && currentCapability !== 'SEMUA') {
+            if (
+                selectedStatus === 'Hadir'
+                && current?.geofence_required
+            ) {
                 showInfo('Memeriksa lokasi...', 'info');
                 location = await getLocation();
             }
