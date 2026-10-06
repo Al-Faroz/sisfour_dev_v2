@@ -29,13 +29,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 public class SisFourNative extends CordovaPlugin {
     private static final String ACTION_DOWNLOAD = "download";
+    private static final String ACTION_DOWNLOAD_REQUEST = "downloadRequest";
     private static final String APP_HOST = "sisfour.mtsn4jombang.sch.id";
     private static final int REQUEST_CREATE_DOCUMENT = 4102;
+    private static final int MAX_FORM_FIELDS = 1200;
+    private static final int MAX_FORM_BODY_BYTES = 24 * 1024 * 1024;
 
     private File pendingSaveFile;
     private String pendingSaveName;
@@ -48,11 +52,8 @@ public class SisFourNative extends CordovaPlugin {
             JSONArray args,
             CallbackContext callbackContext
     ) throws JSONException {
-        if (!ACTION_DOWNLOAD.equals(action)) {
-            return false;
-        }
-
-        JSONObject options = args.optJSONObject(0);
+        JSONObject options =
+                args.optJSONObject(0);
 
         if (options == null) {
             callbackContext.error(
@@ -61,7 +62,11 @@ public class SisFourNative extends CordovaPlugin {
             return true;
         }
 
-        String url = options.optString("url", "");
+        String url =
+                options.optString(
+                        "url",
+                        ""
+                );
 
         if (!isAllowedUrl(url)) {
             callbackContext.error(
@@ -70,12 +75,43 @@ public class SisFourNative extends CordovaPlugin {
             return true;
         }
 
-        downloadGet(
-                options,
-                callbackContext
-        );
+        if (ACTION_DOWNLOAD.equals(action)) {
+            downloadGet(
+                    options,
+                    callbackContext
+            );
+            return true;
+        }
 
-        return true;
+        if (
+                ACTION_DOWNLOAD_REQUEST
+                        .equals(action)
+        ) {
+            String method =
+                    options.optString(
+                            "method",
+                            ""
+                    )
+                            .trim()
+                            .toUpperCase(
+                                    Locale.ROOT
+                            );
+
+            if (!"POST".equals(method)) {
+                callbackContext.error(
+                        "Method download native tidak diizinkan."
+                );
+                return true;
+            }
+
+            downloadPost(
+                    options,
+                    callbackContext
+            );
+            return true;
+        }
+
+        return false;
     }
 
     private void downloadGet(
@@ -145,121 +181,11 @@ public class SisFourNative extends CordovaPlugin {
                     );
                 }
 
-                int status =
-                        connection.getResponseCode();
-
-                if (status < 200 || status >= 300) {
-                    if (
-                            status >= 300
-                            && status < 400
-                    ) {
-                        callbackContext.error(
-                                "Download dialihkan oleh server. Sesi mungkin sudah berakhir."
-                        );
-                    } else {
-                        callbackContext.error(
-                                "Server menolak download (HTTP "
-                                        + status
-                                        + ")."
-                        );
-                    }
-
-                    return;
-                }
-
-                String responseDisposition =
-                        connection.getHeaderField(
-                                "Content-Disposition"
-                        );
-
-                String contentDisposition =
-                        TextUtils.isEmpty(
-                                responseDisposition
-                        )
-                                ? eventDisposition
-                                : responseDisposition;
-
-                String responseMimeType =
-                        normalizeMimeType(
-                                connection
-                                        .getContentType()
-                        );
-
-                String mimeType =
-                        chooseMimeType(
-                                responseMimeType,
-                                eventMimeType
-                        );
-
-                if (
-                        TextUtils.isEmpty(
-                                contentDisposition
-                        )
-                        || !contentDisposition
-                                .toLowerCase(Locale.ROOT)
-                                .contains("attachment")
-                ) {
-                    callbackContext.error(
-                            "Server tidak mengembalikan attachment yang valid."
-                    );
-                    return;
-                }
-
-                String serverFileName =
-                        extractDownloadFileName(
-                                contentDisposition
-                        );
-
-                String fileName =
-                        TextUtils.isEmpty(serverFileName)
-                                ? URLUtil.guessFileName(
-                                        url,
-                                        contentDisposition,
-                                        mimeType
-                                )
-                                : serverFileName;
-
-                fileName =
-                        sanitizeFileName(fileName);
-
-                mimeType =
-                        resolveMimeType(
-                                mimeType,
-                                fileName
-                        );
-
-                File tempFile =
-                        createTempDownloadFile(
-                                fileName
-                        );
-
-                boolean tempReady = false;
-
-                try (
-                        InputStream input =
-                                new BufferedInputStream(
-                                        connection
-                                                .getInputStream()
-                                );
-                        OutputStream output =
-                                new BufferedOutputStream(
-                                        new FileOutputStream(
-                                                tempFile
-                                        )
-                                )
-                ) {
-                    copy(input, output);
-                    tempReady = true;
-                } finally {
-                    if (!tempReady) {
-                        deleteQuietly(tempFile);
-                    }
-                }
-
-                promptSaveAs(
-                        tempFile,
-                        fileName,
-                        mimeType,
+                processAttachmentResponse(
+                        connection,
+                        url,
+                        eventDisposition,
+                        eventMimeType,
                         callbackContext
                 );
             } catch (Exception error) {
@@ -275,6 +201,415 @@ public class SisFourNative extends CordovaPlugin {
                 }
             }
         });
+    }
+
+    private void downloadPost(
+            JSONObject options,
+            CallbackContext callbackContext
+    ) {
+        cordova.getThreadPool().execute(() -> {
+            HttpURLConnection connection = null;
+
+            try {
+                String url =
+                        options.optString(
+                                "url",
+                                ""
+                        );
+
+                String userAgent =
+                        options.optString(
+                                "userAgent",
+                                ""
+                        );
+
+                byte[] body =
+                        buildFormBody(
+                                options.optJSONArray(
+                                        "fields"
+                                )
+                        );
+
+                String cookie =
+                        CookieManager
+                                .getInstance()
+                                .getCookie(url);
+
+                connection =
+                        (HttpURLConnection)
+                                new URL(url)
+                                        .openConnection();
+
+                connection.setInstanceFollowRedirects(
+                        false
+                );
+
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(180000);
+                connection.setDoOutput(true);
+
+                connection.setRequestProperty(
+                        "Content-Type",
+                        "application/x-www-form-urlencoded; charset=UTF-8"
+                );
+
+                applySafeHeaders(
+                        connection,
+                        options.optJSONObject(
+                                "headers"
+                        )
+                );
+
+                if (
+                        TextUtils.isEmpty(
+                                connection.getRequestProperty(
+                                        "Accept"
+                                )
+                        )
+                ) {
+                    connection.setRequestProperty(
+                            "Accept",
+                            "*/*"
+                    );
+                }
+
+                if (!TextUtils.isEmpty(cookie)) {
+                    connection.setRequestProperty(
+                            "Cookie",
+                            cookie
+                    );
+                }
+
+                if (!TextUtils.isEmpty(userAgent)) {
+                    connection.setRequestProperty(
+                            "User-Agent",
+                            userAgent
+                    );
+                }
+
+                connection.setFixedLengthStreamingMode(
+                        body.length
+                );
+
+                try (
+                        OutputStream output =
+                                new BufferedOutputStream(
+                                        connection
+                                                .getOutputStream()
+                                )
+                ) {
+                    output.write(body);
+                    output.flush();
+                }
+
+                processAttachmentResponse(
+                        connection,
+                        url,
+                        "",
+                        "",
+                        callbackContext
+                );
+            } catch (Exception error) {
+                callbackContext.error(
+                        messageFor(
+                                error,
+                                "POST download gagal diproses."
+                        )
+                );
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
+        });
+    }
+
+    private byte[] buildFormBody(
+            JSONArray fields
+    ) throws Exception {
+        if (fields == null) {
+            return new byte[0];
+        }
+
+        if (fields.length() > MAX_FORM_FIELDS) {
+            throw new IllegalArgumentException(
+                    "Jumlah field POST terlalu banyak."
+            );
+        }
+
+        StringBuilder body =
+                new StringBuilder();
+
+        for (
+                int index = 0;
+                index < fields.length();
+                index++
+        ) {
+            JSONObject field =
+                    fields.optJSONObject(index);
+
+            if (field == null) {
+                throw new IllegalArgumentException(
+                        "Field POST tidak valid."
+                );
+            }
+
+            String name =
+                    field.optString(
+                            "name",
+                            ""
+                    );
+
+            String value =
+                    field.optString(
+                            "value",
+                            ""
+                    );
+
+            if (
+                    TextUtils.isEmpty(name)
+                    || name.length() > 256
+                    || value.length()
+                            > 12 * 1024 * 1024
+            ) {
+                throw new IllegalArgumentException(
+                        "Ukuran field POST tidak valid."
+                );
+            }
+
+            if (index > 0) {
+                body.append('&');
+            }
+
+            body.append(
+                    URLEncoder.encode(
+                            name,
+                            StandardCharsets.UTF_8
+                                    .name()
+                    )
+            );
+
+            body.append('=');
+
+            body.append(
+                    URLEncoder.encode(
+                            value,
+                            StandardCharsets.UTF_8
+                                    .name()
+                    )
+            );
+
+            if (
+                    body.length()
+                    > MAX_FORM_BODY_BYTES
+            ) {
+                throw new IllegalArgumentException(
+                        "Payload POST file terlalu besar."
+                );
+            }
+        }
+
+        byte[] encoded =
+                body.toString()
+                        .getBytes(
+                                StandardCharsets.UTF_8
+                        );
+
+        if (
+                encoded.length
+                > MAX_FORM_BODY_BYTES
+        ) {
+            throw new IllegalArgumentException(
+                    "Payload POST file terlalu besar."
+            );
+        }
+
+        return encoded;
+    }
+
+    private void applySafeHeaders(
+            HttpURLConnection connection,
+            JSONObject headers
+    ) {
+        if (headers == null) {
+            return;
+        }
+
+        applyHeaderIfSafe(
+                connection,
+                "Accept",
+                headers.optString(
+                        "Accept",
+                        ""
+                )
+        );
+
+        applyHeaderIfSafe(
+                connection,
+                "X-Requested-With",
+                headers.optString(
+                        "X-Requested-With",
+                        ""
+                )
+        );
+    }
+
+    private void applyHeaderIfSafe(
+            HttpURLConnection connection,
+            String name,
+            String value
+    ) {
+        String safe =
+                value == null
+                        ? ""
+                        : value.trim();
+
+        if (
+                safe.isEmpty()
+                || safe.length() > 1024
+                || safe.contains("\r")
+                || safe.contains("\n")
+        ) {
+            return;
+        }
+
+        connection.setRequestProperty(
+                name,
+                safe
+        );
+    }
+
+    private void processAttachmentResponse(
+            HttpURLConnection connection,
+            String url,
+            String eventDisposition,
+            String eventMimeType,
+            CallbackContext callbackContext
+    ) throws Exception {
+        int status =
+                connection.getResponseCode();
+
+        if (status < 200 || status >= 300) {
+            if (
+                    status >= 300
+                    && status < 400
+            ) {
+                callbackContext.error(
+                        "Download dialihkan oleh server. Sesi mungkin sudah berakhir."
+                );
+            } else {
+                callbackContext.error(
+                        "Server menolak download (HTTP "
+                                + status
+                                + ")."
+                );
+            }
+
+            return;
+        }
+
+        String responseDisposition =
+                connection.getHeaderField(
+                        "Content-Disposition"
+                );
+
+        String contentDisposition =
+                TextUtils.isEmpty(
+                        responseDisposition
+                )
+                        ? eventDisposition
+                        : responseDisposition;
+
+        String responseMimeType =
+                normalizeMimeType(
+                        connection
+                                .getContentType()
+                );
+
+        String mimeType =
+                chooseMimeType(
+                        responseMimeType,
+                        eventMimeType
+                );
+
+        if (
+                TextUtils.isEmpty(
+                        contentDisposition
+                )
+                || !contentDisposition
+                        .toLowerCase(
+                                Locale.ROOT
+                        )
+                        .contains("attachment")
+        ) {
+            callbackContext.error(
+                    "Server tidak mengembalikan attachment yang valid."
+            );
+            return;
+        }
+
+        String serverFileName =
+                extractDownloadFileName(
+                        contentDisposition
+                );
+
+        String fileName =
+                TextUtils.isEmpty(
+                        serverFileName
+                )
+                        ? URLUtil.guessFileName(
+                                url,
+                                contentDisposition,
+                                mimeType
+                        )
+                        : serverFileName;
+
+        fileName =
+                sanitizeFileName(
+                        fileName
+                );
+
+        mimeType =
+                resolveMimeType(
+                        mimeType,
+                        fileName
+                );
+
+        File tempFile =
+                createTempDownloadFile(
+                        fileName
+                );
+
+        boolean tempReady = false;
+
+        try (
+                InputStream input =
+                        new BufferedInputStream(
+                                connection
+                                        .getInputStream()
+                        );
+                OutputStream output =
+                        new BufferedOutputStream(
+                                new FileOutputStream(
+                                        tempFile
+                                )
+                        )
+        ) {
+            copy(input, output);
+            tempReady = true;
+        } finally {
+            if (!tempReady) {
+                deleteQuietly(tempFile);
+            }
+        }
+
+        promptSaveAs(
+                tempFile,
+                fileName,
+                mimeType,
+                callbackContext
+        );
     }
 
     private File createTempDownloadFile(
