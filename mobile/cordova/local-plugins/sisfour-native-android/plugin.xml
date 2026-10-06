@@ -5,7 +5,7 @@
     xmlns="http://apache.org/cordova/ns/plugins/1.0"
 >
     <name>SisFourNative</name>
-    <description>Minimal native Android bridge for authenticated SisFour file download integration.</description>
+    <description>Minimal native Android bridge for authenticated SisFour GET/POST attachment Save As integration.</description>
     <license>UNLICENSED</license>
 
     <js-module src="www/sisfour-native.js" name="SisFourNative">
