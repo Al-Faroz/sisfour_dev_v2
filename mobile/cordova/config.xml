@@ -19,6 +19,10 @@
 
     <platform name="android">
         <preference
+            name="AndroidEdgeToEdge"
+            value="false"
+        />
+        <preference
             name="AndroidWindowSplashScreenAnimatedIcon"
             value="resources/branding/mtsn4jombang-logo-master.png"
         />
