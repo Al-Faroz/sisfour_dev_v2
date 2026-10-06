@@ -1,29 +1,58 @@
 # SisFour Android Branding Source
 
-Source of truth awal G4.1G:
+## Final G4.1 source of truth
 
-- `mtsn4jombang-logo-master.png`
-- copied verbatim from `uploads/settings/branding/logo_20260908_181247_ce029c58.png`
-- source blob SHA: `bcecd043b6230f6d8350b7641cb5439422e2a34b`
-- existing runtime `logo_...` dan `icon_...` pada baseline mempunyai blob yang identik
-- source PNG sekitar 2319 × 2299 px
-
-Rules:
-
-- jangan memakai asset/default branding Apache Cordova;
-- master resmi tidak diedit in-place;
-- launcher/splash turunan kelak harus dibuat dari master ini;
-- adaptive foreground boleh diberi safe-padding khusus setelah real-device visual UAT;
-- icon dan splash final boleh dipisahkan bila kebutuhan visual Android berbeda;
-- release keystore/signing material tidak boleh ditempatkan di folder ini atau repository biasa.
-
-Current recovery candidate keeps the official master untouched and uses Android-specific safe-zone XML drawables for adaptive foreground and splash. The local post-splash shell is intentionally text-only to avoid the double-logo transition observed on device. Final launcher/splash acceptance remains a clean-build real-device gate.
-
-
-User-provided branding source received 6 October 2026:
+User-provided branding masters received 6 October 2026:
 
 - `LogoFlat.svg` — color vector master.
 - `LogoFlat_White.svg` — white vector master.
-- matching PNG uploads were supplied for visual/raster reference.
+- matching PNG uploads are visual/raster references.
 
-The Cordova loading shell uses the exact white SVG. Native launcher/splash raster acceptance remains a clean-install device gate; do not redraw the official logo.
+Android launcher/splash raster master:
+
+- `launcher-master-1024.png` — exact 1024 × 1024 raster derived deterministically from the user-provided square color SVG; artwork is not redrawn.
+- transparent square canvas.
+- used as `drawable-nodpi/sisfour_brand_logo.png` for adaptive foreground and native splash.
+
+Legacy launcher density assets:
+
+```text
+icon-ldpi.png       36 × 36 px
+icon-mdpi.png       48 × 48 px
+icon-hdpi.png       72 × 72 px
+icon-xhdpi.png      96 × 96 px
+icon-xxhdpi.png    144 × 144 px
+icon-xxxhdpi.png   192 × 192 px
+```
+
+Adaptive icon:
+
+- background: `adaptive-background.xml` / white.
+- foreground: `adaptive-foreground.xml`.
+- foreground item is 72dp; because the logo itself has transparent source padding, critical artwork remains inside the Android safe area.
+
+Splash/opening handoff:
+
+```text
+native Android splash
+→ color launcher-master-1024 on white
+→ local Cordova shell
+→ exact LogoFlat_White.svg on #119450
+→ controlled SisFour InAppBrowser
+```
+
+The shell transition is cosmetic only (320 ms opacity/scale) and adds no artificial startup delay. `prefers-reduced-motion` disables it.
+
+## Retired source
+
+The earlier non-square mobile master (`mtsn4jombang-logo-master.png`, approximately 2319 × 2299) is retired and removed from the mobile branding directory. It must not be referenced by `config.xml`, launcher resources, adaptive icon, or splash.
+
+The original Website branding upload remains untouched because it belongs to the Web application, not the Android launcher asset pipeline.
+
+## Rules
+
+- no Apache Cordova placeholder/default branding;
+- do not edit user-provided SVG masters in place;
+- do not redraw the official logo;
+- icon/splash resource changes require clean-build + clean-install device UAT;
+- release keystore/signing material never belongs in this folder or ordinary repository source.
