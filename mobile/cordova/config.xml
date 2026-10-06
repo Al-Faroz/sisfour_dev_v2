@@ -2,6 +2,7 @@
 <widget
     id="id.sch.mtsn4jombang.sisfour"
     version="1.0.0"
+    android-versionCode="10000"
     xmlns="http://www.w3.org/ns/widgets"
     xmlns:cdv="http://cordova.apache.org/ns/1.0"
 >
