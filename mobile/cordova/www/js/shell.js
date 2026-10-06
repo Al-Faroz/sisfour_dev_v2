@@ -109,8 +109,15 @@
                 contentLength:
                     Number(event.contentLength) || 0,
             },
-            () => {
-                // Android DownloadManager owns progress/completion UI.
+            (result) => {
+                const fileName =
+                    result?.fileName
+                    || 'file';
+
+                showBrowserAlert(
+                    'File tersimpan di Downloads: '
+                    + fileName
+                );
             },
             (error) => {
                 const detail =
@@ -390,6 +397,192 @@
         if (data.type === 'app.exit') {
             handleAppExitRequest();
         }
+    };
+
+    const injectDashboardButton = () => {
+        if (!browser || !isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const code = `
+(() => {
+    const dashboardUrl = ${JSON.stringify(DASHBOARD_URL)};
+
+    const path =
+        window.location.pathname
+            .replace(/\\/+$/, '')
+        || '/';
+
+    const shouldShow =
+        path !== '/'
+        && path !== '/dashboard'
+        && !path.startsWith('/auth');
+
+    const existing =
+        document.getElementById(
+            'sisfourCordovaDashboard'
+        );
+
+    if (!shouldShow) {
+        existing?.remove();
+        return false;
+    }
+
+    if (existing) {
+        existing.hidden = false;
+        return true;
+    }
+
+    if (!document.body) {
+        return false;
+    }
+
+    const button =
+        document.createElement('button');
+
+    button.id =
+        'sisfourCordovaDashboard';
+
+    button.type = 'button';
+
+    button.setAttribute(
+        'aria-label',
+        'Kembali ke Dashboard'
+    );
+
+    button.setAttribute(
+        'title',
+        'Dashboard'
+    );
+
+    button.innerHTML =
+        '<span aria-hidden="true">⌂</span>';
+
+    button.style.cssText = [
+        'position:fixed',
+        'right:104px',
+        'bottom:calc(env(safe-area-inset-bottom, 0px) + 18px)',
+        'z-index:2147483647',
+        'width:48px',
+        'height:48px',
+        'border:0',
+        'border-radius:50%',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'padding:0',
+        'font:700 26px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+        'color:#fff',
+        'background:#009846',
+        'box-shadow:0 4px 14px rgba(0,0,0,.30)',
+        'opacity:.96',
+        'touch-action:manipulation'
+    ].join(';');
+
+    button.addEventListener(
+        'click',
+        () => {
+            window.location.assign(
+                dashboardUrl
+            );
+        }
+    );
+
+    document.body.appendChild(button);
+    return true;
+})();
+`;
+
+        browser.executeScript(
+            { code },
+            () => {
+                // Independent helper: no dependency on other injected bridges.
+            }
+        );
+
+        window.setTimeout(
+            () => {
+                if (!browser) {
+                    return;
+                }
+
+                browser.executeScript({
+                    code,
+                });
+            },
+            700
+        );
+    };
+
+    const injectLoginAutofillHints = () => {
+        if (!browser || !isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const url = parseUrl(currentUrl);
+
+        if (
+            !url
+            || !url.pathname
+                .replace(/\/+$/, '')
+                .endsWith('/auth/login')
+        ) {
+            return;
+        }
+
+        const code = `
+(() => {
+    const username =
+        document.getElementById('username');
+
+    const password =
+        document.getElementById('password');
+
+    if (!username || !password) {
+        return false;
+    }
+
+    username.setAttribute(
+        'autocomplete',
+        'username'
+    );
+
+    username.setAttribute(
+        'autocapitalize',
+        'none'
+    );
+
+    username.setAttribute(
+        'spellcheck',
+        'false'
+    );
+
+    password.setAttribute(
+        'autocomplete',
+        'current-password'
+    );
+
+    window.setTimeout(
+        () => {
+            if (
+                document.visibilityState
+                === 'visible'
+            ) {
+                username.focus({
+                    preventScroll: true
+                });
+            }
+        },
+        350
+    );
+
+    return true;
+})();
+`;
+
+        browser.executeScript({
+            code,
+        });
     };
 
     const injectRemoteHelpers = () => {
@@ -1471,6 +1664,8 @@
                     'SisFour siap.'
                 );
 
+                injectDashboardButton();
+                injectLoginAutofillHints();
                 injectRemoteHelpers();
                 browser.show();
             }
