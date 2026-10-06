@@ -667,13 +667,15 @@ G4.1G adalah acceptance item sebelum release final, tetapi tidak boleh mengorban
 Current candidate:
 
 ```text
-official source = uploads/settings/branding/logo_20260908_181247_ce029c58.png
-source blob     = bcecd043b6230f6d8350b7641cb5439422e2a34b
-mobile master   = mobile/cordova/resources/branding/mtsn4jombang-logo-master.png
-launcher icon   = official logo, legacy + adaptive candidate
-adaptive bg     = white
-native splash   = official color logo on white
-local shell     = user-provided white logo on official green; lightweight fade-in handoff
+color vector master = mobile/cordova/resources/branding/LogoFlat.svg
+white vector master = mobile/cordova/resources/branding/LogoFlat_White.svg
+Android raster master = mobile/cordova/resources/branding/launcher-master-1024.png (1024×1024)
+legacy launcher density = 36 / 48 / 72 / 96 / 144 / 192 px
+adaptive foreground = launcher-master-1024 through safe-zone XML
+adaptive bg = white
+native splash = color launcher-master-1024 on white
+local shell = exact white SVG on #119450; lightweight fade-in handoff
+old 2319×2299 mobile master = RETIRED / REMOVED
 Cordova branding/default placeholder = NONE
 ```
 
@@ -752,11 +754,11 @@ GET attachments tidak lagi mengandalkan tebakan MIME/filename dari event WebView
 
 ### Splash / icon
 
-- native splash now uses a safe-zone XML drawable around the official MTsN 4 Jombang master;
-- adaptive foreground now uses a separate safe-zone XML drawable;
-- official master is explicitly copied into Android drawable resources;
-- a default legacy icon fallback is declared;
-- duplicate logo in the post-splash local shell has been removed to prevent the double-logo transition observed in device screenshot.
+- native splash uses a safe-zone XML drawable around the final 1024×1024 color raster derived from the user-provided SVG;
+- adaptive foreground uses the same final 1024×1024 raster through a separate safe-zone XML drawable;
+- legacy launcher icons are explicit density resources: 36/48/72/96/144/192 px;
+- the earlier 2319×2299 mobile master is retired and removed;
+- the post-splash shell uses the exact user-provided white SVG on brand green, preventing the prior oversized/double-logo presentation.
 
 Branding UAT should use a clean APK install to avoid launcher/icon cache ambiguity.
 
@@ -823,9 +825,9 @@ FIX     splash config -> documented SplashScreenBackgroundColor
 REVERT  endpoint-specific POST download logic dari Cordova runtime
 REVERT  remote login-form autofill/focus injection
 
-PENDING POST attachment output generic solution
-PENDING Android autofill native hook compile/device UAT
-PENDING launcher icon + splash clean-build/device UAT
+IMPLEMENTED generic GET/POST attachment transport + Save As; exact-head build/device UAT pending
+IMPLEMENTED Android autofill hook candidate; exact-head build/device UAT pending
+IMPLEMENTED final 1024 launcher/splash pipeline; exact-head build/clean-install UAT pending
 ```
 
 
@@ -929,7 +931,7 @@ Native bridge harus generic terhadap filename + MIME dan tidak boleh hardcode ro
 ```
 
 GET same-origin attachment menggunakan generic native download bridge.
-POST-generated attachment seperti Kartu massal PDF/ZIP tetap berada pada gate POST output terpisah sampai solusi generik tersedia.
+POST-generated attachment memakai generic `file.download` transport dan tetap mempunyai regression gate tersendiri pada device UAT.
 
 
 ### Android Save As picker — user-selected destination
@@ -1025,3 +1027,28 @@ file.download
 This capability does not identify a module or endpoint. It means only: perform a validated same-origin authenticated attachment request using the request semantics already chosen by Web, then hand the server-approved file to Android Save As.
 
 It does not permit arbitrary native execution, arbitrary file read, external network access, role decisions, or business-rule decisions.
+
+
+### Final Android launcher asset pipeline — PRE-BUILD FREEZE
+
+Final source pipeline:
+
+```text
+user LogoFlat.svg (square vector)
+→ deterministic 1024×1024 transparent PNG
+→ launcher-master-1024.png
+├─ drawable-nodpi/sisfour_brand_logo.png
+│  ├─ adaptive foreground
+│  └─ native splash icon
+└─ legacy launcher derivatives
+   ├─ ldpi      36×36
+   ├─ mdpi      48×48
+   ├─ hdpi      72×72
+   ├─ xhdpi     96×96
+   ├─ xxhdpi   144×144
+   └─ xxxhdpi  192×192
+```
+
+`config.xml` no longer references the retired 2319×2299 mobile master. The retired file is removed from `mobile/cordova/resources/branding/`.
+
+This is the branding state to be used by the next and only PRE-BUILD-FREEZE clean debug build.
