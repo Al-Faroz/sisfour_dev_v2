@@ -17,4 +17,4 @@ Rules:
 - icon dan splash final boleh dipisahkan bila kebutuhan visual Android berbeda;
 - release keystore/signing material tidak boleh ditempatkan di folder ini atau repository biasa.
 
-Current G4.1G uses the official master directly as the first real-device branding candidate. Optimized density/safe-zone derivatives are allowed only as derived assets while this master remains the provenance reference.
+Current recovery candidate keeps the official master untouched and uses Android-specific safe-zone XML drawables for adaptive foreground and splash. The local post-splash shell is intentionally text-only to avoid the double-logo transition observed on device. Final launcher/splash acceptance remains a clean-build real-device gate.
