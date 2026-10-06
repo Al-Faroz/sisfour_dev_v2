@@ -433,7 +433,108 @@ Generated `platforms/` dan `plugins/` bukan source of truth dan harus dapat dire
 ```text
 G4.0A Environment Preflight     PASS
 G4.0B Architecture Lock        PASS / user approval
-docs-only architecture commit  CURRENT
-G4.1 Minimal Android Spike     NEXT
-signed APK / device matrix     PENDING
+G4.1A Cordova shell scaffold    PASS
+G4.1B Controlled IAB runtime    PASS / user UAT evidence
+G4.1C Auth download bridge      IMPLEMENTED / UAT PENDING
+G4.1G APK branding              PLANNED
+G4.2 Release engineering        PLANNED
+signed APK / device matrix      PENDING
 ```
+
+
+## 25. G4.1C — Authenticated Download Bridge
+
+Current runtime evidence after G4.1B:
+
+```text
+controlled InAppBrowser startup/navigation = PASS / user UAT evidence
+Web feature surface                         = reachable
+browser-style export/download in APK        = FAIL / user UAT evidence
+```
+
+G4.1C memperbaiki boundary file tanpa memindahkan authorization dari server:
+
+```text
+InAppBrowser Android download event
+        ↓
+local shell validates SisFour HTTPS origin
+        ↓
+SisFourNative.download
+        ↓
+CookieManager session cookie + user-agent
+        ↓
+Android DownloadManager
+        ↓
+public Downloads + Android completion notification
+```
+
+Rules:
+
+- hanya download HTTPS dari host `sisfour.mtsn4jombang.sch.id`;
+- server route/permission/session tetap memutuskan boleh/tidak;
+- cookie tidak dikirim ke host eksternal;
+- tidak menyimpan password/token baru;
+- nama file memakai `Content-Disposition`/MIME dari response lalu disanitasi;
+- Android <= 9 meminta storage permission hanya saat diperlukan;
+- Android 10+ tidak meminta legacy storage permission;
+- source of truth plugin berada di `mobile/cordova/local-plugins/sisfour-native-android/`;
+- generated `platforms/` dan `plugins/` tetap bukan source of truth.
+
+Initial gate G4.1C berfokus pada response download GET. Surface POST-download wajib regression terpisah karena event `download` InAppBrowser tidak membawa request body. Contoh yang harus diuji khusus: Statistik PDF POST/client chart payload dan Kartu Pelajar ZIP POST.
+
+G4.1C belum PASS sampai APK hasil rebuild diuji minimal untuk:
+
+```text
+Catatan Pelanggaran XLSX
+Konseling BK XLSX
+Prestasi XLSX
+UKS XLSX/template
+PTSP XLSX
+Dokumen Siswa XLSX/template
+Laporan Presensi/Jurnal
+Backup download
+Kartu Pelajar single-file download
+file tersimpan di Android Downloads
+session/RBAC tetap enforced
+logout lalu direct download tidak lolos
+```
+
+## 26. G4.1G — APK Branding / Visual Identity
+
+G4.1G adalah acceptance item sebelum release final, tetapi tidak boleh mengorbankan feature parity G4.1.
+
+```text
+final launcher icon
+Android adaptive icon bila layak
+final splash / launch screen
+source asset master yang jelas
+tanpa placeholder/default Apache Cordova
+identitas SisFour / MTsN 4 Jombang
+real-device visual validation
+```
+
+Prioritas asset:
+
+1. logo existing SisFour bila resolusi/source cukup;
+2. asset mobile khusus bila logo existing tidak memenuhi kebutuhan icon/splash.
+
+Icon dan splash boleh memakai master berbeda. Animasi pembuka hanya boleh ringan dan tidak menambah startup delay yang terasa.
+
+## 27. G4.2 — Release Engineering
+
+```text
+versionCode
+versionName
+release keystore
+signed APK
+signed AAB bila diperlukan kanal distribusi
+final icon
+final splash
+signature verification
+clean install
+signed update test
+multi-device test
+distribution artifact
+```
+
+Keystore/signing secret tidak disimpan di repository biasa. Source repo hanya boleh menyimpan prosedur, metadata non-secret yang diperlukan, dan referensi backup policy.
