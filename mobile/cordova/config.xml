@@ -57,38 +57,26 @@
         <icon
             density="ldpi"
             src="resources/branding/icon-ldpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="mdpi"
             src="resources/branding/icon-mdpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="hdpi"
             src="resources/branding/icon-hdpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xhdpi"
             src="resources/branding/icon-xhdpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xxhdpi"
             src="resources/branding/icon-xxhdpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
         <icon
             density="xxxhdpi"
             src="resources/branding/icon-xxxhdpi.png"
-            foreground="resources/branding/adaptive-foreground.xml"
-            background="resources/branding/adaptive-background.xml"
         />
     </platform>
 </widget>
