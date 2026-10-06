@@ -1957,7 +1957,7 @@ G4.1C GET download regression    IMPLEMENTED / REBUILD UAT PENDING
 G4.1D Dashboard helper           IMPLEMENTED / REBUILD UAT PENDING
 G4.1D native geolocation         IMPLEMENTED / REBUILD UAT PENDING
 G4.1E upload/import chooser      PASS / USER DEVICE UAT
-G4.1F POST output bridge         PENDING GENERIC SOLUTION
+G4.1F POST output bridge         IMPLEMENTED GENERIC / REBUILD + DEVICE UAT PENDING
 G4.1F Android Back adapter       IMPLEMENTED / REBUILD UAT PENDING
 G4.1G branding candidate         REMEDIATED / REBUILD UAT PENDING
 G4.2 version/signing procedure  PREPARED / KEY + SIGNED BUILD PENDING
@@ -2012,16 +2012,48 @@ no startup delay that feels materially worse
 Current branding source provenance is recorded in `mobile/cordova/resources/branding/README.md`. If adaptive mask crops the official mark/text excessively, create a safe-padded derived foreground while retaining the official master untouched.
 
 
-## G4.1F — Android Back Gate + POST Output Pending
+## G4.1F — Generic POST Output + Android Back Gate
 
-POST output remains a known gap:
+POST attachment device UAT:
 
 ```text
-Statistik PDF POST/client payload  PENDING generic thin-wrapper solution
-Kartu massal PDF/ZIP POST          PENDING generic thin-wrapper solution
+Statistik PDF with chart images
+→ Android Save As opens
+→ server filename .pdf preserved
+→ saved PDF opens
+→ chart payload reaches server
+→ CSRF/session/RBAC remain enforced
+
+Kartu massal PDF selected
+→ repeated id_kartu[] preserved
+→ Android Save As opens
+→ valid PDF opens
+
+Kartu massal PDF by class
+→ id_kelas/side/mode preserved
+→ valid PDF opens
+
+Kartu JPG ZIP
+→ Android Save As opens
+→ server .zip filename preserved
+→ ZIP opens and contains JPG files
 ```
 
-Do not mark these outputs PASS until a generic solution is implemented without hardcoding business endpoints into Cordova.
+Negative/security regression:
+
+```text
+external URL rejected
+non-POST native request rejected
+Cookie/Authorization cannot be supplied by remote payload
+redirect/login response rejected
+non-attachment 2xx rejected
+403/422 server response does not create false-success file
+payload >24 MiB rejected safely
+>1200 fields rejected safely
+File/Blob FormData field rejected by injected adapter
+second concurrent Save As rejected safely
+Chrome/browser fallback remains unchanged
+```
 
 Android Back real-device:
 
@@ -2034,19 +2066,24 @@ detail/history -> Back returns one logical page
 dashboard first Back -> exit hint
 dashboard second Back <=1.8s -> exits app
 dashboard second Back after timeout -> stays app and rearms
-no accidental close while file/location operation is active
 ```
 
 Static/source evidence target:
 
 ```text
-shell.js parse PASS
+shell.js + all injected scripts parse PASS
 native plugin JS parse PASS
-JSON manifests PASS
-no endpoint-specific POST bridge in Cordova PASS
-GET download response header guard PASS
-Android Back adapter generic PASS
-Gradle build PASS / user terminal evidence
+Kartu JS parse PASS
+Statistik JS parse PASS
+same-origin POST-only guard PASS
+safe header allowlist PASS
+1200 field / 24 MiB bounds PASS
+native CookieManager session PASS
+redirect disabled PASS
+response attachment required PASS
+browser fallback retained PASS
+no business endpoint in shell/native PASS
+Gradle exact-head build PENDING
 device UAT PENDING
 ```
 
@@ -2293,4 +2330,28 @@ handoff to white logo on green is brief and non-overlapping
 no artificial startup delay
 prefers-reduced-motion has no cosmetic animation
 remote Web appears normally after load
+```
+
+
+## G4 Generic POST Attachment Static Gate
+
+Implementation evidence 6 Oktober 2026:
+
+```text
+bridge message type             file.download
+remote adapter                  window.SisFourFileDownload.post
+native plugin action            downloadRequest
+method                          POST only
+target                          exact same-origin HTTPS
+body                            text FormData/URLSearchParams fields
+wire encoding                   application/x-www-form-urlencoded UTF-8
+safe request headers            Accept, X-Requested-With
+session                         CookieManager-owned
+redirect                        disabled
+max fields                      1200
+max encoded payload             24 MiB
+response                        2xx + Content-Disposition attachment required
+destination                     Android ACTION_CREATE_DOCUMENT
+Chrome fallback                 preserved
+business endpoints in wrapper   NONE
 ```
