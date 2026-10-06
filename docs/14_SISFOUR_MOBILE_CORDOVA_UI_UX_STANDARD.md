@@ -383,7 +383,7 @@ G2   = stabilization
 G3.1–G3.6C = role/domain mobile foundations + feature delivery
 G3.7 = Global Mobile Sweep — CLOSED / MERGED — PR #16
 G3.8 = Viewport/WebView Readiness — CLOSED / MERGED — PR #17
-G4   = Cordova APK packaging/integration — G4.0 ACTIVE / ARCHITECTURE LOCKED
+G4   = Cordova APK packaging/integration — G4.1 PRE-BUILD FREEZE / DEVICE UAT PENDING
 ```
 
 
