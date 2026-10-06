@@ -386,6 +386,7 @@ Remote Web hanya boleh meminta native action yang terdokumentasi:
 ```text
 location.request
 external.open
+file.download
 file.open
 file.share
 app.exit
@@ -435,12 +436,12 @@ G4.0A Environment Preflight     PASS
 G4.0B Architecture Lock        PASS / user approval
 G4.1A Cordova shell scaffold    PASS
 G4.1B Controlled IAB runtime    PASS / user UAT evidence
-G4.1C Auth GET download bridge  BUILD PASS / DEVICE UAT PENDING
-G4.1D Dashboard + geolocation   BUILD PASS / DEVICE UAT PENDING
+G4.1C Auth GET download bridge  IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+G4.1D Dashboard + geolocation   IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 G4.1E Upload/import chooser     PASS / USER DEVICE UAT
-G4.1F Android Back              BUILD PASS / DEVICE UAT PENDING
-G4.1F POST output               PENDING GENERIC THIN-WRAPPER SOLUTION
-G4.1G APK branding              BUILD PASS / DEVICE UAT PENDING
+G4.1F Android Back              IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+G4.1F POST output               IMPLEMENTED GENERIC / REBUILD + DEVICE UAT PENDING
+G4.1G APK branding              IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 G4.2 Release engineering        VERSION/SIGNING PROCEDURE PREPARED / KEY + SIGNED BUILD PENDING
 signed APK / device matrix      PENDING
 ```
@@ -470,8 +471,11 @@ native authenticated HTTPS GET
         ↓
 read response Content-Disposition + MIME
         ↓
-Android public Downloads
-(MediaStore on Android 10+, legacy file path on Android 9-)
+app-private temporary cache
+        ↓
+Android ACTION_CREATE_DOCUMENT / Save As
+        ↓
+user-selected destination
 ```
 
 Rules:
@@ -481,8 +485,8 @@ Rules:
 - cookie tidak dikirim ke host eksternal;
 - tidak menyimpan password/token baru;
 - nama file memakai `Content-Disposition`/MIME dari response lalu disanitasi;
-- Android <= 9 meminta storage permission hanya saat diperlukan;
-- Android 10+ tidak meminta legacy storage permission;
+- Android Save As memakai `ACTION_CREATE_DOCUMENT`;
+- tidak memakai legacy storage permission pada versi Android mana pun;
 - source of truth plugin berada di `mobile/cordova/local-plugins/sisfour-native-android/`;
 - generated `platforms/` dan `plugins/` tetap bukan source of truth.
 
@@ -577,7 +581,7 @@ file valid tetap mengikuti permission/RBAC server
 
 Jika UAT membuktikan kebutuhan camera capture, multiple-select, atau MIME-specific picker yang tidak terpenuhi oleh InAppBrowser default, barulah native chooser diperluas.
 
-## 28. G4.1F — Android Back + POST Output Boundary
+## 28. G4.1F — Android Back + Generic POST Output
 
 Android Back tetap bagian thin wrapper karena WebView/InAppBrowser tidak otomatis memenuhi contract aplikasi:
 
@@ -590,34 +594,71 @@ root/dashboard                    -> double-back / exit
 
 Adapter Back bersifat generik dan tidak mengenal role/domain.
 
-### POST output
+### Generic POST attachment transport
 
-Statistik PDF dan sebagian output Kartu menggunakan POST. Implementasi recovery awal sempat menambahkan endpoint-specific bridge untuk:
+POST file output aktual yang membutuhkan compatibility path:
 
 ```text
-/statistik/export/pdf
-/kartu/cetak-massal
-/kartu/export-jpg-zip
+Statistik PDF          -> form POST + chart_images/filter/CSRF
+Kartu massal PDF       -> FormData POST
+Kartu JPG ZIP          -> FormData POST
 ```
 
-Bridge tersebut **direvert dari runtime source** pada thin-wrapper recovery 6 Oktober 2026 karena membuat Cordova mengetahui workflow/endpoint bisnis tertentu dan menambah capability message di luar Architecture Lock.
+Tidak ada endpoint bisnis yang di-hardcode di local shell/native plugin.
+
+Progressive enhancement contract:
+
+```text
+Chrome/browser:
+Web workflow -> existing fetch/form submit -> browser download
+
+Cordova APK:
+Web workflow
+→ optional window.SisFourFileDownload.post(...)
+→ cordova_iab postMessage(type=file.download)
+→ local shell validates:
+   - current origin SisFour production
+   - HTTPS same-origin target
+   - method POST only
+   - request id
+   - safe headers only: Accept / X-Requested-With
+   - text-only fields
+   - max 1200 fields
+   - max encoded payload 24 MiB
+→ SisFourNative.downloadRequest
+→ CookieManager session + User-Agent
+→ application/x-www-form-urlencoded UTF-8
+→ server CSRF/RBAC/business validation
+→ redirect disabled
+→ only 2xx attachment response accepted
+→ server filename/MIME preserved
+→ Android Save As
+```
+
+Repeated field names such as `id_kartu[]` are preserved in the URL-encoded POST body and remain arrays server-side.
+
+Remote Web receives no arbitrary Cordova API. It only sees an optional semantic file-download adapter injected by the trusted local shell. If the adapter is absent, existing browser behavior remains unchanged.
+
+Security boundary:
+
+- no Cookie/Authorization header accepted from remote payload;
+- native obtains cookie directly from Android WebView CookieManager;
+- no arbitrary HTTP method;
+- no external host;
+- no redirect follow;
+- no arbitrary native command;
+- no File/Blob upload through this bridge;
+- response must be an attachment;
+- server remains authoritative for session, CSRF, RBAC, scope, filters, card selection, chart payload validation, and filename.
 
 Status:
 
 ```text
-GET attachment download  = BUILD PASS / DEVICE UAT PENDING
-POST attachment output   = PENDING GENERIC SOLUTION
-Android Back adapter     = BUILD PASS / DEVICE UAT PENDING
+GET attachment transport  = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+POST attachment transport = IMPLEMENTED GENERIC / REBUILD + DEVICE UAT PENDING
+Android Save As           = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+Android Back adapter      = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 ```
-
-Solusi POST berikutnya harus memenuhi semua syarat:
-
-- tidak hardcode endpoint bisnis di shell/native;
-- tidak memindahkan CSRF/business rule dari Web/server;
-- hanya same-origin HTTPS;
-- session/RBAC server tetap authoritative;
-- tidak menambah arbitrary native execution;
-- perubahan Architecture Lock hanya dengan keputusan eksplisit bila capability baru benar-benar diperlukan.
 
 ## 29. G4.1G — APK Branding / Visual Identity
 
@@ -971,3 +1012,16 @@ controlled InAppBrowser SisFour Web
 ```
 
 This is a handoff/fade, not a video or heavy animation. Native launcher/splash raster resources remain subject to clean-install real-device acceptance.
+
+
+### Architecture allowlist extension — file.download
+
+User instruction to continue generic POST-output on 6 Oktober 2026 approves one narrow G4 bridge capability extension:
+
+```text
+file.download
+```
+
+This capability does not identify a module or endpoint. It means only: perform a validated same-origin authenticated attachment request using the request semantics already chosen by Web, then hand the server-approved file to Android Save As.
+
+It does not permit arbitrary native execution, arbitrary file read, external network access, role decisions, or business-rule decisions.
