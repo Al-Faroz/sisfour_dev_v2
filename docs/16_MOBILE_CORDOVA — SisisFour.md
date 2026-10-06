@@ -435,11 +435,12 @@ G4.0A Environment Preflight     PASS
 G4.0B Architecture Lock        PASS / user approval
 G4.1A Cordova shell scaffold    PASS
 G4.1B Controlled IAB runtime    PASS / user UAT evidence
-G4.1C Auth download bridge      IMPLEMENTED / UAT PENDING
-G4.1D Dashboard + geolocation   IMPLEMENTED / UAT PENDING
-G4.1E Upload/import chooser     SOURCE READY / UAT PENDING
-G4.1F POST output + Back        IMPLEMENTED / BUILD + UAT PENDING
-G4.1G APK branding              IMPLEMENTED CANDIDATE / UAT PENDING
+G4.1C Auth GET download bridge  IMPLEMENTED / REBUILD + UAT PENDING
+G4.1D Dashboard + geolocation   IMPLEMENTED / REBUILD + UAT PENDING
+G4.1E Upload/import chooser     PASS / USER DEVICE UAT
+G4.1F Android Back              IMPLEMENTED / REBUILD + UAT PENDING
+G4.1F POST output               PENDING GENERIC THIN-WRAPPER SOLUTION
+G4.1G APK branding              REMEDIATED / REBUILD + UAT PENDING
 G4.2 Release engineering        VERSION/SIGNING PROCEDURE PREPARED / KEY + SIGNED BUILD PENDING
 signed APK / device matrix      PENDING
 ```
@@ -534,14 +535,25 @@ Location request hanya diteruskan bila ada user gesture dalam 15 detik terakhir.
 UAT wajib:
 
 ```text
-Dashboard helper muncul pada halaman internal
+Dashboard helper muncul pada halaman internal selain login/root/dashboard
 Dashboard helper tidak muncul di login/root/dashboard
 Dashboard helper tidak menutup sticky action penting
-Presensi geofence -> permission allow -> koordinat diterima server
-Presensi geofence -> permission deny -> error jelas / no false success
-Jurnal Guru Hadir -> location bekerja
-jalur yang tidak membutuhkan geofence tidak memunculkan permission location
-permission tidak muncul saat app startup/dashboard
+
+geofencing_aktif = OFF:
+- Presensi Siswa tidak meminta lokasi
+- Presensi Guru/Jurnal tidak meminta lokasi
+
+geofencing_aktif = ON:
+- Presensi Siswa Guru Terjadwal meminta lokasi saat save
+- Jurnal Guru status Hadir non-SEMUA meminta lokasi saat save
+- permission allow -> koordinat diterima server
+- permission deny -> no false success
+- outside radius -> server menolak sesuai rule domain
+- Jurnal Izin/Sakit tidak meminta lokasi
+- actor capability SEMUA tidak meminta lokasi
+
+startup/login/dashboard tidak meminta lokasi
+Cordova tidak membaca role/status/setting geofence; Web/server yang menentukan kapan navigator.geolocation dipanggil
 ```
 
 ## 27. G4.1E — Upload / Import File Chooser
@@ -563,17 +575,22 @@ file valid tetap mengikuti permission/RBAC server
 
 Jika UAT membuktikan kebutuhan camera capture, multiple-select, atau MIME-specific picker yang tidak terpenuhi oleh InAppBrowser default, barulah native chooser diperluas.
 
-## 28. G4.1F — POST Output + Android Back Adapter
+## 28. G4.1F — Android Back + POST Output Boundary
 
-Beberapa output Web tidak menghasilkan navigasi GET attachment:
+Android Back tetap bagian thin wrapper karena WebView/InAppBrowser tidak otomatis memenuhi contract aplikasi:
 
-- Statistik PDF mengirim `POST /statistik/export/pdf` dengan filter, CSRF, dan optional PNG chart payload;
-- Kartu Pelajar massal mengirim `POST /kartu/cetak-massal`;
-- Kartu JPG ZIP mengirim `POST /kartu/export-jpg-zip`.
+```text
+modal/sidebar/offcanvas/dropdown -> close layer
+detail/history                    -> history back
+dirty form                        -> confirmation
+root/dashboard                    -> double-back / exit
+```
 
-G4.1F tidak mengirim blob besar melalui base64 bridge. Local shell mengirim metadata request allowlisted ke native plugin, lalu Android melakukan POST same-origin dengan cookie session + CSRF dan menulis response attachment langsung ke Downloads.
+Adapter Back bersifat generik dan tidak mengenal role/domain.
 
-Allowlist native POST hanya:
+### POST output
+
+Statistik PDF dan sebagian output Kartu menggunakan POST. Implementasi recovery awal sempat menambahkan endpoint-specific bridge untuk:
 
 ```text
 /statistik/export/pdf
@@ -581,48 +598,24 @@ Allowlist native POST hanya:
 /kartu/export-jpg-zip
 ```
 
-Security gate:
+Bridge tersebut **direvert dari runtime source** pada thin-wrapper recovery 6 Oktober 2026 karena membuat Cordova mengetahui workflow/endpoint bisnis tertentu dan menambah capability message di luar Architecture Lock.
 
-- HTTPS + exact host `sisfour.mtsn4jombang.sch.id`;
-- port default/443 only;
-- no URL user-info;
-- method fixed POST;
-- redirect response ditolak agar HTML login tidak tersimpan sebagai file;
-- response wajib 2xx + `Content-Disposition: attachment`;
-- request header yang diterima native hanya CSRF/Accept/X-Requested-With;
-- payload form dibatasi jumlah field dan ukuran;
-- server tetap memutuskan session/RBAC/CSRF/business validation.
-
-Android Back memakai injected history sentinel karena InAppBrowser default langsung `goBack()` atau close dialog.
-
-Order adapter:
+Status:
 
 ```text
-modal.show      -> hide
-offcanvas.show  -> hide
-dropdown.show   -> hide
-mobile sidebar  -> close
-dirty page      -> confirmation
-detail/history  -> real history back
-/dashboard or / -> double-back within 1.8s -> app exit
+GET attachment download  = IMPLEMENTED GENERIC / REBUILD UAT PENDING
+POST attachment output   = PENDING GENERIC SOLUTION
+Android Back adapter     = IMPLEMENTED GENERIC / REBUILD UAT PENDING
 ```
 
-Dirty state diprobe melalui existing `beforeunload` contract; adapter tidak membuat business dirty-state baru.
+Solusi POST berikutnya harus memenuhi semua syarat:
 
-Source/static audit pada implementation head:
-
-```text
-shell.js JavaScript parse               PASS
-plugin JS parse                         PASS
-package.json/package-lock JSON          PASS
-POST endpoint native allowlist present  PASS
-redirect disabled                       PASS
-attachment guard                        PASS
-MediaStore Downloads path               PASS
-Java brace/static structure             PASS
-Gradle/Cordova compile                   PENDING user terminal
-real-device UAT                          PENDING
-```
+- tidak hardcode endpoint bisnis di shell/native;
+- tidak memindahkan CSRF/business rule dari Web/server;
+- hanya same-origin HTTPS;
+- session/RBAC server tetap authoritative;
+- tidak menambah arbitrary native execution;
+- perubahan Architecture Lock hanya dengan keputusan eksplisit bila capability baru benar-benar diperlukan.
 
 ## 29. G4.1G — APK Branding / Visual Identity
 
@@ -726,19 +719,28 @@ Branding UAT should use a clean APK install to avoid launcher/icon cache ambigui
 
 ### Dashboard
 
-Dashboard injection is now an independent small script and is retried after page load. It no longer depends on geolocation/file/Back helper initialization. The control remains visible after login, including on Dashboard, and navigates to authenticated `/dashboard`.
+Dashboard injection sekarang hanya satu helper kecil. Tombol muncul pada halaman internal selain login/root/dashboard dan hanya menavigasi ke authenticated `/dashboard`.
 
 ### Geolocation test contract
 
-The easiest verification is a role/capability where server returns `geofence_required=true` for Presensi Siswa, or Guru Jurnal with capability other than `SEMUA`. Location is intentionally not requested for Admin/Operator administrative capability.
+Geolocation mengikuti SSOT `docs/05_PRESENSI`:
+
+- switch global = `geofencing_aktif`;
+- Presensi Siswa Guru Terjadwal mengikuti geofence bila setting ON;
+- Presensi Guru/Jurnal status Hadir non-SEMUA mengikuti geofence bila setting ON;
+- setting OFF tidak meminta lokasi pada kedua workflow;
+- Jurnal Izin/Sakit tidak meminta lokasi;
+- radius dan hasil valid/tidak valid tetap diputuskan server.
+
+Service Jurnal sekarang mengirim `geofence_required` dari konfigurasi server; Web hanya memanggil `navigator.geolocation` ketika flag tersebut true. Cordova hanya menjembatani API lokasi dan tidak mengetahui business condition tersebut.
 
 ### Saved credential / autofill
 
 The Web login already declares standard `autocomplete=username` and `autocomplete=current-password`. APK remediation adds:
 
 - standard Android WebView `setSaveFormData(true)`;
-- `IMPORTANT_FOR_AUTOFILL_YES` for Android O+;
-- local login-page autofill hints and delayed username focus.
+- `IMPORTANT_FOR_AUTOFILL_YES` for Android O+.
+- tidak ada lagi injection yang mengubah field/focus halaman login remote.
 
 SisFour does not store plaintext passwords or create an app-owned password vault. Credential persistence remains owned by Android's configured Autofill/Password Manager service.
 
@@ -754,4 +756,31 @@ MediaStore Downloads write path             PASS
 safe-zone splash/adaptive resources         PASS
 Gradle build                                PENDING
 new device UAT                              PENDING
+```
+
+
+### Thin-wrapper recovery 6 Oktober 2026
+
+Audit ulang terhadap 00/00A/05/14/15/16 menghasilkan cleanup berikut:
+
+```text
+KEEP    controlled InAppBrowser architecture
+KEEP    upload/import default file chooser
+KEEP    generic same-origin authenticated GET download
+KEEP    generic navigator.geolocation -> Android bridge
+KEEP    generic Android Back adapter
+KEEP    release signing secret boundary
+
+FIX     Dashboard duplicate -> satu helper saja
+FIX     Dashboard rule -> tidak tampil di login/root/dashboard
+FIX     Jurnal Web -> server geofence_required menentukan permintaan lokasi
+FIX     local shell CSS syntax
+FIX     splash config -> documented SplashScreenBackgroundColor
+
+REVERT  endpoint-specific POST download logic dari Cordova runtime
+REVERT  remote login-form autofill/focus injection
+
+PENDING POST attachment output generic solution
+PENDING Android autofill native hook compile/device UAT
+PENDING launcher icon + splash clean-build/device UAT
 ```
