@@ -799,8 +799,9 @@ native GET download method present           PASS
 native Content-Disposition read             PASS
 ACTION_CREATE_DOCUMENT Save As source path   PASS / DEVICE UAT PENDING
 safe-zone splash/adaptive resources         PASS
-Gradle build                                PASS / USER TERMINAL EVIDENCE
-new device UAT                              PENDING
+prior recovery Gradle build                 PASS / USER TERMINAL EVIDENCE
+current PRE-BUILD-FREEZE exact-head build    PENDING
+new device UAT                               PENDING
 ```
 
 
@@ -831,9 +832,11 @@ IMPLEMENTED final 1024 launcher/splash pipeline; exact-head build/clean-install 
 ```
 
 
-### Debug build evidence — thin-wrapper recovery
+### Historical debug build evidence — thin-wrapper recovery
 
-Exact branch recovery build pada 6 Oktober 2026:
+Build berikut adalah evidence **sebelum** final Save As + generic POST + cookie-sync + 1024 launcher pipeline. Ia membuktikan environment/toolchain, bukan current exact-head source.
+
+Exact recovery build pada 6 Oktober 2026:
 
 ```text
 cordova build android     PASS
@@ -1080,3 +1083,8 @@ all Set-Cookie response headers
 ```
 
 Cookie synchronization is implemented once in the shared attachment response handler, so it applies to generic GET and generic POST. Remote Web cannot provide or override Cookie/Authorization headers.
+
+
+### Attachment integrity guard
+
+Shared native GET/POST response handler rejects a zero-byte attachment before Android Save As. A 2xx response with `Content-Disposition: attachment` is not enough to claim success when the downloaded temporary file is empty.
