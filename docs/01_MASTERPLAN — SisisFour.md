@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1 parity batch — authenticated download, Dashboard helper, native geolocation bridge, upload/import regression, dan branding candidate
+**Development aktif:** G4.1 parity batch — authenticated GET/POST output, Dashboard/geolocation, Android Back, upload/import regression, dan branding candidate
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
