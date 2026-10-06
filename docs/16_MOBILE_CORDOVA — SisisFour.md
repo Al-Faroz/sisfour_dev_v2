@@ -853,3 +853,39 @@ Status:
 generic XLSX filename/MIME remediation = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 Dashboard bottom-left                  = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 ```
+
+
+### Canonical downloadable file types — G4 bridge scope
+
+Audit repo 6 Oktober 2026 memperluas acceptance download dari sekadar XLSX/PDF menjadi tipe file aktual yang memang dilayani SisFour:
+
+```text
+XLSX       export/template banyak domain
+PDF        Kartu, Portofolio, receipt/output PDF, lampiran
+SQL        Backup Database
+PNG        lampiran/dokumen personalia/PTSP
+JPG/JPEG   lampiran/dokumen personalia/PTSP
+ZIP        arsip JPG Kartu Pelajar
+```
+
+Catatan boundary:
+
+- JPG di dalam ZIP Kartu bukan direct GET file per siswa.
+- Dokumen Siswa `PDF/IMAGE` berada di Google Drive eksternal; SisFour hanya mengotorisasi metadata/link lalu browser/Google Drive menangani file remote.
+- JSON adalah response API/AJAX, bukan file download user.
+- DOC/DOCX, PPT/PPTX, XLS legacy, CSV tidak ditemukan sebagai output file canonical SisFour pada audit ini.
+- APK/AAB adalah release artifact developer, bukan runtime user download.
+
+Native bridge harus generic terhadap filename + MIME dan tidak boleh hardcode route/modul. Fallback MIME canonical hanya berbasis ekstensi file aktual:
+
+```text
+.xlsx -> application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+.pdf  -> application/pdf
+.zip  -> application/zip
+.png  -> image/png
+.jpg/.jpeg -> image/jpeg
+.sql  -> application/sql
+```
+
+GET same-origin attachment menggunakan generic native download bridge.
+POST-generated attachment seperti Kartu massal PDF/ZIP tetap berada pada gate POST output terpisah sampai solusi generik tersedia.
