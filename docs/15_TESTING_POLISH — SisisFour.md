@@ -2186,3 +2186,33 @@ Gradle deprecated feature warning for future Gradle 9
 ```
 
 Warnings tersebut dicatat sebagai environment/toolchain follow-up, bukan G4.1 build failure. Device UAT tetap wajib sebelum acceptance.
+
+
+## G4 XLSX Generic Download Regression
+
+Source audit confirmed that Web export filenames are already defined correctly by server-side export implementations. APK regression must therefore validate the generic download adapter, not per-module filename hardcoding.
+
+After rebuild:
+
+```text
+Master Siswa XLSX        -> data_siswa_*.xlsx, not export.bin
+Catatan Pelanggaran XLSX -> server filename preserved
+Konseling BK XLSX        -> server filename preserved
+Prestasi XLSX            -> server filename preserved
+UKS/CKG XLSX/template    -> server filename preserved
+PTSP XLSX                -> server filename preserved
+Dokumen Siswa XLSX       -> server filename preserved
+Laporan XLSX             -> server filename preserved
+PDF download             -> remains PASS
+```
+
+Static gate:
+
+```text
+filename* parser present
+filename fallback present
+server filename preferred over URL guess
+octet-stream MIME fallback is generic
+no business endpoint/name hardcoded in native bridge
+Dashboard helper bottom-left
+```
