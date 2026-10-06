@@ -1088,3 +1088,19 @@ Cookie synchronization is implemented once in the shared attachment response han
 ### Attachment integrity guard
 
 Shared native GET/POST response handler rejects a zero-byte attachment before Android Save As. A 2xx response with `Content-Disposition: attachment` is not enough to claim success when the downloaded temporary file is empty.
+
+
+### PRE-BUILD FREEZE closure
+
+G4.1 source/static freeze is closed as PASS on 6 October 2026. No further known source remediation should be inserted before the next clean debug build unless a new blocking finding is discovered.
+
+Next gate:
+
+```text
+clean exact-head Cordova/Gradle build
+→ clean APK install
+→ one complete device UAT matrix
+→ only runtime-evidence failures return to remediation
+```
+
+Do not request another partial APK build for a source item already known before this freeze.
