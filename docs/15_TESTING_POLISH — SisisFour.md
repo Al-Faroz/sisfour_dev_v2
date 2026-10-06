@@ -2092,3 +2092,42 @@ multi-device smoke PASS
 final artifact checksum recorded
 keystore/password absent from Git diff PASS
 ```
+
+
+## G4 Device UAT Regression — After 6 October Remediation
+
+Next APK must prove:
+
+```text
+Upload/import still PASS
+
+GET export:
+- Catatan Pelanggaran XLSX has .xlsx filename
+- Konseling BK XLSX has .xlsx filename
+- no export.bin fallback
+- file opens successfully
+
+Branding:
+- clean install launcher shows SisFour / MTsN 4 Jombang icon
+- no Apache Cordova icon
+- splash logo remains fully inside safe zone
+- no double/overlapping logo during native -> shell transition
+- startup remains fast
+
+Dashboard:
+- green home control visible immediately after authenticated login
+- control visible in module pages
+- tap control opens /dashboard
+- control does not block zoom/sticky actions
+
+Geolocation:
+- Admin/Operator no unnecessary location prompt
+- Guru/required geofence flow prompts Android permission on first use
+- allow -> coordinates accepted
+- deny -> no false-success save
+
+Autofill:
+- username/password fields recognized by configured Android Autofill service
+- tapping username/password surfaces saved credentials when manager has them
+- no SisFour-owned plaintext credential storage
+```
