@@ -2372,8 +2372,8 @@ hdpi legacy icon             -> 72×72
 xhdpi legacy icon            -> 96×96
 xxhdpi legacy icon           -> 144×144
 xxxhdpi legacy icon          -> 192×192
-adaptive background          -> white
-adaptive foreground          -> final 1024 master through safe-zone XML
+adaptive background          -> NOT USED; direct density PNG launcher
+adaptive foreground          -> NOT USED; direct density PNG launcher
 native splash                -> final color 1024 master through splash XML
 post-splash shell            -> exact user LogoFlat_White.svg on #119450
 old 2319×2299 mobile master  -> absent / no reference
@@ -2385,7 +2385,7 @@ Device acceptance after clean install:
 ```text
 launcher shows SisFour/MTsN 4 Jombang logo
 no old/default Cordova icon
-adaptive mask does not cut critical logo/text
+launcher renders the full user-provided density PNG without center-crop
 native color logo is not oversized/cropped
 handoff to white logo has no duplicate overlap
 no artificial splash delay
@@ -2458,7 +2458,7 @@ legacy storage permission absent            PASS
 Dashboard bottom-left + exclusions          PASS
 server-derived geofence request flag        PASS
 browser fallback Kartu/Statistik retained   PASS
-launcher master 1024×1024                   PASS
+launcher density PNGs 36/48/72/96/144/192 PASS
 legacy density 36/48/72/96/144/192          PASS
 old 2319×2299 mobile master absent          PASS
 splash + white-logo shell handoff source    PASS
