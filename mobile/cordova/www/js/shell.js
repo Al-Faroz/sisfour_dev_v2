@@ -10,13 +10,6 @@
     const DASHBOARD_URL =
         new URL('dashboard', APP_URL).href;
 
-    const POST_DOWNLOAD_PATHS =
-        new Set([
-            '/statistik/export/pdf',
-            '/kartu/cetak-massal',
-            '/kartu/export-jpg-zip',
-        ]);
-
     const status =
         document.getElementById('appStatus');
 
@@ -74,26 +67,27 @@
         return true;
     };
 
-    const showBrowserAlert = (message) => {
+    const showRemoteAlert = (message) => {
         if (!browser) {
             return;
         }
 
         browser.executeScript({
-            code: `window.alert(${JSON.stringify(message)});`,
+            code:
+                `window.alert(${JSON.stringify(message)});`,
         });
     };
 
     const handleDownload = (event) => {
         if (!event || !isInternalUrl(event.url)) {
-            showBrowserAlert(
+            showRemoteAlert(
                 'Download diblokir karena sumber file tidak diizinkan.'
             );
             return;
         }
 
         if (!window.SisFourNative?.download) {
-            showBrowserAlert(
+            showRemoteAlert(
                 'Handler download Android belum tersedia.'
             );
             return;
@@ -102,10 +96,12 @@
         window.SisFourNative.download(
             {
                 url: event.url,
-                userAgent: event.userAgent || '',
+                userAgent:
+                    event.userAgent || '',
                 contentDisposition:
                     event.contentDisposition || '',
-                mimetype: event.mimetype || '',
+                mimetype:
+                    event.mimetype || '',
                 contentLength:
                     Number(event.contentLength) || 0,
             },
@@ -114,18 +110,17 @@
                     result?.fileName
                     || 'file';
 
-                showBrowserAlert(
+                showRemoteAlert(
                     'File tersimpan di Downloads: '
                     + fileName
                 );
             },
             (error) => {
-                const detail =
+                showRemoteAlert(
                     typeof error === 'string'
                         ? error
-                        : 'Download gagal dimulai.';
-
-                showBrowserAlert(detail);
+                        : 'Download gagal diproses.'
+                );
             }
         );
     };
@@ -161,30 +156,6 @@
         });
     };
 
-    const sendFileResult = (payload) => {
-        if (!browser) {
-            return;
-        }
-
-        browser.executeScript({
-            code:
-                `window.__sisfourNativeFileResolve`
-                + ` && window.__sisfourNativeFileResolve(`
-                + `${JSON.stringify(payload)});`,
-        });
-    };
-
-    const isAllowedPostDownloadUrl = (value) => {
-        const url = parseUrl(value);
-
-        return Boolean(
-            url
-            && url.protocol === 'https:'
-            && url.origin === APP_ORIGIN
-            && POST_DOWNLOAD_PATHS.has(url.pathname)
-        );
-    };
-
     const handleLocationRequest = (data) => {
         if (!isInternalUrl(currentUrl)) {
             return;
@@ -218,23 +189,6 @@
             && typeof data.options === 'object'
                 ? data.options
                 : {};
-
-        const options = {
-            enableHighAccuracy:
-                rawOptions.enableHighAccuracy !== false,
-            timeout: clampNumber(
-                rawOptions.timeout,
-                1000,
-                30000,
-                15000
-            ),
-            maximumAge: clampNumber(
-                rawOptions.maximumAge,
-                0,
-                60000,
-                0
-            ),
-        };
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -275,78 +229,22 @@
                         || 'Lokasi tidak dapat diperoleh.',
                 });
             },
-            options
-        );
-    };
-
-    const handlePostDownloadRequest = (data) => {
-        if (
-            !isInternalUrl(currentUrl)
-            || !window.SisFourNative?.downloadPost
-        ) {
-            return;
-        }
-
-        const requestId =
-            typeof data?.requestId === 'string'
-                ? data.requestId
-                : '';
-
-        if (
-            !/^[A-Za-z0-9._:-]{1,96}$/
-                .test(requestId)
-            || !isAllowedPostDownloadUrl(data.url)
-        ) {
-            sendFileResult({
-                requestId,
-                ok: false,
-                message:
-                    'POST download diblokir oleh policy APK.',
-            });
-            return;
-        }
-
-        const fields =
-            Array.isArray(data.fields)
-                ? data.fields.slice(0, 600)
-                : [];
-
-        const headers =
-            data.headers
-            && typeof data.headers === 'object'
-                ? data.headers
-                : {};
-
-        window.SisFourNative.downloadPost(
             {
-                url: data.url,
-                fields,
-                headers,
-                accept:
-                    typeof data.accept === 'string'
-                        ? data.accept
-                        : 'application/octet-stream',
-                userAgent:
-                    typeof data.userAgent === 'string'
-                        ? data.userAgent
-                        : '',
-            },
-            (result) => {
-                sendFileResult({
-                    requestId,
-                    ok: true,
-                    result: result || {},
-                });
-            },
-            (error) => {
-                sendFileResult({
-                    requestId,
-                    ok: false,
-                    message:
-                        typeof error === 'string'
-                            ? error
-                            : 'POST download gagal.',
-                });
+                enableHighAccuracy:
+                    rawOptions.enableHighAccuracy
+                    !== false,
+                timeout: clampNumber(
+                    rawOptions.timeout,
+                    1000,
+                    30000,
+                    15000
+                ),
+                maximumAge: clampNumber(
+                    rawOptions.maximumAge,
+                    0,
+                    60000,
+                    0
+                ),
             }
         );
     };
@@ -389,11 +287,6 @@
             return;
         }
 
-        if (data.type === 'file.downloadPost') {
-            handlePostDownloadRequest(data);
-            return;
-        }
-
         if (data.type === 'app.exit') {
             handleAppExitRequest();
         }
@@ -406,34 +299,28 @@
 
         const code = `
 (() => {
-    const dashboardUrl = ${JSON.stringify(DASHBOARD_URL)};
-
     const path =
         window.location.pathname
             .replace(/\\/+$/, '')
         || '/';
-
-    const shouldShow =
-        path !== '/'
-        && !path.startsWith('/auth');
 
     const existing =
         document.getElementById(
             'sisfourCordovaDashboard'
         );
 
+    const shouldShow =
+        path !== '/'
+        && path !== '/dashboard'
+        && !path.startsWith('/auth');
+
     if (!shouldShow) {
         existing?.remove();
-        return false;
+        return;
     }
 
-    if (existing) {
-        existing.hidden = false;
-        return true;
-    }
-
-    if (!document.body) {
-        return false;
+    if (existing || !document.body) {
+        return;
     }
 
     const button =
@@ -451,11 +338,10 @@
 
     button.setAttribute(
         'title',
-        'Dashboard'
+        'Kembali ke Dashboard'
     );
 
-    button.innerHTML =
-        '<span aria-hidden="true">⌂</span>';
+    button.textContent = '⌂';
 
     button.style.cssText = [
         'position:fixed',
@@ -472,8 +358,8 @@
         'padding:0',
         'font:700 26px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
         'color:#fff',
-        'background:#009846',
-        'box-shadow:0 4px 14px rgba(0,0,0,.30)',
+        'background:#696cff',
+        'box-shadow:0 4px 14px rgba(0,0,0,.28)',
         'opacity:.96',
         'touch-action:manipulation'
     ].join(';');
@@ -482,100 +368,12 @@
         'click',
         () => {
             window.location.assign(
-                dashboardUrl
+                ${JSON.stringify(DASHBOARD_URL)}
             );
         }
     );
 
     document.body.appendChild(button);
-    return true;
-})();
-`;
-
-        browser.executeScript(
-            { code },
-            () => {
-                // Independent helper: no dependency on other injected bridges.
-            }
-        );
-
-        window.setTimeout(
-            () => {
-                if (!browser) {
-                    return;
-                }
-
-                browser.executeScript({
-                    code,
-                });
-            },
-            700
-        );
-    };
-
-    const injectLoginAutofillHints = () => {
-        if (!browser || !isInternalUrl(currentUrl)) {
-            return;
-        }
-
-        const url = parseUrl(currentUrl);
-
-        if (
-            !url
-            || !url.pathname
-                .replace(/\/+$/, '')
-                .endsWith('/auth/login')
-        ) {
-            return;
-        }
-
-        const code = `
-(() => {
-    const username =
-        document.getElementById('username');
-
-    const password =
-        document.getElementById('password');
-
-    if (!username || !password) {
-        return false;
-    }
-
-    username.setAttribute(
-        'autocomplete',
-        'username'
-    );
-
-    username.setAttribute(
-        'autocapitalize',
-        'none'
-    );
-
-    username.setAttribute(
-        'spellcheck',
-        'false'
-    );
-
-    password.setAttribute(
-        'autocomplete',
-        'current-password'
-    );
-
-    window.setTimeout(
-        () => {
-            if (
-                document.visibilityState
-                === 'visible'
-            ) {
-                username.focus({
-                    preventScroll: true
-                });
-            }
-        },
-        350
-    );
-
-    return true;
 })();
 `;
 
@@ -584,709 +382,303 @@
         });
     };
 
-    const injectRemoteHelpers = () => {
+    const injectGeolocationBridge = () => {
         if (!browser || !isInternalUrl(currentUrl)) {
             return;
         }
 
         const code = `
 (() => {
-    const dashboardUrl = ${JSON.stringify(DASHBOARD_URL)};
-
-    const currentPath =
-        window.location.pathname.replace(/\\/+$/, '')
-        || '/';
-
-    const shouldShowDashboard =
-        currentPath !== '/dashboard'
-        && currentPath !== '/'
-        && !currentPath.startsWith('/auth');
-
     if (
-        shouldShowDashboard
-        && !document.getElementById('sisfourCordovaDashboard')
+        !window.cordova_iab
+        || window.__sisfourNativeGeoInstalled
     ) {
-        const button = document.createElement('button');
-
-        button.id = 'sisfourCordovaDashboard';
-        button.type = 'button';
-        button.setAttribute(
-            'aria-label',
-            'Kembali ke Dashboard'
-        );
-        button.setAttribute(
-            'title',
-            'Kembali ke Dashboard'
-        );
-        button.textContent = '⌂';
-
-        button.style.cssText = [
-            'position:fixed',
-            'right:14px',
-            'bottom:calc(env(safe-area-inset-bottom, 0px) + 70px)',
-            'z-index:2147483646',
-            'width:46px',
-            'height:46px',
-            'border:0',
-            'border-radius:50%',
-            'display:flex',
-            'align-items:center',
-            'justify-content:center',
-            'padding:0',
-            'font:700 25px/1 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-            'color:#fff',
-            'background:#696cff',
-            'box-shadow:0 4px 14px rgba(0,0,0,.24)',
-            'opacity:.92',
-            'touch-action:manipulation'
-        ].join(';');
-
-        button.addEventListener('click', () => {
-            window.location.assign(dashboardUrl);
-        });
-
-        document.body.appendChild(button);
+        return;
     }
 
-    if (
-        window.cordova_iab
-        && !window.__sisfourNativeGeoInstalled
-    ) {
-        window.__sisfourNativeGeoInstalled = true;
-        window.__sisfourNativeGeoPending =
-            Object.create(null);
-        window.__sisfourLastUserGesture = 0;
+    window.__sisfourNativeGeoInstalled = true;
+    window.__sisfourNativeGeoPending =
+        Object.create(null);
+    window.__sisfourLastUserGesture = 0;
 
-        const markUserGesture = () => {
-            window.__sisfourLastUserGesture =
-                Date.now();
-        };
+    const markUserGesture = () => {
+        window.__sisfourLastUserGesture =
+            Date.now();
+    };
 
-        [
-            'pointerdown',
-            'touchstart',
-            'click',
-            'keydown'
-        ].forEach((eventName) => {
-            document.addEventListener(
-                eventName,
-                markUserGesture,
-                {
-                    capture: true,
-                    passive: true
-                }
-            );
-        });
+    [
+        'pointerdown',
+        'touchstart',
+        'click',
+        'keydown'
+    ].forEach((eventName) => {
+        document.addEventListener(
+            eventName,
+            markUserGesture,
+            {
+                capture: true,
+                passive: true
+            }
+        );
+    });
 
-        window.__sisfourNativeGeoResolve =
-            (payload) => {
-                const requestId =
-                    payload
-                    && typeof payload.requestId === 'string'
-                        ? payload.requestId
-                        : '';
+    window.__sisfourNativeGeoResolve =
+        (payload) => {
+            const requestId =
+                payload
+                && typeof payload.requestId
+                    === 'string'
+                    ? payload.requestId
+                    : '';
 
-                const pending =
-                    window.__sisfourNativeGeoPending[
-                        requestId
-                    ];
-
-                if (!pending) {
-                    return;
-                }
-
-                delete window.__sisfourNativeGeoPending[
-                    requestId
-                ];
-
-                if (payload.ok) {
-                    pending.success(
-                        payload.position
-                    );
-                    return;
-                }
-
-                if (typeof pending.error === 'function') {
-                    pending.error({
-                        code:
-                            Number(payload.code) || 2,
-                        message:
-                            payload.message
-                            || 'Lokasi tidak dapat diperoleh.'
-                    });
-                }
-            };
-
-        const nativeGetCurrentPosition =
-            (success, error, options) => {
-                if (typeof success !== 'function') {
-                    throw new TypeError(
-                        'Callback geolocation wajib berupa fungsi.'
-                    );
-                }
-
-                const sinceGesture =
-                    Date.now()
-                    - Number(
-                        window.__sisfourLastUserGesture
-                        || 0
-                    );
-
-                if (
-                    sinceGesture < 0
-                    || sinceGesture > 15000
-                ) {
-                    if (typeof error === 'function') {
-                        error({
-                            code: 1,
-                            message:
-                                'Lokasi hanya dapat diminta setelah tindakan pengguna.'
-                        });
-                    }
-                    return;
-                }
-
-                const requestId =
-                    'geo-'
-                    + Date.now().toString(36)
-                    + '-'
-                    + Math.random()
-                        .toString(36)
-                        .slice(2, 10);
-
+            const pending =
                 window.__sisfourNativeGeoPending[
                     requestId
-                ] = {
-                    success,
-                    error
-                };
-
-                const safeOptions = {
-                    enableHighAccuracy:
-                        options?.enableHighAccuracy !== false,
-                    timeout:
-                        Number(options?.timeout) || 15000,
-                    maximumAge:
-                        Number(options?.maximumAge) || 0
-                };
-
-                window.cordova_iab.postMessage(
-                    JSON.stringify({
-                        type: 'location.request',
-                        requestId,
-                        options: safeOptions
-                    })
-                );
-            };
-
-        try {
-            if (!navigator.geolocation) {
-                Object.defineProperty(
-                    navigator,
-                    'geolocation',
-                    {
-                        configurable: true,
-                        value: {}
-                    }
-                );
-            }
-
-            Object.defineProperty(
-                navigator.geolocation,
-                'getCurrentPosition',
-                {
-                    configurable: true,
-                    writable: true,
-                    value: nativeGetCurrentPosition
-                }
-            );
-        } catch (error) {
-            try {
-                navigator.geolocation.getCurrentPosition =
-                    nativeGetCurrentPosition;
-            } catch (ignored) {
-                // The page keeps its browser implementation.
-            }
-        }
-    }
-
-    if (
-        window.cordova_iab
-        && !window.__sisfourNativeFileInstalled
-    ) {
-        window.__sisfourNativeFileInstalled = true;
-        window.__sisfourNativeFilePending =
-            Object.create(null);
-
-        window.__sisfourNativeFileResolve =
-            (payload) => {
-                const requestId =
-                    payload
-                    && typeof payload.requestId === 'string'
-                        ? payload.requestId
-                        : '';
-
-                const pending =
-                    window.__sisfourNativeFilePending[
-                        requestId
-                    ];
-
-                if (!pending) {
-                    return;
-                }
-
-                delete window.__sisfourNativeFilePending[
-                    requestId
                 ];
 
-                if (payload.ok) {
-                    pending.resolve(
-                        payload.result || {}
-                    );
-                    return;
-                }
-
-                pending.reject(
-                    new Error(
-                        payload.message
-                        || 'Download gagal diproses.'
-                    )
-                );
-            };
-
-        const nativeCsrfHeaders = () => {
-            const headers = {};
-
-            try {
-                const token =
-                    window.SisisFourCsrf?.getToken?.();
-
-                const headerName =
-                    window.SisisFourCsrf?.headerName
-                    || 'X-CSRF-TOKEN';
-
-                if (token) {
-                    headers[headerName] = token;
-                }
-            } catch (ignored) {
-                // Form token may still be present.
+            if (!pending) {
+                return;
             }
 
-            return headers;
-        };
+            delete window.__sisfourNativeGeoPending[
+                requestId
+            ];
 
-        const nativeFormFields = (formData) => {
-            const fields = [];
+            if (payload.ok) {
+                pending.success(
+                    payload.position
+                );
+                return;
+            }
 
-            for (
-                const [name, value]
-                of formData.entries()
-            ) {
-                if (typeof value !== 'string') {
-                    continue;
-                }
-
-                fields.push({
-                    name,
-                    value
+            if (typeof pending.error === 'function') {
+                pending.error({
+                    code:
+                        Number(payload.code) || 2,
+                    message:
+                        payload.message
+                        || 'Lokasi tidak dapat diperoleh.'
                 });
             }
-
-            return fields;
         };
 
-        const requestNativePostDownload = (
-            url,
-            fields,
-            accept
-        ) => new Promise((resolve, reject) => {
+    const nativeGetCurrentPosition =
+        (success, error, options) => {
+            if (typeof success !== 'function') {
+                throw new TypeError(
+                    'Callback geolocation wajib berupa fungsi.'
+                );
+            }
+
+            const sinceGesture =
+                Date.now()
+                - Number(
+                    window.__sisfourLastUserGesture
+                    || 0
+                );
+
+            if (
+                sinceGesture < 0
+                || sinceGesture > 15000
+            ) {
+                if (typeof error === 'function') {
+                    error({
+                        code: 1,
+                        message:
+                            'Lokasi hanya dapat diminta setelah tindakan pengguna.'
+                    });
+                }
+
+                return;
+            }
+
             const requestId =
-                'file-'
+                'geo-'
                 + Date.now().toString(36)
                 + '-'
                 + Math.random()
                     .toString(36)
                     .slice(2, 10);
 
-            window.__sisfourNativeFilePending[
+            window.__sisfourNativeGeoPending[
                 requestId
             ] = {
-                resolve,
-                reject
+                success,
+                error
             };
 
             window.cordova_iab.postMessage(
                 JSON.stringify({
-                    type: 'file.downloadPost',
+                    type: 'location.request',
                     requestId,
-                    url,
-                    fields,
-                    accept,
-                    headers:
-                        nativeCsrfHeaders(),
-                    userAgent:
-                        navigator.userAgent || ''
+                    options: {
+                        enableHighAccuracy:
+                            options?.enableHighAccuracy
+                            !== false,
+                        timeout:
+                            Number(options?.timeout)
+                            || 15000,
+                        maximumAge:
+                            Number(options?.maximumAge)
+                            || 0
+                    }
                 })
             );
-        });
+        };
 
-        const statistikExportForm =
-            document.getElementById(
-                'statistikExportForm'
-            );
-
-        if (statistikExportForm) {
-            const nativeStatistikSubmit = () => {
-                const status =
-                    document.getElementById(
-                        'statistikStatus'
-                    );
-
-                if (status) {
-                    status.textContent =
-                        'Mengunduh PDF melalui Android...';
+    try {
+        if (!navigator.geolocation) {
+            Object.defineProperty(
+                navigator,
+                'geolocation',
+                {
+                    configurable: true,
+                    value: {}
                 }
-
-                const fields =
-                    nativeFormFields(
-                        new FormData(
-                            statistikExportForm
-                        )
-                    );
-
-                requestNativePostDownload(
-                    statistikExportForm.action,
-                    fields,
-                    'application/pdf'
-                )
-                    .then((result) => {
-                        if (status) {
-                            status.textContent =
-                                'PDF tersimpan di Downloads: '
-                                + (
-                                    result.fileName
-                                    || 'statistik.pdf'
-                                );
-                        }
-                    })
-                    .catch((error) => {
-                        if (status) {
-                            status.textContent =
-                                error.message
-                                || 'Export PDF gagal.';
-                        }
-                    });
-            };
-
-            try {
-                Object.defineProperty(
-                    statistikExportForm,
-                    'submit',
-                    {
-                        configurable: true,
-                        writable: true,
-                        value: nativeStatistikSubmit
-                    }
-                );
-            } catch (ignored) {
-                statistikExportForm.submit =
-                    nativeStatistikSubmit;
-            }
+            );
         }
 
-        const kartuButtonIds = [
-            'btnCetakDepanSelected',
-            'btnCetakBelakangSelected',
-            'btnCetakDepanKelas',
-            'btnCetakBelakangKelas',
-            'btnExportJpgKelas'
-        ];
-
-        const showKartuAlert = (
-            message,
-            type = 'info'
-        ) => {
-            const alert =
-                document.getElementById(
-                    'kartuAlert'
-                );
-
-            if (!alert) {
-                return;
+        Object.defineProperty(
+            navigator.geolocation,
+            'getCurrentPosition',
+            {
+                configurable: true,
+                writable: true,
+                value: nativeGetCurrentPosition
             }
-
-            alert.className =
-                'alert alert-' + type;
-
-            alert.textContent = message;
-        };
-
-        const selectedKartuIds = () => {
-            const values = new Set();
-
-            document
-                .querySelectorAll(
-                    '.check-kartu:checked:not(:disabled)'
-                )
-                .forEach((input) => {
-                    const value =
-                        String(input.value || '')
-                            .trim();
-
-                    if (value) {
-                        values.add(value);
-                    }
-                });
-
-            return Array.from(values);
-        };
-
-        const captureKartuButtonState = () =>
-            kartuButtonIds
-                .map((id) =>
-                    document.getElementById(id)
-                )
-                .filter(Boolean)
-                .map((button) => ({
-                    button,
-                    disabled:
-                        Boolean(button.disabled)
-                }));
-
-        const setCapturedButtonsBusy = (
-            states,
-            busy
-        ) => {
-            states.forEach((state) => {
-                state.button.disabled =
-                    busy
-                        ? true
-                        : state.disabled;
-            });
-        };
-
-        document.addEventListener(
-            'click',
-            (event) => {
-                const button =
-                    event.target?.closest?.(
-                        '#btnCetakDepanSelected,'
-                        + '#btnCetakBelakangSelected,'
-                        + '#btnCetakDepanKelas,'
-                        + '#btnCetakBelakangKelas,'
-                        + '#btnExportJpgKelas'
-                    );
-
-                if (!button) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopImmediatePropagation();
-
-                const idKelas =
-                    String(
-                        document
-                            .getElementById(
-                                'kartuKelas'
-                            )
-                            ?.value
-                        || ''
-                    ).trim();
-
-                const fields = [];
-                let url = '';
-                let accept = '';
-                let fallbackName = '';
-
-                if (
-                    button.id
-                    === 'btnExportJpgKelas'
-                ) {
-                    if (!idKelas) {
-                        showKartuAlert(
-                            'Pilih kelas terlebih dahulu untuk export JPG ZIP.',
-                            'warning'
-                        );
-                        return;
-                    }
-
-                    fields.push({
-                        name: 'id_kelas',
-                        value: idKelas
-                    });
-
-                    url =
-                        window.location.origin
-                        + '/kartu/export-jpg-zip';
-
-                    accept =
-                        'application/zip';
-
-                    fallbackName =
-                        'kartu_pelajar_JPG_DEPAN.zip';
-                } else {
-                    const isSelected =
-                        button.id.endsWith(
-                            'Selected'
-                        );
-
-                    const side =
-                        button.id.includes(
-                            'Belakang'
-                        )
-                            ? 'back'
-                            : 'front';
-
-                    const mode =
-                        isSelected
-                            ? 'selected'
-                            : 'class';
-
-                    fields.push({
-                        name: 'side',
-                        value: side
-                    });
-
-                    fields.push({
-                        name: 'mode',
-                        value: mode
-                    });
-
-                    if (isSelected) {
-                        const ids =
-                            selectedKartuIds();
-
-                        if (!ids.length) {
-                            showKartuAlert(
-                                'Pilih minimal satu kartu aktif.',
-                                'warning'
-                            );
-                            return;
-                        }
-
-                        ids.forEach((id) => {
-                            fields.push({
-                                name: 'id_kartu[]',
-                                value: id
-                            });
-                        });
-                    } else {
-                        if (!idKelas) {
-                            showKartuAlert(
-                                'Pilih kelas terlebih dahulu.',
-                                'warning'
-                            );
-                            return;
-                        }
-
-                        fields.push({
-                            name: 'id_kelas',
-                            value: idKelas
-                        });
-                    }
-
-                    url =
-                        window.location.origin
-                        + '/kartu/cetak-massal';
-
-                    accept =
-                        'application/pdf';
-
-                    fallbackName =
-                        'kartu_pelajar_A4.pdf';
-                }
-
-                const buttonStates =
-                    captureKartuButtonState();
-
-                setCapturedButtonsBusy(
-                    buttonStates,
-                    true
-                );
-
-                showKartuAlert(
-                    'Menyiapkan file melalui Android. Jangan menutup halaman ini.',
-                    'info'
-                );
-
-                requestNativePostDownload(
-                    url,
-                    fields,
-                    accept
-                )
-                    .then((result) => {
-                        showKartuAlert(
-                            'File tersimpan di Downloads: '
-                            + (
-                                result.fileName
-                                || fallbackName
-                            ),
-                            'success'
-                        );
-                    })
-                    .catch((error) => {
-                        showKartuAlert(
-                            error.message
-                            || 'Download gagal.',
-                            'danger'
-                        );
-                    })
-                    .finally(() => {
-                        setCapturedButtonsBusy(
-                            buttonStates,
-                            false
-                        );
-                    });
-            },
-            true
         );
+    } catch (error) {
+        try {
+            navigator.geolocation
+                .getCurrentPosition =
+                    nativeGetCurrentPosition;
+        } catch (ignored) {
+            // Keep the WebView implementation if it is immutable.
+        }
+    }
+})();
+`;
+
+        browser.executeScript({
+            code,
+        });
+    };
+
+    const injectBackAdapter = () => {
+        if (!browser || !isInternalUrl(currentUrl)) {
+            return;
+        }
+
+        const code = `
+(() => {
+    if (
+        !window.cordova_iab
+        || window.__sisfourCordovaBackInstalled
+    ) {
+        return;
     }
 
-    if (
-        window.cordova_iab
-        && !window.__sisfourCordovaBackInstalled
-    ) {
-        window.__sisfourCordovaBackInstalled =
-            true;
+    window.__sisfourCordovaBackInstalled =
+        true;
 
-        let allowRealBack = false;
-        let exitArmedAt = 0;
+    let allowRealBack = false;
+    let exitArmedAt = 0;
 
-        const rearmBackSentinel = () => {
-            window.history.pushState(
-                {
-                    sisfourCordovaBack:
-                        true
-                },
-                '',
-                window.location.href
-            );
-        };
+    const rearm = () => {
+        window.history.pushState(
+            {
+                sisfourCordovaBack: true
+            },
+            '',
+            window.location.href
+        );
+    };
 
-        const hideBootstrapLayer = (
-            selector,
-            apiName,
-            dismissSelector
-        ) => {
-            const element =
-                document.querySelector(
-                    selector
+    const hideBootstrapLayer = (
+        selector,
+        apiName,
+        dismissSelector
+    ) => {
+        const element =
+            document.querySelector(selector);
+
+        if (!element) {
+            return false;
+        }
+
+        try {
+            const api =
+                window.bootstrap?.[apiName];
+
+            const instance =
+                api?.getInstance?.(element)
+                || api?.getOrCreateInstance?.(
+                    element
                 );
 
-            if (!element) {
-                return false;
+            if (instance?.hide) {
+                instance.hide();
+                return true;
             }
+        } catch (ignored) {
+            // Fallback below.
+        }
+
+        const dismiss =
+            element.querySelector(
+                dismissSelector
+            );
+
+        if (dismiss) {
+            dismiss.click();
+            return true;
+        }
+
+        element.classList.remove('show');
+        return true;
+    };
+
+    const closeTopLayer = () => {
+        if (
+            hideBootstrapLayer(
+                '.modal.show',
+                'Modal',
+                '[data-bs-dismiss="modal"]'
+            )
+        ) {
+            return true;
+        }
+
+        if (
+            hideBootstrapLayer(
+                '.offcanvas.show',
+                'Offcanvas',
+                '[data-bs-dismiss="offcanvas"]'
+            )
+        ) {
+            return true;
+        }
+
+        const dropdown =
+            document.querySelector(
+                '.dropdown-menu.show'
+            );
+
+        if (dropdown) {
+            const toggle =
+                dropdown
+                    .closest('.dropdown')
+                    ?.querySelector(
+                        '[data-bs-toggle="dropdown"]'
+                    );
 
             try {
-                const api =
-                    window.bootstrap?.[apiName];
-
                 const instance =
-                    api?.getInstance?.(element)
-                    || api?.getOrCreateInstance?.(
-                        element
-                    );
+                    window.bootstrap
+                        ?.Dropdown
+                        ?.getInstance?.(
+                            toggle
+                        );
 
                 if (instance?.hide) {
                     instance.hide();
@@ -1296,280 +688,176 @@
                 // Fallback below.
             }
 
-            const dismiss =
-                element.querySelector(
-                    dismissSelector
-                );
-
-            if (dismiss) {
-                dismiss.click();
-                return true;
-            }
-
-            element.classList.remove('show');
+            toggle?.click?.();
             return true;
-        };
+        }
 
-        const closeTopLayer = () => {
-            if (
-                hideBootstrapLayer(
-                    '.modal.show',
-                    'Modal',
-                    '[data-bs-dismiss="modal"]'
+        if (
+            document.documentElement
+                .classList
+                .contains(
+                    'layout-menu-expanded'
                 )
-            ) {
-                return true;
-            }
-
-            if (
-                hideBootstrapLayer(
-                    '.offcanvas.show',
-                    'Offcanvas',
-                    '[data-bs-dismiss="offcanvas"]'
-                )
-            ) {
-                return true;
-            }
-
-            const dropdownMenu =
-                document.querySelector(
-                    '.dropdown-menu.show'
-                );
-
-            if (dropdownMenu) {
-                const dropdown =
-                    dropdownMenu.closest(
-                        '.dropdown'
-                    );
-
-                const toggle =
-                    dropdown?.querySelector(
-                        '[data-bs-toggle="dropdown"]'
-                    );
-
-                try {
-                    const instance =
-                        window.bootstrap
-                            ?.Dropdown
-                            ?.getInstance?.(
-                                toggle
-                            );
-
-                    if (instance?.hide) {
-                        instance.hide();
-                        return true;
-                    }
-                } catch (ignored) {
-                    // Fallback below.
-                }
-
-                toggle?.click?.();
-                return true;
-            }
-
-            if (
-                document.documentElement
-                    .classList
-                    .contains(
-                        'layout-menu-expanded'
-                    )
-            ) {
-                try {
-                    window.Helpers
-                        ?.setCollapsed?.(
-                            true
-                        );
-                } catch (ignored) {
-                    document
-                        .documentElement
-                        .classList
-                        .remove(
-                            'layout-menu-expanded'
-                        );
-                }
-
-                document
-                    .documentElement
-                    .classList
-                    .remove(
-                        'layout-menu-expanded'
-                    );
-
-                return true;
-            }
-
-            const appSidebar =
-                document.querySelector(
-                    '[data-bs-toggle="sidebar"]'
-                )
-                ?.getAttribute(
-                    'data-target'
-                );
-
-            if (appSidebar) {
-                const openSidebar =
-                    document.querySelector(
-                        appSidebar + '.show'
-                    );
-
-                if (openSidebar) {
-                    openSidebar
-                        .classList
-                        .remove('show');
-
-                    document
-                        .querySelector(
-                            '.app-overlay.show'
-                        )
-                        ?.classList
-                        .remove('show');
-
-                    return true;
-                }
-            }
-
-            return false;
-        };
-
-        const pageLooksDirty = () => {
+        ) {
             try {
-                const probe =
-                    new Event(
-                        'beforeunload',
-                        {
-                            cancelable: true
-                        }
-                    );
-
-                window.dispatchEvent(probe);
-
-                return probe.defaultPrevented;
+                window.Helpers
+                    ?.setCollapsed?.(true);
             } catch (ignored) {
-                return false;
-            }
-        };
-
-        const showExitHint = () => {
-            let hint =
-                document.getElementById(
-                    'sisfourCordovaExitHint'
-                );
-
-            if (!hint) {
-                hint =
-                    document.createElement(
-                        'div'
-                    );
-
-                hint.id =
-                    'sisfourCordovaExitHint';
-
-                hint.style.cssText = [
-                    'position:fixed',
-                    'left:50%',
-                    'bottom:calc(env(safe-area-inset-bottom, 0px) + 24px)',
-                    'transform:translateX(-50%)',
-                    'z-index:2147483647',
-                    'max-width:calc(100vw - 32px)',
-                    'padding:10px 14px',
-                    'border-radius:999px',
-                    'background:rgba(32,33,36,.92)',
-                    'color:#fff',
-                    'font:500 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-                    'box-shadow:0 4px 16px rgba(0,0,0,.28)',
-                    'pointer-events:none'
-                ].join(';');
-
-                document.body.appendChild(
-                    hint
-                );
+                // Class fallback below.
             }
 
-            hint.textContent =
-                'Tekan Kembali sekali lagi untuk keluar.';
+            document.documentElement
+                .classList
+                .remove(
+                    'layout-menu-expanded'
+                );
 
-            hint.hidden = false;
+            return true;
+        }
 
-            window.clearTimeout(
-                window.__sisfourExitHintTimer
+        return false;
+    };
+
+    const pageLooksDirty = () => {
+        try {
+            const probe =
+                new Event(
+                    'beforeunload',
+                    {
+                        cancelable: true
+                    }
+                );
+
+            window.dispatchEvent(probe);
+
+            return probe.defaultPrevented;
+        } catch (ignored) {
+            return false;
+        }
+    };
+
+    const showExitHint = () => {
+        let hint =
+            document.getElementById(
+                'sisfourCordovaExitHint'
             );
 
-            window.__sisfourExitHintTimer =
-                window.setTimeout(
-                    () => {
-                        hint.hidden = true;
-                    },
-                    1800
-                );
-        };
+        if (!hint) {
+            hint =
+                document.createElement('div');
 
-        rearmBackSentinel();
+            hint.id =
+                'sisfourCordovaExitHint';
 
-        window.addEventListener(
-            'popstate',
-            () => {
-                if (allowRealBack) {
-                    allowRealBack = false;
-                    return;
-                }
+            hint.style.cssText = [
+                'position:fixed',
+                'left:50%',
+                'bottom:calc(env(safe-area-inset-bottom, 0px) + 24px)',
+                'transform:translateX(-50%)',
+                'z-index:2147483647',
+                'max-width:calc(100vw - 32px)',
+                'padding:10px 14px',
+                'border-radius:999px',
+                'background:rgba(32,33,36,.92)',
+                'color:#fff',
+                'font:500 14px/1.3 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+                'box-shadow:0 4px 16px rgba(0,0,0,.28)',
+                'pointer-events:none'
+            ].join(';');
 
-                if (closeTopLayer()) {
-                    rearmBackSentinel();
-                    return;
-                }
+            document.body.appendChild(hint);
+        }
 
-                const path =
-                    window.location.pathname
-                        .replace(/\/+$/, '')
-                    || '/';
+        hint.textContent =
+            'Tekan Kembali sekali lagi untuk keluar.';
 
-                if (
-                    path === '/'
-                    || path === '/dashboard'
-                ) {
-                    const now = Date.now();
+        hint.hidden = false;
 
-                    if (
-                        now - exitArmedAt
-                        <= 1800
-                    ) {
-                        window.cordova_iab
-                            .postMessage(
-                                JSON.stringify({
-                                    type: 'app.exit'
-                                })
-                            );
-                        return;
-                    }
-
-                    exitArmedAt = now;
-                    rearmBackSentinel();
-                    showExitHint();
-                    return;
-                }
-
-                if (
-                    pageLooksDirty()
-                    && !window.confirm(
-                        'Perubahan belum disimpan. Tinggalkan halaman ini?'
-                    )
-                ) {
-                    rearmBackSentinel();
-                    return;
-                }
-
-                allowRealBack = true;
-                window.history.back();
-            }
+        window.clearTimeout(
+            window.__sisfourExitHintTimer
         );
-    }
 
+        window.__sisfourExitHintTimer =
+            window.setTimeout(
+                () => {
+                    hint.hidden = true;
+                },
+                1800
+            );
+    };
+
+    rearm();
+
+    window.addEventListener(
+        'popstate',
+        () => {
+            if (allowRealBack) {
+                allowRealBack = false;
+                return;
+            }
+
+            if (closeTopLayer()) {
+                rearm();
+                return;
+            }
+
+            const path =
+                window.location.pathname
+                    .replace(/\\/+$/, '')
+                || '/';
+
+            if (
+                path === '/'
+                || path === '/dashboard'
+            ) {
+                const now = Date.now();
+
+                if (
+                    now - exitArmedAt
+                    <= 1800
+                ) {
+                    window.cordova_iab
+                        .postMessage(
+                            JSON.stringify({
+                                type: 'app.exit'
+                            })
+                        );
+
+                    return;
+                }
+
+                exitArmedAt = now;
+                rearm();
+                showExitHint();
+                return;
+            }
+
+            if (
+                pageLooksDirty()
+                && !window.confirm(
+                    'Perubahan belum disimpan. Tinggalkan halaman ini?'
+                )
+            ) {
+                rearm();
+                return;
+            }
+
+            allowRealBack = true;
+            window.history.back();
+        }
+    );
 })();
 `;
 
         browser.executeScript({
             code,
         });
+    };
+
+    const injectRemoteAdapters = () => {
+        injectDashboardButton();
+        injectGeolocationBridge();
+        injectBackAdapter();
     };
 
     const releaseBrowser = () => {
@@ -1663,9 +951,7 @@
                     'SisFour siap.'
                 );
 
-                injectDashboardButton();
-                injectLoginAutofillHints();
-                injectRemoteHelpers();
+                injectRemoteAdapters();
                 browser.show();
             }
         );
@@ -1680,9 +966,7 @@
 
                 releaseBrowser();
 
-                if (failedBrowser) {
-                    failedBrowser.close();
-                }
+                failedBrowser?.close();
 
                 setStatus(
                     'SisFour tidak dapat dibuka. Periksa koneksi internet lalu coba lagi.',
