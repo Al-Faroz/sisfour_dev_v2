@@ -438,6 +438,7 @@ G4.1B Controlled IAB runtime    PASS / user UAT evidence
 G4.1C Auth download bridge      IMPLEMENTED / UAT PENDING
 G4.1D Dashboard + geolocation   IMPLEMENTED / UAT PENDING
 G4.1E Upload/import chooser     SOURCE READY / UAT PENDING
+G4.1F POST output + Back        IMPLEMENTED / BUILD + UAT PENDING
 G4.1G APK branding              IMPLEMENTED CANDIDATE / UAT PENDING
 G4.2 Release engineering        PLANNED
 signed APK / device matrix      PENDING
@@ -562,7 +563,68 @@ file valid tetap mengikuti permission/RBAC server
 
 Jika UAT membuktikan kebutuhan camera capture, multiple-select, atau MIME-specific picker yang tidak terpenuhi oleh InAppBrowser default, barulah native chooser diperluas.
 
-## 28. G4.1G — APK Branding / Visual Identity
+## 28. G4.1F — POST Output + Android Back Adapter
+
+Beberapa output Web tidak menghasilkan navigasi GET attachment:
+
+- Statistik PDF mengirim `POST /statistik/export/pdf` dengan filter, CSRF, dan optional PNG chart payload;
+- Kartu Pelajar massal mengirim `POST /kartu/cetak-massal`;
+- Kartu JPG ZIP mengirim `POST /kartu/export-jpg-zip`.
+
+G4.1F tidak mengirim blob besar melalui base64 bridge. Local shell mengirim metadata request allowlisted ke native plugin, lalu Android melakukan POST same-origin dengan cookie session + CSRF dan menulis response attachment langsung ke Downloads.
+
+Allowlist native POST hanya:
+
+```text
+/statistik/export/pdf
+/kartu/cetak-massal
+/kartu/export-jpg-zip
+```
+
+Security gate:
+
+- HTTPS + exact host `sisfour.mtsn4jombang.sch.id`;
+- port default/443 only;
+- no URL user-info;
+- method fixed POST;
+- redirect response ditolak agar HTML login tidak tersimpan sebagai file;
+- response wajib 2xx + `Content-Disposition: attachment`;
+- request header yang diterima native hanya CSRF/Accept/X-Requested-With;
+- payload form dibatasi jumlah field dan ukuran;
+- server tetap memutuskan session/RBAC/CSRF/business validation.
+
+Android Back memakai injected history sentinel karena InAppBrowser default langsung `goBack()` atau close dialog.
+
+Order adapter:
+
+```text
+modal.show      -> hide
+offcanvas.show  -> hide
+dropdown.show   -> hide
+mobile sidebar  -> close
+dirty page      -> confirmation
+detail/history  -> real history back
+/dashboard or / -> double-back within 1.8s -> app exit
+```
+
+Dirty state diprobe melalui existing `beforeunload` contract; adapter tidak membuat business dirty-state baru.
+
+Source/static audit pada implementation head:
+
+```text
+shell.js JavaScript parse               PASS
+plugin JS parse                         PASS
+package.json/package-lock JSON          PASS
+POST endpoint native allowlist present  PASS
+redirect disabled                       PASS
+attachment guard                        PASS
+MediaStore Downloads path               PASS
+Java brace/static structure             PASS
+Gradle/Cordova compile                   PENDING user terminal
+real-device UAT                          PENDING
+```
+
+## 29. G4.1G — APK Branding / Visual Identity
 
 G4.1G adalah acceptance item sebelum release final, tetapi tidak boleh mengorbankan feature parity G4.1.
 
@@ -596,7 +658,7 @@ Prioritas asset:
 
 Icon dan splash boleh memakai master berbeda. Animasi pembuka hanya boleh ringan dan tidak menambah startup delay yang terasa.
 
-## 29. G4.2 — Release Engineering
+## 30. G4.2 — Release Engineering
 
 ```text
 versionCode
