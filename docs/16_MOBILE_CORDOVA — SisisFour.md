@@ -440,7 +440,7 @@ G4.1D Dashboard + geolocation   IMPLEMENTED / UAT PENDING
 G4.1E Upload/import chooser     SOURCE READY / UAT PENDING
 G4.1F POST output + Back        IMPLEMENTED / BUILD + UAT PENDING
 G4.1G APK branding              IMPLEMENTED CANDIDATE / UAT PENDING
-G4.2 Release engineering        PLANNED
+G4.2 Release engineering        VERSION/SIGNING PROCEDURE PREPARED / KEY + SIGNED BUILD PENDING
 signed APK / device matrix      PENDING
 ```
 
@@ -676,3 +676,19 @@ distribution artifact
 ```
 
 Keystore/signing secret tidak disimpan di repository biasa. Source repo hanya boleh menyimpan prosedur, metadata non-secret yang diperlukan, dan referensi backup policy.
+
+### G4.2 preparation status
+
+```text
+applicationId             = id.sch.mtsn4jombang.sisfour
+versionName               = 1.0.0
+versionCode               = 10000
+AndroidEdgeToEdge         = false
+release signing template  = mobile/cordova/build-release.example.json
+release procedure         = mobile/cordova/RELEASE.md
+real signing config       = gitignored build-release.json
+keystore/private key      = NOT CREATED / NOT STORED IN REPO
+signed APK/AAB            = PENDING G4.1 device UAT
+```
+
+Repo meng-ignore `*.jks`, `*.keystore`, `*.p12`, `*.pfx`, populated signing config, dan generated release artifact directory.
