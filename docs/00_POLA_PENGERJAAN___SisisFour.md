@@ -2,7 +2,7 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1C — Authenticated Android Download Bridge — G4.1B runtime UAT PASS; download/export bridge IMPLEMENTED / UAT PENDING
+**Development aktif:** G4.1 parity batch — G4.1C download, navigation/geolocation bridge, upload/import regression path, dan G4.1G branding candidate IMPLEMENTED / DEVICE UAT PENDING
 **Branch aktif:** `feat/g4-cordova-android-20261005`
 **Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` — PR #18 dan PR #19 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
@@ -370,7 +370,7 @@ G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
 G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
 G3.9 Dashboard Experience V2             CLOSED / MERGED — PR #18
 G3.10 Student Services Expansion          CLOSED / MERGED — PR #19
-G4 Cordova APK                            G4.1C ACTIVE — G4.1B UAT PASS / DOWNLOAD BRIDGE UAT PENDING
+G4 Cordova APK                            G4.1 ACTIVE — PARITY + BRANDING CANDIDATE IMPLEMENTED / DEVICE UAT PENDING
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
