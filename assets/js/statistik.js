@@ -382,11 +382,46 @@
         try {
             const exportForm = await prepareExportForm(params);
             if (exportForm) {
-                exportForm.submit();
-                statusEl.textContent = 'PDF diproses.';
+                const adapter =
+                    window.SisFourFileDownload;
+
+                if (
+                    adapter
+                    && typeof adapter.post === 'function'
+                ) {
+                    const result =
+                        await adapter.post({
+                            url:
+                                exportForm.action
+                                || exportUrl,
+                            body:
+                                new FormData(
+                                    exportForm
+                                ),
+                            headers: {
+                                Accept:
+                                    'application/pdf',
+                            },
+                        });
+
+                    statusEl.textContent =
+                        'PDF berhasil disimpan: '
+                        + (
+                            result?.fileName
+                            || 'statistik.pdf'
+                        );
+                } else {
+                    exportForm.submit();
+                    statusEl.textContent =
+                        'PDF diproses.';
+                }
             } else {
                 window.location.href = `${exportUrl}?${params.toString()}`;
             }
+        } catch (error) {
+            statusEl.textContent =
+                error?.message
+                || 'Export PDF gagal.';
         } finally {
             exportEl.classList.remove('disabled');
             exportEl.removeAttribute('aria-disabled');
