@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <widget
     id="id.sch.mtsn4jombang.sisfour"
     version="1.0.0"
@@ -16,4 +16,60 @@
     </author>
 
     <content src="index.html" />
+
+    <platform name="android">
+        <preference
+            name="AndroidWindowSplashScreenAnimatedIcon"
+            value="resources/branding/mtsn4jombang-logo-master.png"
+        />
+        <preference
+            name="AndroidWindowSplashScreenBackground"
+            value="#FFFFFF"
+        />
+        <preference
+            name="AndroidWindowSplashScreenIconBackgroundColor"
+            value="#FFFFFF"
+        />
+        <preference
+            name="AndroidWindowSplashScreenAnimationDuration"
+            value="200"
+        />
+
+        <icon
+            density="ldpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+        <icon
+            density="mdpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+        <icon
+            density="hdpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+        <icon
+            density="xhdpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+        <icon
+            density="xxhdpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+        <icon
+            density="xxxhdpi"
+            src="resources/branding/mtsn4jombang-logo-master.png"
+            foreground="resources/branding/mtsn4jombang-logo-master.png"
+            background="resources/branding/adaptive-background.xml"
+        />
+    </platform>
 </widget>
