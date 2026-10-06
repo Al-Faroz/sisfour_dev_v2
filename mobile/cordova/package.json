@@ -5,7 +5,9 @@
   "description": "SisFour Android wrapper for MTsN 4 Jombang.",
   "scripts": {
     "requirements:android": "cordova requirements android",
-    "build:android": "cordova build android"
+    "build:android": "cordova build android",
+    "build:android:release:apk": "cordova build android --release --buildConfig=build-release.json -- --packageType=apk",
+    "build:android:release:aab": "cordova build android --release --buildConfig=build-release.json -- --packageType=bundle"
   },
   "keywords": [
     "ecosystem:cordova"
