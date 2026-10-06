@@ -10,6 +10,13 @@
     const DASHBOARD_URL =
         new URL('dashboard', APP_URL).href;
 
+    const POST_DOWNLOAD_PATHS =
+        new Set([
+            '/statistik/export/pdf',
+            '/kartu/cetak-massal',
+            '/kartu/export-jpg-zip',
+        ]);
+
     const status =
         document.getElementById('appStatus');
 
@@ -147,6 +154,30 @@
         });
     };
 
+    const sendFileResult = (payload) => {
+        if (!browser) {
+            return;
+        }
+
+        browser.executeScript({
+            code:
+                `window.__sisfourNativeFileResolve`
+                + ` && window.__sisfourNativeFileResolve(`
+                + `${JSON.stringify(payload)});`,
+        });
+    };
+
+    const isAllowedPostDownloadUrl = (value) => {
+        const url = parseUrl(value);
+
+        return Boolean(
+            url
+            && url.protocol === 'https:'
+            && url.origin === APP_ORIGIN
+            && POST_DOWNLOAD_PATHS.has(url.pathname)
+        );
+    };
+
     const handleLocationRequest = (data) => {
         if (!isInternalUrl(currentUrl)) {
             return;
@@ -241,6 +272,101 @@
         );
     };
 
+    const handlePostDownloadRequest = (data) => {
+        if (
+            !isInternalUrl(currentUrl)
+            || !window.SisFourNative?.downloadPost
+        ) {
+            return;
+        }
+
+        const requestId =
+            typeof data?.requestId === 'string'
+                ? data.requestId
+                : '';
+
+        if (
+            !/^[A-Za-z0-9._:-]{1,96}$/
+                .test(requestId)
+            || !isAllowedPostDownloadUrl(data.url)
+        ) {
+            sendFileResult({
+                requestId,
+                ok: false,
+                message:
+                    'POST download diblokir oleh policy APK.',
+            });
+            return;
+        }
+
+        const fields =
+            Array.isArray(data.fields)
+                ? data.fields.slice(0, 600)
+                : [];
+
+        const headers =
+            data.headers
+            && typeof data.headers === 'object'
+                ? data.headers
+                : {};
+
+        window.SisFourNative.downloadPost(
+            {
+                url: data.url,
+                fields,
+                headers,
+                accept:
+                    typeof data.accept === 'string'
+                        ? data.accept
+                        : 'application/octet-stream',
+                userAgent:
+                    typeof data.userAgent === 'string'
+                        ? data.userAgent
+                        : '',
+            },
+            (result) => {
+                sendFileResult({
+                    requestId,
+                    ok: true,
+                    result: result || {},
+                });
+            },
+            (error) => {
+                sendFileResult({
+                    requestId,
+                    ok: false,
+                    message:
+                        typeof error === 'string'
+                            ? error
+                            : 'POST download gagal.',
+                });
+            }
+        );
+    };
+
+    const handleAppExitRequest = () => {
+        const url = parseUrl(currentUrl);
+        const path =
+            url?.pathname?.replace(/\/+$/, '')
+            || '/';
+
+        if (
+            path !== '/'
+            && path !== '/dashboard'
+        ) {
+            return;
+        }
+
+        if (browser) {
+            browser.close();
+        }
+
+        window.setTimeout(
+            () => navigator.app?.exitApp?.(),
+            120
+        );
+    };
+
     const handleBridgeMessage = (event) => {
         const data = event?.data;
 
@@ -253,6 +379,16 @@
 
         if (data.type === 'location.request') {
             handleLocationRequest(data);
+            return;
+        }
+
+        if (data.type === 'file.downloadPost') {
+            handlePostDownloadRequest(data);
+            return;
+        }
+
+        if (data.type === 'app.exit') {
+            handleAppExitRequest();
         }
     };
 
