@@ -436,7 +436,9 @@ G4.0B Architecture Lock        PASS / user approval
 G4.1A Cordova shell scaffold    PASS
 G4.1B Controlled IAB runtime    PASS / user UAT evidence
 G4.1C Auth download bridge      IMPLEMENTED / UAT PENDING
-G4.1G APK branding              PLANNED
+G4.1D Dashboard + geolocation   IMPLEMENTED / UAT PENDING
+G4.1E Upload/import chooser     SOURCE READY / UAT PENDING
+G4.1G APK branding              IMPLEMENTED CANDIDATE / UAT PENDING
 G4.2 Release engineering        PLANNED
 signed APK / device matrix      PENDING
 ```
@@ -499,9 +501,83 @@ session/RBAC tetap enforced
 logout lalu direct download tidak lolos
 ```
 
-## 26. G4.1G — APK Branding / Visual Identity
+## 26. G4.1D — Dashboard Helper + Native Geolocation Bridge
+
+Local shell menyuntikkan helper UI minimal hanya pada origin SisFour production:
+
+- tombol floating **Dashboard** pada halaman internal selain login/root/dashboard;
+- tombol tidak membuka capability baru dan hanya menuju route `/dashboard`;
+- remote page tetap tidak menerima arbitrary Cordova API;
+- helper dipasang ulang setelah setiap `loadstop`.
+
+Geolocation memakai bridge sempit:
+
+```text
+Web page navigator.geolocation.getCurrentPosition()
+        ↓
+injected compatibility shim
+        ↓
+cordova_iab.postMessage({ type: location.request })
+        ↓
+local shell validates current SisFour origin + request id + options
+        ↓
+cordova-plugin-geolocation 4.1.0
+        ↓
+Android location permission / native location
+        ↓
+result dikembalikan hanya ke callback request tersebut
+```
+
+Location request hanya diteruskan bila ada user gesture dalam 15 detik terakhir. Tujuannya menjaga contract bahwa permission/lokasi diminta saat user menjalankan aksi seperti Simpan Presensi/Jurnal, bukan saat dashboard/startup load.
+
+UAT wajib:
+
+```text
+Dashboard helper muncul pada halaman internal
+Dashboard helper tidak muncul di login/root/dashboard
+Dashboard helper tidak menutup sticky action penting
+Presensi geofence -> permission allow -> koordinat diterima server
+Presensi geofence -> permission deny -> error jelas / no false success
+Jurnal Guru Hadir -> location bekerja
+jalur yang tidak membutuhkan geofence tidak memunculkan permission location
+permission tidak muncul saat app startup/dashboard
+```
+
+## 27. G4.1E — Upload / Import File Chooser
+
+`cordova-plugin-inappbrowser 7.0.0` pada Android sudah menyediakan `onShowFileChooser` dan membuka Android `ACTION_GET_CONTENT`. Karena itu G4.1E tidak menambah native bridge baru sebelum ada bukti gap runtime.
+
+Device regression minimum:
+
+```text
+upload foto/profile
+import Excel master yang relevan
+import CKG
+import Dokumen Siswa
+lampiran PTSP bila actor/surface memang mendukung
+cancel file chooser kembali ke form tanpa crash
+file invalid tetap ditolak oleh validation server
+file valid tetap mengikuti permission/RBAC server
+```
+
+Jika UAT membuktikan kebutuhan camera capture, multiple-select, atau MIME-specific picker yang tidak terpenuhi oleh InAppBrowser default, barulah native chooser diperluas.
+
+## 28. G4.1G — APK Branding / Visual Identity
 
 G4.1G adalah acceptance item sebelum release final, tetapi tidak boleh mengorbankan feature parity G4.1.
+
+Current candidate:
+
+```text
+official source = uploads/settings/branding/logo_20260908_181247_ce029c58.png
+source blob     = bcecd043b6230f6d8350b7641cb5439422e2a34b
+mobile master   = mobile/cordova/resources/branding/mtsn4jombang-logo-master.png
+launcher icon   = official logo, legacy + adaptive candidate
+adaptive bg     = white
+native splash   = official logo on white
+local shell     = official logo + lightweight reduced-motion-safe breathe
+Cordova branding/default placeholder = NONE
+```
 
 ```text
 final launcher icon
@@ -520,7 +596,7 @@ Prioritas asset:
 
 Icon dan splash boleh memakai master berbeda. Animasi pembuka hanya boleh ringan dan tidak menambah startup delay yang terasa.
 
-## 27. G4.2 — Release Engineering
+## 29. G4.2 — Release Engineering
 
 ```text
 versionCode
