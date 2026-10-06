@@ -18,3 +18,12 @@ Rules:
 - release keystore/signing material tidak boleh ditempatkan di folder ini atau repository biasa.
 
 Current recovery candidate keeps the official master untouched and uses Android-specific safe-zone XML drawables for adaptive foreground and splash. The local post-splash shell is intentionally text-only to avoid the double-logo transition observed on device. Final launcher/splash acceptance remains a clean-build real-device gate.
+
+
+User-provided branding source received 6 October 2026:
+
+- `LogoFlat.svg` — color vector master.
+- `LogoFlat_White.svg` — white vector master.
+- matching PNG uploads were supplied for visual/raster reference.
+
+The Cordova loading shell uses the exact white SVG. Native launcher/splash raster acceptance remains a clean-install device gate; do not redraw the official logo.
