@@ -692,3 +692,66 @@ signed APK/AAB            = PENDING G4.1 device UAT
 ```
 
 Repo meng-ignore `*.jks`, `*.keystore`, `*.p12`, `*.pfx`, populated signing config, dan generated release artifact directory.
+
+
+## 31. Device UAT Evidence — 6 Oktober 2026
+
+Real-device APK evidence:
+
+```text
+Upload file chooser                     PASS
+GET export                              FAIL — produced export.bin
+Splash visual                           FAIL — native/shell logo overlap and oversized transition
+Launcher icon                           FAIL — SisFour icon not visible on launcher
+Dashboard helper                        FAIL / not observed
+Geolocation                             NOT VERIFIED by tester
+Saved credential / autofill UX          DEGRADED vs Chrome Android
+```
+
+Remediation implemented after this UAT:
+
+### GET export filename
+
+GET attachments no longer rely on the WebView download-event MIME/filename guess alone. Native Android now performs authenticated same-origin GET with WebView session cookie, reads response `Content-Disposition` and MIME directly, rejects login/error redirects, and saves the streamed attachment to Downloads. This is intended to preserve server filenames such as `.xlsx` instead of falling back to `export.bin`.
+
+### Splash / icon
+
+- native splash now uses a safe-zone XML drawable around the official MTsN 4 Jombang master;
+- adaptive foreground now uses a separate safe-zone XML drawable;
+- official master is explicitly copied into Android drawable resources;
+- a default legacy icon fallback is declared;
+- duplicate logo in the post-splash local shell has been removed to prevent the double-logo transition observed in device screenshot.
+
+Branding UAT should use a clean APK install to avoid launcher/icon cache ambiguity.
+
+### Dashboard
+
+Dashboard injection is now an independent small script and is retried after page load. It no longer depends on geolocation/file/Back helper initialization. The control remains visible after login, including on Dashboard, and navigates to authenticated `/dashboard`.
+
+### Geolocation test contract
+
+The easiest verification is a role/capability where server returns `geofence_required=true` for Presensi Siswa, or Guru Jurnal with capability other than `SEMUA`. Location is intentionally not requested for Admin/Operator administrative capability.
+
+### Saved credential / autofill
+
+The Web login already declares standard `autocomplete=username` and `autocomplete=current-password`. APK remediation adds:
+
+- standard Android WebView `setSaveFormData(true)`;
+- `IMPORTANT_FOR_AUTOFILL_YES` for Android O+;
+- local login-page autofill hints and delayed username focus.
+
+SisFour does not store plaintext passwords or create an app-owned password vault. Credential persistence remains owned by Android's configured Autofill/Password Manager service.
+
+Static source validation after remediation:
+
+```text
+shell.js outer parse                       PASS
+Dashboard injected runtime script parse    PASS
+autofill prepare hook parse                PASS
+native GET/POST methods present             PASS
+native Content-Disposition read             PASS
+MediaStore Downloads write path             PASS
+safe-zone splash/adaptive resources         PASS
+Gradle build                                PENDING
+new device UAT                              PENDING
+```
