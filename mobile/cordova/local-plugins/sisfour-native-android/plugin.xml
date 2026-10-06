@@ -6,7 +6,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
 >
     <name>SisFourNative</name>
-    <description>Native Android bridge for SisFour download/open/share integration.</description>
+    <description>Minimal native Android bridge for authenticated SisFour file download integration.</description>
     <license>UNLICENSED</license>
 
     <js-module src="www/sisfour-native.js" name="SisFourNative">
