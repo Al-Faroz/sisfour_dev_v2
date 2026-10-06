@@ -30,6 +30,10 @@
             src="resources/branding/launcher-master-1024.png"
             target="/app/src/main/res/drawable-nodpi/sisfour_brand_logo.png"
         />
+        <resource-file
+            src="resources/branding/splash-color-1024.png"
+            target="/app/src/main/res/drawable-nodpi/sisfour_splash_color.png"
+        />
         <preference
             name="AndroidEdgeToEdge"
             value="false"

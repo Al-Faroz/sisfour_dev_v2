@@ -5,7 +5,7 @@
         android:height="152dp"
         android:gravity="center">
         <bitmap
-            android:src="@drawable/sisfour_brand_logo"
+            android:src="@drawable/sisfour_splash_color"
             android:gravity="center" />
     </item>
 </layer-list>
