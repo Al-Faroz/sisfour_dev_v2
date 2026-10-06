@@ -327,6 +327,28 @@
         window.__sisfourNativeGeoInstalled = true;
         window.__sisfourNativeGeoPending =
             Object.create(null);
+        window.__sisfourLastUserGesture = 0;
+
+        const markUserGesture = () => {
+            window.__sisfourLastUserGesture =
+                Date.now();
+        };
+
+        [
+            'pointerdown',
+            'touchstart',
+            'click',
+            'keydown'
+        ].forEach((eventName) => {
+            document.addEventListener(
+                eventName,
+                markUserGesture,
+                {
+                    capture: true,
+                    passive: true
+                }
+            );
+        });
 
         window.__sisfourNativeGeoResolve =
             (payload) => {
@@ -373,6 +395,27 @@
                     throw new TypeError(
                         'Callback geolocation wajib berupa fungsi.'
                     );
+                }
+
+                const sinceGesture =
+                    Date.now()
+                    - Number(
+                        window.__sisfourLastUserGesture
+                        || 0
+                    );
+
+                if (
+                    sinceGesture < 0
+                    || sinceGesture > 15000
+                ) {
+                    if (typeof error === 'function') {
+                        error({
+                            code: 1,
+                            message:
+                                'Lokasi hanya dapat diminta setelah tindakan pengguna.'
+                        });
+                    }
+                    return;
                 }
 
                 const requestId =
