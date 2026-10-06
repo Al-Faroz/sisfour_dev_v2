@@ -29,15 +29,15 @@ Adaptive icon:
 
 - background: `adaptive-background.xml` / white.
 - foreground: `adaptive-foreground.xml`.
-- foreground item is 72dp; because the logo itself has transparent source padding, critical artwork remains inside the Android safe area.
+- foreground item is 72dp and its square bitmap is scaled with `gravity="fill"`; the 1024×1024 artwork is fitted into the safe-zone item instead of being center-cropped.
 
 Splash/opening handoff:
 
 ```text
 native Android splash
-→ color launcher-master-1024 on white
+→ user-provided splash-color-1024.png scaled into the splash item on white
 → local Cordova shell
-→ exact LogoFlat_White.svg on #119450
+→ user-provided splash-white-1024.png on #119450
 → controlled SisFour InAppBrowser
 ```
 
