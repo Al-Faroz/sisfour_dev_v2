@@ -631,8 +631,8 @@ source blob     = bcecd043b6230f6d8350b7641cb5439422e2a34b
 mobile master   = mobile/cordova/resources/branding/mtsn4jombang-logo-master.png
 launcher icon   = official logo, legacy + adaptive candidate
 adaptive bg     = white
-native splash   = official logo on white
-local shell     = text-only loading state; no duplicate logo after native splash
+native splash   = official color logo on white
+local shell     = user-provided white logo on official green; lightweight fade-in handoff
 Cordova branding/default placeholder = NONE
 ```
 
@@ -889,3 +889,85 @@ Native bridge harus generic terhadap filename + MIME dan tidak boleh hardcode ro
 
 GET same-origin attachment menggunakan generic native download bridge.
 POST-generated attachment seperti Kartu massal PDF/ZIP tetap berada pada gate POST output terpisah sampai solusi generik tersedia.
+
+
+### Android Save As picker — user-selected destination
+
+Atas UAT/keputusan user 6 Oktober 2026, authenticated GET download tidak lagi langsung menulis file ke public Downloads.
+
+Flow generic:
+
+```text
+InAppBrowser download event
+→ authenticated same-origin native GET
+→ server Content-Disposition + MIME
+→ stream ke app-private temporary cache
+→ Android ACTION_CREATE_DOCUMENT
+→ user memilih lokasi + dapat mengubah nama file
+→ stream temp file ke URI pilihan
+→ temp file dibersihkan
+```
+
+Rules:
+
+- filename server tetap menjadi suggested filename;
+- user boleh memilih folder dan mengubah nama melalui Android document picker;
+- tidak membutuhkan `WRITE_EXTERNAL_STORAGE`;
+- tidak meminta storage permission saat startup;
+- cancel picker tidak menghasilkan false-success;
+- hanya satu pending Save As native pada satu waktu;
+- session/RBAC server tetap authoritative;
+- tipe file tetap generic: XLSX/PDF/SQL/PNG/JPG/JPEG/ZIP;
+- Cordova tetap tidak mengenal route/modul bisnis.
+
+Status:
+
+```text
+Save As picker generic = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
+legacy storage permission = REMOVED
+```
+
+
+### Branding source update — user-provided LogoFlat assets
+
+User-provided source files received:
+
+```text
+LogoFlat.png
+LogoFlat.svg
+LogoFlat_White.png
+LogoFlat_White.svg
+```
+
+Raw SVG masters stored in mobile source:
+
+```text
+mobile/cordova/resources/branding/LogoFlat.svg
+mobile/cordova/resources/branding/LogoFlat_White.svg
+```
+
+Opening handoff uses the exact white SVG source at:
+
+```text
+mobile/cordova/www/img/LogoFlat_White.svg
+```
+
+Visual contract:
+
+```text
+Android native splash
+= color logo + white background
+
+then, without artificial delay
+
+local Cordova loading shell
+= white logo + official green (#119450)
+= short 320 ms opacity/scale entrance
+= disabled by prefers-reduced-motion
+
+then
+
+controlled InAppBrowser SisFour Web
+```
+
+This is a handoff/fade, not a video or heavy animation. Native launcher/splash raster resources remain subject to clean-install real-device acceptance.
