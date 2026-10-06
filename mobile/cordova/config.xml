@@ -39,18 +39,17 @@
             value="resources/branding/splash-icon.xml"
         />
         <preference
-            name="AndroidWindowSplashScreenBackground"
+            name="SplashScreenBackgroundColor"
             value="#FFFFFF"
+        />
+        <preference
+            name="FadeSplashScreen"
+            value="false"
         />
         <preference
             name="AndroidWindowSplashScreenIconBackgroundColor"
             value="#FFFFFF"
         />
-        <preference
-            name="AndroidWindowSplashScreenAnimationDuration"
-            value="200"
-        />
-
         <icon
             density="ldpi"
             src="resources/branding/mtsn4jombang-logo-master.png"
