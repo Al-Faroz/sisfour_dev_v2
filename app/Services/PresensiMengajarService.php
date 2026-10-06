@@ -297,6 +297,7 @@ class PresensiMengajarService
                 'message' => 'Jurnal historis siap direvisi.',
                 'tanggal' => $tanggal,
                 'capability' => 'SEMUA',
+                'geofence_required' => false,
                 'can_revise' => true,
                 'submitted' => true,
                 'jadwal' => $context['jadwal'],
