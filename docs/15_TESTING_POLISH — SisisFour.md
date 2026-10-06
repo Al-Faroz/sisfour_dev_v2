@@ -1957,6 +1957,8 @@ G4.1C POST download regression   PENDING
 G4.1D Dashboard helper           IMPLEMENTED / UAT PENDING
 G4.1D native geolocation         IMPLEMENTED / UAT PENDING
 G4.1E upload/import chooser      SOURCE READY / UAT PENDING
+G4.1F POST output bridge         IMPLEMENTED / BUILD + UAT PENDING
+G4.1F Android Back adapter       IMPLEMENTED / UAT PENDING
 G4.1G branding candidate         IMPLEMENTED / UAT PENDING
 G4.2 release engineering         PLANNED
 ```
@@ -2008,3 +2010,49 @@ no startup delay that feels materially worse
 ```
 
 Current branding source provenance is recorded in `mobile/cordova/resources/branding/README.md`. If adaptive mask crops the official mark/text excessively, create a safe-padded derived foreground while retaining the official master untouched.
+
+
+## G4.1F — POST Output + Android Back Gate
+
+POST output real-device:
+
+```text
+Statistik PDF -> native POST -> PDF in Downloads
+Statistik PDF keeps selected filters
+Statistik PDF visual payload does not crash/blank app
+Kartu selected front PDF -> Downloads
+Kartu selected back PDF -> Downloads
+Kartu class front/back PDF -> Downloads
+Kartu class JPG ZIP -> Downloads
+expired session -> no HTML file saved
+forbidden actor -> no false-success file
+CSRF failure -> no false-success file
+generated filename/extension correct
+```
+
+Android Back real-device:
+
+```text
+modal open -> Back closes modal, stays page
+dropdown open -> Back closes dropdown
+mobile sidebar open -> Back closes sidebar
+dirty Presensi/Jurnal/form -> confirmation before leave
+detail/history -> Back returns one logical page
+dashboard first Back -> exit hint
+dashboard second Back <=1.8s -> exits app
+dashboard second Back after timeout -> stays app and rearms
+no accidental close while file/location operation is active
+```
+
+Static/source evidence:
+
+```text
+shell.js parse PASS
+native plugin JS parse PASS
+JSON manifests PASS
+native POST endpoint allowlist PASS
+redirect-to-login guard PASS
+attachment response guard PASS
+Gradle build PENDING
+device UAT PENDING
+```
