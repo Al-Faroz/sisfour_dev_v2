@@ -1930,9 +1930,9 @@ GET export UKS/PTSP/Dokumen Siswa
 Laporan Presensi/Jurnal
 Backup download
 Kartu Pelajar single-file download
-file appears in Downloads
-correct filename + extension + MIME
-download notification completes
+Android Save As picker opens
+correct filename + extension + MIME is suggested
+selected destination receives valid file
 RBAC denial remains denial
 session expiry does not produce a false-success file
 external/non-SisFour download URL is not bridged
@@ -2178,7 +2178,7 @@ Dashboard excluded from login/root/dashboard PASS
 Jurnal load result includes server-derived geofence_required PASS
 Jurnal JS requests location only when geofence_required=true PASS
 shell CSS syntax clean PASS
-POST output remains explicitly PENDING, not false-PASS
+POST output generic source implemented; exact-head Gradle build and device UAT remain PENDING
 ```
 
 Device geolocation matrix:
