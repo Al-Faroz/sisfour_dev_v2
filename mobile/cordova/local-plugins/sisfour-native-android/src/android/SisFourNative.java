@@ -1,15 +1,12 @@
 package id.sch.mtsn4jombang.sisfour.nativebridge;
 
-import android.Manifest;
+import android.app.Activity;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.media.MediaScannerConnection;
+import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
-import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.webkit.CookieManager;
 import android.webkit.MimeTypeMap;
@@ -38,10 +35,12 @@ import java.util.Locale;
 public class SisFourNative extends CordovaPlugin {
     private static final String ACTION_DOWNLOAD = "download";
     private static final String APP_HOST = "sisfour.mtsn4jombang.sch.id";
-    private static final int REQUEST_WRITE_STORAGE = 4101;
+    private static final int REQUEST_CREATE_DOCUMENT = 4102;
 
-    private JSONObject pendingDownload;
-    private CallbackContext pendingDownloadCallback;
+    private File pendingSaveFile;
+    private String pendingSaveName;
+    private String pendingSaveMime;
+    private CallbackContext pendingSaveCallback;
 
     @Override
     public boolean execute(
@@ -71,77 +70,12 @@ public class SisFourNative extends CordovaPlugin {
             return true;
         }
 
-        if (
-                requiresLegacyStoragePermission()
-                && !cordova.hasPermission(
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-        ) {
-            pendingDownload = options;
-            pendingDownloadCallback = callbackContext;
-
-            cordova.requestPermission(
-                    this,
-                    REQUEST_WRITE_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-            );
-
-            return true;
-        }
-
         downloadGet(
                 options,
                 callbackContext
         );
 
         return true;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode,
-            String[] permissions,
-            int[] grantResults
-    ) throws JSONException {
-        if (requestCode != REQUEST_WRITE_STORAGE) {
-            return;
-        }
-
-        JSONObject options = pendingDownload;
-        CallbackContext callbackContext =
-                pendingDownloadCallback;
-
-        pendingDownload = null;
-        pendingDownloadCallback = null;
-
-        if (
-                callbackContext == null
-                || options == null
-        ) {
-            return;
-        }
-
-        boolean granted =
-                grantResults.length > 0
-                && grantResults[0]
-                    == PackageManager.PERMISSION_GRANTED;
-
-        if (!granted) {
-            callbackContext.error(
-                    "Izin penyimpanan ditolak."
-            );
-            return;
-        }
-
-        downloadGet(
-                options,
-                callbackContext
-        );
-    }
-
-    private boolean requiresLegacyStoragePermission() {
-        return Build.VERSION.SDK_INT
-                <= Build.VERSION_CODES.P;
     }
 
     private void downloadGet(
@@ -294,34 +228,40 @@ public class SisFourNative extends CordovaPlugin {
                                 fileName
                         );
 
+                File tempFile =
+                        createTempDownloadFile(
+                                fileName
+                        );
+
+                boolean tempReady = false;
+
                 try (
                         InputStream input =
                                 new BufferedInputStream(
                                         connection
                                                 .getInputStream()
+                                );
+                        OutputStream output =
+                                new BufferedOutputStream(
+                                        new FileOutputStream(
+                                                tempFile
+                                        )
                                 )
                 ) {
-                    saveToDownloads(
-                            input,
-                            fileName,
-                            mimeType
-                    );
+                    copy(input, output);
+                    tempReady = true;
+                } finally {
+                    if (!tempReady) {
+                        deleteQuietly(tempFile);
+                    }
                 }
 
-                JSONObject result =
-                        new JSONObject();
-
-                result.put(
-                        "fileName",
-                        fileName
+                promptSaveAs(
+                        tempFile,
+                        fileName,
+                        mimeType,
+                        callbackContext
                 );
-
-                result.put(
-                        "mimeType",
-                        mimeType
-                );
-
-                callbackContext.success(result);
             } catch (Exception error) {
                 callbackContext.error(
                         messageFor(
@@ -337,76 +277,197 @@ public class SisFourNative extends CordovaPlugin {
         });
     }
 
-    private void saveToDownloads(
-            InputStream input,
-            String fileName,
-            String mimeType
+    private File createTempDownloadFile(
+            String fileName
     ) throws Exception {
         Context context =
                 cordova
                         .getActivity()
                         .getApplicationContext();
 
-        if (
-                Build.VERSION.SDK_INT
-                >= Build.VERSION_CODES.Q
-        ) {
-            ContentResolver resolver =
-                    context.getContentResolver();
-
-            ContentValues values =
-                    new ContentValues();
-
-            values.put(
-                    MediaStore.MediaColumns.DISPLAY_NAME,
-                    fileName
-            );
-
-            values.put(
-                    MediaStore.MediaColumns.MIME_TYPE,
-                    TextUtils.isEmpty(mimeType)
-                            ? "application/octet-stream"
-                            : mimeType
-            );
-
-            values.put(
-                    MediaStore.MediaColumns.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS
-            );
-
-            values.put(
-                    MediaStore.MediaColumns.IS_PENDING,
-                    1
-            );
-
-            Uri item =
-                    resolver.insert(
-                            MediaStore.Downloads
-                                    .EXTERNAL_CONTENT_URI,
-                            values
-                    );
-
-            if (item == null) {
-                throw new IllegalStateException(
-                        "Android gagal membuat file Downloads."
+        File directory =
+                new File(
+                        context.getCacheDir(),
+                        "sisfour-downloads"
                 );
+
+        if (
+                !directory.exists()
+                && !directory.mkdirs()
+                && !directory.isDirectory()
+        ) {
+            throw new IllegalStateException(
+                    "Folder sementara download tidak dapat dibuat."
+            );
+        }
+
+        String suffix = ".tmp";
+        int dot =
+                fileName == null
+                        ? -1
+                        : fileName.lastIndexOf('.');
+
+        if (
+                dot >= 0
+                && dot < fileName.length() - 1
+        ) {
+            String extension =
+                    fileName.substring(dot);
+
+            if (
+                    extension.matches(
+                            "\\.[A-Za-z0-9]{1,12}"
+                    )
+            ) {
+                suffix = extension;
+            }
+        }
+
+        return File.createTempFile(
+                "sisfour_",
+                suffix,
+                directory
+        );
+    }
+
+    private void promptSaveAs(
+            File tempFile,
+            String fileName,
+            String mimeType,
+            CallbackContext callbackContext
+    ) {
+        synchronized (this) {
+            if (pendingSaveCallback != null) {
+                deleteQuietly(tempFile);
+                callbackContext.error(
+                        "Masih ada proses penyimpanan file yang belum selesai."
+                );
+                return;
             }
 
-            boolean completed = false;
+            pendingSaveFile = tempFile;
+            pendingSaveName = fileName;
+            pendingSaveMime =
+                    TextUtils.isEmpty(mimeType)
+                            ? "application/octet-stream"
+                            : mimeType;
+            pendingSaveCallback = callbackContext;
+        }
 
+        cordova.getActivity().runOnUiThread(() -> {
             try {
+                Intent intent =
+                        new Intent(
+                                Intent.ACTION_CREATE_DOCUMENT
+                        );
+
+                intent.addCategory(
+                        Intent.CATEGORY_OPENABLE
+                );
+
+                intent.setType(
+                        TextUtils.isEmpty(
+                                pendingSaveMime
+                        )
+                                ? "application/octet-stream"
+                                : pendingSaveMime
+                );
+
+                intent.putExtra(
+                        Intent.EXTRA_TITLE,
+                        pendingSaveName
+                );
+
+                cordova.startActivityForResult(
+                        this,
+                        intent,
+                        REQUEST_CREATE_DOCUMENT
+                );
+            } catch (Exception error) {
+                PendingSave pending =
+                        takePendingSave();
+
+                if (pending != null) {
+                    deleteQuietly(
+                            pending.tempFile
+                    );
+
+                    pending.callback.error(
+                            messageFor(
+                                    error,
+                                    "Pemilih lokasi penyimpanan Android tidak dapat dibuka."
+                            )
+                    );
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onActivityResult(
+            int requestCode,
+            int resultCode,
+            Intent intent
+    ) {
+        if (
+                requestCode
+                != REQUEST_CREATE_DOCUMENT
+        ) {
+            return;
+        }
+
+        PendingSave pending =
+                takePendingSave();
+
+        if (pending == null) {
+            return;
+        }
+
+        if (
+                resultCode
+                        != Activity.RESULT_OK
+                || intent == null
+                || intent.getData() == null
+        ) {
+            deleteQuietly(
+                    pending.tempFile
+            );
+
+            pending.callback.error(
+                    "Penyimpanan file dibatalkan."
+            );
+            return;
+        }
+
+        Uri destination =
+                intent.getData();
+
+        cordova.getThreadPool().execute(() -> {
+            try {
+                ContentResolver resolver =
+                        cordova
+                                .getActivity()
+                                .getContentResolver();
+
                 OutputStream rawOutput =
                         resolver.openOutputStream(
-                                item
+                                destination,
+                                "w"
                         );
 
                 if (rawOutput == null) {
                     throw new IllegalStateException(
-                            "Android gagal membuka file Downloads."
+                            "Android gagal membuka lokasi file yang dipilih."
                     );
                 }
 
                 try (
+                        InputStream input =
+                                new BufferedInputStream(
+                                        new java.io.FileInputStream(
+                                                pending.tempFile
+                                        )
+                                );
                         OutputStream output =
                                 new BufferedOutputStream(
                                         rawOutput
@@ -415,79 +476,139 @@ public class SisFourNative extends CordovaPlugin {
                     copy(input, output);
                 }
 
-                ContentValues done =
-                        new ContentValues();
+                String actualName =
+                        displayNameForUri(
+                                resolver,
+                                destination
+                        );
 
-                done.put(
-                        MediaStore.MediaColumns.IS_PENDING,
-                        0
+                if (TextUtils.isEmpty(actualName)) {
+                    actualName =
+                            pending.fileName;
+                }
+
+                JSONObject result =
+                        new JSONObject();
+
+                result.put(
+                        "fileName",
+                        actualName
                 );
 
-                resolver.update(
-                        item,
-                        done,
-                        null,
-                        null
+                result.put(
+                        "mimeType",
+                        pending.mimeType
                 );
 
-                completed = true;
+                pending.callback.success(
+                        result
+                );
+            } catch (Exception error) {
+                pending.callback.error(
+                        messageFor(
+                                error,
+                                "File gagal disimpan ke lokasi yang dipilih."
+                        )
+                );
             } finally {
-                if (!completed) {
-                    resolver.delete(
-                            item,
-                            null,
-                            null
+                deleteQuietly(
+                        pending.tempFile
+                );
+            }
+        });
+    }
+
+    private synchronized PendingSave takePendingSave() {
+        if (pendingSaveCallback == null) {
+            return null;
+        }
+
+        PendingSave pending =
+                new PendingSave(
+                        pendingSaveFile,
+                        pendingSaveName,
+                        pendingSaveMime,
+                        pendingSaveCallback
+                );
+
+        pendingSaveFile = null;
+        pendingSaveName = null;
+        pendingSaveMime = null;
+        pendingSaveCallback = null;
+
+        return pending;
+    }
+
+    private String displayNameForUri(
+            ContentResolver resolver,
+            Uri uri
+    ) {
+        try (
+                Cursor cursor =
+                        resolver.query(
+                                uri,
+                                new String[]{
+                                    OpenableColumns.DISPLAY_NAME
+                                },
+                                null,
+                                null,
+                                null
+                        )
+        ) {
+            if (
+                    cursor != null
+                    && cursor.moveToFirst()
+            ) {
+                int index =
+                        cursor.getColumnIndex(
+                                OpenableColumns.DISPLAY_NAME
+                        );
+
+                if (index >= 0) {
+                    return cursor.getString(
+                            index
                     );
                 }
             }
-
-            return;
+        } catch (Exception ignored) {
+            // The selected provider may not expose a display name.
         }
 
-        File downloads =
-                Environment
-                        .getExternalStoragePublicDirectory(
-                                Environment.DIRECTORY_DOWNLOADS
-                        );
+        return "";
+    }
 
+    private void deleteQuietly(
+            File file
+    ) {
         if (
-                !downloads.exists()
-                && !downloads.mkdirs()
+                file != null
+                && file.exists()
         ) {
-            throw new IllegalStateException(
-                    "Folder Downloads tidak dapat dibuat."
-            );
+            try {
+                file.delete();
+            } catch (Exception ignored) {
+                // App cache cleanup failure is non-fatal.
+            }
         }
+    }
 
-        File target =
-                uniqueFile(
-                        downloads,
-                        fileName
-                );
+    private static final class PendingSave {
+        final File tempFile;
+        final String fileName;
+        final String mimeType;
+        final CallbackContext callback;
 
-        try (
-                OutputStream output =
-                        new BufferedOutputStream(
-                                new FileOutputStream(
-                                        target
-                                )
-                        )
+        PendingSave(
+                File tempFile,
+                String fileName,
+                String mimeType,
+                CallbackContext callback
         ) {
-            copy(input, output);
+            this.tempFile = tempFile;
+            this.fileName = fileName;
+            this.mimeType = mimeType;
+            this.callback = callback;
         }
-
-        MediaScannerConnection.scanFile(
-                context,
-                new String[]{
-                    target.getAbsolutePath()
-                },
-                new String[]{
-                    TextUtils.isEmpty(mimeType)
-                            ? "application/octet-stream"
-                            : mimeType
-                },
-                null
-        );
     }
 
     private void copy(
@@ -511,65 +632,6 @@ public class SisFourNative extends CordovaPlugin {
         }
 
         output.flush();
-    }
-
-    private File uniqueFile(
-            File directory,
-            String fileName
-    ) {
-        File candidate =
-                new File(
-                        directory,
-                        fileName
-                );
-
-        if (!candidate.exists()) {
-            return candidate;
-        }
-
-        int dot =
-                fileName.lastIndexOf('.');
-
-        String base =
-                dot > 0
-                        ? fileName.substring(
-                                0,
-                                dot
-                        )
-                        : fileName;
-
-        String extension =
-                dot > 0
-                        ? fileName.substring(dot)
-                        : "";
-
-        for (
-                int index = 1;
-                index <= 999;
-                index++
-        ) {
-            candidate =
-                    new File(
-                            directory,
-                            base
-                                    + " ("
-                                    + index
-                                    + ")"
-                                    + extension
-                    );
-
-            if (!candidate.exists()) {
-                return candidate;
-            }
-        }
-
-        return new File(
-                directory,
-                base
-                        + "-"
-                        + System.currentTimeMillis()
-                        + extension
-        );
     }
 
     private boolean isAllowedUrl(
