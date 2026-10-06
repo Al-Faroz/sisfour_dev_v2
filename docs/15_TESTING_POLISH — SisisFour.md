@@ -2005,30 +2005,23 @@ adaptive mask visually acceptable on real launcher
 native splash shows official identity
 no visible Cordova placeholder between splash and remote Web
 local loading shell remains responsive
-reduced-motion preference disables cosmetic animation
+no duplicate logo between native splash and local shell
 no startup delay that feels materially worse
 ```
 
 Current branding source provenance is recorded in `mobile/cordova/resources/branding/README.md`. If adaptive mask crops the official mark/text excessively, create a safe-padded derived foreground while retaining the official master untouched.
 
 
-## G4.1F — POST Output + Android Back Gate
+## G4.1F — Android Back Gate + POST Output Pending
 
-POST output real-device:
+POST output remains a known gap:
 
 ```text
-Statistik PDF -> native POST -> PDF in Downloads
-Statistik PDF keeps selected filters
-Statistik PDF visual payload does not crash/blank app
-Kartu selected front PDF -> Downloads
-Kartu selected back PDF -> Downloads
-Kartu class front/back PDF -> Downloads
-Kartu class JPG ZIP -> Downloads
-expired session -> no HTML file saved
-forbidden actor -> no false-success file
-CSRF failure -> no false-success file
-generated filename/extension correct
+Statistik PDF POST/client payload  PENDING generic thin-wrapper solution
+Kartu massal PDF/ZIP POST          PENDING generic thin-wrapper solution
 ```
+
+Do not mark these outputs PASS until a generic solution is implemented without hardcoding business endpoints into Cordova.
 
 Android Back real-device:
 
@@ -2044,15 +2037,15 @@ dashboard second Back after timeout -> stays app and rearms
 no accidental close while file/location operation is active
 ```
 
-Static/source evidence:
+Static/source evidence target:
 
 ```text
 shell.js parse PASS
 native plugin JS parse PASS
 JSON manifests PASS
-native POST endpoint allowlist PASS
-redirect-to-login guard PASS
-attachment response guard PASS
+no endpoint-specific POST bridge in Cordova PASS
+GET download response header guard PASS
+Android Back adapter generic PASS
 Gradle build PENDING
 device UAT PENDING
 ```
