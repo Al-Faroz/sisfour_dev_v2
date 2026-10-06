@@ -1,7 +1,6 @@
 package id.sch.mtsn4jombang.sisfour.nativebridge;
 
 import android.Manifest;
-import android.app.DownloadManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -139,62 +138,105 @@ public class SisFourNative extends CordovaPlugin {
             return;
         }
 
-        enqueueDownload(options, callbackContext);
+        downloadGet(options, callbackContext);
     }
 
-    private void enqueueDownload(JSONObject options, CallbackContext callbackContext) {
+    private void downloadGet(JSONObject options, CallbackContext callbackContext) {
         cordova.getThreadPool().execute(() -> {
+            HttpURLConnection connection = null;
+
             try {
                 String url = options.optString("url", "");
                 String userAgent = options.optString("userAgent", "");
-                String contentDisposition = options.optString("contentDisposition", "");
-                String mimeType = normalizeMimeType(options.optString("mimetype", ""));
+                String eventDisposition = options.optString("contentDisposition", "");
+                String eventMimeType = normalizeMimeType(options.optString("mimetype", ""));
                 String cookie = CookieManager.getInstance().getCookie(url);
-                String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
-                fileName = sanitizeFileName(fileName);
 
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                request.setTitle(fileName);
-                request.setDescription("Mengunduh dari SisFour");
-                request.setNotificationVisibility(
-                        DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
-                );
-                request.setAllowedOverMetered(true);
-                request.setAllowedOverRoaming(true);
-                request.setDestinationInExternalPublicDir(
-                        Environment.DIRECTORY_DOWNLOADS,
-                        fileName
-                );
-
-                if (!TextUtils.isEmpty(mimeType)) {
-                    request.setMimeType(mimeType);
-                }
+                connection = (HttpURLConnection) new URL(url).openConnection();
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(20000);
+                connection.setReadTimeout(120000);
+                connection.setRequestProperty("Accept", "*/*");
 
                 if (!TextUtils.isEmpty(cookie)) {
-                    request.addRequestHeader("Cookie", cookie);
+                    connection.setRequestProperty("Cookie", cookie);
                 }
 
                 if (!TextUtils.isEmpty(userAgent)) {
-                    request.addRequestHeader("User-Agent", userAgent);
+                    connection.setRequestProperty("User-Agent", userAgent);
                 }
 
-                DownloadManager downloadManager = (DownloadManager) cordova.getActivity()
-                        .getSystemService(Context.DOWNLOAD_SERVICE);
+                int status = connection.getResponseCode();
 
-                if (downloadManager == null) {
-                    callbackContext.error("Layanan download Android tidak tersedia.");
+                if (status < 200 || status >= 300) {
+                    if (status >= 300 && status < 400) {
+                        callbackContext.error(
+                                "Download dialihkan oleh server. Sesi mungkin sudah berakhir."
+                        );
+                    } else {
+                        callbackContext.error(
+                                "Server menolak download (HTTP " + status + ")."
+                        );
+                    }
                     return;
                 }
 
-                long downloadId = downloadManager.enqueue(request);
+                String responseDisposition =
+                        connection.getHeaderField("Content-Disposition");
+
+                String contentDisposition =
+                        TextUtils.isEmpty(responseDisposition)
+                                ? eventDisposition
+                                : responseDisposition;
+
+                String responseMimeType =
+                        normalizeMimeType(connection.getContentType());
+
+                String mimeType =
+                        TextUtils.isEmpty(responseMimeType)
+                                ? eventMimeType
+                                : responseMimeType;
+
+                if (
+                        TextUtils.isEmpty(contentDisposition)
+                        || !contentDisposition.toLowerCase().contains("attachment")
+                ) {
+                    callbackContext.error(
+                            "Server tidak mengembalikan attachment yang valid."
+                    );
+                    return;
+                }
+
+                String fileName = URLUtil.guessFileName(
+                        url,
+                        contentDisposition,
+                        mimeType
+                );
+                fileName = sanitizeFileName(fileName);
+
+                try (InputStream input =
+                             new BufferedInputStream(connection.getInputStream())) {
+                    saveToDownloads(
+                            input,
+                            fileName,
+                            mimeType
+                    );
+                }
 
                 JSONObject result = new JSONObject();
-                result.put("downloadId", downloadId);
                 result.put("fileName", fileName);
+                result.put("mimeType", mimeType);
                 result.put("mode", "get");
                 callbackContext.success(result);
             } catch (Exception error) {
-                callbackContext.error(messageFor(error, "Download gagal dimulai."));
+                callbackContext.error(
+                        messageFor(error, "Download gagal diproses.")
+                );
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
             }
         });
     }
