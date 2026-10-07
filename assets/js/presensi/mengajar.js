@@ -28,7 +28,7 @@
     const sakitCount = document.getElementById('jurnalSakitCount');
     const izinCount = document.getElementById('jurnalIzinCount');
     const alphaCount = document.getElementById('jurnalAlphaCount');
-    const isOperationalGuru = document.body.classList.contains('sisfour-role-guru');
+    const isSelfInput = app.dataset.selfInput === '1';
 
     let current = null;
     let selectedStatus = 'Hadir';
@@ -226,7 +226,12 @@
 
         if (!Array.isArray(rows) || rows.length === 0) {
             jadwalSelect.disabled = true;
-            showInfo('Guru tersebut tidak memiliki Jadwal Aktif pada tanggal yang dipilih.', 'warning');
+            showInfo(
+                isSelfInput
+                    ? 'Anda tidak memiliki Jadwal Aktif pada hari ini.'
+                    : 'Guru tersebut tidak memiliki Jadwal Aktif pada tanggal yang dipilih.',
+                'warning'
+            );
             return;
         }
 
@@ -245,7 +250,7 @@
         jadwalSelect.disabled = false;
         hideInfo();
 
-        if (isOperationalGuru && rows.length === 1) {
+        if (isSelfInput && rows.length === 1) {
             jadwalSelect.value = String(rows[0].id);
             window.setTimeout(loadJournal, 0);
         }
@@ -264,7 +269,7 @@
 
         if (!idGuru || !tanggal) return;
 
-        showInfo('Memuat Jadwal Guru...', 'info');
+        showInfo(isSelfInput ? 'Memuat Jadwal Anda...' : 'Memuat Jadwal Guru...', 'info');
 
         try {
             const params = new URLSearchParams({
@@ -623,7 +628,7 @@
     }
 
     function autoSelectOperationalGuru() {
-        if (!isOperationalGuru || guruSelect.value) {
+        if (!isSelfInput || guruSelect.value) {
             return false;
         }
 
