@@ -6,6 +6,7 @@
 
     const baseUrl = app.dataset.baseUrl.replace(/\/+$/, '');
     const canManage = app.dataset.canManage === '1';
+    const selfPresentation = app.dataset.selfPresentation === '1';
 
     const table = document.getElementById('tableJadwal');
     const tbody = table?.querySelector('tbody');
@@ -109,6 +110,19 @@
 
     const syncUrl = () => {
         const params = filterParams(true);
+
+        if (selfPresentation) {
+            const clean = new URLSearchParams();
+            clean.set('limit', String(state.limit));
+            clean.set('offset', String(state.offset));
+            window.history.replaceState(
+                null,
+                '',
+                `${window.location.pathname}?${clean.toString()}`
+            );
+            return;
+        }
+
         const query = params.toString();
 
         window.history.replaceState(
@@ -145,7 +159,7 @@
         if (!rows.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="${canManage ? 10 : 9}" class="text-center text-muted py-4">
+                    <td colspan="${canManage ? 10 : (selfPresentation ? 8 : 9)}" class="text-center text-muted py-4">
                         Tidak ada jadwal pada filter ini.
                     </td>
                 </tr>
@@ -182,14 +196,14 @@
             return `
                 <tr>
                     <td>${state.offset + index + 1}</td>
-                    <td>
+                    ${selfPresentation ? '' : `<td>
                         <div class="fw-semibold">
                             ${escapeHtml(row.nama_guru)}
                         </div>
                         <small class="text-muted font-monospace">
                             ${escapeHtml(identifier || '-')}
                         </small>
-                    </td>
+                    </td>`}
                     <td>${escapeHtml(row.nama_kelas)}</td>
                     <td>
                         <div>${escapeHtml(row.nama_mapel)}</div>
@@ -232,14 +246,18 @@
                 return `<div class="list-group-item py-3">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                         <div class="min-w-0 flex-grow-1">
-                            <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(row.nama_guru)}</div>
-                            <div class="small text-muted font-monospace sisfour-wrap-anywhere">${escapeHtml(identifier || '-')}</div>
+                            <div class="fw-semibold sisfour-wrap-anywhere">
+                                ${selfPresentation ? escapeHtml(row.nama_kelas) : escapeHtml(row.nama_guru)}
+                            </div>
+                            ${selfPresentation
+                                ? `<div class="small text-muted sisfour-wrap-anywhere">${escapeHtml(row.nama_mapel)} (${escapeHtml(row.kode_mapel)})</div>`
+                                : `<div class="small text-muted font-monospace sisfour-wrap-anywhere">${escapeHtml(identifier || '-')}</div>`}
                         </div>
                         <span class="badge bg-label-${statusClass} flex-shrink-0">${escapeHtml(row.status_jadwal)}</span>
                     </div>
-                    <div class="small mt-2 sisfour-wrap-anywhere">
+                    ${selfPresentation ? '' : `<div class="small mt-2 sisfour-wrap-anywhere">
                         ${escapeHtml(row.nama_kelas)} · ${escapeHtml(row.nama_mapel)} (${escapeHtml(row.kode_mapel)})
-                    </div>
+                    </div>`}
                     <div class="small text-muted mt-1 sisfour-wrap-anywhere">
                         ${escapeHtml(row.hari)} · ${escapeHtml(String(row.jam_mulai).slice(0,5))}-${escapeHtml(String(row.jam_selesai).slice(0,5))} · ${escapeHtml(row.sesi)}
                     </div>
@@ -257,7 +275,7 @@
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="${canManage ? 10 : 9}" class="text-center py-4">
+                <td colspan="${canManage ? 10 : (selfPresentation ? 8 : 9)}" class="text-center py-4">
                     <span class="spinner-border spinner-border-sm me-2"></span>
                     Memuat jadwal...
                 </td>
