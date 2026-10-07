@@ -9,13 +9,18 @@
     data-can-edit-nisn="<?= !empty($canEditNisn) ? '1' : '0' ?>"
     data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
     data-can-import-export="<?= !empty($canImportExport) ? '1' : '0' ?>"
+    data-contextual-wali="<?= !empty($isContextualWali) ? '1' : '0' ?>"
 >
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
-        <div>
-            <h4 class="fw-bold mb-1">Master Siswa</h4>
-            <p class="text-muted mb-0">Kelola data induk dan biodata siswa. Penempatan/pindah kelas, kenaikan, mutasi, dan kelulusan berada di menu Manajemen Siswa.</p>
+    <div class="sisfour-page-header">
+        <div class="sisfour-page-header__copy">
+            <h4 class="fw-bold mb-1"><?= !empty($isContextualWali) ? 'Data Siswa Kelas Wali' : 'Master Siswa' ?></h4>
+            <p class="text-muted mb-0">
+                <?= !empty($isContextualWali)
+                    ? 'Daftar siswa aktif pada kelas wali Anda. Scope siswa ditentukan server berdasarkan mapping Wali Kelas aktif.'
+                    : 'Kelola data induk dan biodata siswa. Penempatan/pindah kelas, kenaikan, mutasi, dan kelulusan berada di menu Manajemen Siswa.' ?>
+            </p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="sisfour-page-actions">
             <?php if (!empty($canManage)): ?>
                 <a href="<?= base_url('master/siswa/recycle') ?>" class="btn btn-outline-secondary sisfour-touch-target--compact"><i class="bx bx-trash me-1"></i> Recycle Bin</a>
                 <button type="button" class="btn btn-primary sisfour-touch-target" id="btnTambahSiswa"><i class="bx bx-plus me-1"></i> Tambah Siswa</button>
@@ -28,19 +33,27 @@
         </div>
     </div>
 
+    <?php if (empty($isContextualWali)): ?>
     <div class="alert alert-info">
         <i class="bx bx-info-circle me-1"></i>
         <strong>Tambah Siswa</strong> menyimpan siswa tanpa kelas.
         <strong>Import Siswa</strong> wajib menggunakan kolom <strong>NAMA KELAS</strong> dan langsung menempatkan siswa pada kelas tahun ajaran aktif.
     </div>
+    <?php endif; ?>
 
-    <?php if (!empty($canEdit) && empty($canEditNisn)): ?>
-        <div class="alert alert-info">Akses Wali Kelas aktif: biodata dan foto siswa kelas yang diampu dapat diedit, tetapi NISN tidak dapat diubah.</div>
+    <?php if (!empty($isContextualWali)): ?>
+        <div class="alert alert-info sisfour-compact-note">
+            <i class="bx bx-info-circle me-1"></i>
+            Biodata dan foto siswa kelas wali dapat diperbarui. NISN tetap readonly.
+        </div>
+    <?php elseif (!empty($canEdit) && empty($canEditNisn)): ?>
+        <div class="alert alert-info">Biodata dan foto siswa dalam scope Anda dapat diedit, tetapi NISN tidak dapat diubah.</div>
     <?php endif; ?>
 
     <div class="card mb-4"><div class="card-body">
         <form id="formFilterSiswa" class="row g-3">
-            <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNama">Nama</label><input type="text" class="form-control" id="filterNama" name="nama" placeholder="Cari nama"></div>
+            <div class="<?= !empty($isContextualWali) ? 'col-12 col-md-8' : 'col-12 col-md-4 col-xl' ?>"><label class="form-label" for="filterNama">Nama</label><input type="text" class="form-control" id="filterNama" name="nama" placeholder="Cari nama siswa"></div>
+            <?php if (empty($isContextualWali)): ?>
             <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNik">NIK</label><input type="text" class="form-control" id="filterNik" name="nik" maxlength="16" placeholder="Cari NIK"></div>
             <div class="col-12 col-md-4 col-xl"><label class="form-label" for="filterNisn">NISN</label><input type="text" class="form-control" id="filterNisn" name="nisn" placeholder="Cari NISN"></div>
             <div class="col-12 col-md-6 col-xl-3">
@@ -75,7 +88,11 @@
                     <option value="Keluar">Keluar</option>
                 </select>
             </div>
-            <div class="col-12 d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i> Terapkan</button><button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button></div>
+            <?php endif; ?>
+            <div class="<?= !empty($isContextualWali) ? 'col-12 col-md-4 d-grid' : 'col-12 d-flex gap-2' ?>">
+                <button type="submit" class="btn btn-primary"><i class="bx bx-search me-1"></i> <?= !empty($isContextualWali) ? 'Cari' : 'Terapkan' ?></button>
+                <?php if (empty($isContextualWali)): ?><button type="button" class="btn btn-outline-secondary sisfour-touch-target--compact" id="btnResetFilter">Reset</button><?php endif; ?>
+            </div>
         </form>
     </div></div>
 
@@ -86,7 +103,7 @@
         </div>
         <div class="d-none d-md-block card-datatable table-responsive">
             <table class="table table-hover align-middle" id="tableSiswa">
-                <thead><tr><th style="width:56px;">No.</th><th>Siswa</th><th>NIK / NISN</th><th>Kelas</th><th>JK</th><th>Status</th><th>Kontak</th><?php if (!empty($canEdit)||!empty($canManage)): ?><th style="min-width:150px;">Aksi</th><?php endif; ?></tr></thead>
+                <thead><tr><th style="width:56px;">No.</th><th>Siswa</th><?php if (empty($isContextualWali)): ?><th>NIK / NISN</th><?php endif; ?><th>Kelas</th><th>JK</th><?php if (empty($isContextualWali)): ?><th>Status</th><?php endif; ?><th>Kontak</th><?php if (!empty($canEdit)||!empty($canManage)): ?><th style="min-width:150px;">Aksi</th><?php endif; ?></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
