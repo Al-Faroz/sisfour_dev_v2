@@ -23,7 +23,16 @@ class JadwalGuru extends BaseController
     public function index()
     {
         $userId = $this->currentActorUserId();
+        $viewContext = $this->jadwalService->getViewContext($userId);
         $filter = $this->filters();
+
+        if (! ($viewContext['is_all'] ?? false)) {
+            $filter['id_guru'] = (int) ($viewContext['id_guru'] ?? 0);
+            $filter['id_kelas'] = 0;
+            $filter['id_tahun'] = (int) ($viewContext['id_tahun_aktif'] ?? 0);
+            $filter['hari'] = '';
+            $filter['status_jadwal'] = 'Aktif';
+        }
 
         if ($this->isJsonRequest()) {
             $paging = $this->paginationService->normalizePaging(
@@ -47,6 +56,7 @@ class JadwalGuru extends BaseController
             $this->renderWithLayout('master/jadwal_guru', [
                 'title' => 'Master Jadwal Guru',
                 'options' => $options,
+                'viewContext' => $viewContext,
                 'canManage' => $this->jadwalService->canManage($userId),
                 'extraJs' => [
                     'assets/js/master/jadwal-guru.js',
