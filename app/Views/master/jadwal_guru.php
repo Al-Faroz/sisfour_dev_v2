@@ -8,7 +8,8 @@ $guruIdentifier = static function (array $guru): string {
     if ($nip !== '') return $nip;
     return trim((string) ($guru['nik'] ?? ''));
 };
-$isSelfPresentation = ! ($viewContext['is_all'] ?? false);
+$isSelfPresentation = !empty($viewContext['is_self_presentation']);
+$showImportControls = !empty($viewContext['show_import_controls']);
 $selfGuruId = (int) ($viewContext['id_guru'] ?? 0);
 $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
 ?>
@@ -16,20 +17,24 @@ $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
 <div
     id="masterJadwalApp"
     data-base-url="<?= esc(base_url()) ?>"
-    data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
+    data-can-manage="<?= $showImportControls ? '1' : '0' ?>"
     data-self-presentation="<?= $isSelfPresentation ? '1' : '0' ?>"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
             <h4 class="fw-bold mb-1"><?= $isSelfPresentation ? 'Jadwal Saya' : 'Master Jadwal Guru' ?></h4>
             <p class="text-muted mb-0">
-                <?= $isSelfPresentation
-                    ? 'Jadwal mengajar aktif ditampilkan langsung sesuai identitas Guru yang login.'
-                    : 'Jadwal dikelola melalui import Excel dan tetap divalidasi terhadap bentrok serta topology sesi.' ?>
+                <?php if ($isSelfPresentation): ?>
+                    Jadwal mengajar aktif ditampilkan langsung sesuai identitas Guru yang login.
+                <?php elseif ($showImportControls): ?>
+                    Jadwal dikelola melalui import Excel dan tetap divalidasi terhadap bentrok serta topology sesi.
+                <?php else: ?>
+                    Jadwal Guru ditampilkan read-only sesuai permission dan scope.
+                <?php endif; ?>
             </p>
         </div>
 
-        <?php if (!empty($canManage)): ?>
+        <?php if ($showImportControls): ?>
             <div class="sisfour-page-actions">
                 <a href="<?= base_url('master/jadwal/template') ?>" class="btn btn-outline-primary">
                     <i class="bx bx-download me-1"></i> Template
@@ -44,7 +49,7 @@ $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
         <?php endif; ?>
     </div>
 
-    <?php if (!$isSelfPresentation): ?>
+    <?php if ($showImportControls): ?>
     <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Import menggunakan <strong>NIP atau NIK Guru</strong> sebagai identitas dan bersifat atomic.
@@ -135,7 +140,7 @@ $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
             <h5 class="mb-0"><?= $isSelfPresentation ? 'Jadwal Mengajar Aktif' : 'Daftar Jadwal Guru' ?></h5>
             <?php if ($isSelfPresentation): ?>
                 <span class="badge bg-label-primary">Data Saya</span>
-            <?php elseif (empty($canManage)): ?>
+            <?php elseif (!$showImportControls): ?>
                 <span class="badge bg-label-info">Readonly</span>
             <?php endif; ?>
         </div>
@@ -156,7 +161,7 @@ $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
                         <th>Sesi</th>
                         <th>Tahun Ajaran</th>
                         <th>Status</th>
-                        <?php if (!empty($canManage)): ?><th style="width:80px;">Aksi</th><?php endif; ?>
+                        <?php if ($showImportControls): ?><th style="width:80px;">Aksi</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -164,7 +169,7 @@ $activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
         </div>
     </div>
 
-    <?php if (!empty($canManage)): ?>
+    <?php if ($showImportControls): ?>
         <div class="modal fade" id="modalImportJadwal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form id="formImportJadwal" class="modal-content">
