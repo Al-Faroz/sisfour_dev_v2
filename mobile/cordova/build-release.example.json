@@ -1,0 +1,12 @@
+{
+  "android": {
+    "release": {
+      "keystore": "C:/SisFour-Secrets/android/SisFour-release.jks",
+      "storePassword": "__LOCAL_SECRET__",
+      "alias": "sisfour-release",
+      "password": "__LOCAL_SECRET__",
+      "keystoreType": "jks",
+      "packageType": "apk"
+    }
+  }
+}

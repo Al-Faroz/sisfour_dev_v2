@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget
+    id="id.sch.mtsn4jombang.sisfour"
+    version="1.0.0"
+    android-versionCode="10000"
+    xmlns="http://www.w3.org/ns/widgets"
+    xmlns:cdv="http://cordova.apache.org/ns/1.0"
+>
+    <name>SisFour</name>
+
+    <description>
+        SisFour Android wrapper for MTsN 4 Jombang.
+    </description>
+
+    <author>
+        MTsN 4 Jombang
+    </author>
+
+    <content src="index.html" />
+
+    <hook
+        type="after_prepare"
+        src="hooks/after_prepare_inappbrowser.js"
+    />
+
+    <icon src="resources/branding/launcher-master-1024.png" />
+
+    <platform name="android">
+        <resource-file
+            src="resources/branding/launcher-master-1024.png"
+            target="/app/src/main/res/drawable-nodpi/sisfour_brand_logo.png"
+        />
+        <resource-file
+            src="resources/branding/splash-color-1024.png"
+            target="/app/src/main/res/drawable-nodpi/sisfour_splash_color.png"
+        />
+        <preference
+            name="AndroidEdgeToEdge"
+            value="false"
+        />
+        <preference
+            name="AndroidWindowSplashScreenAnimatedIcon"
+            value="resources/branding/splash-icon.xml"
+        />
+        <preference
+            name="SplashScreenBackgroundColor"
+            value="#FFFFFF"
+        />
+        <preference
+            name="FadeSplashScreen"
+            value="false"
+        />
+        <preference
+            name="AndroidWindowSplashScreenIconBackgroundColor"
+            value="#FFFFFF"
+        />
+        <icon
+            density="ldpi"
+            src="resources/branding/icon-ldpi.png"
+        />
+        <icon
+            density="mdpi"
+            src="resources/branding/icon-mdpi.png"
+        />
+        <icon
+            density="hdpi"
+            src="resources/branding/icon-hdpi.png"
+        />
+        <icon
+            density="xhdpi"
+            src="resources/branding/icon-xhdpi.png"
+        />
+        <icon
+            density="xxhdpi"
+            src="resources/branding/icon-xxhdpi.png"
+        />
+        <icon
+            density="xxxhdpi"
+            src="resources/branding/icon-xxxhdpi.png"
+        />
+    </platform>
+</widget>

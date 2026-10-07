@@ -1,8 +1,8 @@
 # Testing, Regression & Release Gate — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
-**Phase aktif:** **G3.9 — Dashboard Experience V2 / Regression & Closure — Draft PR #18; G4 NOT STARTED**
+**Tanggal Acuan:** 5 Oktober 2026
+**Phase aktif:** **G4.1 — PRE-BUILD FREEZE; known source remediation implemented; exact-head clean build + device UAT pending**
 
 > Quality gate dibagi per phase agar regression bisnis, mobile UI, schema delta, privacy, hosting, dan Cordova tidak bercampur. Merge/release tetap memerlukan approval eksplisit pengguna.
 
@@ -482,7 +482,7 @@ G3.6B  PTSP                  CLOSED / MERGED — PR #14
 G3.6C  Executive Viz/Signage CLOSED / MERGED — PR #15
 G3.7   Global Mobile Sweep   CLOSED / MERGED — PR #16
 G3.8   WebView Readiness      CLOSED / MERGED — PR #17
-G4     Cordova APK             NOT STARTED
+G4     Cordova APK             G4.1 ACTIVE — THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
 ```
 
 G3.6A mengikuti SSOT `17_UKS_KESEHATAN — SisisFour.md`. PTSP tetap terpisah dan tidak boleh ikut diimplementasikan pada SQL/source G3.6A hanya karena role registry global sudah mengenal target role tersebut.
@@ -1856,3 +1856,615 @@ status **CLOSURE-READY**.
 
 CLOSURE-READY bukan approval untuk Ready/merge/deploy. PR #19 tetap Draft sampai ada
 approval eksplisit user.
+
+## G4.0 — Environment & Architecture Lock Gate
+
+Canonical baseline:
+
+```text
+main / origin-main                de3efc5119f811d30f4c1759e20d244106ebd899
+feature branch                    feat/g4-cordova-android-20261005
+G3.9 PR #18                       CLOSED / MERGED
+G3.10 PR #19                      CLOSED / MERGED
+```
+
+Environment preflight evidence 2026-10-05:
+
+```text
+JDK 17.0.20.1                     PASS
+Node 24.19.0                      PASS
+npm 11.17.0                       PASS
+Cordova CLI 13.0.0                PASS
+ANDROID_HOME                      PASS
+Android CLI                       PASS
+ADB / Platform Tools              PASS
+Android Platform API 36           PASS
+Build Tools 36.0.0                PASS
+Command-line Tools                PASS
+system Gradle 8.14.4              PASS
+working tree / canonical main     PASS
+```
+
+Architecture gate:
+
+```text
+local Cordova shell               LOCKED
+controlled InAppBrowser           LOCKED
+production HTTPS only             LOCKED
+Web session + CSRF unchanged      LOCKED
+server authorization boundary     LOCKED
+narrow native bridge              LOCKED
+no offline mutation replay        LOCKED
+Android Back                      PENDING G4.1 APK proof
+authenticated native download     PENDING G4.1 APK proof
+geolocation permission/runtime    PENDING G4.1 APK proof
+external intent routing           PENDING G4.1 APK proof
+```
+
+G4.1 may start only from this exact lock. G4.1 acceptance must prove `deviceready`, session/login/logout/redirect continuity, Back contract, location allow/deny, download/open/share, external link routing, network failure behavior, and no authorization/privacy widening before broader APK work continues.
+
+
+## G4.1C — Authenticated Download Regression Gate
+
+Source/static:
+
+```text
+node --check mobile/cordova/www/js/shell.js
+plugin.xml well-formed
+plugin/package JSON valid
+cordova prepare android
+cordova requirements android
+cordova build android
+git diff --check origin/main...HEAD
+git status
+```
+
+Real-device minimum after rebuild:
+
+```text
+login via APK
+GET export Catatan Pelanggaran
+GET export Konseling BK
+GET export Prestasi
+GET export UKS/PTSP/Dokumen Siswa
+Laporan Presensi/Jurnal
+Backup download
+Kartu Pelajar single-file download
+Android Save As picker opens
+correct filename + extension + MIME is suggested
+selected destination receives valid file
+RBAC denial remains denial
+session expiry does not produce a false-success file
+external/non-SisFour download URL is not bridged
+```
+
+Separate POST-download regression:
+
+```text
+Statistik PDF POST/client payload
+Kartu Pelajar export JPG ZIP POST
+other POST attachment surfaces discovered by regression
+```
+
+Gate status:
+
+```text
+G4.1B runtime UAT                PASS / user evidence
+G4.1C source                     IMPLEMENTED
+G4.1C static/build               PASS / user terminal evidence — debug APK built successfully
+G4.1C GET download runtime UAT   PENDING
+G4.1C GET download regression    IMPLEMENTED / REBUILD UAT PENDING
+G4.1D Dashboard helper           IMPLEMENTED / REBUILD UAT PENDING
+G4.1D native geolocation         IMPLEMENTED / REBUILD UAT PENDING
+G4.1E upload/import chooser      PASS / USER DEVICE UAT
+G4.1F POST output bridge         IMPLEMENTED GENERIC / REBUILD + DEVICE UAT PENDING
+G4.1F Android Back adapter       IMPLEMENTED / REBUILD UAT PENDING
+G4.1G final branding source      STATIC PASS / CLEAN REBUILD + CLEAN-INSTALL UAT PENDING
+G4.2 version/signing procedure  PREPARED / KEY + SIGNED BUILD PENDING
+```
+
+
+## G4.1D/G4.1E/G4.1G — Device Batch Gate
+
+Navigation:
+
+```text
+Dashboard floating helper visible on internal non-dashboard page
+helper opens authenticated /dashboard
+helper absent on login/root/dashboard
+helper does not cover sticky save/action controls
+Android Back regression remains valid
+```
+
+Native location:
+
+```text
+no permission prompt at startup
+no permission prompt at dashboard load
+Presensi/Jurnal user action triggers location when required
+allow -> location accepted
+deny -> clear failure / no false success
+non-geofence actor/action -> no unnecessary location request
+```
+
+Upload/import:
+
+```text
+Android document picker opens
+cancel returns safely
+valid XLSX/file returns to form
+invalid MIME/size remains server-rejected
+import/upload authorization unchanged
+```
+
+Branding:
+
+```text
+launcher icon is SisFour/MTsN 4 Jombang, not Cordova
+adaptive mask visually acceptable on real launcher
+native splash shows official identity
+no visible Cordova placeholder between splash and remote Web
+local loading shell remains responsive
+no duplicate logo between native splash and local shell
+no startup delay that feels materially worse
+```
+
+Current branding source provenance is recorded in `mobile/cordova/resources/branding/README.md`. If adaptive mask crops the official mark/text excessively, create a safe-padded derived foreground while retaining the official master untouched.
+
+
+## G4.1F — Generic POST Output + Android Back Gate
+
+POST attachment device UAT:
+
+```text
+Statistik PDF with chart images
+→ Android Save As opens
+→ server filename .pdf preserved
+→ saved PDF opens
+→ chart payload reaches server
+→ CSRF/session/RBAC remain enforced
+
+Kartu massal PDF selected
+→ repeated id_kartu[] preserved
+→ Android Save As opens
+→ valid PDF opens
+
+Kartu massal PDF by class
+→ id_kelas/side/mode preserved
+→ valid PDF opens
+
+Kartu JPG ZIP
+→ Android Save As opens
+→ server .zip filename preserved
+→ ZIP opens and contains JPG files
+```
+
+Negative/security regression:
+
+```text
+external URL rejected
+non-POST native request rejected
+Cookie/Authorization cannot be supplied by remote payload
+redirect/login response rejected
+non-attachment 2xx rejected
+403/422 server response does not create false-success file
+payload >24 MiB rejected safely
+>1200 fields rejected safely
+File/Blob FormData field rejected by injected adapter
+second concurrent Save As rejected safely
+Chrome/browser fallback remains unchanged
+```
+
+Android Back real-device:
+
+```text
+modal open -> Back closes modal, stays page
+dropdown open -> Back closes dropdown
+mobile sidebar open -> Back closes sidebar
+dirty Presensi/Jurnal/form -> confirmation before leave
+detail/history -> Back returns one logical page
+dashboard first Back -> exit hint
+dashboard second Back <=1.8s -> exits app
+dashboard second Back after timeout -> stays app and rearms
+```
+
+Static/source evidence target:
+
+```text
+shell.js + all injected scripts parse PASS
+native plugin JS parse PASS
+Kartu JS parse PASS
+Statistik JS parse PASS
+same-origin POST-only guard PASS
+safe header allowlist PASS
+1200 field / 24 MiB bounds PASS
+native CookieManager session PASS
+redirect disabled PASS
+response attachment required PASS
+browser fallback retained PASS
+no business endpoint in shell/native PASS
+Gradle exact-head build PENDING
+device UAT PENDING
+```
+
+
+## G4.2 — Release Signing Gate
+
+Preparation source:
+
+```text
+widget/application id = id.sch.mtsn4jombang.sisfour
+versionName           = 1.0.0
+versionCode           = 10000
+real build-release.json ignored
+keystore extensions ignored
+release APK/AAB scripts available
+release procedure documented
+```
+
+Promotion is blocked until G4.1 exact-head device UAT passes.
+
+Release gate:
+
+```text
+release keystore created outside repo
+independent encrypted backup exists
+alias/password custody recorded securely
+certificate SHA-256 fingerprint recorded
+signed APK build PASS
+apksigner verify PASS
+clean install PASS
+next-version signed update PASS
+same package id PASS
+same certificate PASS
+versionCode monotonic PASS
+multi-device smoke PASS
+final artifact checksum recorded
+keystore/password absent from Git diff PASS
+```
+
+
+## G4 Device UAT Regression — After 6 October Remediation
+
+Next APK must prove:
+
+```text
+Upload/import still PASS
+
+GET export:
+- Catatan Pelanggaran XLSX has .xlsx filename
+- Konseling BK XLSX has .xlsx filename
+- no export.bin fallback
+- file opens successfully
+
+Branding:
+- clean install launcher shows SisFour / MTsN 4 Jombang icon
+- no Apache Cordova icon
+- splash logo remains fully inside safe zone
+- no double/overlapping logo during native -> shell transition
+- startup remains fast
+
+Dashboard:
+- green home control visible immediately after authenticated login
+- control visible in module pages
+- tap control opens /dashboard
+- control does not block zoom/sticky actions
+
+Geolocation:
+- Admin/Operator no unnecessary location prompt
+- Guru/required geofence flow prompts Android permission on first use
+- allow -> coordinates accepted
+- deny -> no false-success save
+
+Autofill:
+- username/password fields recognized by configured Android Autofill service
+- tapping username/password surfaces saved credentials when manager has them
+- no SisFour-owned plaintext credential storage
+```
+
+
+## G4 Thin-Wrapper Recovery Regression
+
+Sebelum build APK berikutnya:
+
+```text
+shell.js parse PASS
+plugin JS parse PASS
+package/package-lock JSON PASS
+no endpoint bisnis Statistik/Kartu in Cordova shell/native PASS
+no remote login form mutation from Cordova PASS
+Dashboard only one injected implementation PASS
+Dashboard excluded from login/root/dashboard PASS
+Jurnal load result includes server-derived geofence_required PASS
+Jurnal JS requests location only when geofence_required=true PASS
+shell CSS syntax clean PASS
+POST output generic source implemented; exact-head Gradle build and device UAT remain PENDING
+```
+
+Device geolocation matrix:
+
+```text
+geofencing OFF + Presensi Siswa Guru       -> no location prompt
+geofencing OFF + Jurnal Guru Hadir         -> no location prompt
+geofencing ON  + Presensi Guru Terjadwal   -> location required
+geofencing ON  + Jurnal Guru Hadir         -> location required
+Jurnal Izin/Sakit                          -> no location prompt
+scope SEMUA                                -> no location prompt
+deny permission                            -> no false success
+outside radius                             -> server rejection
+startup/login/dashboard                    -> no location prompt
+```
+
+
+### G4.1 Historical Thin-Wrapper Debug Build Evidence — 6 Oktober 2026
+
+Evidence berikut berasal dari recovery source **sebelum** final Save As + generic POST + cookie-sync + 1024 launcher pipeline. Ia tidak boleh dipakai sebagai PASS untuk current PRE-BUILD-FREEZE HEAD.
+
+User terminal evidence pada recovery branch menghasilkan:
+
+```text
+cordova build android     PASS
+CordovaLib compile        PASS
+app compileDebugJava      PASS
+Gradle                    BUILD SUCCESSFUL
+debug APK                 CREATED
+```
+
+Artifact lokal:
+
+```text
+mobile/cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Build warnings yang terlihat tidak memblokir APK debug:
+
+```text
+SDK XML version mismatch warning
+deprecated API note
+Gradle deprecated feature warning for future Gradle 9
+```
+
+Warnings tersebut dicatat sebagai environment/toolchain follow-up, bukan G4.1 build failure. Device UAT tetap wajib sebelum acceptance.
+
+
+## G4 XLSX Generic Download Regression
+
+Source audit confirmed that Web export filenames are already defined correctly by server-side export implementations. APK regression must therefore validate the generic download adapter, not per-module filename hardcoding.
+
+After rebuild:
+
+```text
+Master Siswa XLSX        -> data_siswa_*.xlsx, not export.bin
+Catatan Pelanggaran XLSX -> server filename preserved
+Konseling BK XLSX        -> server filename preserved
+Prestasi XLSX            -> server filename preserved
+UKS/CKG XLSX/template    -> server filename preserved
+PTSP XLSX                -> server filename preserved
+Dokumen Siswa XLSX       -> server filename preserved
+Laporan XLSX             -> server filename preserved
+PDF download             -> remains PASS
+```
+
+Static gate:
+
+```text
+filename* parser present
+filename fallback present
+server filename preferred over URL guess
+octet-stream MIME fallback is generic
+no business endpoint/name hardcoded in native bridge
+Dashboard helper bottom-left
+```
+
+
+## G4 Generic File-Type Download Matrix
+
+Real-device regression wajib mencakup seluruh tipe file aktual SisFour, bukan hanya XLSX/PDF:
+
+```text
+XLSX  -> minimal Master Siswa + satu domain service-export
+PDF   -> Kartu individual / output PDF GET yang sah
+SQL   -> Backup Database
+PNG   -> authenticated attachment/document bila fixture tersedia
+JPG   -> authenticated attachment/document bila fixture tersedia
+JPEG  -> authenticated attachment/document bila fixture tersedia
+ZIP   -> Kartu JPG ZIP (POST-output gate terpisah)
+```
+
+Untuk setiap file:
+
+```text
+filename server preserved
+extension benar
+MIME sesuai bila diketahui
+file tidak berubah menjadi .bin
+file tersimpan / dapat dibuka
+session/RBAC tetap authoritative
+expired/forbidden tidak menghasilkan false-success file
+```
+
+Google Drive Dokumen Siswa diuji sebagai external-navigation flow, bukan generic native same-origin download.
+
+
+## G4 Android Save As Device Gate
+
+For each supported GET attachment type:
+
+```text
+tap Download/Export
+→ native Android Save As picker opens
+→ suggested filename equals server filename
+→ user can choose destination
+→ user can rename file
+→ Save writes valid file
+→ Cancel returns safely and no success message is shown
+```
+
+Minimum formats:
+
+```text
+XLSX
+PDF
+SQL
+PNG
+JPG/JPEG
+```
+
+ZIP is validated when the generic POST-output path is implemented; current Kartu JPG ZIP remains on the separate POST gate.
+
+Regression:
+
+```text
+no WRITE_EXTERNAL_STORAGE prompt
+no startup storage prompt
+session expired -> no Save As for login/error body
+forbidden route -> no false-success file
+two concurrent native saves -> second is rejected safely
+temporary cache cleaned after save/cancel/error
+```
+
+Branding handoff:
+
+```text
+native color logo visible cleanly
+no oversized/cropped splash
+handoff to white logo on green is brief and non-overlapping
+no artificial startup delay
+prefers-reduced-motion has no cosmetic animation
+remote Web appears normally after load
+```
+
+
+## G4 Generic POST Attachment Static Gate
+
+Implementation evidence 6 Oktober 2026:
+
+```text
+bridge message type             file.download
+remote adapter                  window.SisFourFileDownload.post
+native plugin action            downloadRequest
+method                          POST only
+target                          exact same-origin HTTPS
+body                            text FormData/URLSearchParams fields
+wire encoding                   application/x-www-form-urlencoded UTF-8
+safe request headers            Accept, X-Requested-With
+session                         CookieManager-owned
+redirect                        disabled
+max fields                      1200
+max encoded payload             24 MiB
+response                        2xx + Content-Disposition attachment required
+destination                     Android ACTION_CREATE_DOCUMENT
+Chrome fallback                 preserved
+business endpoints in wrapper   NONE
+```
+
+
+## G4 PRE-BUILD FREEZE — Branding Static Gate
+
+Before the next APK build:
+
+```text
+config top-level icon        -> launcher-master-1024.png
+drawable-nodpi brand logo    -> launcher-master-1024.png
+ldpi legacy icon             -> 36×36
+mdpi legacy icon             -> 48×48
+hdpi legacy icon             -> 72×72
+xhdpi legacy icon            -> 96×96
+xxhdpi legacy icon           -> 144×144
+xxxhdpi legacy icon          -> 192×192
+adaptive background          -> NOT USED; direct density PNG launcher
+adaptive foreground          -> NOT USED; direct density PNG launcher
+native splash                -> final color 1024 master through splash XML
+post-splash shell            -> exact user LogoFlat_White.svg on #119450
+old 2319×2299 mobile master  -> absent / no reference
+Cordova placeholder branding -> absent
+```
+
+Device acceptance after clean install:
+
+```text
+launcher shows SisFour/MTsN 4 Jombang logo
+no old/default Cordova icon
+launcher renders the full user-provided density PNG without center-crop
+native color logo is not oversized/cropped
+handoff to white logo has no duplicate overlap
+no artificial splash delay
+```
+
+
+### Native/WebView cookie continuity gate
+
+CI4 session configuration regenerates the session ID periodically (`timeToUpdate = 300`). Generic native GET/POST therefore must not only send the WebView cookies; it must also propagate response `Set-Cookie` values back into Android `CookieManager`.
+
+Static acceptance:
+
+```text
+native request reads CookieManager session        PASS
+shared GET/POST response handler reads Set-Cookie PASS
+response cookies written to CookieManager         PASS
+CookieManager.flush after changes                  PASS
+redirect remains disabled                          PASS
+CSRF regenerate=false confirmed                    PASS
+session ID periodic regeneration accounted for    PASS
+```
+
+Device regression:
+
+```text
+remain logged in after GET Save As
+remain logged in after POST Statistik/Kartu Save As
+repeat export after >5 minutes does not desync session
+normal Web mutation after native export still succeeds
+native export after normal Web mutation still succeeds
+```
+
+
+### Generic attachment integrity regression
+
+```text
+2xx + attachment + non-empty body -> Save As allowed
+2xx + attachment + zero-byte body -> ERROR, no Save As success
+3xx redirect                     -> ERROR
+4xx/5xx                          -> ERROR
+2xx without attachment           -> ERROR
+```
+
+Static source evidence: zero-byte attachment rejected before `ACTION_CREATE_DOCUMENT`.
+
+
+## G4.1 PRE-BUILD FREEZE STATIC PASS — 6 Oktober 2026
+
+The current runtime source passed the final pre-build static/consistency gate before the next debug APK build.
+
+```text
+shell.js parse                              PASS
+4 injected runtime scripts                 PASS
+native plugin JS                           PASS
+autofill after_prepare hook                PASS
+Kartu JS                                   PASS
+Statistik JS                               PASS
+Jurnal JS                                  PASS
+package.json/package-lock/plugin JSON       PASS
+native Java structural gate                PASS
+same-origin thin-wrapper boundary           PASS
+no business endpoint in shell/native        PASS
+GET + POST generic attachment transport     PASS
+response cookie -> WebView cookie sync      PASS
+redirect rejection                          PASS
+attachment requirement                      PASS
+zero-byte rejection                         PASS
+Android ACTION_CREATE_DOCUMENT Save As      PASS
+legacy storage permission absent            PASS
+Dashboard bottom-left + exclusions          PASS
+server-derived geofence request flag        PASS
+browser fallback Kartu/Statistik retained   PASS
+launcher density PNGs 36/48/72/96/144/192 PASS
+legacy density 36/48/72/96/144/192          PASS
+old 2319×2299 mobile master absent          PASS
+splash + white-logo shell handoff source    PASS
+generated platforms/plugins absent          PASS
+APK/AAB/keystore/secret absent from repo    PASS
+branch behind main                          0
+```
+
+This gate is **source/static PASS only**. Gradle compilation of the exact final HEAD and real-device UAT remain separate evidence and must not be pre-claimed.

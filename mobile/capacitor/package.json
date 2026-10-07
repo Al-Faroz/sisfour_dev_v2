@@ -1,0 +1,25 @@
+{
+  "name": "sisfour-capacitor",
+  "version": "0.1.0",
+  "description": "SisFour Android Capacitor 8 runtime for MTsN 4 Jombang",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:shell": "esbuild src/shell.js --bundle --format=iife --platform=browser --target=chrome120 --outfile=www/js/shell.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/inappbrowser": "4.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.2",
+    "esbuild": "0.28.2"
+  }
+}

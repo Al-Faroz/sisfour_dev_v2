@@ -1,0 +1,135 @@
+:root {
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    background: #119450;
+    color: #ffffff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #119450;
+}
+
+.shell {
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 22px;
+
+    padding:
+        max(24px, env(safe-area-inset-top))
+        max(20px, env(safe-area-inset-right))
+        max(24px, env(safe-area-inset-bottom))
+        max(20px, env(safe-area-inset-left));
+
+    text-align: center;
+}
+
+.shell__brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.shell__logo {
+    display: block;
+    width: min(42vw, 176px);
+    height: auto;
+    margin: 0 0 18px;
+
+    opacity: 0;
+    transform: scale(.96);
+
+    animation:
+        sisfour-logo-in
+        320ms
+        ease-out
+        60ms
+        forwards;
+}
+
+.shell__brand h1 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+    color: #ffffff;
+}
+
+.shell__brand p {
+    margin: 0;
+    color: rgba(255, 255, 255, .88);
+}
+
+.shell__status {
+    width: min(100%, 360px);
+    padding: 16px;
+
+    border: 1px solid rgba(255, 255, 255, .24);
+    border-radius: 12px;
+
+    background: rgba(255, 255, 255, .12);
+    color: #ffffff;
+
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, .08),
+        0 6px 20px rgba(0, 0, 0, .12);
+
+    backdrop-filter: blur(4px);
+}
+
+.shell__retry {
+    min-height: 44px;
+    padding: 10px 18px;
+
+    border: 1px solid rgba(255, 255, 255, .56);
+    border-radius: 10px;
+
+    background: #ffffff;
+    color: #0b6f3b;
+
+    font: inherit;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+@keyframes sisfour-logo-in {
+    from {
+        opacity: 0;
+        transform: scale(.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shell__logo {
+        opacity: 1;
+        transform: none;
+        animation: none;
+    }
+}

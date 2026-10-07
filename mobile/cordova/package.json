@@ -1,0 +1,36 @@
+{
+  "name": "id.sch.mtsn4jombang.sisfour",
+  "displayName": "SisFour",
+  "version": "1.0.0",
+  "description": "SisFour Android wrapper for MTsN 4 Jombang.",
+  "scripts": {
+    "requirements:android": "cordova requirements android",
+    "build:android": "cordova build android",
+    "build:android:release:apk": "cordova build android --release --buildConfig=build-release.json -- --packageType=apk",
+    "build:android:release:aab": "cordova build android --release --buildConfig=build-release.json -- --packageType=bundle"
+  },
+  "keywords": [
+    "ecosystem:cordova"
+  ],
+  "author": "MTsN 4 Jombang",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "cordova-android": "15.1.0",
+    "cordova-plugin-inappbrowser": "7.0.0",
+    "id.sch.mtsn4jombang.sisfour.native": "file:local-plugins/sisfour-native-android",
+    "cordova-plugin-geolocation": "4.1.0"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ],
+    "plugins": {
+      "cordova-plugin-inappbrowser": {},
+      "id.sch.mtsn4jombang.sisfour.native": {},
+      "cordova-plugin-geolocation": {
+        "GPS_REQUIRED": "false"
+      }
+    }
+  },
+  "private": true
+}

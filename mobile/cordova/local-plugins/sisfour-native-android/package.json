@@ -1,0 +1,18 @@
+{
+  "name": "id.sch.mtsn4jombang.sisfour.native",
+  "version": "0.1.0",
+  "description": "Native Android bridge for the SisFour Cordova shell.",
+  "cordova": {
+    "id": "id.sch.mtsn4jombang.sisfour.native",
+    "platforms": [
+      "android"
+    ]
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android",
+    "sisfour"
+  ],
+  "license": "UNLICENSED",
+  "private": true
+}

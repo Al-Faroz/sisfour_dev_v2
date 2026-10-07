@@ -1001,6 +1001,32 @@
         );
     };
 
+    const nativePostDownload = async (
+        url,
+        formData,
+        accept
+    ) => {
+        const adapter =
+            window.SisFourFileDownload;
+
+        if (
+            !adapter
+            || typeof adapter.post !== 'function'
+        ) {
+            return null;
+        }
+
+        return adapter.post({
+            url,
+            body: formData,
+            headers: {
+                Accept: accept,
+                'X-Requested-With':
+                    'XMLHttpRequest',
+            },
+        });
+    };
+
     const submitPrint = async (
         side,
         mode
@@ -1064,6 +1090,30 @@
         );
 
         try {
+            const label =
+                side === 'back'
+                    ? 'BELAKANG'
+                    : 'DEPAN';
+
+            const nativeResult =
+                await nativePostDownload(
+                    `${base}/kartu/cetak-massal`,
+                    formData,
+                    'application/pdf, application/json'
+                );
+
+            if (nativeResult) {
+                const filename =
+                    nativeResult.fileName
+                    || `kartu_pelajar_A4_${label}.pdf`;
+
+                showAlert(
+                    `PDF berhasil disimpan: ${filename}`,
+                    'success'
+                );
+                return;
+            }
+
             const response = await fetch(
                 `${base}/kartu/cetak-massal`,
                 {
@@ -1108,11 +1158,6 @@
                     'File PDF kosong dan tidak dapat diunduh.'
                 );
             }
-
-            const label =
-                side === 'back'
-                    ? 'BELAKANG'
-                    : 'DEPAN';
 
             const filename =
                 filenameFromResponse(
@@ -1170,6 +1215,25 @@
         );
 
         try {
+            const nativeResult =
+                await nativePostDownload(
+                    `${base}/kartu/export-jpg-zip`,
+                    formData,
+                    'application/zip, application/json'
+                );
+
+            if (nativeResult) {
+                const filename =
+                    nativeResult.fileName
+                    || 'kartu_pelajar_JPG_DEPAN.zip';
+
+                showAlert(
+                    `JPG ZIP berhasil disimpan: ${filename}`,
+                    'success'
+                );
+                return;
+            }
+
             const response = await fetch(
                 `${base}/kartu/export-jpg-zip`,
                 {

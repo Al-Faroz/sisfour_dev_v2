@@ -297,6 +297,7 @@ class PresensiMengajarService
                 'message' => 'Jurnal historis siap direvisi.',
                 'tanggal' => $tanggal,
                 'capability' => 'SEMUA',
+                'geofence_required' => false,
                 'can_revise' => true,
                 'submitted' => true,
                 'jadwal' => $context['jadwal'],
@@ -310,11 +311,17 @@ class PresensiMengajarService
             return $context;
         }
 
+        $geofenceConfig =
+            $this->geofencingService->getConfig();
+
         return [
             'success' => true,
             'message' => 'Form Jurnal siap digunakan.',
             'tanggal' => $tanggal,
             'capability' => $context['capability'],
+            'geofence_required' =>
+                $context['capability'] !== 'SEMUA'
+                && (bool) ($geofenceConfig['aktif'] ?? false),
             'can_revise' => false,
             'submitted' => false,
             'jadwal' => $context['jadwal'],

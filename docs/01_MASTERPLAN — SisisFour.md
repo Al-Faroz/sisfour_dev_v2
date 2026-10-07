@@ -1,8 +1,8 @@
 # Masterplan — SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 19 September 2026
-**Development aktif:** G3.10 — Student Services Expansion — CLOSURE-READY / Draft PR #19 stacked on PR #18; G4 BLOCKED pending G3.9 final runtime closure + stack close decision
+**Tanggal Acuan:** 5 Oktober 2026
+**Development aktif:** G4.1 thin-wrapper recovery — parity Android diperbaiki tanpa memindahkan business rule Web/server ke Cordova
 **Target:** Web + Android Cordova
 
 ## 1. Sistem
@@ -257,9 +257,9 @@ G3.6B PTSP                             CLOSED / MERGED — PR #14
 G3.6C Executive Visualization & EWS Signage CLOSED / MERGED — PR #15
 G3.7  Global Mobile Sweep                  CLOSED / MERGED — PR #16
 G3.8  Viewport/WebView Readiness            CLOSED / MERGED — PR #17
-G3.9  Dashboard Experience V2                IMPLEMENTED / FINAL RUNTIME CLOSURE PENDING — PR #18 DRAFT
-G3.10 Student Services Expansion             CLOSURE-READY — PR #19 DRAFT / STACKED ON G3.9
-G4    Cordova APK                            BLOCKED UNTIL G3.9 + G3.10 STABLE/CLOSED
+G3.9  Dashboard Experience V2                CLOSED / MERGED — PR #18
+G3.10 Student Services Expansion             CLOSED / MERGED — PR #19
+G4    Cordova APK                            G4.1 ACTIVE — THIN-WRAPPER RECOVERY / DEVICE UAT PENDING
 ```
 
 ### G3.6A — UKS / Kesehatan
@@ -507,26 +507,31 @@ merge commit                      59b22b651ad0d508ea3a29261ef590d4c9506da4
 Start gate G4:
 
 ```text
-G3.9 final runtime closure = PASS
-G3.10 closure             = PASS
-PR stack disposition      = explicit user decision
-G4                        = baru boleh START setelah G3 stable
+G3.9 final runtime closure = PASS / PR #18 MERGED
+G3.10 closure              = PASS / PR #19 MERGED
+canonical main             = de3efc5119f811d30f4c1759e20d244106ebd899
+G4.0A environment          = PASS
+G4.0B architecture lock    = PASS / user approval
+G4                         = STARTED
 ```
 
-Setelah G3 stable:
+Locked implementation path:
 
 ```text
-architecture spike
-Android project/config
-session/WebView verification
-Android Back
-keyboard/safe-area/status bar
-geolocation
-network/offline state
-file/download/share
-external links
-real-device regression
-signed package/distribution
+local Cordova shell
+controlled InAppBrowser to production SisFour
+Web session + CSRF unchanged
+server remains authorization/business boundary
+narrow validated native bridge only
+Android Back spike before feature expansion
+geolocation on explicit user action only
+authenticated download/open/share
+controlled external browser/intents
+online-first; no offline mutation replay
+G4.1G final icon + splash + source asset
+G4.2 versioning + keystore + signed APK/AAB
+clean install + signed update + multi-device regression
+distribution artifact
 ```
 
 ## 16. Release Rule
@@ -827,4 +832,4 @@ Admin/Operator         = manage/export/hard-delete
 Siswa                  = self-only
 ```
 
-G4 remains blocked until G3.10 is closed.
+G3.10 is CLOSED / MERGED through PR #19. G4.0 started from canonical `main` `de3efc5119f811d30f4c1759e20d244106ebd899`; environment preflight and architecture lock are PASS.

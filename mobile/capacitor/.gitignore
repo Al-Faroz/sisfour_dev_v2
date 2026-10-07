@@ -1,0 +1,42 @@
+# SisFour Capacitor local dependencies / caches
+node_modules/
+.npm/
+*.log
+
+# Local / secret config
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+build-release.json
+
+# Android generated build/cache/local files
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/**/*.iml
+
+# Generated Capacitor/Cordova Android bridge/output
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+
+# Distribution artifacts
+*.apk
+*.aab
+
+# Temporary/editor artifacts
+*.bak
+*.backup
+*.orig
+*.rej
+*.tmp
+.DS_Store
+Thumbs.db
