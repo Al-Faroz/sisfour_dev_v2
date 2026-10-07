@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 7 Oktober 2026
-**Development aktif:** G4.1 CAPACITOR DEBUG RUNTIME + REAL-DEVICE UAT PASS; commit preparation active; G4.2 signing + multi-device release gate pending
-**Branch aktif:** `feat/g4-cordova-android-20261005`
-**Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #18 dan PR #19 CLOSED / MERGED
+**Development aktif:** G4 CLOSED / MERGED — Capacitor Android runtime + signed release APK finalized; multi-device regression remains post-release hardening
+**Branch aktif:** `main`
+**Baseline `main`:** G4 closed baseline `38a0cee62b70c53c1ebe5fbb71cb6e4c1a369341` — PR #20 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -370,7 +370,7 @@ G3.7 Global mobile sweep   CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â�
 G3.8 Viewport/WebView readiness CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #17
 G3.9 Dashboard Experience V2             CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #18
 G3.10 Student Services Expansion          CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #19
-G4 Cordova APK                            G4.1 ACTIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
+G4 Android APK (Capacitor)                 CLOSED / MERGED — PR #20; signed release APK finalized
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
@@ -1151,9 +1151,13 @@ Resolver remains generic and may preserve other valid server attachments without
 Current boundary:
 
 ```text
-G4.1 debug runtime + one-device UAT = PASS / user evidence
-G4.2 signing/release                = PENDING
-signed APK/AAB                      = PENDING
-multi-device regression             = PENDING
-merge/deploy                        = NOT AUTHORIZED
+G4 Capacitor runtime + one-device UAT = PASS / user evidence
+G4.2 release signing                  = PASS / user terminal evidence
+signed release APK                    = PASS / finalized
+release SHA256                        = 5243B1C09F7BFC9D19B76F40CEC9D05D61062CD79C56AF2C661760F5A728CD6A
+feature commit                        = 9a1df7ae9aa66a70ba68aab40d933e5442d847f6
+PR #20 / merge                        = PASS
+main merge commit                     = 38a0cee62b70c53c1ebe5fbb71cb6e4c1a369341
+multi-device regression               = PENDING / post-release hardening
+production deployment                 = NOT EXECUTED
 ```
