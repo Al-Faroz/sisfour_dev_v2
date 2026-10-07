@@ -2,9 +2,9 @@
 
 **Status:** Canonical / Fresh SSOT
 **Tanggal Acuan:** 7 Oktober 2026
-**Current Boundary:** G4.1 active runtime migrated to Capacitor 8.5.2 + InAppBrowser 4.0.3; debug APK real-device UAT PASS; Cordova retained as reference; G4.2 signing/multi-device pending
+**Current Boundary:** G4 CLOSED / MERGED on Capacitor 8.5.2 + InAppBrowser 4.0.3; single-device UAT PASS; signed release APK finalized; PR #20 merged; Cordova retained as reference; multi-device regression remains post-release hardening
 
-> SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
+> Dokumen ini mempertahankan kontrak Cordova sebagai historical/reference dan mencatat keputusan superseding runtime Capacitor pada bagian 32+. Runtime Android aktif/final adalah Capacitor; UI/UX mobile tetap mengacu ke `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
 ## 1. Target Architecture
 
@@ -1252,17 +1252,33 @@ The Android native project itself and final icon/splash resources are tracked so
 ### 32.5 Current gate
 
 ```text
-G4.1 Capacitor debug implementation     PASS
+G4.1 Capacitor implementation           PASS
 single-device debug APK build           PASS / user terminal evidence
 single-device capability UAT            PASS / user runtime evidence
 generic download UAT                    PASS / user runtime evidence
-source cleanup / commit preparation     ACTIVE
-G4.2 release signing                    PENDING
-signed APK/AAB                          PENDING
-multi-device regression                 PENDING
-PR Ready / merge                        NOT AUTHORIZED
-deployment                              NOT AUTHORIZED
+source cleanup + commit                 PASS
+G4.2 release signing                    PASS / user terminal evidence
+signed release APK                      PASS / finalized
+release SHA256                          5243B1C09F7BFC9D19B76F40CEC9D05D61062CD79C56AF2C661760F5A728CD6A
+feature commit                          9a1df7ae9aa66a70ba68aab40d933e5442d847f6
+PR #20 / merge                          PASS / CLOSED / MERGED
+main merge commit                       38a0cee62b70c53c1ebe5fbb71cb6e4c1a369341
+multi-device regression                 PENDING / post-release hardening
+production deployment                   NOT EXECUTED
 ```
+
+### 32.6 Signed release closure — 7 Oktober 2026
+
+Final signed APK evidence:
+
+```text
+artifact    = SisFour-1.0-vc1-release-9a1df7a.apk
+feature SHA = 9a1df7ae9aa66a70ba68aab40d933e5442d847f6
+merge SHA   = 38a0cee62b70c53c1ebe5fbb71cb6e4c1a369341
+SHA256      = 5243B1C09F7BFC9D19B76F40CEC9D05D61062CD79C56AF2C661760F5A728CD6A
+```
+
+The release keystore and signing password remain outside the repository. APK/AAB and signing secrets are not committed to Git. The final release artifact is accepted for the current G4 closure; multi-device regression remains a separate hardening activity and does not retroactively change the single-device UAT evidence.
 
 ## 33. Capacitor Branding Acceptance — 7 Oktober 2026
 
