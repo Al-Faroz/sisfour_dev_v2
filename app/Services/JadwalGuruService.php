@@ -60,6 +60,23 @@ class JadwalGuruService
         $this->db = Database::connect();
     }
 
+    /**
+     * Context presentation untuk membedakan backend SEMUA dari frontend Guru.
+     * Authorization tetap ditentukan applyViewScope(); context ini hanya
+     * membantu View/Controller menghindari selector target yang redundant.
+     */
+    public function getViewContext(int $userId): array
+    {
+        $scopes = $this->resolveViewScopes($userId);
+
+        return [
+            'scopes' => $scopes,
+            'is_all' => in_array('SEMUA', $scopes, true),
+            'id_guru' => $this->getIdGuruUser($userId),
+            'id_tahun_aktif' => $this->getIdTahunAktif(),
+        ];
+    }
+
     public function getList(
         array $filter,
         int $userId
