@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SisFour</string>
+    <string name="title_activity_main">SisFour</string>
+    <string name="package_name">id.sch.mtsn4jombang.sisfour</string>
+    <string name="custom_url_scheme">id.sch.mtsn4jombang.sisfour</string>
+</resources>

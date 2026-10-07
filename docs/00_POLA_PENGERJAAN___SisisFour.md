@@ -1,10 +1,10 @@
-# Pola Pengerjaan — SisisFour
+# Pola Pengerjaan ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 5 Oktober 2026
-**Development aktif:** G4.1 PRE-BUILD FREEZE STATIC PASS — generic GET/POST Save As + cookie continuity + final 1024 branding + Home/geofence/Back/autofill source gates PASS; exact-head clean build NEXT, device UAT after build
+**Tanggal Acuan:** 7 Oktober 2026
+**Development aktif:** G4.1 CAPACITOR DEBUG RUNTIME + REAL-DEVICE UAT PASS; commit preparation active; G4.2 signing + multi-device release gate pending
 **Branch aktif:** `feat/g4-cordova-android-20261005`
-**Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` — PR #18 dan PR #19 CLOSED / MERGED
+**Baseline `main`:** G3.10 closed baseline `de3efc5119f811d30f4c1759e20d244106ebd899` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #18 dan PR #19 CLOSED / MERGED
 **Role registry canonical:** `admin`, `operator`, `pimpinan`, `bk`, `guru`, `siswa`, `kesehatan`, `ptsp`; Wali Kelas tetap context Guru.
 
 > Dokumen ini adalah kontrak cara kerja SisisFour saat ini. Ia bukan changelog. `00A_GLOBAL_STANDARD_SISFOUR.md` adalah companion wajib sebelum coding/review fitur apa pun. Detail domain tetap berada pada dokumen domain masing-masing.
@@ -48,22 +48,22 @@ Setiap fitur wajib dipetakan melalui:
 
 ```text
 Menu/Fitur
-→ Use Case
-→ SSOT/Domain
-→ Access Boundary
-→ Capability
-→ Scope
-→ Period Context
-→ Target Validation
-→ Business Invariant
-→ Persistence
-→ Service Boundary
-→ Presentation UI
-→ Output Channel
-→ Audit
-→ Testing/Regression
-→ Docs Sync
-→ Deployment Gate
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Use Case
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ SSOT/Domain
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Access Boundary
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Capability
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Scope
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Period Context
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Target Validation
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Business Invariant
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Persistence
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Service Boundary
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Presentation UI
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Output Channel
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Audit
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Testing/Regression
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Docs Sync
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Deployment Gate
 ```
 
 Jangan mulai keputusan business/security dari tombol UI, tabel, query, atau struktur database.
@@ -79,10 +79,10 @@ Menu        -> menus, role_menus, MenuService
 Business    -> Service modul
 Persistence -> Model / Query Builder
 UI          -> View + application CSS + Vanilla JS
-Global UI   -> docs/11_UI_UX — SisisFour.md + docs/13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md
+Global UI   -> docs/11_UI_UX ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md + docs/13_CI4_SNEAT_GLOBAL_LAYOUT_STANDARD.md
 Mobile UI   -> docs/14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md
-Deployment  -> docs/10_DEPLOYMENT_PRODUCTION — SisisFour.md
-Release     -> docs/15_TESTING_POLISH — SisisFour.md
+Deployment  -> docs/10_DEPLOYMENT_PRODUCTION ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md
+Release     -> docs/15_TESTING_POLISH ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md
 ```
 
 `PermissionFilter` adalah route gate. Service tetap authoritative security/business boundary untuk target data, scope, period, transaksi, lifecycle, dan side effect.
@@ -126,16 +126,16 @@ Role/context yang tidak disebut sebagai bagian Access Boundary suatu domain **ti
 
 Full Access tidak otomatis berarti hard-delete/cancel/settings/approval. Destructive capability ditetapkan eksplisit per domain.
 
-## 4. Domain Baseline — UKS / Kesehatan
+## 4. Domain Baseline ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â UKS / Kesehatan
 
-SSOT rinci: `docs/17_UKS_KESEHATAN — SisisFour.md`.
+SSOT rinci: `docs/17_UKS_KESEHATAN ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md`.
 
 Menu:
 
 ```text
 UKS
-├── Data CKG
-└── Data UKS / Catatan Harian UKS
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Data CKG
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Data UKS / Catatan Harian UKS
 ```
 
 Access:
@@ -184,17 +184,17 @@ alasan delete tidak wajib
 
 Pimpinan dapat melihat detail per siswa dan export XLSX. Siswa hanya view, tanpa export.
 
-## 5. Domain Baseline — PTSP
+## 5. Domain Baseline ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PTSP
 
-SSOT rinci: `docs/18_PTSP — SisisFour.md`.
+SSOT rinci: `docs/18_PTSP ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md`.
 
 Menu/internal domain:
 
 ```text
 PTSP
-├── Layanan PTSP
-├── Polling Kepuasan
-└── Pengaduan
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Layanan PTSP
+ÃƒÂ¢Ã¢â‚¬ÂÃ…â€œÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Polling Kepuasan
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Pengaduan
 ```
 
 PTSP mempunyai public landing page tersendiri dengan ketiga form public tanpa login.
@@ -283,10 +283,10 @@ Hirarki:
 
 ```text
 13 CI4 + Sneat Global
-→ 11 UI/UX SisisFour
-→ 14 Mobile & Cordova UI/UX
-→ 11 Role Experience
-→ aturan khusus halaman/domain
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 11 UI/UX SisisFour
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 14 Mobile & Cordova UI/UX
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ 11 Role Experience
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ aturan khusus halaman/domain
 ```
 
 Global rule:
@@ -359,23 +359,23 @@ G2                         CLOSED / MERGED
 G3.1 Mobile foundation     CLOSED / MERGED
 G3.2 Guru/Wali Presensi    CLOSED / MERGED
 G3.3 Dashboard Guru/Wali   CLOSED / MERGED
-G3.3.1 Fondasi BK          CLOSED / MERGED — PR #9
-G3.4 Dashboard/Workflow BK CLOSED / MERGED — PR #10
-G3.5 Pimpinan              CLOSED / MERGED — PR #11
-G3.6 Siswa                 CLOSED / MERGED — PR #12
-G3.6A UKS / Kesehatan      CLOSED / MERGED — PR #13
-G3.6B PTSP                 CLOSED / MERGED — PR #14
-G3.6C Exec Viz / Signage   CLOSED / MERGED — PR #15
-G3.7 Global mobile sweep   CLOSED / MERGED — PR #16
-G3.8 Viewport/WebView readiness CLOSED / MERGED — PR #17
-G3.9 Dashboard Experience V2             CLOSED / MERGED — PR #18
-G3.10 Student Services Expansion          CLOSED / MERGED — PR #19
-G4 Cordova APK                            G4.1 ACTIVE — THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
+G3.3.1 Fondasi BK          CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #9
+G3.4 Dashboard/Workflow BK CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #10
+G3.5 Pimpinan              CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #11
+G3.6 Siswa                 CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #12
+G3.6A UKS / Kesehatan      CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #13
+G3.6B PTSP                 CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #14
+G3.6C Exec Viz / Signage   CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #15
+G3.7 Global mobile sweep   CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #16
+G3.8 Viewport/WebView readiness CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #17
+G3.9 Dashboard Experience V2             CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #18
+G3.10 Student Services Expansion          CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #19
+G4 Cordova APK                            G4.1 ACTIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â THIN-WRAPPER RECOVERY / REBUILD + DEVICE UAT PENDING
 ```
 
 UKS ditempatkan setelah Pimpinan+Siswa agar scope lintas-role stabil. PTSP setelah UKS karena menambah public landing, public submission, thermal print, dan public statistics API.
 
-## 10. G3.3.1 — Kontrak BK yang Tetap Berlaku
+## 10. G3.3.1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Kontrak BK yang Tetap Berlaku
 
 ```text
 Catatan Kasus -> Catatan Pelanggaran Siswa
@@ -407,7 +407,7 @@ bk_konseling.settings  Admin, BK
 
 Siswa dengan effective scope `DIRI_SENDIRI` pada Catatan Pelanggaran/Prestasi memakai experience sederhana: Tahun Ajaran tetap sebagai Period Context, filter operasional lain tidak dirender, dan daftar langsung dibatasi data diri oleh Service.
 
-## 11. G3.3.1 Gate — Closed / Merged
+## 11. G3.3.1 Gate ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Closed / Merged
 
 Evidence closure:
 
@@ -430,7 +430,7 @@ database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_LOCALHOST.sql
 database/20260917_G3_3_1_BK_PERIOD_YEAR_COUNSELING_FOLLOWUP_HOSTING.sql
 ```
 
-## 12. G3.4 — Dashboard/Workflow BK
+## 12. G3.4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Dashboard/Workflow BK
 
 Branch:
 
@@ -454,7 +454,7 @@ Target Validation  = tidak ada mutation baru dari dashboard
 Business Invariant = no poin; no Konseling leak; no SLA/overdue baru
 Persistence        = read-only agregasi dari tabel existing
 Service Boundary   = Dashboard Service
-Presentation UI    = KPI 2×2 + quick action + card/list
+Presentation UI    = KPI 2ÃƒÆ’Ã¢â‚¬â€2 + quick action + card/list
 Output Channel     = Web dashboard + JSON dashboard existing
 Audit              = tidak ada mutation baru
 Testing/Regression = static + BK runtime + cross-role privacy
@@ -492,7 +492,7 @@ PR #10                            = MERGED
 merge commit                      = 6f809913eab1032691f130c9df00e95da74b9a17
 ```
 
-## 13. G3.5 — Dashboard Pimpinan
+## 13. G3.5 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Dashboard Pimpinan
 
 Branch:
 
@@ -514,7 +514,7 @@ Target Validation  = tidak ada mutation baru dari dashboard
 Business Invariant = readonly; no Konseling; Catatan Pelanggaran agregat tanpa poin
 Persistence        = read-only agregasi dari tabel existing
 Service Boundary   = Dashboard Service
-Presentation UI    = KPI 2×2 + quick action + trend/list adaptive
+Presentation UI    = KPI 2ÃƒÆ’Ã¢â‚¬â€2 + quick action + trend/list adaptive
 Output Channel     = Web dashboard + JSON dashboard existing
 Audit              = tidak ada mutation baru
 Testing/Regression = static + Pimpinan runtime + cross-role regression
@@ -552,7 +552,7 @@ PR #11                            = MERGED
 merge commit                      = 6bdfc276ae07b6e70065ee7fae9e6ef51c3299ce
 ```
 
-## 14. G3.6 — Dashboard Siswa
+## 14. G3.6 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Dashboard Siswa
 
 Branch:
 
@@ -574,7 +574,7 @@ Target Validation  = route domain tetap memvalidasi identity/scope target
 Business Invariant = readonly; no poin; no Konseling; no cross-student exposure
 Persistence        = read-only agregasi dari tabel existing
 Service Boundary   = Dashboard Service + service domain existing
-Presentation UI    = status hari ini + KPI 2×2 + quick action + card/list
+Presentation UI    = status hari ini + KPI 2ÃƒÆ’Ã¢â‚¬â€2 + quick action + card/list
 Output Channel     = Web dashboard + JSON dashboard existing
 Audit              = tidak ada mutation baru
 Testing/Regression = static + Siswa runtime + self-scope/privacy + cross-role
@@ -586,7 +586,7 @@ Contract G3.6:
 
 ```text
 Status Hari Ini  = Presensi Sesi Awal diri sendiri
-KPI 2×2          = Hadir / Sakit / Izin / Alpha bulan ini
+KPI 2ÃƒÆ’Ã¢â‚¬â€2          = Hadir / Sakit / Izin / Alpha bulan ini
 Quick Action     = Presensi Saya / Kartu / Prestasi / Profil sesuai permission
 Recent           = ketidakhadiran max 5 + Lihat Rekap
 Kartu            = Kartu Pelajar diri sendiri
@@ -639,7 +639,7 @@ git status
 
 Jangan klaim static/runtime PASS tanpa sumber evidencenya. `PASS / user evidence` tidak boleh diubah menjadi klaim CI/static.
 
-## 15. G3.6A — UKS / Kesehatan
+## 15. G3.6A ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â UKS / Kesehatan
 
 Branch:
 
@@ -669,7 +669,7 @@ Master configurable:
 
 Dashboard Kesehatan:
 - current-state Tahun Ajaran aktif
-- KPI 2×2 CKG/Kunjungan/Rujuk Klinik
+- KPI 2ÃƒÆ’Ã¢â‚¬â€2 CKG/Kunjungan/Rujuk Klinik
 - Quick Action CKG/Data UKS/Import/Master
 - recent max 5
 - no medical scoring/SLA/overdue/risk label
@@ -695,7 +695,7 @@ SSOT lock
 -> explicit merge
 ```
 
-Historical implementation-start gate (G3.6A; superseded by closure in `docs/17_UKS_KESEHATAN — SisisFour.md`):
+Historical implementation-start gate (G3.6A; superseded by closure in `docs/17_UKS_KESEHATAN ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â SisisFour.md`):
 
 ```text
 contract                         LOCKED
@@ -710,7 +710,7 @@ local dump audit                 PENDING
 hosting                          NOT STARTED
 ```
 
-## 16. G3.6C — Executive Visualization & EWS Signage
+## 16. G3.6C ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Executive Visualization & EWS Signage
 
 Canonical order untuk G3.6C mengikuti pola global:
 
@@ -753,7 +753,7 @@ merge commit                     f82a0299c8989da6c1026d84861f3e95d786f7dd
 ```
 
 
-## 17. G3.7 — Global Mobile Sweep
+## 17. G3.7 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Global Mobile Sweep
 
 G3.7 adalah phase presentation/regression lintas aplikasi setelah seluruh domain utama sampai G3.6C masuk `main`.
 
@@ -800,13 +800,13 @@ desktop tidak regression
 Viewport wajib:
 
 ```text
-360×800
-375×812
-390×844
-412×915
-768×1024
-1024×768
-1366×768
+360ÃƒÆ’Ã¢â‚¬â€800
+375ÃƒÆ’Ã¢â‚¬â€812
+390ÃƒÆ’Ã¢â‚¬â€844
+412ÃƒÆ’Ã¢â‚¬â€915
+768ÃƒÆ’Ã¢â‚¬â€1024
+1024ÃƒÆ’Ã¢â‚¬â€768
+1366ÃƒÆ’Ã¢â‚¬â€768
 ```
 
 Urutan pengerjaan:
@@ -829,7 +829,7 @@ SSOT lock                        PASS / user approval
 branch                           feat/g3-7-global-mobile-sweep-20260919
 baseline main                    f82a0299c8989da6c1026d84861f3e95d786f7dd
 runtime source head              00bbef3ee5ba2310a5cecc88c571a6e4a7ead853
-source implementation            IMPLEMENTED / Wave 1–7B complete
+source implementation            IMPLEMENTED / Wave 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“7B complete
 Wave 1 GitHub diff audit         PASS / GitHub read evidence
 Wave 1 static gate               PASS / user terminal evidence
 Wave 1 runtime UAT               PASS / user runtime evidence via Wave 8 full regression
@@ -855,10 +855,10 @@ Wave 7B GitHub diff audit        PASS / GitHub read evidence
 Wave 7B static gate              PASS / user terminal evidence
 Wave 7B runtime UAT              PASS / user runtime evidence via Wave 8 full regression
 Wave 8 full viewport regression  PASS / user runtime evidence
-Settings Menu mobile             PASS / user runtime evidence — documented matrix exception
-Kenaikan bulk mobile             PASS / user runtime evidence — documented local-scroll exception
-Kelulusan bulk mobile            PASS / user runtime evidence — documented local-scroll exception
-Matrix Presensi mobile           PASS / user runtime evidence — local-scroll exception
+Settings Menu mobile             PASS / user runtime evidence ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â documented matrix exception
+Kenaikan bulk mobile             PASS / user runtime evidence ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â documented local-scroll exception
+Kelulusan bulk mobile            PASS / user runtime evidence ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â documented local-scroll exception
+Matrix Presensi mobile           PASS / user runtime evidence ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â local-scroll exception
 local viewport/runtime UAT       PASS / user runtime evidence
 cross-role regression            PASS / user runtime evidence
 local G3.7 gate                  PASS ALL
@@ -873,14 +873,14 @@ merge commit                     7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 ```
 
 
-## 18. G3.8 — Viewport/WebView Readiness
+## 18. G3.8 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Viewport/WebView Readiness
 
 Baseline:
 
 ```text
 main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 branch = feat/g3-8-webview-readiness-20260919
-G3.7  = CLOSED / MERGED — PR #16
+G3.7  = CLOSED / MERGED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PR #16
 ```
 
 G3.8 adalah readiness phase pada source Web sebelum project/plugin Cordova dibuat di G4.
@@ -958,7 +958,7 @@ G4/Cordova                 NOT STARTED
 ```
 
 
-## 19. G3.9 — Dashboard Experience V2
+## 19. G3.9 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Dashboard Experience V2
 
 Current contract:
 
@@ -974,7 +974,7 @@ Enabled Dashboard action = functional colored gradient + action shadow
 Information surface      = flat tonal, no action shadow
 Disabled/expired         = flat neutral grey, no gradient/shadow
 DB/schema/SQL            = NONE
-G4/Cordova               = G4.0 ACTIVE — ENV PASS / ARCHITECTURE LOCKED
+G4/Cordova               = G4.0 ACTIVE ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ENV PASS / ARCHITECTURE LOCKED
 ```
 
 G3.9E regression/closure checkpoint:
@@ -995,7 +995,7 @@ merge commit                     = 49253a1932088264ac6ceea8433d59d35cafe2f5
 G4 follow-on                     = ACTIVE on dedicated feature branch
 ```
 
-## 20. G4.0 — Cordova Android Foundation
+## 20. G4.0 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Cordova Android Foundation
 
 Baseline canonical:
 
@@ -1012,10 +1012,10 @@ Architecture lock:
 
 ```text
 Cordova local shell
-→ deviceready / native orchestration
-→ one controlled InAppBrowser instance
-→ https://sisfour.mtsn4jombang.sch.id/
-→ CI4 Web session + CSRF + server RBAC/service tetap authoritative
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ deviceready / native orchestration
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ one controlled InAppBrowser instance
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ https://sisfour.mtsn4jombang.sch.id/
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ CI4 Web session + CSRF + server RBAC/service tetap authoritative
 ```
 
 Primary Cordova WebView **tidak** memuat production URL sebagai privileged `<content src="https://...">`.
@@ -1069,3 +1069,91 @@ Cordova shell     = Android/WebView adapter saja
 Cordova tidak boleh memiliki rule role/capability/geofencing/radius/Tahun Ajaran atau endpoint bisnis khusus hanya untuk meniru Web. Setiap kendala G4 wajib membaca ulang `00 + 00A + domain terkait + 14 + 15 + 16` sebelum mutation.
 
 Endpoint-specific POST download bridge yang sempat ditambahkan pada recovery awal direvert dari runtime source karena membuat wrapper mengetahui workflow Statistik/Kartu. POST output tetap menjadi gap terpisah sampai tersedia solusi generik yang sesuai Architecture Lock.
+
+### G4 active runtime superseding decision Ã¢â‚¬â€ 7 Oktober 2026
+
+Cordova source di `mobile/cordova/` tetap dipertahankan sebagai reference/history dan tidak dihapus. Runtime Android aktif G4.1 sekarang adalah:
+
+```text
+mobile/capacitor/
+Capacitor core/android/cli = 8.5.2
+@capacitor/inappbrowser    = 4.0.3
+applicationId              = id.sch.mtsn4jombang.sisfour
+compile/target SDK         = 36
+minSdk                     = 26
+Gradle                     = 8.14.3
+JDK build                  = Temurin 21.0.12.1
+production origin          = https://sisfour.mtsn4jombang.sch.id/
+```
+
+Architecture:
+
+```text
+Capacitor local shell
+Ã¢â€ â€™ controlled InAppBrowser
+Ã¢â€ â€™ SisFour production Web UI
+Ã¢â€ â€™ server tetap authority auth/session/CSRF/RBAC/scope/business rule
+```
+
+Browser capability implemented centrally pada wrapper, bukan per-modul SisFour.
+
+Real-device debug APK UAT evidence dari user:
+
+```text
+launcher icon / splash              PASS
+login / logout / session            PASS
+Google Password Manager / Autofill  PASS
+Back / history / root exit          PASS
+upload / file chooser               PASS
+external navigation                 PASS
+PDF download                        PASS
+XLSX download + filename            PASS
+ZIP download                        PASS
+SQL backup download                 PASS
+generic attachment download         PASS
+```
+
+Generic file transport contract:
+
+```text
+GET attachment
+Ã¢â€ â€™ native same-origin HTTPS request
+Ã¢â€ â€™ WebView CookieManager session + User-Agent
+Ã¢â€ â€™ no redirect follow
+Ã¢â€ â€™ read Content-Disposition + Content-Type
+Ã¢â€ â€™ server filename preserved
+Ã¢â€ â€™ generic MIME fallback by extension
+Ã¢â€ â€™ Downloads/SisFour
+
+POST attachment
+Ã¢â€ â€™ optional window.SisFourFileDownload.post(...)
+Ã¢â€ â€™ same-origin validated native bridge
+Ã¢â€ â€™ text form fields + safe headers
+Ã¢â€ â€™ WebView CookieManager session
+Ã¢â€ â€™ server CSRF/RBAC/business validation
+Ã¢â€ â€™ Content-Disposition + MIME preserved
+Ã¢â€ â€™ Downloads/SisFour
+```
+
+Canonical runtime file types verified/covered include:
+
+```text
+.xlsx
+.zip
+.pdf
+.sql
+.png
+.jpg / .jpeg
+```
+
+Resolver remains generic and may preserve other valid server attachments without endpoint/module hardcoding.
+
+Current boundary:
+
+```text
+G4.1 debug runtime + one-device UAT = PASS / user evidence
+G4.2 signing/release                = PENDING
+signed APK/AAB                      = PENDING
+multi-device regression             = PENDING
+merge/deploy                        = NOT AUTHORIZED
+```

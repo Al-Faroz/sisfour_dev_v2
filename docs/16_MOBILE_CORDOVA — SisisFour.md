@@ -1,8 +1,8 @@
-# Cordova Packaging & Integration — SisisFour
+# Cordova Packaging & Integration ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â SisisFour
 
 **Status:** Canonical / Fresh SSOT
-**Tanggal Acuan:** 5 Oktober 2026
-**Current Boundary:** G3.9 + G3.10 CLOSED / MERGED; G4.0 environment/architecture PASS; G4.1 PRE-BUILD FREEZE active; exact-head clean build + device UAT pending
+**Tanggal Acuan:** 7 Oktober 2026
+**Current Boundary:** G4.1 active runtime migrated to Capacitor 8.5.2 + InAppBrowser 4.0.3; debug APK real-device UAT PASS; Cordova retained as reference; G4.2 signing/multi-device pending
 
 > SisisFour akan dibungkus menjadi Android APK dengan Apache Cordova. Dokumen ini mengatur integrasi teknis APK. UI/UX mobile ada di `14_SISFOUR_MOBILE_CORDOVA_UI_UX_STANDARD.md`. Business rule tetap di server.
 
@@ -10,13 +10,13 @@
 
 ```text
 Cordova Android APK
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 local Cordova shell (privileged)
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 controlled fullscreen InAppBrowser
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 https://sisfour.mtsn4jombang.sch.id/
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 CI4/Sneat responsive Web UI
 ```
 
@@ -28,7 +28,7 @@ Server tetap source of truth untuk auth, session, CSRF, RBAC, scope, period cont
 
 ```text
 G2      Master Data/lifecycle fixing + stabilization
-G3.1–G3.7 Mobile role UI + responsive foundation
+G3.1ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œG3.7 Mobile role UI + responsive foundation
 G3.8    Web-side Viewport/WebView Readiness
 G4      Cordova integration + APK packaging
 ```
@@ -46,7 +46,7 @@ Baseline:
 ```text
 main   = 7a595f21b70d9bfc28272b7f8ba19a2dfd3e60f9
 branch = feat/g3-8-webview-readiness-20260919
-G3.7  = CLOSED / MERGED — PR #16
+G3.7  = CLOSED / MERGED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PR #16
 ```
 
 G3.8 hanya menguji dan, bila ada gap nyata, memperbaiki source Web agar wrapper G4 tidak perlu mengoreksi ulang behavior browser.
@@ -130,8 +130,8 @@ Jika session Web berakhir saat AJAX/Fetch:
 
 ```text
 jangan render HTML login di tabel/modal
-→ tampilkan sesi berakhir
-→ arahkan ke login
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tampilkan sesi berakhir
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ arahkan ke login
 ```
 
 Restore workflow hanya jika aman dan tidak menyebabkan mutation ulang.
@@ -143,12 +143,12 @@ Setelah `deviceready`, local shell membuka satu instance controlled InAppBrowser
 ## 7. Android Back
 
 ```text
-Modal terbuka       → tutup modal
-Sidebar terbuka     → tutup sidebar
-Offcanvas/dropdown  → tutup layer
-Detail page         → history back
-Dirty form          → project confirmation
-Dashboard/root      → exit/double-back sesuai keputusan final
+Modal terbuka       ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tutup modal
+Sidebar terbuka     ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tutup sidebar
+Offcanvas/dropdown  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tutup layer
+Detail page         ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ history back
+Dirty form          ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ project confirmation
+Dashboard/root      ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ exit/double-back sesuai keputusan final
 ```
 
 Input Presensi/Jurnal/Catatan Pelanggaran/Tindak Lanjut Pelanggaran/Konseling/Tindak Lanjut Konseling/Prestasi yang belum tersimpan tidak boleh hilang hanya karena Back.
@@ -173,10 +173,10 @@ Uji device nyata:
 
 ```text
 user menjalankan action yang butuh lokasi
-→ cek/minta permission
-→ ambil lokasi
-→ kirim koordinat ke server
-→ server menentukan validitas geofence
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ cek/minta permission
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ ambil lokasi
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ kirim koordinat ke server
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ server menentukan validitas geofence
 ```
 
 Jangan meminta lokasi saat dashboard load.
@@ -252,9 +252,9 @@ share file bila diputuskan
 ## 16. Navigation External
 
 ```text
-internal SisisFour URL → tetap di WebView
-external website       → controlled external browser
-mailto/tel/maps/chat   → application intent bila didukung
+internal SisisFour URL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tetap di WebView
+external website       ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ controlled external browser
+mailto/tel/maps/chat   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ application intent bila didukung
 ```
 
 ## 17. Security
@@ -298,7 +298,7 @@ Android umum 390/412px
 minimal 2 versi Android target
 Wi-Fi stabil
 mobile data/lambat
-offline → online
+offline ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ online
 location allow/deny
 keyboard open/close
 Back button
@@ -447,7 +447,7 @@ signed APK / device matrix      PENDING
 ```
 
 
-## 25. G4.1C — Authenticated Download Bridge
+## 25. G4.1C ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Authenticated Download Bridge
 
 Current runtime evidence after G4.1B:
 
@@ -461,20 +461,20 @@ G4.1C memperbaiki boundary file tanpa memindahkan authorization dari server:
 
 ```text
 InAppBrowser Android download event
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 local shell validates SisFour HTTPS origin
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 SisFourNative.download
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 native authenticated HTTPS GET
 (cookie session + user-agent)
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 read response Content-Disposition + MIME
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 app-private temporary cache
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 Android ACTION_CREATE_DOCUMENT / Save As
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 user-selected destination
 ```
 
@@ -509,7 +509,7 @@ session/RBAC tetap enforced
 logout lalu direct download tidak lolos
 ```
 
-## 26. G4.1D — Dashboard Helper + Native Geolocation Bridge
+## 26. G4.1D ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Dashboard Helper + Native Geolocation Bridge
 
 Local shell menyuntikkan helper UI minimal hanya pada origin SisFour production:
 
@@ -522,17 +522,17 @@ Geolocation memakai bridge sempit:
 
 ```text
 Web page navigator.geolocation.getCurrentPosition()
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 injected compatibility shim
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 cordova_iab.postMessage({ type: location.request })
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 local shell validates current SisFour origin + request id + options
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 cordova-plugin-geolocation 4.1.0
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 Android location permission / native location
-        ↓
+        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ
 result dikembalikan hanya ke callback request tersebut
 ```
 
@@ -562,7 +562,7 @@ startup/login/dashboard tidak meminta lokasi
 Cordova tidak membaca role/status/setting geofence; Web/server yang menentukan kapan navigator.geolocation dipanggil
 ```
 
-## 27. G4.1E — Upload / Import File Chooser
+## 27. G4.1E ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Upload / Import File Chooser
 
 `cordova-plugin-inappbrowser 7.0.0` pada Android sudah menyediakan `onShowFileChooser` dan membuka Android `ACTION_GET_CONTENT`. Karena itu G4.1E tidak menambah native bridge baru sebelum ada bukti gap runtime.
 
@@ -581,7 +581,7 @@ file valid tetap mengikuti permission/RBAC server
 
 Jika UAT membuktikan kebutuhan camera capture, multiple-select, atau MIME-specific picker yang tidak terpenuhi oleh InAppBrowser default, barulah native chooser diperluas.
 
-## 28. G4.1F — Android Back + Generic POST Output
+## 28. G4.1F ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Android Back + Generic POST Output
 
 Android Back tetap bagian thin wrapper karena WebView/InAppBrowser tidak otomatis memenuhi contract aplikasi:
 
@@ -614,9 +614,9 @@ Web workflow -> existing fetch/form submit -> browser download
 
 Cordova APK:
 Web workflow
-→ optional window.SisFourFileDownload.post(...)
-→ cordova_iab postMessage(type=file.download)
-→ local shell validates:
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ optional window.SisFourFileDownload.post(...)
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ cordova_iab postMessage(type=file.download)
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ local shell validates:
    - current origin SisFour production
    - HTTPS same-origin target
    - method POST only
@@ -625,14 +625,14 @@ Web workflow
    - text-only fields
    - max 1200 fields
    - max encoded payload 24 MiB
-→ SisFourNative.downloadRequest
-→ CookieManager session + User-Agent
-→ application/x-www-form-urlencoded UTF-8
-→ server CSRF/RBAC/business validation
-→ redirect disabled
-→ only 2xx attachment response accepted
-→ server filename/MIME preserved
-→ Android Save As
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ SisFourNative.downloadRequest
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ CookieManager session + User-Agent
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ application/x-www-form-urlencoded UTF-8
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ server CSRF/RBAC/business validation
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ redirect disabled
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ only 2xx attachment response accepted
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ server filename/MIME preserved
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Android Save As
 ```
 
 Repeated field names such as `id_kartu[]` are preserved in the URL-encoded POST body and remain arrays server-side.
@@ -660,7 +660,7 @@ Android Save As           = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 Android Back adapter      = IMPLEMENTED / REBUILD + DEVICE UAT PENDING
 ```
 
-## 29. G4.1G — APK Branding / Visual Identity
+## 29. G4.1G ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â APK Branding / Visual Identity
 
 G4.1G adalah acceptance item sebelum release final, tetapi tidak boleh mengorbankan feature parity G4.1.
 
@@ -669,13 +669,13 @@ Current candidate:
 ```text
 color vector master = mobile/cordova/resources/branding/LogoFlat.svg
 white vector master = mobile/cordova/resources/branding/LogoFlat_White.svg
-Android raster master = mobile/cordova/resources/branding/launcher-master-1024.png (1024×1024)
+Android raster master = mobile/cordova/resources/branding/launcher-master-1024.png (1024ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â1024)
 legacy launcher density = 36 / 48 / 72 / 96 / 144 / 192 px
 adaptive foreground = NOT USED; launcher uses direct density PNGs
 adaptive bg = NOT USED
 native splash = color launcher-master-1024 on white
 local shell = exact white SVG on #119450; lightweight fade-in handoff
-old 2319×2299 mobile master = RETIRED / REMOVED
+old 2319ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â2299 mobile master = RETIRED / REMOVED
 Cordova branding/default placeholder = NONE
 ```
 
@@ -696,7 +696,7 @@ Prioritas asset:
 
 Icon dan splash boleh memakai master berbeda. Animasi pembuka hanya boleh ringan dan tidak menambah startup delay yang terasa.
 
-## 30. G4.2 — Release Engineering
+## 30. G4.2 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Release Engineering
 
 ```text
 versionCode
@@ -732,15 +732,15 @@ signed APK/AAB            = PENDING G4.1 device UAT
 Repo meng-ignore `*.jks`, `*.keystore`, `*.p12`, `*.pfx`, populated signing config, dan generated release artifact directory.
 
 
-## 31. Device UAT Evidence — 6 Oktober 2026
+## 31. Device UAT Evidence ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â 6 Oktober 2026
 
 Real-device APK evidence:
 
 ```text
 Upload file chooser                     PASS
-GET export                              FAIL — produced export.bin
-Splash visual                           FAIL — native/shell logo overlap and oversized transition
-Launcher icon                           FAIL — SisFour icon not visible on launcher
+GET export                              FAIL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â produced export.bin
+Splash visual                           FAIL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â native/shell logo overlap and oversized transition
+Launcher icon                           FAIL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â SisFour icon not visible on launcher
 Dashboard helper                        FAIL / not observed
 Geolocation                             NOT VERIFIED by tester
 Saved credential / autofill UX          DEGRADED vs Chrome Android
@@ -754,10 +754,10 @@ GET attachments tidak lagi mengandalkan tebakan MIME/filename dari event WebView
 
 ### Splash / icon
 
-- native splash uses a safe-zone XML drawable around the final 1024×1024 color raster derived from the user-provided SVG;
+- native splash uses a safe-zone XML drawable around the final 1024ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â1024 color raster derived from the user-provided SVG;
 - launcher uses the user-provided density PNGs directly; no adaptive foreground/background XML is used;
 - legacy launcher icons are explicit density resources: 36/48/72/96/144/192 px;
-- the earlier 2319×2299 mobile master is retired and removed;
+- the earlier 2319ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â2299 mobile master is retired and removed;
 - the post-splash shell uses the exact user-provided white SVG on brand green, preventing the prior oversized/double-logo presentation.
 
 Branding UAT should use a clean APK install to avoid launcher/icon cache ambiguity.
@@ -832,7 +832,7 @@ IMPLEMENTED final 1024 launcher/splash pipeline; exact-head build/clean-install 
 ```
 
 
-### Historical debug build evidence — thin-wrapper recovery
+### Historical debug build evidence ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â thin-wrapper recovery
 
 Build berikut adalah evidence **sebelum** final Save As + generic POST + cookie-sync + 1024 launcher pipeline. Ia membuktikan environment/toolchain, bukan current exact-head source.
 
@@ -855,14 +855,14 @@ mobile/cordova/platforms/android/app/build/outputs/apk/debug/app-debug.apk
 Build warning SDK XML/deprecated Gradle API tidak mengubah status build menjadi FAIL; warning tersebut dipantau terpisah dari acceptance feature parity.
 
 
-### XLSX `export.bin` root cause — confirmed 6 Oktober 2026
+### XLSX `export.bin` root cause ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â confirmed 6 Oktober 2026
 
 Audit lintas-domain terhadap Master Siswa, BK, Konseling, Prestasi, UKS, PTSP, Dokumen Siswa, dan Laporan menunjukkan pola server yang konsisten:
 
 ```text
 PhpSpreadsheet/Xlsx
-→ server menentukan filename *.xlsx
-→ CodeIgniter response->download(...)->setFileName(filename)
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ server menentukan filename *.xlsx
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ CodeIgniter response->download(...)->setFileName(filename)
 ```
 
 Nama file pada aplikasi Web **bukan akar masalah**.
@@ -901,7 +901,7 @@ Dashboard bottom-left                  = IMPLEMENTED / REBUILD + DEVICE UAT PEND
 ```
 
 
-### Canonical downloadable file types — G4 bridge scope
+### Canonical downloadable file types ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â G4 bridge scope
 
 Audit repo 6 Oktober 2026 memperluas acceptance download dari sekadar XLSX/PDF menjadi tipe file aktual yang memang dilayani SisFour:
 
@@ -937,7 +937,7 @@ GET same-origin attachment menggunakan generic native download bridge.
 POST-generated attachment memakai generic `file.download` transport dan tetap mempunyai regression gate tersendiri pada device UAT.
 
 
-### Android Save As picker — user-selected destination
+### Android Save As picker ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â user-selected destination
 
 Atas UAT/keputusan user 6 Oktober 2026, authenticated GET download tidak lagi langsung menulis file ke public Downloads.
 
@@ -945,13 +945,13 @@ Flow generic:
 
 ```text
 InAppBrowser download event
-→ authenticated same-origin native GET
-→ server Content-Disposition + MIME
-→ stream ke app-private temporary cache
-→ Android ACTION_CREATE_DOCUMENT
-→ user memilih lokasi + dapat mengubah nama file
-→ stream temp file ke URI pilihan
-→ temp file dibersihkan
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ authenticated same-origin native GET
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ server Content-Disposition + MIME
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ stream ke app-private temporary cache
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Android ACTION_CREATE_DOCUMENT
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ user memilih lokasi + dapat mengubah nama file
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ stream temp file ke URI pilihan
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ temp file dibersihkan
 ```
 
 Rules:
@@ -974,7 +974,7 @@ legacy storage permission = REMOVED
 ```
 
 
-### Branding source update — user-provided LogoFlat assets
+### Branding source update ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â user-provided LogoFlat assets
 
 User-provided source files received:
 
@@ -1019,7 +1019,7 @@ controlled InAppBrowser SisFour Web
 This is a handoff/fade, not a video or heavy animation. Native launcher/splash raster resources remain subject to clean-install real-device acceptance.
 
 
-### Architecture allowlist extension — file.download
+### Architecture allowlist extension ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â file.download
 
 User instruction to continue generic POST-output on 6 Oktober 2026 approves one narrow G4 bridge capability extension:
 
@@ -1032,24 +1032,24 @@ This capability does not identify a module or endpoint. It means only: perform a
 It does not permit arbitrary native execution, arbitrary file read, external network access, role decisions, or business-rule decisions.
 
 
-### Final Android launcher asset pipeline — PRE-BUILD FREEZE
+### Final Android launcher asset pipeline ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PRE-BUILD FREEZE
 
 Final source pipeline:
 
 ```text
 user LogoFlat.svg (square vector)
-→ deterministic 1024×1024 transparent PNG
-→ launcher-master-1024.png (retained as branding master / drawable source)
-→ launcher density PNGs used directly by Cordova
-   ├─ ldpi      36×36
-   ├─ mdpi      48×48
-   ├─ hdpi      72×72
-   ├─ xhdpi     96×96
-   ├─ xxhdpi   144×144
-   └─ xxxhdpi  192×192
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ deterministic 1024ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â1024 transparent PNG
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ launcher-master-1024.png (retained as branding master / drawable source)
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ launcher density PNGs used directly by Cordova
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ ldpi      36ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â36
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ mdpi      48ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â48
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ hdpi      72ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â72
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ xhdpi     96ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â96
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ xxhdpi   144ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â144
+   ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ xxxhdpi  192ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â192
 ```
 
-`config.xml` no longer references the retired 2319×2299 mobile master. The retired file is removed from `mobile/cordova/resources/branding/`.
+`config.xml` no longer references the retired 2319ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â2299 mobile master. The retired file is removed from `mobile/cordova/resources/branding/`.
 
 This is the corrected launcher state: direct user-provided density PNGs, without adaptive launcher XML.
 
@@ -1071,12 +1071,12 @@ Because CI4 may rotate the session ID during any request, the native transport c
 ```text
 before request:
 Android WebView CookieManager
-→ Cookie header native GET/POST
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Cookie header native GET/POST
 
 after response:
 all Set-Cookie response headers
-→ Android WebView CookieManager
-→ flush
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Android WebView CookieManager
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ flush
 ```
 
 Cookie synchronization is implemented once in the shared attachment response handler, so it applies to generic GET and generic POST. Remote Web cannot provide or override Cookie/Authorization headers.
@@ -1095,9 +1095,208 @@ Next gate:
 
 ```text
 clean exact-head Cordova/Gradle build
-→ clean APK install
-→ one complete device UAT matrix
-→ only runtime-evidence failures return to remediation
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ clean APK install
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ one complete device UAT matrix
+ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ only runtime-evidence failures return to remediation
 ```
 
 Do not request another partial APK build for a source item already known before this freeze.
+
+## 32. Active Runtime Superseding Decision ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Capacitor (7 Oktober 2026)
+
+Bagian Cordova di dokumen ini tetap disimpan sebagai historical implementation/reference. Ia **tidak lagi menjadi runtime aktif G4.1**.
+
+Active runtime:
+
+```text
+mobile/capacitor/
+@capacitor/core         8.5.2
+@capacitor/android      8.5.2
+@capacitor/cli          8.5.2
+@capacitor/inappbrowser 4.0.3
+Gradle                  8.14.3
+JDK                     Temurin 21.0.12.1
+minSdk                  26
+compileSdk/targetSdk    36
+applicationId           id.sch.mtsn4jombang.sisfour
+```
+
+Cordova remains:
+
+```text
+mobile/cordova/
+= reference/history only
+= do not delete without explicit approval
+= not the active APK runtime
+```
+
+### 32.1 Active architecture
+
+```text
+SisFour APK
+ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Capacitor local shell
+    ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ controlled InAppBrowser
+        ÃƒÂ¢Ã¢â‚¬ÂÃ¢â‚¬ÂÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ https://sisfour.mtsn4jombang.sch.id/
+```
+
+The InAppBrowser is treated as a bounded Chrome-like runtime for the capabilities SisFour actually needs. Business authorization remains entirely server-side.
+
+### 32.2 Real-device debug UAT closure
+
+User runtime evidence after final download-engine correction:
+
+```text
+launcher branding                      PASS
+native splash                          PASS
+production startup                     PASS
+login/logout/session                   PASS
+Android Autofill / Google Password Manager PASS
+forms/input/select                     PASS
+Android Back/history/root exit         PASS
+file chooser/upload                    PASS
+external HTTPS routing                 PASS
+PDF attachment/download                PASS
+XLSX attachment/download               PASS
+ZIP generated attachment/download      PASS
+SQL database backup download           PASS
+generic attachment transport           PASS
+```
+
+This closes the G4.1 debug wrapper capability gate on the tested device. It does **not** close signed release or multi-device regression.
+
+### 32.3 Generic download engine ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â canonical
+
+GET:
+
+```text
+WebView download event
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ validate HTTPS SisFour host
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ native HttpURLConnection
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cookie from Android WebView CookieManager
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ User-Agent continuity
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ redirects disabled
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ server response status validated
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ sync Set-Cookie back to CookieManager
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ Content-Disposition filename / filename* parsed
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ MIME read from response; generic MIME resolved from extension
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ stream saved to Downloads/SisFour
+```
+
+POST:
+
+```text
+Web workflow
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ window.SisFourFileDownload.post(...)
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ validated same-origin native bridge
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ safe headers: Accept / X-Requested-With
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ text fields encoded application/x-www-form-urlencoded UTF-8
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ cookie/session from CookieManager
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ redirects disabled
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ server remains CSRF/RBAC/business authority
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ response filename/MIME preserved
+ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ stream saved to Downloads/SisFour
+```
+
+No route/module name is hardcoded in the native transport.
+
+Canonical file types explicitly resolved:
+
+```text
+.xlsx -> application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+.xls  -> application/vnd.ms-excel
+.zip  -> application/zip
+.pdf  -> application/pdf
+.png  -> image/png
+.jpg/.jpeg -> image/jpeg
+.sql  -> application/sql
+.csv  -> text/csv
+.txt  -> text/plain
+.json -> application/json
+.doc/.docx
+.ods
+```
+
+`.sql` is required for SisFour Backup Database downloads and must never fall back to `.bin` merely because the server MIME is generic.
+
+### 32.4 Repository source-of-truth
+
+Tracked source should include:
+
+```text
+mobile/capacitor/package.json
+mobile/capacitor/package-lock.json
+mobile/capacitor/capacitor.config.*
+mobile/capacitor/src/
+mobile/capacitor/www/
+mobile/capacitor/assets/
+mobile/capacitor/android/ native project source
+```
+
+Do not commit:
+
+```text
+node_modules/
+android/.gradle/
+android/**/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
+generated capacitor config/plugin JSON under android assets
+APK/AAB
+keystore/signing material
+temporary backup files
+```
+
+The Android native project itself and final icon/splash resources are tracked so the accepted branding/native configuration is explicit and reviewable.
+
+### 32.5 Current gate
+
+```text
+G4.1 Capacitor debug implementation     PASS
+single-device debug APK build           PASS / user terminal evidence
+single-device capability UAT            PASS / user runtime evidence
+generic download UAT                    PASS / user runtime evidence
+source cleanup / commit preparation     ACTIVE
+G4.2 release signing                    PENDING
+signed APK/AAB                          PENDING
+multi-device regression                 PENDING
+PR Ready / merge                        NOT AUTHORIZED
+deployment                              NOT AUTHORIZED
+```
+
+## 33. Capacitor Branding Acceptance — 7 Oktober 2026
+
+Section ini adalah kontrak branding aktif untuk runtime Capacitor dan supersede pernyataan branding Cordova lama yang menyebut adaptive launcher XML tidak dipakai.
+
+Resource Android yang sekarang menjadi source-of-truth dan telah menghasilkan debug APK yang lulus real-device UAT adalah:
+
+```text
+mobile/capacitor/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+mobile/capacitor/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+mobile/capacitor/android/app/src/main/res/mipmap-*/ic_launcher.png
+mobile/capacitor/android/app/src/main/res/mipmap-*/ic_launcher_round.png
+mobile/capacitor/android/app/src/main/res/mipmap-*/ic_launcher_foreground.png
+mobile/capacitor/android/app/src/main/res/mipmap-*/ic_launcher_background.png
+
+mobile/capacitor/android/app/src/main/res/drawable*/splash.png
+```
+
+Acceptance rule:
+
+```text
+current Capacitor launcher/splash resources = ACCEPTED / USER DEVICE UAT
+old Cordova direct-density-only launcher contract = HISTORICAL / SUPERSEDED
+do not delete/regenerate current branding resources without a new explicit branding change + device UAT
+```
+
+Keputusan ini tidak menghidupkan kembali pipeline eksperimen branding lama. Ia hanya mencatat resource Android aktual yang menghasilkan APK Capacitor yang telah diterima pada device.
+
+Runtime acceptance:
+
+```text
+launcher icon = PASS / user runtime evidence
+splash        = PASS / user runtime evidence
+```
+
+Karena itu source commit harus mempertahankan resource Android yang identik dengan APK yang diuji, termasuk `mipmap-anydpi-v26` adaptive launcher descriptors dan density PNG yang direferensikan Android.
