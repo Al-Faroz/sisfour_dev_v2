@@ -1,18 +1,23 @@
 <?= $this->extend('main') ?>
 <?= $this->section('content') ?>
 
+<?php $isSelfScope = (($initial['scope'] ?? '') === 'DIRI_SENDIRI'); ?>
+
 <div
     id="kartuApp"
     data-base-url="<?= esc(base_url()) ?>"
     data-max-print="<?= (int) ($initial['max_print'] ?? 200) ?>"
     data-can-manage="<?= !empty($initial['can_manage']) ? '1' : '0' ?>"
+    data-self-view="<?= $isSelfScope ? '1' : '0' ?>"
     class="kartu-page"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
-            <h4 class="fw-bold mb-1">Kartu Pelajar</h4>
+            <h4 class="fw-bold mb-1"><?= $isSelfScope ? 'Kartu Pelajar Saya' : 'Kartu Pelajar' ?></h4>
             <p class="text-muted mb-0">
-                Generate identitas kartu dan cetak fisik adalah dua proses terpisah.
+                <?= $isSelfScope
+                    ? 'Kartu yang terhubung dengan identitas siswa Anda.'
+                    : 'Generate identitas kartu dan cetak fisik adalah dua proses terpisah.' ?>
             </p>
         </div>
     </div>
@@ -257,7 +262,7 @@
 
         <div class="card sisfour-table-card">
             <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="mb-0">Daftar Kartu Pelajar</h5>
+                <h5 class="mb-0"><?= $isSelfScope ? 'Kartu Saya' : 'Daftar Kartu Pelajar' ?></h5>
                 <?php if (!empty($initial['can_manage'])): ?>
                     <label class="d-md-none d-inline-flex align-items-center gap-2 mb-0 small">
                         <input
@@ -287,8 +292,10 @@
                                     >
                                 </th>
                             <?php endif; ?>
-                            <th>Siswa</th>
-                            <th>Kelas</th>
+                            <?php if (!$isSelfScope): ?>
+                                <th>Siswa</th>
+                                <th>Kelas</th>
+                            <?php endif; ?>
                             <th>Nomor Kartu</th>
                             <th>Terbit</th>
                             <th>Status</th>

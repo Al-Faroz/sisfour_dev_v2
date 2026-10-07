@@ -176,6 +176,61 @@ class LaporanJurnalModel
         return $map;
     }
 
+    /**
+     * Detail child siswa untuk export batch tanpa N+1 query.
+     *
+     * @return array<int,array{Sakit:list<string>,Izin:list<string>,Alpha:list<string>}>
+     */
+    public function getStudentExceptionDetails(array $idJurnal): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(
+            'intval',
+            $idJurnal
+        ))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->db
+            ->table('presensi_mengajar_siswa')
+            ->select(
+                'id_presensi_mengajar, nama_siswa_snapshot, status'
+            )
+            ->whereIn('id_presensi_mengajar', $ids)
+            ->orderBy('id_presensi_mengajar', 'ASC')
+            ->orderBy('status', 'ASC')
+            ->orderBy('nama_siswa_snapshot', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $id = (int) ($row['id_presensi_mengajar'] ?? 0);
+            $status = (string) ($row['status'] ?? '');
+            $nama = trim((string) ($row['nama_siswa_snapshot'] ?? ''));
+
+            if ($id <= 0 || $nama === '') {
+                continue;
+            }
+
+            if (! isset($map[$id])) {
+                $map[$id] = [
+                    'Sakit' => [],
+                    'Izin' => [],
+                    'Alpha' => [],
+                ];
+            }
+
+            if (isset($map[$id][$status])) {
+                $map[$id][$status][] = $nama;
+            }
+        }
+
+        return $map;
+    }
+
     public function getStudentExceptions(int $idJurnal): array
     {
         if ($idJurnal <= 0) {

@@ -8,20 +8,33 @@ $guruIdentifier = static function (array $guru): string {
     if ($nip !== '') return $nip;
     return trim((string) ($guru['nik'] ?? ''));
 };
+$isSelfPresentation = !empty($viewContext['is_self_presentation']);
+$showImportControls = !empty($viewContext['show_import_controls']);
+$selfGuruId = (int) ($viewContext['id_guru'] ?? 0);
+$activeYearId = (int) ($viewContext['id_tahun_aktif'] ?? 0);
 ?>
 
 <div
     id="masterJadwalApp"
     data-base-url="<?= esc(base_url()) ?>"
-    data-can-manage="<?= !empty($canManage) ? '1' : '0' ?>"
+    data-can-manage="<?= $showImportControls ? '1' : '0' ?>"
+    data-self-presentation="<?= $isSelfPresentation ? '1' : '0' ?>"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
-            <h4 class="fw-bold mb-1">Master Jadwal Guru</h4>
-            <p class="text-muted mb-0">Jadwal dikelola melalui import Excel dan tetap divalidasi terhadap bentrok serta topology sesi.</p>
+            <h4 class="fw-bold mb-1"><?= $isSelfPresentation ? 'Jadwal Saya' : 'Master Jadwal Guru' ?></h4>
+            <p class="text-muted mb-0">
+                <?php if ($isSelfPresentation): ?>
+                    Jadwal mengajar aktif ditampilkan langsung sesuai identitas Guru yang login.
+                <?php elseif ($showImportControls): ?>
+                    Jadwal dikelola melalui import Excel dan tetap divalidasi terhadap bentrok serta topology sesi.
+                <?php else: ?>
+                    Jadwal Guru ditampilkan read-only sesuai permission dan scope.
+                <?php endif; ?>
+            </p>
         </div>
 
-        <?php if (!empty($canManage)): ?>
+        <?php if ($showImportControls): ?>
             <div class="sisfour-page-actions">
                 <a href="<?= base_url('master/jadwal/template') ?>" class="btn btn-outline-primary">
                     <i class="bx bx-download me-1"></i> Template
@@ -36,12 +49,22 @@ $guruIdentifier = static function (array $guru): string {
         <?php endif; ?>
     </div>
 
+    <?php if ($showImportControls): ?>
     <div class="alert alert-info sisfour-compact-note">
         <i class="bx bx-info-circle me-1"></i>
         Import menggunakan <strong>NIP atau NIK Guru</strong> sebagai identitas dan bersifat atomic.
         Import baru hanya menonaktifkan jadwal aktif lama pada Tahun Ajaran/Semester yang dipilih tanpa menghapus histori.
     </div>
+    <?php endif; ?>
 
+    <?php if ($isSelfPresentation): ?>
+        <form id="formFilterJadwal" class="d-none" aria-hidden="true">
+            <select id="filterGuru" name="id_guru"><option value="<?= $selfGuruId ?>" selected></option></select>
+            <select id="filterKelas" name="id_kelas"><option value="" selected></option></select>
+            <input type="hidden" name="id_tahun" value="<?= $activeYearId ?>">
+            <input type="hidden" name="status_jadwal" value="Aktif">
+        </form>
+    <?php else: ?>
     <div class="card sisfour-filter-card mb-4">
         <div class="card-body">
             <form id="formFilterJadwal" class="row g-3 align-items-end">
@@ -110,11 +133,16 @@ $guruIdentifier = static function (array $guru): string {
             </form>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="card sisfour-table-card">
         <div class="card-header d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <h5 class="mb-0">Daftar Jadwal Guru</h5>
-            <?php if (empty($canManage)): ?><span class="badge bg-label-info">Readonly</span><?php endif; ?>
+            <h5 class="mb-0"><?= $isSelfPresentation ? 'Jadwal Mengajar Aktif' : 'Daftar Jadwal Guru' ?></h5>
+            <?php if ($isSelfPresentation): ?>
+                <span class="badge bg-label-primary">Data Saya</span>
+            <?php elseif (!$showImportControls): ?>
+                <span class="badge bg-label-info">Readonly</span>
+            <?php endif; ?>
         </div>
 
         <div id="jadwalMobileList" class="d-md-none list-group list-group-flush">
@@ -125,7 +153,7 @@ $guruIdentifier = static function (array $guru): string {
                 <thead>
                     <tr>
                         <th style="width:56px;">No.</th>
-                        <th>Guru</th>
+                        <?php if (!$isSelfPresentation): ?><th>Guru</th><?php endif; ?>
                         <th>Kelas</th>
                         <th>Mata Pelajaran</th>
                         <th>Hari</th>
@@ -133,7 +161,7 @@ $guruIdentifier = static function (array $guru): string {
                         <th>Sesi</th>
                         <th>Tahun Ajaran</th>
                         <th>Status</th>
-                        <?php if (!empty($canManage)): ?><th style="width:80px;">Aksi</th><?php endif; ?>
+                        <?php if ($showImportControls): ?><th style="width:80px;">Aksi</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -141,7 +169,7 @@ $guruIdentifier = static function (array $guru): string {
         </div>
     </div>
 
-    <?php if (!empty($canManage)): ?>
+    <?php if ($showImportControls): ?>
         <div class="modal fade" id="modalImportJadwal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
                 <form id="formImportJadwal" class="modal-content">

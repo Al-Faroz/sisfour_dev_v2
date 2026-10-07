@@ -88,18 +88,26 @@
     }
 </style>
 
+<?php
+$isSelfInput = !empty($inputContext['is_self']);
+$selfGuru = $isSelfInput ? (($guruOptions ?? [])[0] ?? null) : null;
+?>
+
 <div
     id="presensiMengajarApp"
     data-base-url="<?= esc(base_url()) ?>"
+    data-self-input="<?= $isSelfInput ? '1' : '0' ?>"
     data-tanggal="<?= esc($tanggal ?? '') ?>"
     data-selected-guru="<?= (int) ($selectedGuru ?? 0) ?>"
     data-selected-jadwal="<?= (int) ($selectedJadwal ?? 0) ?>"
 >
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
-            <h4 class="fw-bold mb-1"><?= esc($title ?? 'Presensi Mengajar / Jurnal') ?></h4>
+            <h4 class="fw-bold mb-1"><?= $isSelfInput ? 'Jurnal Mengajar Saya' : esc($title ?? 'Presensi Mengajar / Jurnal') ?></h4>
             <p class="text-muted mb-0">
-                Pilih Guru terlebih dahulu, lalu pilih Jadwal aktif Guru pada tanggal tersebut.
+                <?= $isSelfInput
+                    ? 'Jadwal aktif Guru yang login dimuat otomatis untuk hari ini.'
+                    : 'Pilih Guru terlebih dahulu, lalu pilih Jadwal aktif Guru pada tanggal tersebut.' ?>
             </p>
         </div>
 
@@ -127,24 +135,36 @@
                 </div>
 
                 <div class="col-12 col-lg-5">
-                    <label class="form-label" for="jurnalGuru">Nama Guru</label>
-                    <select
-                        class="form-select"
-                        id="jurnalGuru"
-                        data-searchable-select
-                        data-search-placeholder="Ketik nama atau NIP Guru..."
-                    >
-                        <option value="">Pilih Guru</option>
-                        <?php foreach (($guruOptions ?? []) as $guru): ?>
-                            <option
-                                value="<?= (int) $guru['id'] ?>"
-                                <?= (int) ($selectedGuru ?? 0) === (int) $guru['id'] ? 'selected' : '' ?>
-                            >
-                                <?= esc($guru['nama']) ?>
-                                <?= !empty($guru['nip']) ? ' — ' . esc($guru['nip']) : '' ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php if ($isSelfInput): ?>
+                        <label class="form-label">Guru</label>
+                        <div class="form-control bg-lighter">
+                            <?= esc((string) ($selfGuru['nama'] ?? '-')) ?>
+                        </div>
+                        <select class="d-none" id="jurnalGuru" aria-hidden="true">
+                            <?php foreach (($guruOptions ?? []) as $guru): ?>
+                                <option value="<?= (int) $guru['id'] ?>" selected><?= esc($guru['nama']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <label class="form-label" for="jurnalGuru">Nama Guru</label>
+                        <select
+                            class="form-select"
+                            id="jurnalGuru"
+                            data-searchable-select
+                            data-search-placeholder="Ketik nama atau NIP Guru..."
+                        >
+                            <option value="">Pilih Guru</option>
+                            <?php foreach (($guruOptions ?? []) as $guru): ?>
+                                <option
+                                    value="<?= (int) $guru['id'] ?>"
+                                    <?= (int) ($selectedGuru ?? 0) === (int) $guru['id'] ? 'selected' : '' ?>
+                                >
+                                    <?= esc($guru['nama']) ?>
+                                    <?= !empty($guru['nip']) ? ' — ' . esc($guru['nip']) : '' ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
 
                 <div class="col-12 col-lg-4">

@@ -9,6 +9,7 @@
     const canEditNisn = app.dataset.canEditNisn === '1';
     const canManage = app.dataset.canManage === '1';
     const canImportExport = app.dataset.canImportExport === '1';
+    const contextualWali = app.dataset.contextualWali === '1';
 
     const table = document.getElementById('tableSiswa');
     const tbody = table?.querySelector('tbody') ?? null;
@@ -180,7 +181,9 @@
     };
 
     const renderRows = () => {
-        const actionColspan = canEdit || canManage ? 8 : 7;
+        const actionColspan = contextualWali
+            ? (canEdit || canManage ? 6 : 5)
+            : (canEdit || canManage ? 8 : 7);
 
         if (!rows.length) {
             tbody.innerHTML = `
@@ -257,21 +260,21 @@
                             ${escapeHtml(siswa.tempat_lahir || '')}
                         </div>
                     </td>
-                    <td>
+                    ${contextualWali ? '' : `<td>
                         <div class="font-monospace">
                             ${escapeHtml(siswa.nik)}
                         </div>
                         <div class="font-monospace text-muted">
                             ${escapeHtml(siswa.nisn)}
                         </div>
-                    </td>
+                    </td>`}
                     <td>${kelas}</td>
                     <td>
                         ${siswa.jenis_kelamin === 'L'
                             ? 'Laki-laki'
                             : 'Perempuan'}
                     </td>
-                    <td>${statusBadge(siswa.status_aktif)}</td>
+                    ${contextualWali ? '' : `<td>${statusBadge(siswa.status_aktif)}</td>`}
                     <td>
                         ${siswa.no_telepon
                             ? escapeHtml(siswa.no_telepon)
@@ -300,9 +303,9 @@
                             <div class="fw-semibold sisfour-wrap-anywhere">${escapeHtml(siswa.nama)}</div>
                             <div class="small text-muted sisfour-wrap-anywhere">${escapeHtml(siswa.tempat_lahir || '-')} · ${siswa.jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan'}</div>
                         </div>
-                        ${statusBadge(siswa.status_aktif)}
+                        ${contextualWali ? '' : statusBadge(siswa.status_aktif)}
                     </div>
-                    <div class="small mt-2 font-monospace sisfour-wrap-anywhere">NIK ${escapeHtml(siswa.nik)} · NISN ${escapeHtml(siswa.nisn)}</div>
+                    <div class="small mt-2 font-monospace sisfour-wrap-anywhere">${contextualWali ? `NISN ${escapeHtml(siswa.nisn)}` : `NIK ${escapeHtml(siswa.nik)} · NISN ${escapeHtml(siswa.nisn)}`}</div>
                     <div class="small mt-2">${kelas}</div>
                     <div class="small text-muted mt-1 sisfour-wrap-anywhere">${siswa.no_telepon ? escapeHtml(siswa.no_telepon) : '-'}</div>
                     ${(canEdit || canManage) ? `<div class="sisfour-mobile-actions mt-3">${editButton}${deleteButton}</div>` : ''}
@@ -316,7 +319,7 @@
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="${canEdit || canManage ? 8 : 7}" class="text-center py-4">
+                <td colspan="${contextualWali ? (canEdit || canManage ? 6 : 5) : (canEdit || canManage ? 8 : 7)}" class="text-center py-4">
                     <span class="spinner-border spinner-border-sm me-2"></span>
                     Memuat data...
                 </td>

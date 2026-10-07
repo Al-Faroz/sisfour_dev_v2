@@ -54,6 +54,28 @@ class PresensiMengajarService
     }
 
     /**
+     * Context presentation input Jurnal.
+     * Scope/capability tetap authoritative di Service; View hanya memakai
+     * informasi ini untuk menghindari selector Guru yang redundant.
+     */
+    public function getInputPresentationContext(int $userId): array
+    {
+        $scopes = $this->getPermissionScopes(
+            'presensi_mengajar.input',
+            $userId
+        );
+        $isAll = in_array('SEMUA', $scopes, true);
+        $user = $this->getUser($userId);
+
+        return [
+            'scopes' => $scopes,
+            'is_all' => $isAll,
+            'is_self' => ! $isAll && $this->hasSelfInputScope($scopes),
+            'id_guru' => (int) ($user['id_guru'] ?? 0),
+        ];
+    }
+
+    /**
      * Daftar Guru yang dapat dipilih pada workflow input.
      *
      * Scope SEMUA:

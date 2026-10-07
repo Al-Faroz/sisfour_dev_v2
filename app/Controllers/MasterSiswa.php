@@ -50,6 +50,9 @@ class MasterSiswa extends BaseController
         $manageScope = $this->siswaService->getManageScope($userId);
         $importExportScope = $this->siswaService->getImportExportScope($userId);
         $tahunOptions = $this->siswaService->getTahunOptions($userId);
+        $isContextualWali = $editScope === 'KELAS_DIAMPU'
+            && $manageScope !== 'SEMUA'
+            && $importExportScope !== 'SEMUA';
 
         return $this->response->setBody(
             $this->renderWithLayout('master/siswa', [
@@ -62,6 +65,7 @@ class MasterSiswa extends BaseController
                 'canEditNisn' => $editScope === 'SEMUA',
                 'canManage' => $manageScope === 'SEMUA',
                 'canImportExport' => $importExportScope === 'SEMUA',
+                'isContextualWali' => $isContextualWali,
                 'extraJs' => [
                     'assets/js/master/siswa-filter-year.js',
                     'assets/js/master/siswa.js',

@@ -63,8 +63,8 @@
       </div>
     </div>
 
-    <div class="modal fade" id="modalKasusKelompokBaru" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><form class="modal-content" id="formKasusKelompok">
-      <div class="modal-header"><div><h5 class="modal-title mb-1">Tambah Pelanggaran Kelompok</h5><small class="text-muted">Minimal 2 siswa. Seluruh anggota disimpan dalam satu transaksi.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal fade" id="modalKasusKelompokBaru" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><form class="modal-content" id="formKasusKelompok">
+      <div class="modal-header"><div><h5 class="modal-title mb-1">Tambah Pelanggaran Kelompok</h5><small class="text-muted">Minimal 2 siswa. Seluruh anggota disimpan dalam satu transaksi.</small></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
       <div class="modal-body">
         <div class="mb-3"><label class="form-label" for="groupKasusSiswa">Cari Siswa</label><div class="input-group"><select id="groupKasusSiswa" class="form-select" data-searchable-remote="<?= esc(base_url('ui/search/siswa')) ?>" data-searchable-context="bk_kasus" data-searchable-min-chars="2"><option value="">Cari nama / NISN</option></select><button class="btn btn-outline-primary" id="btnTambahGroupKasusSiswa" type="button">Tambah</button></div></div>
         <div class="border rounded p-2 mb-3"><div class="small fw-semibold mb-2">Anggota dipilih <span id="groupKasusCount" class="badge bg-label-primary">0</span></div><div id="groupKasusMembers" class="d-flex flex-column gap-2"><span class="text-muted small">Belum ada siswa dipilih.</span></div></div>
@@ -74,10 +74,10 @@
           <div class="col-12"><label class="form-label">Keterangan</label><textarea class="form-control" name="keterangan" rows="3"></textarea></div>
         </div>
       </div>
-      <div class="modal-footer"><button class="btn btn-label-secondary" type="button" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan Kelompok</button></div>
+      <div class="modal-footer sisfour-modal-actions"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" type="submit">Simpan Kelompok</button></div>
     </form></div></div>
 
-    <div class="modal fade" id="modalKasusKelompokDetail" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal fade" id="modalKasusKelompokDetail" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title">Detail Pelanggaran Kelompok</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body"><div id="groupKasusDetailLoading" class="text-muted">Memuat data...</div><div id="groupKasusDetailContent" class="d-none">
         <div class="mb-3"><strong id="groupKasusDetailTitle">-</strong><div id="groupKasusDetailMeta" class="text-muted small"></div><div id="groupKasusDetailNote" class="mt-2"></div></div>

@@ -23,7 +23,31 @@ class JadwalGuru extends BaseController
     public function index()
     {
         $userId = $this->currentActorUserId();
+        $viewContext = $this->jadwalService->getViewContext($userId);
+
+        $storedPrimaryRole = session()->get('role');
+        $experienceRole = $this->resolveExperienceRole(
+            $this->authService->getUserRoles($userId),
+            is_string($storedPrimaryRole) ? $storedPrimaryRole : null
+        );
+        $canManage = $this->jadwalService->canManage($userId);
+        $isSelfPresentation = $experienceRole === 'guru';
+
+        $viewContext['experience_role'] = $experienceRole;
+        $viewContext['is_self_presentation'] = $isSelfPresentation;
+        $viewContext['show_import_controls'] =
+            in_array($experienceRole, ['admin', 'operator'], true)
+            && $canManage;
+
         $filter = $this->filters();
+
+        if ($isSelfPresentation) {
+            $filter['id_guru'] = (int) ($viewContext['id_guru'] ?? 0);
+            $filter['id_kelas'] = 0;
+            $filter['id_tahun'] = (int) ($viewContext['id_tahun_aktif'] ?? 0);
+            $filter['hari'] = '';
+            $filter['status_jadwal'] = 'Aktif';
+        }
 
         if ($this->isJsonRequest()) {
             $paging = $this->paginationService->normalizePaging(
@@ -45,9 +69,12 @@ class JadwalGuru extends BaseController
 
         return $this->response->setBody(
             $this->renderWithLayout('master/jadwal_guru', [
-                'title' => 'Master Jadwal Guru',
+                'title' => $isSelfPresentation
+                    ? 'Jadwal Saya'
+                    : 'Master Jadwal Guru',
                 'options' => $options,
-                'canManage' => $this->jadwalService->canManage($userId),
+                'viewContext' => $viewContext,
+                'canManage' => $canManage,
                 'extraJs' => [
                     'assets/js/master/jadwal-guru.js',
                 ],
