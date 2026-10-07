@@ -27,7 +27,12 @@ class PresensiMengajar extends BaseController
     {
         $userId = $this->currentActorUserId();
         $tanggal = trim((string) $this->request->getGet('tanggal'));
+        $inputContext = $this->service->getInputPresentationContext($userId);
         $idGuru = (int) $this->request->getGet('id_guru');
+
+        if (! ($inputContext['is_all'] ?? false)) {
+            $idGuru = (int) ($inputContext['id_guru'] ?? 0);
+        }
 
         if ($tanggal === '') {
             $tanggal = Time::now(self::TZ)->format('Y-m-d');
@@ -60,6 +65,7 @@ class PresensiMengajar extends BaseController
                 'tanggal' => $tanggal,
                 'selectedGuru' => $idGuru,
                 'selectedJadwal' => (int) $this->request->getGet('id_jadwal'),
+                'inputContext' => $inputContext,
                 'guruOptions' => $this->service->getGuruInputOptions(
                     $userId,
                     $tanggal
@@ -97,6 +103,7 @@ class PresensiMengajar extends BaseController
         }
 
         $idGuru = (int) ($result['jadwal']['id_guru'] ?? 0);
+        $inputContext = $this->service->getInputPresentationContext($userId);
 
         return $this->response->setBody(
             $this->renderWithLayout('presensi/mengajar', [
@@ -104,6 +111,7 @@ class PresensiMengajar extends BaseController
                 'tanggal' => $tanggal,
                 'selectedGuru' => $idGuru,
                 'selectedJadwal' => (int) $idJadwal,
+                'inputContext' => $inputContext,
                 'guruOptions' => $this->service->getGuruInputOptions(
                     $userId,
                     $tanggal
