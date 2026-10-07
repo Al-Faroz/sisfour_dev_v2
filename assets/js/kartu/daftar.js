@@ -14,6 +14,8 @@
 
     const canManage =
         app.dataset.canManage === '1';
+    const selfView =
+        app.dataset.selfView === '1';
 
     const body =
         document.getElementById('kartuBody');
@@ -357,13 +359,13 @@
                             `
                             : ''
                     }
-                    <td>
+                    ${selfView ? '' : `<td>
                         <div class="font-monospace small">
                             ${esc(card.nisn)}
                         </div>
                         <strong>${esc(card.nama)}</strong>
                     </td>
-                    <td>${esc(card.nama_kelas || '-')}</td>
+                    <td>${esc(card.nama_kelas || '-')}</td>`}
                     <td>${esc(card.nomor_kartu)}</td>
                     <td>${esc(card.tanggal_terbit)}</td>
                     <td>
@@ -407,7 +409,7 @@
             || `
                 <tr>
                     <td
-                        colspan="${canManage ? 7 : 6}"
+                        colspan="${selfView ? 4 : (canManage ? 7 : 6)}"
                         class="text-center text-muted py-4"
                     >
                         Belum ada kartu.
@@ -420,15 +422,17 @@
                 <div class="list-group-item py-3 kartu-mobile-card">
                     <div class="kartu-mobile-card__head">
                         <div class="kartu-mobile-card__identity">
-                            <div class="font-monospace small text-muted">
-                                ${esc(card.nisn)}
-                            </div>
-                            <strong class="d-block text-wrap">
-                                ${esc(card.nama)}
-                            </strong>
-                            <small class="d-block text-muted text-wrap">
-                                ${esc(card.nama_kelas || '-')}
-                            </small>
+                            ${selfView
+                                ? `<strong class="d-block text-wrap">Kartu Pelajar Saya</strong>`
+                                : `<div class="font-monospace small text-muted">
+                                    ${esc(card.nisn)}
+                                </div>
+                                <strong class="d-block text-wrap">
+                                    ${esc(card.nama)}
+                                </strong>
+                                <small class="d-block text-muted text-wrap">
+                                    ${esc(card.nama_kelas || '-')}
+                                </small>`}
                         </div>
                         <span class="badge ${
                             card.status_aktif === 'Aktif'
@@ -506,7 +510,7 @@
         body.innerHTML = `
             <tr>
                 <td
-                    colspan="${canManage ? 7 : 6}"
+                    colspan="${selfView ? 4 : (canManage ? 7 : 6)}"
                     class="text-center py-4"
                 >
                     <span class="spinner-border spinner-border-sm me-2"></span>
