@@ -11,8 +11,9 @@ use Throwable;
 /**
  * Export XLSX Jurnal G3.2.
  *
- * Export tetap parent-level: satu row = satu Jurnal. Child siswa diringkas
- * sebagai count S/I/A agar export besar tidak menggandakan row parent.
+ * Export tetap parent-level: satu row = satu Jurnal. Child siswa tetap
+ * diringkas sebagai count S/I/A, sekaligus menyertakan daftar nama siswa
+ * per status tanpa menggandakan row parent.
  */
 class JurnalExportService
 {
@@ -43,6 +44,9 @@ class JurnalExportService
                 'Izin Siswa',
                 'Alpha Siswa',
                 'Total S/I/A',
+                'Nama Siswa Sakit',
+                'Nama Siswa Izin',
+                'Nama Siswa Alpha',
                 'Tahun Ajaran',
                 'Semester',
             ];
@@ -58,6 +62,10 @@ class JurnalExportService
                 $summary = is_array($row['siswa_exception_summary'] ?? null)
                     ? $row['siswa_exception_summary']
                     : [];
+                $details = is_array($row['siswa_exception_details'] ?? null)
+                    ? $row['siswa_exception_details']
+                    : [];
+                $kelas = trim((string) ($row['nama_kelas'] ?? '-'));
 
                 $values = [
                     $no++,
@@ -77,6 +85,18 @@ class JurnalExportService
                     (int) ($summary['Izin'] ?? 0),
                     (int) ($summary['Alpha'] ?? 0),
                     (int) ($summary['total'] ?? 0),
+                    $this->studentNamesWithClass(
+                        $details['Sakit'] ?? [],
+                        $kelas
+                    ),
+                    $this->studentNamesWithClass(
+                        $details['Izin'] ?? [],
+                        $kelas
+                    ),
+                    $this->studentNamesWithClass(
+                        $details['Alpha'] ?? [],
+                        $kelas
+                    ),
                     $row['nama_tahun'] ?? '-',
                     $row['semester'] ?? '-',
                 ];
@@ -100,11 +120,18 @@ class JurnalExportService
             foreach (range(1, count($headers)) as $col) {
                 $sheet->getColumnDimension(
                     Coordinate::stringFromColumnIndex($col)
-                )->setAutoSize(! in_array($col, [12, 13], true));
+                )->setAutoSize(! in_array(
+                    $col,
+                    [12, 13, 18, 19, 20],
+                    true
+                ));
             }
 
             $sheet->getColumnDimension('L')->setWidth(45);
             $sheet->getColumnDimension('M')->setWidth(40);
+            $sheet->getColumnDimension('R')->setWidth(42);
+            $sheet->getColumnDimension('S')->setWidth(42);
+            $sheet->getColumnDimension('T')->setWidth(42);
 
             $filter = is_array($data['filter'] ?? null) ? $data['filter'] : [];
             $periode = ($filter['tanggal_mulai'] ?? 'awal')
@@ -143,6 +170,31 @@ class JurnalExportService
     ): void {
         $coordinate = Coordinate::stringFromColumnIndex($column) . $row;
         $sheet->setCellValue($coordinate, $value);
+    }
+
+    private function studentNamesWithClass(
+        mixed $names,
+        string $kelas
+    ): string {
+        if (! is_array($names) || $names === []) {
+            return '-';
+        }
+
+        $formatted = [];
+
+        foreach ($names as $name) {
+            $name = trim((string) $name);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $formatted[] = $name . ' (' . ($kelas !== '' ? $kelas : '-') . ')';
+        }
+
+        return $formatted !== []
+            ? implode(PHP_EOL, $formatted)
+            : '-';
     }
 
     private function writeTemp(Spreadsheet $spreadsheet, string $filename): string
