@@ -49,9 +49,12 @@ class LaporanJurnalExceptionService extends LaporanJurnalService
             return $result;
         }
 
-        $result['rows'] = $this->attachSummary(
-            is_array($result['rows'] ?? null) ? $result['rows'] : []
-        );
+        $rows = is_array($result['rows'] ?? null)
+            ? $result['rows']
+            : [];
+
+        $rows = $this->attachSummary($rows);
+        $result['rows'] = $this->attachExceptionDetails($rows);
 
         return $result;
     }
@@ -136,6 +139,36 @@ class LaporanJurnalExceptionService extends LaporanJurnalService
             $summary = $summaryMap[$id] ?? $this->emptySummary();
             $row['siswa_exception_summary'] = $summary;
             $row['siswa_exception_count'] = (int) ($summary['total'] ?? 0);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    private function attachExceptionDetails(array $rows): array
+    {
+        $ids = array_values(array_filter(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $rows
+        )));
+
+        if ($ids === []) {
+            return $rows;
+        }
+
+        $detailMap = [];
+
+        foreach (array_chunk($ids, self::SUMMARY_CHUNK) as $chunk) {
+            $detailMap += $this->model->getStudentExceptionDetails($chunk);
+        }
+
+        foreach ($rows as &$row) {
+            $id = (int) ($row['id'] ?? 0);
+            $row['siswa_exception_details'] = $detailMap[$id] ?? [
+                'Sakit' => [],
+                'Izin' => [],
+                'Alpha' => [],
+            ];
         }
         unset($row);
 
