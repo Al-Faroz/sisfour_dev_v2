@@ -13,7 +13,7 @@ use Throwable;
  * G3.6C:
  * - layout utama stabil mengikuti TemplateSIGNAGE;
  * - summary H/S/I/A Sesi Awal hari ini + coverage kelas;
- * - EWS panel merotasi Top Sakit/Izin/Alpha dalam 14 hari;
+ * - Presensi Signage panel merotasi Top Sakit/Izin/Alpha dalam 14 hari;
  * - Kelas Belum Presensi dan Jadwal Belum Jurnal auto-page di client;
  * - refresh data 5 menit, rotasi 15 detik.
  */
