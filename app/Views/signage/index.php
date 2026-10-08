@@ -17,7 +17,7 @@ $rankingDays = max(1, (int) ($info['ranking_days'] ?? 14));
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>EWS Digital Signage - <?= esc($namaSekolah) ?></title>
+    <title>Presensi Signage Digital Signage - <?= esc($namaSekolah) ?></title>
     <link rel="stylesheet" href="<?= sisfour_asset_url('assets/css/signage.css') ?>">
 </head>
 <body>
@@ -35,7 +35,7 @@ $rankingDays = max(1, (int) ($info['ranking_days'] ?? 14));
                 <img src="<?= esc($logoUrl, 'attr') ?>" alt="Logo <?= esc($namaSekolah, 'attr') ?>" class="signage-logo">
             <?php endif; ?>
             <div class="signage-brand__copy">
-                <div class="signage-kicker">EWS DIGITAL SIGNAGE SISFOUR</div>
+                <div class="signage-kicker">PRESENSI SIGNAGE SISFOUR</div>
                 <h1><?= esc($namaSekolah) ?></h1>
                 <div id="signageTahun" class="signage-year">
                     <?= esc($info['tahun_ajaran'] ?? 'Tahun Ajaran aktif belum tersedia') ?>
@@ -74,7 +74,7 @@ $rankingDays = max(1, (int) ($info['ranking_days'] ?? 14));
         <article class="signage-panel signage-panel--ews">
             <header class="signage-panel__header">
                 <div>
-                    <h2>EWS Presensi Siswa</h2>
+                    <h2>Presensi Signage Siswa</h2>
                     <small id="ewsSubtitle">S/I/A tertinggi • <?= $rankingDays ?> hari</small>
                 </div>
                 <span id="ewsPageLabel" class="panel-page">-</span>
