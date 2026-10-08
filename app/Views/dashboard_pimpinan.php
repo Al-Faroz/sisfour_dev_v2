@@ -39,7 +39,7 @@ $kpi = [
             : 'Tahun Ajaran aktif belum tersedia',
     ],
     [
-        'label' => 'EWS 14 Hari',
+        'label' => 'Presensi Signage — 14 Hari',
         'value' => $canEws && $periodAvailable
             ? (int) ($widgets['ews_count'] ?? 0)
             : null,
@@ -89,7 +89,7 @@ $ewsBadgeColor = $ewsCount !== null && $ewsCount > 0 ? 'warning' : 'secondary';
   </div>
   <div class="d-flex flex-wrap gap-2 justify-content-end">
     <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
-      <i class="bx bx-tv me-1"></i>EWS Signage
+      <i class="bx bx-tv me-1"></i>Presensi Signage
     </a>
     <?php if ($tahun !== null): ?>
       <span class="badge bg-label-primary">
@@ -181,7 +181,7 @@ $ewsBadgeColor = $ewsCount !== null && $ewsCount > 0 ? 'warning' : 'secondary';
   <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
-        <h5 class="mb-0">EWS Alpha 14 Hari</h5>
+        <h5 class="mb-0">Presensi Signage — Alpha 14 Hari</h5>
         <div class="d-flex align-items-center gap-2">
           <?php if ($canEws && $periodAvailable): ?>
             <span class="badge bg-label-<?= esc($ewsBadgeColor, 'attr') ?>"><?= (int) $ewsCount ?> siswa</span>
@@ -193,11 +193,11 @@ $ewsBadgeColor = $ewsCount !== null && $ewsCount > 0 ? 'warning' : 'secondary';
       </div>
       <div class="list-group list-group-flush">
         <?php if (! $canEws): ?>
-          <div class="list-group-item sisfour-mobile-state text-muted">Data EWS tidak tersedia untuk akun ini.</div>
+          <div class="list-group-item sisfour-mobile-state text-muted">Data Presensi Signage tidak tersedia untuk akun ini.</div>
         <?php elseif (! $periodAvailable): ?>
           <div class="list-group-item sisfour-mobile-state text-muted">Tahun Ajaran aktif belum tersedia.</div>
         <?php elseif ($ewsTop === []): ?>
-          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa EWS.</div>
+          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa pada Presensi Signage.</div>
         <?php else: foreach ($ewsTop as $row): ?>
           <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
             <div class="sisfour-cell-primary">
