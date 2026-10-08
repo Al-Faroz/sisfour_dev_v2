@@ -1,4 +1,4 @@
--- G3.6C Executive Visualization & EWS Signage — HOSTING
+-- G3.6C Executive Visualization & Presensi Signage — HOSTING
 -- Prepared from fresh pre-SQL hosting dump: u473908839_sisfour2026 (16).sql
 -- Source baseline main: f6f30ceaf070f342d609c322905ee77dc33f3e6f
 -- Feature branch: feat/g3-6c-exec-viz-signage-20260919
