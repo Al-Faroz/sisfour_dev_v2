@@ -1,4 +1,4 @@
--- G3.6C Executive Visualization & EWS Signage — LOCALHOST
+-- G3.6C Executive Visualization & Presensi Signage — LOCALHOST
 -- Baseline source: main @ f6f30ceaf070f342d609c322905ee77dc33f3e6f
 -- Baseline DB post-G3.6B: 66 permissions / 223 role_permissions / 50 menus / 173 role_menus.
 -- Physical BASE TABLE count is informational only because CodeIgniter framework tables
