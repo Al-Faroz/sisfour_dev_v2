@@ -13,7 +13,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   <div class="sisfour-page-header__copy"><h4 class="mb-1">Dashboard Operator</h4><p class="text-muted mb-0">Prioritas operasional harian madrasah.</p></div>
   <div class="sisfour-page-actions">
     <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
-      <i class="bx bx-tv me-1"></i>EWS Signage
+      <i class="bx bx-tv me-1"></i>Presensi Signage
     </a>
     <span class="badge bg-label-primary fs-6"><?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?></span>
   </div>
@@ -39,7 +39,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   <div class="sisfour-metric-tile sisfour-metric-tile--prominent sisfour-metric-tile--amber">
     <span class="sisfour-metric-tile__icon"><i class="bx bx-radar"></i></span>
     <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['ews_count'] ?? 0) ?></strong>
-    <span class="sisfour-metric-tile__label">EWS Alpha 14 Hari</span>
+    <span class="sisfour-metric-tile__label">Presensi Signage — Alpha 14 Hari</span>
     <span class="sisfour-metric-tile__meta">siswa perlu perhatian</span>
   </div>
 </div>
