@@ -1,4 +1,4 @@
-# 19 — G3.6C Executive Visualization & EWS Signage
+# 19 — G3.6C Executive Visualization & Presensi Signage
 
 ## 1. Baseline
 
@@ -15,14 +15,14 @@ G3.6C dikerjakan sebelum G3.7 Global Mobile Sweep agar seluruh surface UI baru i
 G3.6C terdiri dari tiga deliverable:
 
 ```text
-A. Shortcut EWS Signage pada Dashboard Admin / Operator / Pimpinan
-B. Refresh layout + rotasi EWS Signage berdasarkan TemplateSIGNAGE.pdf
+A. Shortcut Presensi Signage pada Dashboard Admin / Operator / Pimpinan
+B. Refresh layout + rotasi Presensi Signage berdasarkan TemplateSIGNAGE.pdf
 C. Halaman Statistik cross-domain + Export PDF
 ```
 
 Tidak ada perubahan permission/domain detail Konseling, tidak ada pengaktifan kembali Poin Pelanggaran, dan tidak ada tabel snapshot Statistik/Signage. G3.6C menambahkan exception khusus Statistik berupa aggregate-only Konseling untuk Admin/Operator/Pimpinan tanpa membuka record/detail Konseling.
 
-## 3. Shortcut EWS Signage
+## 3. Shortcut Presensi Signage
 
 Shortcut hanya muncul di dashboard experience:
 
@@ -42,7 +42,7 @@ rel=noopener
 
 Route Signage sendiri tetap OPEN / PUBLIC. Shortcut dashboard bukan security boundary.
 
-## 4. EWS Signage
+## 4. Presensi Signage
 
 Route tetap:
 
@@ -59,7 +59,7 @@ Reference presentation = TemplateSIGNAGE.pdf:
 Header compact
 Jumlah dan Persentase Kehadiran Siswa
 3 panel:
-- EWS Presensi Siswa
+- Presensi Signage Siswa
 - Kelas Belum Presensi
 - Jadwal Belum Jurnal
 Footer compact
@@ -83,7 +83,7 @@ coverage kelas = sudah / wajib
 
 Denominator persentase = jumlah record siswa Sesi Awal yang sudah tercatat hari itu. Coverage kelas wajib ditampilkan agar persentase tidak dibaca sebagai coverage seluruh madrasah ketika input kelas belum lengkap.
 
-### 4.2 Panel EWS Presensi Siswa
+### 4.2 Panel Presensi Signage Siswa
 
 Sumber = `presensi`, Sesi Awal, 14 hari terakhir.
 
@@ -104,7 +104,7 @@ maksimal 20 siswa
 field public = nama siswa, kelas, total status
 ```
 
-Threshold EWS internal `>=3 Alpha / 14 hari` tetap berlaku untuk indikator EWS internal. Ranking Signage S/I/A adalah monitoring dan tidak dibatasi threshold Alpha.
+Threshold Presensi Signage internal `>=3 Alpha / 14 hari` tetap berlaku untuk indikator Presensi Signage internal. Ranking Signage S/I/A adalah monitoring dan tidak dibatasi threshold Alpha.
 
 ### 4.3 Panel Kelas Belum Presensi
 
@@ -232,7 +232,7 @@ Presensi Siswa
 - tren H/S/I/A
 - persentase hadir per kelas
 
-EWS
+Presensi Signage
 - jumlah Alpha >=3 / 14 hari
 - top Sakit / Izin / Alpha 14 hari
 
@@ -296,7 +296,7 @@ Section:
 Filter Global
 Executive Summary
 Komposisi Siswa
-Presensi & EWS
+Presensi & Presensi Signage
 Pembelajaran
 Pembinaan
 Konseling BK — Aggregate Confidential
