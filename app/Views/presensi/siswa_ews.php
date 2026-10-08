@@ -5,7 +5,7 @@
 <div id="ewsPresensiSiswaApp" data-base-url="<?= esc(base_url()) ?>">
     <div class="sisfour-page-header">
         <div class="sisfour-page-header__copy">
-            <h4 class="fw-bold mb-1">EWS Presensi Siswa</h4>
+            <h4 class="fw-bold mb-1">Presensi Signage Siswa</h4>
             <p class="text-muted mb-0">Siswa dengan minimal 3 Alpha pada Sesi Awal dalam 14 hari.</p>
         </div>
 
@@ -32,7 +32,7 @@
                 </div>
                 <div class="col-12 col-md-3 d-grid">
                     <button type="submit" class="btn btn-primary sisfour-primary-action">
-                        <i class="bx bx-radar me-1"></i> Muat EWS
+                        <i class="bx bx-radar me-1"></i> Muat Presensi Signage
                     </button>
                 </div>
             </form>
@@ -41,7 +41,7 @@
 
     <div class="card sisfour-table-card">
         <div class="card-header">
-            <h5 class="mb-0">Daftar Siswa EWS</h5>
+            <h5 class="mb-0">Daftar Siswa Presensi Signage</h5>
         </div>
         <div id="ewsMobileList" class="d-md-none list-group list-group-flush">
             <div class="list-group-item sisfour-mobile-state text-muted">Memuat data...</div>
