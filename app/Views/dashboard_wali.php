@@ -94,8 +94,8 @@ $waliEwsColor = $waliEwsCount !== null && $waliEwsCount > 0
     ? 'warning'
     : 'secondary';
 $waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
-    ? 'EWS ' . $waliEwsCount . ' siswa'
-    : 'Tidak ada EWS';
+    ? 'Presensi Signage ' . $waliEwsCount . ' siswa'
+    : 'Tidak ada Presensi Signage';
 ?>
 
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
@@ -353,12 +353,12 @@ $waliEwsLabel = $waliEwsCount !== null && $waliEwsCount > 0
   <div class="col-lg-5">
     <div class="card h-100">
       <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center gap-2">
-        <h5 class="mb-0">EWS Kelas</h5>
+        <h5 class="mb-0">Presensi Signage Kelas</h5>
         <?php if ($waliEwsCount !== null): ?><span class="badge bg-label-<?= esc($waliEwsColor, 'attr') ?>"><?= (int) $waliEwsCount ?></span><?php endif; ?>
       </div>
       <div class="list-group list-group-flush">
         <?php if (empty($wali['ews_top'])): ?>
-          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa EWS.</div>
+          <div class="list-group-item sisfour-mobile-state sisfour-dashboard-empty text-muted">Tidak ada siswa pada Presensi Signage.</div>
         <?php else: foreach ($wali['ews_top'] as $row): ?>
           <div class="list-group-item d-flex justify-content-between align-items-center gap-3 py-3">
             <div class="sisfour-cell-primary">
