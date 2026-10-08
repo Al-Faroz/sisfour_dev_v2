@@ -17,7 +17,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   </div>
   <div class="sisfour-page-actions">
     <a href="<?= base_url('signage') ?>" target="_blank" rel="noopener" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">
-      <i class="bx bx-tv me-1"></i>EWS Signage
+      <i class="bx bx-tv me-1"></i>Presensi Signage
     </a>
     <span class="badge bg-label-primary fs-6">
       <?= esc(($tahun['nama_tahun'] ?? 'Tahun belum aktif') . (!empty($tahun['semester']) ? ' · ' . $tahun['semester'] : '')) ?>
@@ -46,7 +46,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
 
 <div class="sisfour-dashboard-heading">
   <h5 class="mb-0">Kondisi Operasional</h5>
-  <small class="text-muted">Presensi, jurnal, dan EWS</small>
+  <small class="text-muted">Presensi, jurnal, dan Presensi Signage</small>
 </div>
 <div class="sisfour-metric-grid sisfour-metric-grid--3 mb-4">
   <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--blue">
@@ -64,7 +64,7 @@ $tahun = $widgets['tahun_aktif'] ?? [];
   <div class="sisfour-metric-tile sisfour-metric-tile--compact sisfour-metric-tile--amber">
     <span class="sisfour-metric-tile__icon"><i class="bx bx-radar"></i></span>
     <strong class="sisfour-metric-tile__value"><?= (int) ($widgets['ews_count'] ?? 0) ?></strong>
-    <span class="sisfour-metric-tile__label">EWS Alpha 14 Hari</span>
+    <span class="sisfour-metric-tile__label">Presensi Signage — Alpha 14 Hari</span>
     <span class="sisfour-metric-tile__meta">Siswa dengan ≥3 Alpha Sesi Awal</span>
   </div>
 </div>
