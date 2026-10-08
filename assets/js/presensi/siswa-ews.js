@@ -49,8 +49,8 @@
         const pageRows = rows.slice(state.offset, state.offset + state.limit);
 
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Tidak ada siswa yang memenuhi kriteria EWS.</td></tr>';
-            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada siswa yang memenuhi kriteria EWS.</div>';
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Tidak ada siswa yang memenuhi kriteria Presensi Signage.</td></tr>';
+            mobileList.innerHTML = '<div class="list-group-item sisfour-mobile-state text-muted">Tidak ada siswa yang memenuhi kriteria Presensi Signage.</div>';
             pager?.render(state);
             return;
         }
@@ -69,7 +69,7 @@
                     <div class="min-w-0">
                         <small class="text-muted d-block mb-1">#${state.offset + index + 1}</small>
                         <strong class="sisfour-cell-title">${escapeHtml(row.nama_siswa_snapshot || '-')}</strong>
-                        <span class="sisfour-cell-meta">Alpha Sesi Awal dalam periode EWS</span>
+                        <span class="sisfour-cell-meta">Alpha Sesi Awal dalam periode Presensi Signage</span>
                     </div>
                     <span class="badge bg-label-danger flex-shrink-0">${Number(row.total_alpha || 0)} Alpha</span>
                 </div>
@@ -95,7 +95,7 @@
             const payload = await response.json();
 
             if (!response.ok || payload.status === 'error') {
-                throw new Error(payload.message || 'EWS gagal dimuat.');
+                throw new Error(payload.message || 'Presensi Signage gagal dimuat.');
             }
 
             rows = Array.isArray(payload.data) ? payload.data : [];
