@@ -24,7 +24,7 @@ $kpi = [
             : null,
     ],
     [
-        'label' => 'EWS Alpha 14 Hari',
+        'label' => 'Presensi Signage — Alpha 14 Hari',
         'value' => $widgets['ews_count'] ?? null,
         'tone' => 'amber',
         'icon' => 'bx-radar',
@@ -55,7 +55,7 @@ $actionTone = static function (string $label): string {
 <div class="sisfour-page-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
   <div class="sisfour-page-header__copy">
     <h4 class="mb-1">Dashboard BK</h4>
-    <p class="text-muted mb-0">Prioritas konseling, tindak lanjut, pelanggaran, EWS, dan prestasi siswa.</p>
+    <p class="text-muted mb-0">Prioritas konseling, tindak lanjut, pelanggaran, Presensi Signage, dan prestasi siswa.</p>
   </div>
   <?php if ($tahun !== null): ?>
     <span class="badge bg-label-primary">
@@ -190,12 +190,12 @@ $actionTone = static function (string $label): string {
   <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header sisfour-section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h5 class="mb-0">EWS Alpha 14 Hari</h5>
+        <h5 class="mb-0">Presensi Signage — Alpha 14 Hari</h5>
         <a href="<?= base_url('presensi/siswa/ews') ?>" class="btn sisfour-action sisfour-action--amber sisfour-action--compact sisfour-touch-target">Lihat Semua</a>
       </div>
       <div class="list-group list-group-flush">
         <?php if (empty($widgets['ews_top'])): ?>
-          <div class="list-group-item text-muted text-center py-4">Tidak ada siswa EWS saat ini.</div>
+          <div class="list-group-item text-muted text-center py-4">Tidak ada siswa pada Presensi Signage saat ini.</div>
         <?php else: ?>
           <?php foreach ($widgets['ews_top'] as $row): ?>
             <div class="list-group-item py-3 d-flex justify-content-between align-items-center gap-3">
